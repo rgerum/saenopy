@@ -316,7 +316,7 @@ class FiniteBodyForces:
             # this function has been discretized and we interpolate between these discretisation steps
 
             # the discretisation step
-            li = np.floor((deltal - self.dlmin) / self.dlstep).astype(int)
+            li = np.floor((deltal - self.dlmin) / self.dlstep)
             # the part between the two steps
             dli = (deltal - self.dlmin) / self.dlstep - li
 
@@ -324,6 +324,9 @@ class FiniteBodyForces:
             max_index = li > ((self.dlmax - self.dlmin) / self.dlstep) - 2
             li[max_index] = int(((self.dlmax - self.dlmin) / self.dlstep) - 2)
             dli[max_index] = 0
+
+            # convert now to int after fixing the maximum
+            li = li.astype(int)
 
             # interpolate between the two discretisation steps
             epsilon_b = (1 - dli) * self.epsilon[li] + dli * self.epsilon[li + 1]
@@ -480,7 +483,7 @@ class FiniteBodyForces:
                 resid = rsnew
 
                 # print status every 100 frames
-                if i % 1 == 0:
+                if i % 100 == 0:
                     print(i, ":", resid, "alpha=", alpha, end="\r")
 
             # now we want to apply the obtained guessed displacements to the vertex displacements "permanently"
