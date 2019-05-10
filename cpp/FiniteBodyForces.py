@@ -9,37 +9,39 @@ from .multigridHelper import makeBoxmeshCoords, makeBoxmeshTets, setActiveFields
 
 
 class FiniteBodyForces:
-    """
-    R
-    T
-    E
-    V
-    var
-    Phi
-    U
-    f_glo
-    f_ext
-    K_glo
-    Kinv_glo
+    R = None  # the 3D positions of the vertices, dimension: N_c x 3
+    T = None  # the tetrahedrons' 4 corner vertices (defined by index), dimensions: N_T x 4
+    E = None  # the energy stored in each tetrahedron, dimensions: N_T
+    V = None  # the volume of each tetrahedron, dimensions: N_T
+    var = None  # a bool if a vertex is movable
 
-    Laplace
-    E_glo
-    connections
-    currentgrain
+    Phi = None  # the shape tensor of each tetrahedron, dimensions: N_T x 4 x 3
+    U = None  # the displacements of each vertex, dimensions: N_c x 3
 
-    N_T
-    N_c
+    f_glo = None  # the global forces on each vertex, dimensions: N_c x 3
+    f_ext = None  # the external forces on each vertex, dimensions: N_c x 3
+    K_glo = None  # the global stiffness tensor, dimensions: N_c x N_c x 3 x 3
 
-    s
-    N_b
-    epsilon
-    epsbar
-    epsbarbar
-    dlmin
-    dlmax
-    dlstep
+    Laplace = None
 
-    """
+    E_glo = 0  # the global energy
+    connections = None  # a nested list which vertices are connected via a tetrahedron
+
+    currentgrain = 0
+    N_T = 0  # the number of tetrahedrons
+    N_c = 0  # the number of vertices
+
+    s = None  # the beams, dimensions N_b x 3
+    N_b = 0  # the number of beams
+
+    epsilon = None  # the lookup table for the material model
+    epsbar = None  # the lookup table for the material model
+    epsbarbar = None  # the lookup table for the material model
+
+    # the min, max and step of the discretisation of the material model
+    dlmin = 0
+    dlmax = 0
+    dlstep = 0
 
     def __init__(self, CFG):
         self.CFG = CFG
@@ -77,23 +79,26 @@ class FiniteBodyForces:
         self.E = np.zeros(self.N_T)
 
     def loadMeshCoords(self, fcoordsname):
-        # --------------  LOAD COORDS
+        """
+        Load the vertices. Each line represents a vertex and has 3 float entries for the x, y, and z coordinates of the
+        vertex.
+        """
 
-        # find NMX
-        data = np.loadtxt(fcoordsname)
-        NMX = data.shape[0]
+        # load the vertex file
+        data = np.loadtxt(fcoordsname, dtype=float)
 
+        # check the data
         assert data.shape[1] == 3, "coordinates in "+fcoordsname+" need to have 3 columns for the XYZ"
-        print("%s read (%d entries)" % (fcoordsname, NMX))
+        print("%s read (%d entries)" % (fcoordsname, data.shape[0]))
 
         # store the loaded vertex coordinates
         self.R = data
 
-        # TODO is N_c the number of connections?
-        self.N_c = NMX
+        # store the number of vertices
+        self.N_c = data.shape[0]
 
         # initialize 0 displacement for each vertex
-        self.U = np.zeros((NMX, 3))
+        self.U = np.zeros((self.N_c, 3))
 
         # start with every vertex being variable (non-fixed)
         self.var = np.ones(self.N_c, dtype=bool)
@@ -103,18 +108,22 @@ class FiniteBodyForces:
         self.f_ext = np.zeros(self.N_c * 3)
 
     def loadMeshTets(self, ftetsname):
-        data = np.loadtxt(ftetsname).astype(int)
-        NMX = data.shape[0]
+        """
+        Load the tetrahedrons. Each line represents a tetrahedron. Each line has 4 integer values representing the vertex
+        indices.
+        """
+        # load the data
+        data = np.loadtxt(ftetsname, dtype=int)
 
         # check the data
         assert data.shape[1] == 4, "vertex indices in "+ftetsname+" need to have 4 columns, the indices of the vertices of the 4 corners fo the tetrahedron"
-        print("%s read (%d entries)." % (ftetsname, NMX))
+        print("%s read (%d entries)." % (ftetsname, data.shape[0]))
 
         # the loaded data are the vertex indices but they start with 1 instead of 0 therefore "-1"
         self.T = data - 1
 
         # the number of tetrahedrons
-        self.N_T = NMX
+        self.N_T = data.shape[0]
 
         # Phi is a 4x3 tensor for every tetrahedron
         self.Phi = np.zeros((self.N_T, 4, 3))

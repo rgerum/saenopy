@@ -33,7 +33,7 @@ def buildEpsilon(k1, ds0, s1, ds1, CFG):
         return int(np.ceil((lambd - epsmin) / epsstep))
 
     # epsilon cannot be smaller than -1 because for lambda = -1 the fiber already has 0 length
-    imax = lambdaToIndex(epsmax)#int(np.ceil((epsmax - epsmin) / epsstep))
+    imax = lambdaToIndex(epsmax)
 
     lambd = indexToLambda(np.arange(imax))
 
