@@ -107,6 +107,9 @@ class FiniteBodyForces:
         self.f_glo = np.zeros((self.N_c, 3))
         self.f_ext = np.zeros((self.N_c, 3))
 
+        # initialize the list of the global stiffness
+        self.K_glo = np.zeros((self.N_c, self.N_c, 3, 3))
+
     def loadMeshTets(self, ftetsname):
         """
         Load the tetrahedrons. Each line represents a tetrahedron. Each line has 4 integer values representing the vertex
@@ -272,104 +275,86 @@ class FiniteBodyForces:
         self.E_glo = 0.0
 
         # initialize the list of the global stiffness
-        self.K_glo = np.zeros((self.N_c, self.N_c, 3, 3))
+        self.K_glo[:] = 0
 
         # reset the global forces acting on the tetrahedrons
         self.f_glo[:] = 0
 
+        # reset the energies of tetrahedrons
+        self.E[:] = 0
+
         # iterate over all tetrahedrons
         for tt in range(self.N_T):
-            # set the energy of the tetrahedron to zero
-            self.E[tt] = 0
-
             # print status every 100 iterations
             if tt % 100 == 0:
-                print("Updating f and K", (np.floor((tt / (self.N_T + 0.0)) * 1000) + 0.0) / 10.0, "                ", end="\r")
+                print("Updating f and K", (np.floor((tt / self.N_T) * 1000) + 0.0) / 10.0, "                ", end="\r")
 
             # test if one vertex of the tetrahedron is variable
-            if self.var[self.T[tt][0]] or \
-               self.var[self.T[tt][1]] or \
-               self.var[self.T[tt][2]] or \
-               self.var[self.T[tt][3]]:
-                # only count the energy if not the whole tetrahedron is fixed
-                countEnergy = True
-            else:
-                countEnergy = False
+            # only count the energy if not the whole tetrahedron is fixed
+            countEnergy = np.any(self.var[self.T[tt]])
 
-            # get the displacements of all corners of the tetrahedron
-            u_T = np.zeros((3, 4))
-            for t in range(4):
-                for i in range(3):
-                    u_T[i][t] = self.U[self.T[tt][t]][i]
+            # get the displacements of all corners of the tetrahedron (3x4)
+            u_T = self.U[self.T[tt]].T
 
-            # the force is the displacement multipied with the shape tensor plus 1 one the diagonal (p 49)
+            # the force is the displacement multiplied with the shape tensor plus 1 one the diagonal (p 49)
             F = u_T @ self.Phi[tt] + np.eye(3)
 
             # iterate over the beams
             # for the elastic strain energy we would need to integrate over the whole solid angle Gamma, but to make this
             # numerically accessible, we iterate over a finite set of directions (=beams) (c.f. page 53)
-            for b in range(self.N_b):
-                # multiply the force tensor with the beam
-                s_bar = F @ self.s[b]
-                # and the shape tensor with the beam
-                s_star = self.Phi[tt] @ self.s[b]
 
-                # the "deformation" amount # p 54 equ 2 part in the parentheses
-                deltal = np.linalg.norm(s_bar) - 1
+            # multiply the force tensor with the beam
+            s_bar = F @ self.s.T  # 3xN_b
+            # and the shape tensor with the beam
+            s_star = self.Phi[tt] @ self.s.T  # 4xN_b
 
-                # we now have to pass this though the non-linearity function w (material model)
-                # this function has been discretized and we interpolate between these discretisation steps
+            # the "deformation" amount # p 54 equ 2 part in the parentheses
+            s = np.linalg.norm(s_bar, axis=0)
+            deltal = s - 1
 
-                # the discretisation step
-                li = int(np.floor((deltal - self.dlmin) / self.dlstep))
-                # the part between the two steps
-                dli = (deltal - self.dlmin) / self.dlstep - li
+            # we now have to pass this though the non-linearity function w (material model)
+            # this function has been discretized and we interpolate between these discretisation steps
 
-                # if we are at the border of the discretisation, we stick to the end
-                if li > ((self.dlmax - self.dlmin) / self.dlstep) - 2:
-                    li = int(((self.dlmax - self.dlmin) / self.dlstep) - 2)
-                    dli = 0
+            # the discretisation step
+            li = np.floor((deltal - self.dlmin) / self.dlstep).astype(int)
+            # the part between the two steps
+            dli = (deltal - self.dlmin) / self.dlstep - li
 
-                # interpolate between the two discretisation steps
-                epsilon_b = (1 - dli) * self.epsilon[li] + dli * self.epsilon[li + 1]
-                epsbar_b = (1 - dli) * self.epsbar[li] + dli * self.epsbar[li + 1]
-                epsbarbar_b = (1 - dli) * self.epsbarbar[li] + dli * self.epsbarbar[li + 1]
+            # if we are at the border of the discretisation, we stick to the end
+            max_index = li > ((self.dlmax - self.dlmin) / self.dlstep) - 2
+            li[max_index] = int(((self.dlmax - self.dlmin) / self.dlstep) - 2)
+            dli[max_index] = 0
 
-                # only count the energy of the tetrahedron to the global energy if the tetrahedron has at least one
-                # variable vertex
-                if countEnergy:
-                    self.E_glo += epsilon_b * self.V[tt] / self.N_b
+            # interpolate between the two discretisation steps
+            epsilon_b = (1 - dli) * self.epsilon[li] + dli * self.epsilon[li + 1]
+            epsbar_b = (1 - dli) * self.epsbar[li] + dli * self.epsbar[li + 1]
+            epsbarbar_b = (1 - dli) * self.epsbarbar[li] + dli * self.epsbarbar[li + 1]
 
-                # sum the energy of this tetrahedron
-                self.E[tt] += epsilon_b * self.V[tt] / self.N_b  # p 54 (equ. 2)
+            # sum the energy of this tetrahedron
+            self.E[tt] = np.mean(epsilon_b) * self.V[tt]
 
-                dEdsbar = -1.0 * (epsbar_b / (deltal + 1.0)) / (self.N_b + 0.0) * self.V[tt]
+            # only count the energy of the tetrahedron to the global energy if the tetrahedron has at least one
+            # variable vertex
+            if countEnergy:
+                self.E_glo += self.E[tt]
 
-                dEdsbarbar = (((deltal + 1.0) * epsbarbar_b - epsbar_b) / (
-                        (deltal + 1.0) * (deltal + 1.0) * (deltal + 1.0))) / (self.N_b + 0.0) * self.V[tt]
+            dEdsbar = - (epsbar_b / s) / self.N_b * self.V[tt]
 
-                # iterate over all 4 corners of the tetrahedron
-                for t1 in range(4):
-                    # get the corner index
-                    c1 = self.T[tt][t1]
+            dEdsbarbar = ((s * epsbarbar_b - epsbar_b) / (s**3)) / self.N_b * self.V[tt]
 
-                    # calculate its contribution to the global force on this tetrahedron
-                    # p 54 last equation (in the thesis V is missing in the equation)
-                    # TODO explain the minus in dEdsbar, perhaps just the direction of the force?
-                    self.f_glo[c1] += s_star[t1] * s_bar * dEdsbar
+            # calculate its contribution to the global force on this tetrahedron
+            # p 54 last equation (in the thesis V is missing in the equation)
+            self.f_glo[self.T[tt]] += s_star @ (s_bar * dEdsbar).T
 
-                    # iterate over all 4 corners
-                    for t2 in range(4):
-                        c2 = self.T[tt][t2]
+            # dimensions 4x4xN_b
+            sstarsstar = s_star[None, :, :] * s_star[:, None, :]
 
-                        sstarsstar = s_star[t1] * s_star[t2]
+            # dimensions 4x4x3x3xN_b and summation over N_b
+            K_glo = np.sum(sstarsstar[:, :, None, None, :] * 0.5 * (
+                    dEdsbarbar * s_bar[None, :, :] * s_bar[:, None, :] - np.eye(3)[:, :, None] * np.sum(dEdsbar)), axis=-1)
 
-                        # calculate the global stiffness tensor
-                        # p 55 second to last equation
-                        # TODO why the 0.5? Because we treat each two times?
-                        # TODO why the Volume? Is it missing in the thesis? Very probable
-                        self.K_glo[c1][c2] += sstarsstar * 0.5 * (
-                                    dEdsbarbar * s_bar[:, None] * s_bar[None, :] - np.eye(3) * dEdsbar)
+            # and for each corner pair 4x4 we assign the 3x3 stiffness matrix
+            self.K_glo[self.T[tt][:, None], self.T[tt][None, :]] += K_glo
 
     def relax(self):
         i_max = self.CFG["REL_ITERATIONS"]
