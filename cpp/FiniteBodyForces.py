@@ -835,7 +835,7 @@ class FiniteBodyForces:
 
             Rrec.append(N)
 
-            EVrec.append(self.E[t], self.V[t])
+            EVrec.append([self.E[t], self.V[t]])
 
         np.savetxt(Rname, Rrec)
         np.savetxt(EVname, EVrec)
