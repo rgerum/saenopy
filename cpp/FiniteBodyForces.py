@@ -48,7 +48,7 @@ class FiniteBodyForces:
 
     def makeBoxmesh(self):
 
-        currentgrain = 1
+        self.currentgrain = 1
 
         nx = self.CFG["BM_N"]
         dx = self.CFG["BM_GRAIN"]
@@ -68,10 +68,10 @@ class FiniteBodyForces:
         for i in range(self.N_c):
             self.U.append([0.0, 0.0, 0.0])
 
-        self.T = makeBoxmeshTets(nx, currentgrain)
+        self.T = makeBoxmeshTets(nx, self.currentgrain)
         self.N_T = len(self.T)
 
-        self.var = setActiveFields(nx, currentgrain, True)
+        self.var = setActiveFields(nx, self.currentgrain, True)
 
         self.Phi = np.zeros((self.N_T, 4, 3))
 
@@ -104,8 +104,8 @@ class FiniteBodyForces:
         self.var = np.ones(self.N_c, dtype=bool)
 
         # initialize global and external forces
-        self.f_glo = np.zeros(self.N_c * 3)
-        self.f_ext = np.zeros(self.N_c * 3)
+        self.f_glo = np.zeros((self.N_c, 3))
+        self.f_ext = np.zeros((self.N_c, 3))
 
     def loadMeshTets(self, ftetsname):
         """
@@ -117,7 +117,7 @@ class FiniteBodyForces:
 
         # check the data
         assert data.shape[1] == 4, "vertex indices in "+ftetsname+" need to have 4 columns, the indices of the vertices of the 4 corners fo the tetrahedron"
-        print("%s read (%d entries)." % (ftetsname, data.shape[0]))
+        print("%s read (%d entries)" % (ftetsname, data.shape[0]))
 
         # the loaded data are the vertex indices but they start with 1 instead of 0 therefore "-1"
         self.T = data - 1
@@ -148,6 +148,7 @@ class FiniteBodyForces:
         temp = np.loadtxt(dbcondsname)
         assert temp.shape[1] == 4, "the boundary conditions need 4 columns"
         assert temp.shape[0] == self.N_c, "the boundary conditions need to have the same count as the number of vertices"
+        print("%s read (%d x %d entries)" % (dbcondsname, temp.shape[0], temp.shape[1]))
 
         # iterate over all lines
         for i in range(temp.shape[0]):
@@ -160,7 +161,7 @@ class FiniteBodyForces:
                 self.U[i] = temp[i][:3]
             else:
                 # if it is fixed, the given vector is the force on the vertex
-                self.f_ext[3 * i:3 * i + 3] = temp[i][:3]
+                self.f_ext[i] = temp[i][:3]
 
     def loadConfiguration(self, Uname):
         """
@@ -170,6 +171,7 @@ class FiniteBodyForces:
         data = np.loadtxt(Uname)
         assert data.shape[1] == 3, "the displacement file needs to have 3 columnds"
         assert data.shape[0] == self.N_c, "there needs to be a displacement for each vertex"
+        print("%s read (%d entries)" % (Uname, data.shape[0]))
 
         # store the displacement
         self.U[:, :] = data
@@ -269,7 +271,7 @@ class FiniteBodyForces:
         # reset the global energy
         self.E_glo = 0.0
 
-        # initialize the list of the global stiffnesses
+        # initialize the list of the global stiffness
         self.K_glo = np.zeros((self.N_c, self.N_c, 3, 3))
         #for i in range(self.N_c):
         #    self.K_glo.append([np.zeros((3, 3))])
@@ -356,7 +358,7 @@ class FiniteBodyForces:
                     # calculate its contribution to the global force on this tetrahedron
                     # p 54 last equation (in the thesis V is missing in the equation)
                     # TODO explain the minus in dEdsbar, perhaps just the direction of the force?
-                    self.f_glo[3 * c1:3 * c1 + 3] += s_star[t1] * s_bar * dEdsbar
+                    self.f_glo[c1] += s_star[t1] * s_bar * dEdsbar
 
                     # iterate over all 4 corners
                     for t2 in range(4):
@@ -400,7 +402,7 @@ class FiniteBodyForces:
                     ff += np.linalg.norm(self.f_glo[3 * ii:3 * ii + 3])
 
             # print and store status
-            print("Newton ", i, ": du=", du, "  Energy=", self.E_glo, "  Residuum=", ff, "          \n")
+            print("Newton ", i, ": du=", du, "  Energy=", self.E_glo, "  Residuum=", ff)
             relrec.append([du, self.E_glo, ff])
             np.savetxt(relrecname, relrec)
 
@@ -444,16 +446,13 @@ class FiniteBodyForces:
 
         maxiter = 3 * self.N_c
 
-        uu = np.zeros(3 * self.N_c)
+        uu = np.zeros((self.N_c, 3))
 
         # calculate the difference between the current forces on the vertices and the desired forces
         ff = self.f_glo - self.f_ext
 
-        # TODO when the forces are written as Nx3 this can be simplified
-        for i in range(self.N_c):
-            # ignore the force deviations on fixed vertices
-            if not self.var[i]:
-                ff[3 * i:3 * i + 3] = 0
+        # ignore the force deviations on fixed vertices
+        ff[~self.var, :] = 0
 
         # calculate the total force "amplitude"
         normb = np.sum(ff * ff)
@@ -535,7 +534,7 @@ class FiniteBodyForces:
             if self.var[c]:
                 A = self.K_glo[c][c]
 
-                f = self.f_glo[3 * c:3 * c + 3]
+                f = self.f_glo[c]
 
                 du = np.linalg.inv(A) * f
 
@@ -551,7 +550,7 @@ class FiniteBodyForces:
         vertices.
         """
         # start with an empty force array
-        f = np.zeros(self.N_c * 3)
+        f = np.zeros((self.N_c,  3))
 
         # iterate over all vertices
         for c1 in range(self.N_c):
@@ -563,47 +562,37 @@ class FiniteBodyForces:
             # sum over all connections
             for c2 in self.connections[c1]:
                 # get the offset of the partner
-                uu = u[3 * c2:3 * c2 + 3]
+                uu = u[c2]
                 # get the stiffness matrix
-                A = self.K_glo[c1][c2]
+                A = self.K_glo[c1, c2]
 
                 # the force is the stiffness matrix times the displacement
                 ff += A @ uu
 
             # store the force in the return value
-            f[3 * c1:3 * c1 + 3] = ff
+            f[c1] = ff
 
         # return the obtained forces
         return f
 
     def computeStiffening(self, results):
 
-        uu = np.zeros(self.N_c * 3)
-        Ku = np.zeros(self.N_c * 3)
+        uu = self.U.copy()
 
-        i = 0
-
-        for i in range(self.N_c):
-            uu[3 * i:3 * i + 3] = self.U[i]
-
-        self.mulK(uu, Ku)
+        Ku = self.mulK(uu)
 
         kWithStiffening = np.sum(uu * Ku)
         k1 = self.CFG["K_0"]
 
         ds0 = self.CFG["D_0"]
 
-        self.epsilon, self.epsbar, self.epsbarbar = buildEpsilon(k1, ds0, 0, 0)
+        self.epsilon, self.epsbar, self.epsbarbar = buildEpsilon(k1, ds0, 0, 0, self.CFG)
 
         self.updateGloFAndK()
 
-        uu = np.zeros(3 * self.N_c)
-        Ku = np.zeros(3 * self.N_c)
+        uu = self.U.copy()
 
-        for i in range(self.N_c):
-            uu[3 * i:3 * i + 3] = self.U[i]
-
-        self.mulK(uu, Ku)
+        Ku = self.mulK(uu)
 
         kWithoutStiffening = np.sum(uu, Ku)
 
@@ -631,7 +620,7 @@ class FiniteBodyForces:
 
                 fsum += f
 
-                f = self.f_glo[3 * c:3 * c + 3]
+                f = self.f_glo[c]
 
                 B1 += self.R[c] * np.linalg.norm(f)
                 B2 += f @ self.R[c] @ f  # TODO ensure matrix multiplication is the right thing to do here
@@ -659,7 +648,7 @@ class FiniteBodyForces:
             if in_[c]:
                 RR = self.R[c] - Rcms
 
-                contractility += (RR @ self.f_glo[3 * c: 3 * c + 3]) / abs(RR)
+                contractility += (RR @ self.f_glo[c]) / abs(RR)
 
         results["CONTRACTILITY"] = contractility
 
@@ -681,8 +670,8 @@ class FiniteBodyForces:
                     RR = self.R[c] - Rcms
                     eR = RR / abs(RR)
 
-                    ff += (eR @ vecs[b]) * (vecs[b] @ self.f_glo[3 * c:3 * c + 3])
-                    mm += (RR @ vecs[b]) * (vecs[b] @ self.f_glo[3 * c:3 * c + 3])
+                    ff += (eR @ vecs[b]) * (vecs[b] @ self.f_glo[c])
+                    mm += (RR @ vecs[b]) * (vecs[b] @ self.f_glo[c])
 
             if mm > mmax or b == 0:
                 bmax = b
@@ -705,8 +694,8 @@ class FiniteBodyForces:
                 RR = self.R[c] - Rcms
                 eR = RR / abs(RR)
 
-                fmid += (eR @ vmid) * (vmid @ self.f_glo[3 * c:3 * c + 3])
-                mmid += (RR @ vmid) * (vmid @ self.f_glo[3 * c:3 * c + 3])
+                fmid += (eR @ vmid) * (vmid @ self.f_glo[c])
+                mmid += (RR @ vmid) * (vmid @ self.f_glo[c])
 
         results["FMAX"] = fmax
         results["MMAX"] = mmax
@@ -800,8 +789,11 @@ class FiniteBodyForces:
             epkrec.append(np.array([self.E, p, kk]))
 
         np.savetxt(sbname, sbrec)
+        print(sbname, "stored.")
         np.savetxt(sbminname, sbminrec)
+        print(sbminname, "stored.")
         np.savetxt(epkname, epkrec)
+        print(epkname, "stored.")
 
     def storeRAndU(self, Rname, Uname):
         Rrec = []
@@ -812,15 +804,18 @@ class FiniteBodyForces:
             Urec.append(self.U[c])
 
         np.savetxt(Rname, Rrec)
+        print(Rname, "stored.")
         np.savetxt(Uname, Urec)
+        print(Uname, "stored.")
 
     def storeF(self, Fname):
         Frec = []
 
         for c in range(self.N_c):
-            Frec.append(self.f_glo[3 * c:3 * c + 3])
+            Frec.append(self.f_glo[c])
 
         np.savetxt(Fname, Frec)
+        print(Fname, "stored.")
 
     def storeFden(self, Fdenname):
         Vr = np.zeros(self.N_c)
@@ -831,20 +826,24 @@ class FiniteBodyForces:
 
         Frec = []
         for c in range(self.N_c):
-            Frec.apppend(self.f_glo[3 * c:3 * c + 3] / Vr[c])
+            Frec.apppend(self.f_glo[c] / Vr[c])
 
         np.savetxt(Fdenname, Frec)
+        print(Fdenname, "stored.")
 
     def storeEandV(self, Rname, EVname):
         Rrec = []
         EVrec = []
 
         for t in range(self.N_T):
-            N = np.mean([self.R[self.T[t][i]] for i in range(4)])
+            N = np.mean(np.array([self.R[self.T[t][i]] for i in range(4)]), axis=0)
 
             Rrec.append(N)
 
             EVrec.append([self.E[t], self.V[t]])
 
         np.savetxt(Rname, Rrec)
+        print(Rname, "stored.")
+
         np.savetxt(EVname, EVrec)
+        print(EVname, "stored.")
