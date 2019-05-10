@@ -273,8 +273,6 @@ class FiniteBodyForces:
 
         # initialize the list of the global stiffness
         self.K_glo = np.zeros((self.N_c, self.N_c, 3, 3))
-        #for i in range(self.N_c):
-        #    self.K_glo.append([np.zeros((3, 3))])
 
         # reset the global forces acting on the tetrahedrons
         self.f_glo[:] = 0
@@ -399,7 +397,7 @@ class FiniteBodyForces:
                 # only if they are not fixed
                 if self.var[ii]:
                     # sum the force
-                    ff += np.linalg.norm(self.f_glo[3 * ii:3 * ii + 3])
+                    ff += np.sum(self.f_glo[ii]**2)
 
             # print and store status
             print("Newton ", i, ": du=", du, "  Energy=", self.E_glo, "  Residuum=", ff)
@@ -513,14 +511,14 @@ class FiniteBodyForces:
             for c in range(self.N_c):
                 if self.var[c]:
                     # get the displacement
-                    dU = uu[3 * c:3 * c + 3]
+                    dU = uu[c]
 
                     # apply it
                     # TODO possible optimistation multiply the whole uu array
                     self.U[c] += dU * stepper
 
                     # sum the applied displacements. TODO but why stepper**2?
-                    du += np.linalg.norm(dU) * stepper * stepper
+                    du += np.sum(dU**2) * stepper * stepper
 
             # return the total applied displacement
             return du
@@ -541,8 +539,6 @@ class FiniteBodyForces:
                 self.U[c] += du
 
                 ddu += np.linalg.norm(du)
-
-        print("du=", ddu)
 
     def mulK(self, u):
         """
