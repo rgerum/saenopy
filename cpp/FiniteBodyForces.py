@@ -215,7 +215,7 @@ class FiniteBodyForces:
             # tetrahedron matrix B (linear map of the undeformed tetrahedron T onto the primitive tetrahedron P)
             B = np.array([self.R[tet[1]] - self.R[tet[0]],
                           self.R[tet[2]] - self.R[tet[0]],
-                          self.R[tet[3]] - self.R[tet[0]]])
+                          self.R[tet[3]] - self.R[tet[0]]]).T
 
             # calculate the volume of the tetrahedron
             self.V[t] = abs(np.linalg.det(B)) / 6.0
