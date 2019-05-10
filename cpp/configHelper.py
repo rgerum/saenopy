@@ -24,7 +24,7 @@ def loadConfigFile(filename):
     return results
 
 def saveConfigFile(CFG, filename):
-    with open(filename) as fp:
+    with open(filename, "w") as fp:
         for key, value in CFG.items():
             fp.write("%s = %s\n" % (key, value))
 
