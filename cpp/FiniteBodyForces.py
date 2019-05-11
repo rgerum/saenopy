@@ -166,6 +166,8 @@ class FiniteBodyForces:
                 # if it is fixed, the given vector is the force on the vertex
                 self.f_ext[i] = temp[i][:3]
 
+        self.computeConnections()
+
     def loadConfiguration(self, Uname):
         """
         Load the displacements for the vertices. The file has to have 3 columns for the displacement in XYZ and one
@@ -180,27 +182,28 @@ class FiniteBodyForces:
         self.U[:, :] = data
 
     def computeConnections(self):
-        # initialize the connections list
-        self.connections = []
-        for i in range(self.N_c):
-            self.connections.append([])
+        # initialize the connections as a set (to prevent double entries)
+        connections = set()
 
         # iterate over all tetrahedrons
-        for tt in range(self.N_T):
+        for tet in self.T:
             # over all corners
             for t1 in range(4):
+                c1 = tet[t1]
+
+                # only for non fixed vertices
+                if not self.var[c1]:
+                    continue
+
                 for t2 in range(4):
                     # get two vertices of the tetrahedron
-                    c1 = self.T[tt][t1]
-                    c2 = self.T[tt][t2]
+                    c2 = tet[t2]
 
-                    # check if the connection is already in the list, if not, add it
-                    if not c2 in self.connections[c1]:
-                        self.connections[c1].append(c2)
+                    # add the connection to the set
+                    connections.add((c1, c2))
 
-        # sort all lists (TODO why is this necessary?)
-        for c1 in range(self.N_c):
-            self.connections[c1] = sorted(self.connections[c1])
+        # convert the list of sets to an array N_connections x 2
+        self.connections = np.array(list(connections))
 
     def computePhi(self):
         """
@@ -536,27 +539,16 @@ class FiniteBodyForces:
         # start with an empty force array
         f = np.zeros((self.N_c,  3))
 
-        # iterate over all vertices
-        for c1 in range(self.N_c):
-            # only for non fixed vertices
-            if not self.var[c1]:
-                continue
+        # iterate over all connected pairs (containes only connections from variable vertices)
+        for c1, c2 in self.connections:
+            # get the offset of the partner
+            uu = u[c2]
+            # get the stiffness matrix
+            A = self.K_glo[c1, c2]
 
-            ff = np.zeros(3)
-            # sum over all connections
-            for c2 in self.connections[c1]:
-                # get the offset of the partner
-                uu = u[c2]
-                # get the stiffness matrix
-                A = self.K_glo[c1, c2]
+            # the force is the stiffness matrix times the displacement
+            f[c1] += A @ uu
 
-                # the force is the stiffness matrix times the displacement
-                ff += A @ uu
-
-            # store the force in the return value
-            f[c1] = ff
-
-        # return the obtained forces
         return f
 
     def computeStiffening(self, results):
