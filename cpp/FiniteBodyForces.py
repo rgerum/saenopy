@@ -8,6 +8,12 @@ from .buildBeams import buildBeams
 from .buildEpsilon import buildEpsilon
 from .multigridHelper import makeBoxmeshCoords, makeBoxmeshTets, setActiveFields
 
+pairs = []
+for t1 in range(4):
+    for t2 in range(4):
+        pairs.append([t1, t2])
+pairs = np.array(pairs).astype(int)
+
 @jit(double[:, :](double[:,:], double[:, :]), nopython=True)
 def dot(a, b):
     c = np.zeros((a.shape[0], b.shape[1]), dtype=np.double)
@@ -74,6 +80,7 @@ def invert(a):
     (xx * yy - xy * yx) / deter]])
 
 
+path = None
 class FiniteBodyForces:
     R = None  # the 3D positions of the vertices, dimension: N_c x 3
     T = None  # the tetrahedrons' 4 corner vertices (defined by index), dimensions: N_T x 4
@@ -358,7 +365,8 @@ class FiniteBodyForces:
         self.dlmax = self.CFG["EPSMAX"]
         self.dlstep = self.CFG["EPSSTEP"]
 
-    def updateGloFAndK(self, filename="tmp.txt"):
+    def updateGloFAndK(self):
+        t_start = time.time()
         # reset the global energy
         self.E_glo = 0.0
 
@@ -367,17 +375,6 @@ class FiniteBodyForces:
 
         # reset the global forces acting on the vertices
         self.f_glo[:] = 0
-
-        #rec = [];
-
-        #fp = open("output_py/out_kglo.txt", "w")
-
-        epsmin = self.dlmin
-        epsmax = self.dlmax
-        epsstep = self.dlstep
-        epsilon = self.epsilon
-        epsbar =  self.epsbar
-        epsbarbar = self.epsbarbar
 
         # iterate over all tetrahedrons
         for tt in range(self.N_T):
@@ -392,66 +389,31 @@ class FiniteBodyForces:
             # get the displacements of all corners of the tetrahedron (3x4)
             u_T = self.U[self.T[tt]].T
 
-            #u_T = np.zeros((3, 4))
-            #for t in range(4):
-            #    u_T[0][t]=self.U[self.T[tt][t]][0]
-            #    u_T[1][t]=self.U[self.T[tt][t]][1]
-            #    u_T[2][t]=self.U[self.T[tt][t]][2]
-
             # F is the linear map from T (the undefirmed tetrahedron) to T' (the deformed tetrahedron)
-            #FF = u_T @ self.Phi[tt]
-            FF = dot(u_T, self.Phi[tt])
+            FF = u_T @ self.Phi[tt]
+            #FF = dot(u_T, self.Phi[tt])
             F = FF + np.eye(3)
-
-            #for i in range(3):#(int i=0;i < 3;i++)
-                #fp.write(str(u_T[i][0]) + " " + str(u_T[i][1]) + " " + str(u_T[i][2]) + " " + str(u_T[i][3]) + "\n")
-                #fp.write(str(F[i][0])+" "+str(F[i][1])+" "+str(F[i][2]) + "\n")
-                #fp.write(str(FF[i][0]) + " " + str(FF[i][1]) + " " + str(FF[i][2]) + "\n")
 
             # iterate over the beams
             # for the elastic strain energy we would need to integrate over the whole solid angle Gamma, but to make this
             # numerically accessible, we iterate over a finite set of directions (=beams) (c.f. page 53)
 
             # multiply the F tensor with the beam
-            s_bar = dot(F, self.s.T)  # 3xN_b
-            #for b in range(self.N_b):
-            #    fp.write(str(s_bar[0, b]) + " " + str(s_bar[1, b]) + " " + str(s_bar[2, b]) + "\n")
+            #s_bar = dot(F, self.s.T)  # 3xN_b
+            s_bar = F @ self.s.T  # 3xN_b
+
             # and the shape tensor with the beam
-            s_star = dot(self.Phi[tt], self.s.T)  # 4xN_b
+            #s_star = dot(self.Phi[tt], self.s.T)  # 4xN_b
+            s_star = self.Phi[tt] @ self.s.T  # 4xN_b
 
             # the "deformation" amount # p 54 equ 2 part in the parentheses
             s = np.linalg.norm(s_bar, axis=0)
 
-            deltal = s-1
-
-            # the discretisation step
-            li = np.floor((deltal - epsmin) / epsstep)
-            # the part between the two steps
-            dli = (deltal - epsmin) / epsstep - li
-
-            # if we are at the border of the discretisation, we stick to the end
-            max_index = li > ((epsmax - epsmin) / epsstep) - 2
-            li[max_index] = int(((epsmax - epsmin) / epsstep) - 2)
-            dli[max_index] = 0
-
-            # convert now to int after fixing the maximum
-            li = li.astype(np.int64)
-
-            # interpolate between the two discretisation steps
-            epsilon_b = (1 - dli) * epsilon[li] + dli * epsilon[li + 1]
-            epsbar_b = (1 - dli) * epsbar[li] + dli * epsbar[li + 1]
-            epsbarbar_b = (1 - dli) * epsbarbar[li] + dli * epsbarbar[li + 1]
-
             # evaluate the material function (and its derivatives) at s - 1
-            #epsilon_b, epsbar_b, epsbarbar_b = self.e0(s - 1)
+            epsilon_b, epsbar_b, epsbarbar_b = self.e0(s - 1)
 
             # sum the energy of this tetrahedron
-            #self.E[tt] = np.mean(epsilon_b) * self.V[tt]
-            self.E[tt] = 0
-            for b in range(self.N_b):
-                self.E[tt] += epsilon_b[b] * self.V[tt] / self.N_b
-
-
+            self.E[tt] = np.mean(epsilon_b) * self.V[tt]
 
             # only count the energy of the tetrahedron to the global energy if the tetrahedron has at least one
             # variable vertex
@@ -462,138 +424,50 @@ class FiniteBodyForces:
 
             dEdsbarbar = ((s * epsbarbar_b - epsbar_b) / (s**3)) / self.N_b * self.V[tt]
 
-            deltal = s-1
-
-            dEdsbar = -1.0 * (epsbar_b / (deltal + 1.0)) / (self.N_b + 0.0) * self.V[tt];
-
-            dEdsbarbar = (((deltal + 1.0) * epsbarbar_b - epsbar_b) / (
-                        (deltal + 1.0) * (deltal + 1.0) * (deltal + 1.0))) / (self.N_b + 0.0) * self.V[tt];
-
-
-
-            if 0:
-                for b in range(self.N_b):
-                    #rec.append([epsbarbar_b[b], dEdsbar[b], dEdsbarbar[b]])
-                    rec.append([u_T[(b//4)%3, (b-b//4)%4], s[b], epsilon_b[b]])
-                    rec.append([epsbar_b[b], epsbarbar_b[b], epsilon_b[b] / self.N_b * self.V[tt]])
-                    rec.append([dEdsbar[b], dEdsbarbar[b], self.V[tt]])
-
             # calculate its contribution to the global force on this tetrahedron
             # p 54 last equation (in the thesis V is missing in the equation)
             self.f_glo[self.T[tt]] += s_star @ (s_bar * dEdsbar).T
 
-            if 1:
-                self.update_k_glo(tt, self.N_b, self.T, s_star, s_bar, dEdsbarbar, dEdsbar, self.K_glo)
-                continue
+            self.update_k_glo(self.T[tt], s_star, s_bar, dEdsbarbar, dEdsbar, self.K_glo)
 
-                for b in range(self.N_b):
-                    for t1 in range(4):
-                        c1=self.T[tt][t1]
-
-                        for t2 in range(4):
-
-                            c2=self.T[tt][t2]
-
-                            sstarsstar = s_star[t1, b] * s_star[t2, b]
-
-                            #print(sstarsstar.shape)
-                            #print(dEdsbarbar.shape)
-                            #print(s_bar.shape)
-                            #print(dEdsbar.shape)
-
-                            self.K_glo[c1][c2] += np.array([
-                                [
-                                sstarsstar * 0.5 * (dEdsbarbar[b] * s_bar[0, b] * s_bar[0, b]-dEdsbar[b] ),
-                                sstarsstar * 0.5 * (dEdsbarbar[b] * s_bar[0, b] * s_bar[1, b]),
-                                sstarsstar * 0.5 * (dEdsbarbar[b] * s_bar[0, b] * s_bar[2, b] ),
-                                ],
-                                [
-                                sstarsstar * 0.5 * (dEdsbarbar[b] * s_bar[1, b] * s_bar[0, b] ),
-                                sstarsstar * 0.5 * (dEdsbarbar[b] * s_bar[1, b] * s_bar[1, b]-dEdsbar[b]),
-                                sstarsstar * 0.5 * (dEdsbarbar[b] * s_bar[1, b] * s_bar[2, b] ),
-                                ],
-                                [
-                                sstarsstar * 0.5 * (dEdsbarbar[b] * s_bar[2, b] * s_bar[0, b] ),
-                                sstarsstar * 0.5 * (dEdsbarbar[b] * s_bar[2, b] * s_bar[1, b]),
-                                sstarsstar * 0.5 * (dEdsbarbar[b] * s_bar[2, b] * s_bar[2, b]-dEdsbar[b] )
-                                ],
-                            ]
-                            )
-                continue
-
-            if 0:
-                for t1 in range(4):
-                    for t2 in range(4):
-                        # dimensions 4x4xN_b
-                        sstarsstar = s_star[t1, :] * s_star[t2, :]
-
-                        # dimensions 4x4x3x3xN_b and summation over N_b
-                        test = np.expand_dims(s_bar, axis=0) * np.expand_dims(s_bar, axis=1)
-                        K_glo = np.sum(sstarsstar * 0.5 * (
-                                dEdsbarbar * np.expand_dims(s_bar, axis=0) * np.expand_dims(s_bar,
-                                                                                            axis=1) - np.expand_dims(
-                            np.eye(3), axis=2) * np.sum(
-                            dEdsbar)), axis=-1)
-
-                        # and for each corner pair 4x4 we assign the 3x3 stiffness matrix
-                        self.K_glo[self.T[tt][t1], self.T[tt][t2]] += K_glo
-            else:
-                # dimensions 4x4xN_b
-                # s*_mb * s*_rb (m, r in [0:3], b in [0:N_b])
-                sstarsstar = s_star[None, :, :] * s_star[:, None, :]
-
-                # dimensions 4x4x3x3xN_b and summation over N_b
-                K_glo = np.sum(sstarsstar[:, :, None, None, :] * 0.5 * (
-                        dEdsbarbar * s_bar[None, :, :] * s_bar[:, None, :] - np.eye(3)[:, :, None] * np.sum(dEdsbar)), axis=-1)
-
-                # and for each corner pair 4x4 we assign the 3x3 stiffness matrix
-                self.K_glo[self.T[tt][:, None], self.T[tt][None, :]] += K_glo
-
-        #for t1 in range(self.N_c):
-        #    for t2 in range(self.N_c):
-        #        for x in range(3):
-        #            for y in range(3):
-        #                fp.write(str(self.K_glo[t1,t2,x,y]) + "\n")
-
-        #fp.close()
-        print("flogtk finished")
-        #np.savetxt(filename, rec)
+        print("updateGloFAndK time", time.time()-t_start, "s")
 
     @staticmethod
-    @jit(nopython=True)
-    def update_k_glo(tt, N_b, T, s_star, s_bar, dEdsbarbar, dEdsbar, K_glo):
-        for b in range(N_b):
-            for t1 in range(4):
-                c1 = T[tt][t1]
+    #@jit(nopython=True)
+    def update_k_glo(tet, s_star, s_bar, dEdsbarbar, dEdsbar, K_glo):
 
-                for t2 in range(4):
-                    c2 = T[tt][t2]
+        if 0:
+            def expdims2(a, i, j):
+                return np.expand_dims(np.expand_dims(a, i), j)
+            s_bar_s_bar = 0.5 * (expdims2(dEdsbarbar, 0, 1) * np.expand_dims(s_bar, axis=1) * np.expand_dims(s_bar, axis=0) \
+                                 - np.expand_dims(np.eye(3), 2)*expdims2(dEdsbar, 0, 1))
 
-                    sstarsstar = s_star[t1, b] * s_star[t2, b]
+            sstarsstar = np.expand_dims(s_star, axis=1)*np.expand_dims(s_star, axis=0)
+            total = np.sum(expdims2(sstarsstar, 2,3)*expdims2(s_bar_s_bar, 0, 1), axis=-1)
 
-                    # print(sstarsstar.shape)
-                    # print(dEdsbarbar.shape)
-                    # print(s_bar.shape)
-                    # print(dEdsbar.shape)
+        else:
+            #                              / |  |     \      / |  |     \                   / |    |     \
+            #     ___             /  s'  w"| |s'| - 1 | - w' | |s'| - 1 |                w' | | s' | - 1 |             \
+            # 1   \   *     *     |   b    \ | b|     /      \ | b|     /                   \ |  b |     /             |
+            # -    > s   * s    * | ------------------------------------ * s' * s'  + ---------------------- * delta   |
+            # N   /   bm    br    |                  |s'|³                  ib   lb             |s'  |              li |
+            #  b  ---             \                  | b|                                       |  b |                 /
+            #      b
+            sstarsstar = np.einsum("mb,rb->mrb", s_star, s_star)
+            s_bar_s_bar = 0.5 * (np.einsum("b,ib,lb->ilb", dEdsbarbar, s_bar, s_bar)
+                                 - np.einsum("il,b->ilb", np.eye(3), dEdsbar))
+            total = np.einsum("mrb,ilb->mril", sstarsstar, s_bar_s_bar)
 
-                    K_glo[c1][c2] += np.array([
-                        [
-                            sstarsstar * 0.5 * (dEdsbarbar[b] * s_bar[0, b] * s_bar[0, b] - dEdsbar[b]),
-                            sstarsstar * 0.5 * (dEdsbarbar[b] * s_bar[0, b] * s_bar[1, b]),
-                            sstarsstar * 0.5 * (dEdsbarbar[b] * s_bar[0, b] * s_bar[2, b]),
-                        ],
-                        [
-                            sstarsstar * 0.5 * (dEdsbarbar[b] * s_bar[1, b] * s_bar[0, b]),
-                            sstarsstar * 0.5 * (dEdsbarbar[b] * s_bar[1, b] * s_bar[1, b] - dEdsbar[b]),
-                            sstarsstar * 0.5 * (dEdsbarbar[b] * s_bar[1, b] * s_bar[2, b]),
-                        ],
-                        [
-                            sstarsstar * 0.5 * (dEdsbarbar[b] * s_bar[2, b] * s_bar[0, b]),
-                            sstarsstar * 0.5 * (dEdsbarbar[b] * s_bar[2, b] * s_bar[1, b]),
-                            sstarsstar * 0.5 * (dEdsbarbar[b] * s_bar[2, b] * s_bar[2, b] - dEdsbar[b])
-                        ],
-                    ]
-                    )
+        p1 = pairs[:, 0]
+        p2 = pairs[:, 1]
+        K_glo[tet[p1], tet[p2], :, :] += total[p1, p2]
+        return
+
+        for t1 in range(4):
+            c1 = T[tt][t1]
+            for t2 in range(4):
+                c2 = T[tt][t2]
+                K_glo[c1][c2] += total[t1][t2]
 
     def relax(self):
         i_max = self.CFG["REL_ITERATIONS"]
@@ -603,46 +477,19 @@ class FiniteBodyForces:
 
         relrec = []
 
-        self.updateGloFAndK(os.path.join(outdir, "iteration_k%d.txt" % -1))
+        self.updateGloFAndK()
 
-        mean_k = 0
-        for t in range(self.N_c):
-            for t2 in range(self.N_c):
-                for x in range(3):
-                    for y in range(3):
-                        mean_k += self.K_glo[t][t2][x][y] / (self.N_c *self.N_c* 3*3)
-
-        relrec.append([mean_k, self.E_glo, np.sum(self.U[self.var]**2)])
-
-        mean_phi = 0
-        for t in range(self.N_T):
-            for x in range(4):
-                for y in range(3):
-                    mean_phi += self.Phi[t][x][y] / (self.T.shape[0] * 4 * 3)
-
-        sum_ff = 0
-        for t in range(self.N_c):
-            for x in range(3):
-                sum_ff += self.f_glo[t][x] / (self.N_c * 3)
-
-        relrec.append([sum_ff, mean_phi, np.sum(self.R**2)])
-        print("Phi", np.sum(self.Phi))
-        np.savetxt("output_py/out_phi.txt", self.Phi.reshape(self.Phi.shape[0], 4*3))
-
-        np.savetxt(relrecname, relrec)
-        #return
-
-        #i_max = 3
+        relrec.append([np.mean(self.K_glo), self.E_glo, np.sum(self.U[self.var]**2)])
 
         start = time.time()
         # start the iteration
         for i in range(i_max):
             # move the displacements in the direction of the forces one step
             # but while moving the stiffness tensor is kept constant
-            du = self.solve_CG(os.path.join(outdir, "iteration%d.txt" % i), i)
+            du = self.solve_CG()
 
             # update the forces on each tetrahedron and the global stiffness tensor
-            self.updateGloFAndK(os.path.join(outdir, "iteration_k%d.txt" % i))
+            self.updateGloFAndK()
 
             # sum all squared forces of non fixed vertices
             ff = np.sum(self.f_glo[self.var]**2)
@@ -669,7 +516,7 @@ class FiniteBodyForces:
         finish = time.time()
         print("| time for relaxation was", finish - start)
 
-    def solve_CG(self, storename, iteration_number):
+    def solve_CG(self):
         """
         Solve the displacements from the current stiffness tensor using conjugate gradient.
         """
@@ -704,7 +551,7 @@ class FiniteBodyForces:
             resid = np.sum(pp * pp)
 
             if 1:
-                uu, i, uu_list = self.CG_static_iterations(maxiter, tol, normb, pp, uu, rr, resid, self.connections, self.K_glo, self.var)
+                uu, i = self.CG_static_iterations(maxiter, tol, normb, pp, uu, rr, resid, self.connections, self.K_glo, self.var)
                 #np.savetxt(storename, uu_list)
             else:
                 # iterate maxiter iterations
@@ -759,7 +606,6 @@ class FiniteBodyForces:
     @jit(nopython=True)
     def CG_static_iterations(maxiter, tol, normb, pp, uu, rr, resid, connections, K_glo, var):
         Ap = np.zeros((K_glo.shape[0], 3))
-        uu_list = []
 
         # iterate maxiter iterations
         for i in range(1, maxiter + 1):
@@ -796,9 +642,8 @@ class FiniteBodyForces:
             # print status every 100 frames
             if i % 100 == 0:
                 print(i, ":", resid, "alpha=", alpha)#, end="\r")
-            uu_list.append(np.sum(uu[var]**2))
 
-        return uu, i, uu_list
+        return uu, i
 
     def smoothen(self):
         ddu = 0
