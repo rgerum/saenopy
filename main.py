@@ -5,7 +5,7 @@ import os
 from cpp.configHelper import loadDefaults, loadConfigFile, parseValue, saveConfigFile
 from cpp.FiniteBodyForces import FiniteBodyForces
 from cpp.VirtualBeads import VirtualBeads
-from cpp.buildBeams import buildBeams
+from cpp.buildBeams import buildBeams, saveBeams
 from cpp.buildEpsilon import saveEpsilon
 
 __version__ = 0.4
@@ -33,10 +33,12 @@ def main():
         for a in range(1, len(sys.argv), 2):
             if sys.argv[a] == "CONFIG":
                 CFG.update(loadConfigFile(sys.argv[a+1]))
+                os.chdir(os.path.dirname(sys.argv[a+1]))
 
         for a in range(1, len(sys.argv), 2):
             CFG[sys.argv[a]] = parseValue(sys.argv[a+1])
 
+    CFG["DATAOUT"] += "_py"
     outdir = CFG["DATAOUT"]
     indir = CFG["DATAIN"]+"/"
 
@@ -53,9 +55,8 @@ def main():
     # //------ START OF MODULE buildBeams --------------------------------------///
     print("BUILD BEAMS")
 
-    M.s = buildBeams(int(np.floor(np.sqrt(int(CFG["BEAMS"]) * np.pi + 0.5))))
-    M.N_b = len(M.s)
-    print(M.N_b, "beams were generated")
+    M.computeBeams(int(np.floor(np.sqrt(int(CFG["BEAMS"]) * np.pi + 0.5))))
+    saveBeams(M.s, os.path.join(outdir, "beams.dat"))
 
     # precompute the material model
     M.computeEpsilon()
@@ -107,7 +108,6 @@ def main():
         #//------ START OF MODULE solveBoundaryConditions --------------------------------------///
         print("SOLVE BOUNDARY CONDITIONS")
 
-        M.updateGloFAndK()
         M.relax()
 
         finish = time.time()
