@@ -17,17 +17,17 @@ def saveEpsilon(epsilon, fname, CFG):
     np.save(fname.replace(".dat", ".npy"), np.array([lambd, epsilon]).T)
 
 
-def buildEpsilon(k1, ds0, s1, ds1, CFG):
+def buildEpsilon(k1, ds0, s1, ds1, epsmax=4.0, epsstep=0.000001):
     """
     Build a lookup table for the material function.
     """
-    print("EPSILON PARAMETERS", k1, ds0, s1, ds1, CFG["EPSSTEP"])
+    print("EPSILON PARAMETERS", k1, ds0, s1, ds1)
 
     # calculate the number of steps (+1.0 because EPSMIN is defined as -1)
     # TODO define EPSMIN in the config?
     epsmin = -1.0
-    epsmax = CFG["EPSMAX"]
-    epsstep = CFG["EPSSTEP"]
+    epsmax = epsmax
+    epsstep = epsstep
 
     def indexToLambda(index):
         return index * epsstep + epsmin
@@ -100,4 +100,4 @@ def buildEpsilon(k1, ds0, s1, ds1, CFG):
         epsilon_b, epsbar_b, epsbarbar_b = lookUpEpsilon(x.flatten())
         return epsilon_b.reshape(*x.shape), epsbar_b.reshape(*x.shape), epsbarbar_b.reshape(*x.shape)
 
-    return epsilon, epsbar, epsbarbar, lookUpEpsilon, e0
+    return lookUpEpsilon
