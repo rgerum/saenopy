@@ -13,6 +13,11 @@ for t1 in range(4):
     for t2 in range(4):
         pairs.append([t1, t2])
 pairs = np.array(pairs).astype(int)
+#p1 = pairs[:, 0]
+#p2 = pairs[:, 1]
+#print(repr(p1))
+#print(repr(p2))
+#exit()
 
 @jit(double[:, :](double[:,:], double[:, :]), nopython=True)
 def dot(a, b):
@@ -249,6 +254,8 @@ class FiniteBodyForces:
         self.V = np.zeros(self.N_T)
         self.E = np.zeros(self.N_T)
 
+        self.total = np.zeros((self.N_T, 4, 4, 3, 3))
+
     def computeBeams(self, N):
         beams = buildBeams(N)
         self.setBeams(beams)
@@ -282,6 +289,8 @@ class FiniteBodyForces:
         # convert the list of sets to an array N_connections x 2
         self.connections = np.array(list(connections)).astype(int)
 
+        self.K_glo_conn = np.zeros((self.connections.shape[0], 3, 3))
+
     def computePhi(self):
         """
         Calculate the shape tensors of the tetrahedra (see page 49)
@@ -293,40 +302,23 @@ class FiniteBodyForces:
         Chi[2, :] = [0, 1, 0]
         Chi[3, :] = [0, 0, 1]
 
-        if 0:
-            for t, tet in enumerate(self.T):
-                # tetrahedron matrix B (linear map of the undeformed tetrahedron T onto the primitive tetrahedron P)
-                B = np.array([self.R[tet[1]] - self.R[tet[0]],
-                              self.R[tet[2]] - self.R[tet[0]],
-                              self.R[tet[3]] - self.R[tet[0]]]).T
+        B = np.zeros((3, 3))
 
-                # calculate the volume of the tetrahedron
-                self.V[t] = abs(np.linalg.det(B)) / 6.0
+        # for t, tet in enumerate(self.T):
+        for t in range(self.N_T):
+            tet = self.T[t]
+            # tetrahedron matrix B (linear map of the undeformed tetrahedron T onto the primitive tetrahedron P)
+            B[:, 0] = self.R[tet[1]] - self.R[tet[0]]
+            B[:, 1] = self.R[tet[2]] - self.R[tet[0]]
+            B[:, 2] = self.R[tet[3]] - self.R[tet[0]]
 
-                # if the tetrahedron has a volume
-                if self.V[t] != 0.0:
-                    # the shape tensor of the tetrahedron is defined as Chi * B^-1
-                    self.Phi[t] = Chi @ np.linalg.inv(B)
+            # calculate the volume of the tetrahedron
+            self.V[t] = abs(np.linalg.det(B)) / 6.0
 
-        else:
-            B = np.zeros((3, 3))
-
-            # for t, tet in enumerate(self.T):
-            for t in range(self.N_T):
-                tet = self.T[t]
-                # tetrahedron matrix B (linear map of the undeformed tetrahedron T onto the primitive tetrahedron P)
-                B[:, 0] = self.R[tet[1]] - self.R[tet[0]]
-                B[:, 1] = self.R[tet[2]] - self.R[tet[0]]
-                B[:, 2] = self.R[tet[3]] - self.R[tet[0]]
-
-                # calculate the volume of the tetrahedron
-                self.V[t] = abs(det(B)) / 6.0
-
-                # if the tetrahedron has a volume
-                if self.V[t] != 0.0:
-                    # the shape tensor of the tetrahedron is defined as Chi * B^-1
-                    #self.Phi[t] = Chi @ np.linalg.inv(B)
-                    self.Phi[t] = Chi @ invert(B)
+            # if the tetrahedron has a volume
+            if self.V[t] != 0.0:
+                # the shape tensor of the tetrahedron is defined as Chi * B^-1
+                self.Phi[t] = Chi @ np.linalg.inv(B)
 
     def computeLaplace(self):
         self.Laplace = []
@@ -407,15 +399,101 @@ class FiniteBodyForces:
 
         dEdsbarbar = ((s * epsbarbar_b - epsbar_b) / (s ** 3)) / self.N_b * self.V[:, None]
 
+        """
+        # get the displacements of all corners of the tetrahedron (N_Tx3x4)
+        u_T = self.U[self.T].transpose(0, 2, 1)
+        #u_T = self.U[T.flatten()].reshape(T.shape[0], T.shape[1], 3).transpose(0, 2, 1)
+
+        # F is the linear map from T (the undefirmed tetrahedron) to T' (the deformed tetrahedron)
+        F = u_T @ self.Phi + np.eye(3)
+
+        # iterate over the beams
+        # for the elastic strain energy we would need to integrate over the whole solid angle Gamma, but to make this
+        # numerically accessible, we iterate over a finite set of directions (=beams) (c.f. page 53)
+
+        # multiply the F tensor with the beam
+        # s_bar = dot(F, self.s.T)  # 3xN_b
+        s_bar = F @ self.s.T  # 3xN_b
+
+        # and the shape tensor with the beam
+        # s_star = dot(self.Phi[tt], self.s.T)  # 4xN_b
+        s_star = self.Phi @ self.s.T  # 4xN_b
+
+        #epsilon_b, dEdsbar, dEdsbarbar = self.zzEpsilons(s_bar, self.e0, self.V)
+        #epsilon_b, dEdsbar, dEdsbarbar = self.zzEpsilons2(s_bar, self.e0, self.V)
+
+        # sum the energy of this tetrahedron
+        self.E = np.mean(epsilon_b, axis=1) * self.V
+
+        # only count the energy of the tetrahedron to the global energy if the tetrahedron has at least one
+        # variable vertex
+        self.E_glo = np.sum(self.E[countEnergy])
+        """
+
         f = np.einsum("tcb,txb->tcx", s_star, (s_bar * dEdsbar[:, None, :]))
 
-        self.update_k_glo(self.T, s_star, s_bar, dEdsbarbar, dEdsbar, f, self.K_glo, self.f_glo)
+        self.update_k_glo(self.T, s_star, s_bar, dEdsbarbar, dEdsbar, f, self.K_glo, self.f_glo, self.total)
+        print("self.total", self.total.shape)
+
+        self.K_glo_conn[:] = self.K_glo[self.connections[:, 0], self.connections[:, 1], :, :]
 
         print("updateGloFAndK time", time.time()-t_start, "s")
 
     @staticmethod
+    @jit(nopython=True)
+    def zzEpsilons(s_bar, lookUpEpsilon, V):
+        #N_b = s.shape[0]
+
+        # test if one vertex of the tetrahedron is variable
+        # only count the energy if not the whole tetrahedron is fixed
+        #countEnergy = np.any(var[T], axis=1)
+
+        def e0(x):
+            epsilon_b, epsbar_b, epsbarbar_b = lookUpEpsilon(x.flatten())
+            return epsilon_b.reshape(*x.shape), epsbar_b.reshape(*x.shape), epsbarbar_b.reshape(*x.shape)
+
+        # the "deformation" amount # p 54 equ 2 part in the parentheses
+        #s = np.linalg.norm(s_bar, axis=1)
+        s = np.sqrt(np.sum(s_bar**2, axis=1))
+
+        # evaluate the material function (and its derivatives) at s - 1
+        epsilon_b, epsbar_b, epsbarbar_b = e0(s - 1)
+
+        dEdsbar = - (epsbar_b / s) / s.shape[0] * np.expand_dims(V, axis=1)
+
+        dEdsbarbar = ((s * epsbarbar_b - epsbar_b) / (s ** 3)) / s.shape[0] * np.expand_dims(V, axis=1)
+
+        return epsilon_b, dEdsbar, dEdsbarbar
+
+    @staticmethod
     #@jit(nopython=True)
-    def update_k_glo(T, s_star, s_bar, dEdsbarbar, dEdsbar, f, K_glo, f_glo):
+    def zzEpsilons2(s_bar, lookUpEpsilon, V):
+        # N_b = s.shape[0]
+
+        # test if one vertex of the tetrahedron is variable
+        # only count the energy if not the whole tetrahedron is fixed
+        # countEnergy = np.any(var[T], axis=1)
+
+        def e0(x):
+            epsilon_b, epsbar_b, epsbarbar_b = lookUpEpsilon(x.flatten())
+            return epsilon_b.reshape(*x.shape), epsbar_b.reshape(*x.shape), epsbarbar_b.reshape(*x.shape)
+
+        # the "deformation" amount # p 54 equ 2 part in the parentheses
+        s = np.linalg.norm(s_bar, axis=1)
+        #s = np.sqrt(np.sum(s_bar ** 2, axis=1))
+
+        # evaluate the material function (and its derivatives) at s - 1
+        epsilon_b, epsbar_b, epsbarbar_b = e0(s - 1)
+
+        dEdsbar = - (epsbar_b / s) / s.shape[0] * np.expand_dims(V, axis=1)
+
+        dEdsbarbar = ((s * epsbarbar_b - epsbar_b) / (s ** 3)) / s.shape[0] * np.expand_dims(V, axis=1)
+
+        return epsilon_b, dEdsbar, dEdsbarbar
+
+    #@staticmethod
+    #@jit(nopython=True)
+    def update_k_glo(self, T, s_star, s_bar, dEdsbarbar, dEdsbar, f, K_glo, f_glo, total):
         global path
 
         p1 = pairs[:, 0]
@@ -451,14 +529,30 @@ class FiniteBodyForces:
 
         s_bar_s_bar = 0.5 * (np.einsum("tb,tib,tlb->tilb", dEdsbarbar, s_bar, s_bar, optimize=path[1])
                              - np.einsum("il,tb->tilb", np.eye(3), dEdsbar, optimize=path[2]))
-        total = np.einsum("tmrb,tilb->tmril", sstarsstar, s_bar_s_bar, optimize=path[3])
+        total[:] = np.einsum("tmrb,tilb->tmril", sstarsstar, s_bar_s_bar, optimize=path[3])
 
         # iterate over all tetrahedrons
+
+        #np.add.at(f_glo, T, f)
+
+        #np.add.at(K_glo, )
+
+        #K_glo[tet[p1], tet[p2], :, :] += total[tt, p1, p2]
+
+        #pass#np.add.at(K_glo, [tet[p1], tet[p2], :, :] += total[tt, p1, p2]
+
+        self.reshape_f1(T, f, f_glo)
+        self.reshape_f2(T, f, f_glo)
+        self.reshape_f3(T, f, f_glo)
+
+        self.reshape_stiffnes(T, total, K_glo)
+        self.reshape_stiffnes2(T, total, K_glo)
+        return#exit()
         for tt in range(T.shape[0]):
             tet = T[tt]
             # calculate its contribution to the global force on this tetrahedron
             # p 54 last equation (in the thesis V is missing in the equation)
-            f_glo[tet] += f[tt]
+            #f_glo[tet] += f[tt]
 
             if 0:
                 def expdims2(a, i, j):
@@ -470,6 +564,51 @@ class FiniteBodyForces:
                 total = np.sum(expdims2(sstarsstar, 2,3)*expdims2(s_bar_s_bar, 0, 1), axis=-1)
 
             K_glo[tet[p1], tet[p2], :, :] += total[tt, p1, p2]
+
+    @staticmethod
+    # @jit(nopython=True)
+    def reshape_f1(T, f, f_glo):
+        f_glo[:] = 0
+        for tt in range(T.shape[0]):
+            tet = T[tt]
+            f_glo[tet] += f[tt]
+
+    @staticmethod
+    # @jit(nopython=True)
+    def reshape_f2(T, f, f_glo):
+        f_glo[:] = 0
+        np.add.at(f_glo, T, f)
+
+    @staticmethod
+    @jit(nopython=True)
+    def reshape_f3(T, f, f_glo):
+        f_glo[:] = 0
+        for tt in range(T.shape[0]):
+            tet = T[tt]
+            f_glo[tet] += f[tt]
+
+    @staticmethod
+    #@jit(nopython=True)
+    def reshape_stiffnes(T, total, K_glo):
+        K_glo[:] = 0
+        p1 = np.array([0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3], dtype=np.int64)
+        p2 = np.array([0, 1, 2, 3, 0, 1, 2, 3, 0, 1, 2, 3, 0, 1, 2, 3], dtype=np.int64)
+
+        for tt in range(T.shape[0]):
+            tet = T[tt]
+            K_glo[tet[p1], tet[p2]] += total[tt, p1, p2]
+
+    @staticmethod
+    @jit(nopython=True)
+    def reshape_stiffnes2(T, total, K_glo):
+        K_glo[:] = 0
+        for tt in range(T.shape[0]):
+            tet = T[tt]
+            for t1 in range(4):
+                c1 = tet[t1]
+                for t2 in range(4):
+                    c2 = tet[t2]
+                    K_glo[c1, c2] += total[tt, t1, t2]
 
     def relax(self):
         i_max = self.CFG["REL_ITERATIONS"]
@@ -555,7 +694,7 @@ class FiniteBodyForces:
             resid = np.sum(pp * pp)
 
             if 1:
-                uu, i = self.CG_static_iterations(maxiter, tol, normb, pp, uu, rr, resid, self.connections, self.K_glo, self.var, self.mulK_static)
+                uu, i = self.CG_static_iterations(maxiter, tol, normb, pp, uu, rr, resid, self.connections, self.K_glo, self.var, self.mulK_static, self.total, self.T, self.K_glo_conn)
                 #np.savetxt(storename, uu_list)
             else:
                 # iterate maxiter iterations
@@ -608,12 +747,12 @@ class FiniteBodyForces:
 
     @staticmethod
     #@jit(nopython=True)
-    def CG_static_iterations(maxiter, tol, normb, pp, uu, rr, resid, connections, K_glo, var, mulK_static):
+    def CG_static_iterations(maxiter, tol, normb, pp, uu, rr, resid, connections, K_glo, var, mulK_static, total, T, K_glo_conn):
         Ap = np.zeros((K_glo.shape[0], 3))
 
         # iterate maxiter iterations
         for i in range(1, maxiter + 1):
-            mulK_static(Ap, pp, connections, K_glo)
+            mulK_static(Ap, pp, connections, K_glo, total, T, K_glo_conn)
 
             # calculate a good step size
             alpha = resid / np.sum(pp * Ap)
@@ -659,13 +798,24 @@ class FiniteBodyForces:
         Multiply the displacement u with the global stiffness tensor K. Or in other words, calculate the forces on all
         vertices.
         """
-        self.mulK_static(f, u, self.connections, self.K_glo)
+        self.mulK_static(f, u, self.connections, self.K_glo, self.total, self.T, self.K_glo_conn)
 
     @staticmethod
-    @jit(nopython=True)
-    def mulK_static(f, u, connections, K_glo):
+    #@jit(nopython=True)
+    def mulK_static(f, u, connections, K_glo, total, T, K_glo_conn):
         # start with an empty force array
         f[:] = 0
+
+        c1 = connections[:, 0]
+        c2 = connections[:, 1]
+        #np.add.at(f, c1, np.einsum("nij,nj->ni", K_glo[c1, c2], u[c2]))
+        np.add.at(f, c1, np.einsum("nij,nj->ni", K_glo_conn, u[c2]))
+        #np.add.at(f, T, np.einsum("nijxy,njy->nix", total, u[T]))
+        #f[f<1e-34] = 0
+        return
+
+        K_glo[c1, c2] @ u[c2]
+        np.add.at(f, connections[:, 0], 1)
 
         # iterate over all connected pairs (contains only connections from variable vertices)
         for i in range(connections.shape[0]):
