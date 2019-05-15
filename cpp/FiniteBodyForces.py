@@ -31,13 +31,13 @@ def mulK_static_jit(f, u, connections, K_glo_conn):
 from numba import types
 from numba.extending import overload
 
-#@overload(np.einsum)
-#def einsum(string, array):
-#   if isinstance(string, types.string) and isinstance(array, types.double[:]):
-#       n = len(seq)
-#       def len_impl(seq):
-#           return n
-#       return len_impl
+@overload(np.linalg.norm)
+def overload_norm(A, axis):
+    """ implement axis keyword """
+    if isinstance(A, types.Array) or isinstance(axis, types.Integer):
+        def norm_impl(A, axis):
+            return np.sqrt(np.sum(A ** 2, axis=axis))
+        return norm_impl
 
 @jit(double[:, :](double[:,:], double[:, :]), nopython=True)
 def dot(a, b):
@@ -444,8 +444,7 @@ class FiniteBodyForces:
 
         # the "deformation" amount # p 54 equ 2 part in the parentheses
         # s_tb = |s'_tib|  (t in [0, N_T], i in {x,y,z}, b in [0, N_b])
-        # s = np.linalg.norm(s_bar, axis=1)
-        s = np.sqrt(np.sum(s_bar ** 2, axis=1))
+        s = np.linalg.norm(s_bar, axis=1)
 
         # evaluate the material function (and its derivatives) at s - 1
         # eps_tb
