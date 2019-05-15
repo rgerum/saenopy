@@ -100,4 +100,4 @@ def buildEpsilon(k1, ds0, s1, ds1, CFG):
         epsilon_b, epsbar_b, epsbarbar_b = lookUpEpsilon(x.flatten())
         return epsilon_b.reshape(*x.shape), epsbar_b.reshape(*x.shape), epsbarbar_b.reshape(*x.shape)
 
-    return epsilon, epsbar, epsbarbar, e0
+    return epsilon, epsbar, epsbarbar, lookUpEpsilon, e0
