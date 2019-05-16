@@ -1,5 +1,7 @@
 import os
 import time
+import tensorflow as tf
+from scipy.sparse import coo_matrix
 
 import numpy as np
 from numba import jit, double
@@ -217,7 +219,7 @@ class FiniteBodyForces:
         self.var = data[:, 3] > 0.5
         # if it is fixed, the other coordinates define the displacement
         self.U[~self.var] = data[~self.var, :3]
-        # if it is fixed, the given vector is the force on the vertex
+        # if it is variable, the given vector is the force on the vertex
         self.f_ext[self.var] = data[self.var, :3]
 
         # update the connections (as they only contain non-fixed vertices)
@@ -307,10 +309,62 @@ class FiniteBodyForces:
                     connections.add((c1, c2))
 
         # convert the list of sets to an array N_connections x 2
-        self.connections = np.array(list(connections)).astype(int)
+        self.connections = np.array(list(connections), dtype=int)
 
         # initialize the stiffness matrix premultiplied with the connections
         self.K_glo_conn = np.zeros((self.connections.shape[0], 3, 3))
+
+        # initialize the connections as a set (to prevent double entries)
+        connections2 = []
+        for i in range(self.N_c):
+            connections2.append([])
+
+        # iterate over all tetrahedrons
+        for tet in self.T:
+            # over all corners
+            for t1 in range(4):
+                c1 = tet[t1]
+
+                # only for non fixed vertices
+                if not self.var[c1]:
+                    continue
+
+                for t2 in range(4):
+                    # get two vertices of the tetrahedron
+                    c2 = tet[t2]
+
+                    # add the connection to the set
+                    connections2[c1].append(c2)
+
+        for i in range(self.N_c):
+            connections2[i] = np.array(connections2[i]).astype(int)
+
+        # convert the list of sets to an array N_connections x 2
+        self.connections2 = connections2
+        self.list_of_variable_corners = np.arange(self.N_c)[self.var]
+
+        c1 = self.connections[:, 0]
+        c2 = self.connections[:, 1]
+        x, y = np.meshgrid(np.arange(3), c2)
+        _, y2 = np.meshgrid(np.arange(3), c1)
+        self.connection_indices = np.c_[y2.ravel(), y.ravel(), x.ravel()]
+        #print(self.connection_indices)
+
+
+        x, y = np.meshgrid(np.arange(3), self.connections[:, 0])
+        self.connections_sparse_indices = (y.flatten(), x.flatten())
+
+        y, x = np.meshgrid(np.arange(3), self.T.flatten())
+        self.force_distribute_coordinates = (x.flatten(), y.flatten())
+        pairs = np.array(np.meshgrid(np.arange(4), np.arange(4))).reshape(2, -1)
+
+        tensor_pairs = self.T[:, pairs.T]  # T x 16 x 2
+        tensor_index = tensor_pairs[:, :, 0] + tensor_pairs[:, :, 1] * self.N_c
+
+        y, x = np.meshgrid(np.arange(9), tensor_index.flatten())
+        self.stiffness_distribute_coordinates = (x.flatten(), y.flatten())
+
+        #exit()
 
     def computePhi(self):
         """
@@ -381,7 +435,9 @@ class FiniteBodyForces:
         # f_tmi = s*_tmb * s'_tib * dEds'_tb  (t in [0, N_T], i in {x,y,z}, m in {1,2,3,4}, b in [0, N_b])
         f = np.einsum("tmb,tib,tb->tmi", s_star, s_bar, dEdsbar)
 
-        self.reshape_f3(self.T, f, self.f_glo)
+        #self.reshape_f3(self.T, f, self.f_glo)
+
+        self.reshape_f4(self.force_distribute_coordinates, f, self.f_glo)
 
     @staticmethod
     @jit(nopython=True)
@@ -392,6 +448,10 @@ class FiniteBodyForces:
         for tt in range(T.shape[0]):
             tet = T[tt]
             f_glo[tet] += f[tt]
+
+    @staticmethod
+    def reshape_f4(force_distribute_coordinates, f, f_glo):
+        coo_matrix((f.flatten(), force_distribute_coordinates), shape=f_glo.shape).toarray(out=f_glo)
 
     def update_energy(self, epsilon_b):
         # test if one vertex of the tetrahedron is variable
@@ -424,7 +484,7 @@ class FiniteBodyForces:
         s_bar = F @ self.s.T
 
         # and the shape tensor with the beam
-        # s*_tmb = Phi_tmj * s_jb  (t in [0, N_T], i,j in {x,y,z}, b in [0, N_b])
+        # s*_tmb = Phi_tmj * s_jb  (t in [0, N_T], i,j in {x,y,z}, m in {1,2,3,4}), b in [0, N_b])
         s_star = self.Phi @ self.s.T
 
         return s_bar, s_star
@@ -478,8 +538,49 @@ class FiniteBodyForces:
 
         return np.einsum("tmrb,tilb->tmril", sstarsstar, s_bar_s_bar)
 
+    def starbar_tf(self, s_star, s_bar, dEdsbar, dEdsbarbar):
+
+        class TensorFlowTheanoFunction(object):
+            def __init__(self, inputs, outputs):
+                self._inputs = inputs
+                self._outputs = outputs
+
+            def __call__(self, *args, **kwargs):
+                feeds = {}
+                for (argpos, arg) in enumerate(args):
+                    feeds[self._inputs[argpos]] = arg
+                return tf.get_default_session().run(self._outputs, feeds)
+
+        s_star_t = tf.placeholder(dtype=tf.float64, shape=s_star.shape)
+        s_bar_t = tf.placeholder(dtype=tf.float64, shape=s_bar.shape)
+        dEdsbar_t = tf.placeholder(dtype=tf.float64, shape=dEdsbar.shape)
+        dEdsbarbar_t = tf.placeholder(dtype=tf.float64, shape=dEdsbarbar.shape)
+
+        sstarsstar = tf.einsum("tmb,trb->tmrb", s_star_t, s_star_t)
+        s_bar_s_bar = 0.5 * (tf.einsum("tb,tib,tlb->tilb", dEdsbarbar_t, s_bar_t, s_bar_t)
+                             - tf.einsum("il,tb->tilb", tf.eye(3, dtype=tf.float64), dEdsbar_t))
+
+        total = tf.einsum("tmrb,tilb->tmril", sstarsstar, s_bar_s_bar)
+
+        sess = tf.InteractiveSession()
+        f = TensorFlowTheanoFunction([s_star_t, s_bar_t, dEdsbar_t, dEdsbarbar_t], total)
+        self.starbar_tf = f
+        return f(s_star, s_bar, dEdsbar, dEdsbarbar)
+
     def update_K_glo(self, s_star, s_bar, dEdsbar, dEdsbarbar):
-        self.reshape_stiffnes2(self.T, self.starbar(s_star, s_bar, dEdsbar, dEdsbarbar), self.K_glo)
+        x = self.starbar(s_star, s_bar, dEdsbar, dEdsbarbar)
+        #x = self.starbar_tf(s_star, s_bar, dEdsbar, dEdsbarbar)
+
+        #self.reshape_stiffnes2(self.T, x, self.K_glo)
+        #self.reshape_stiffnes2_again()
+
+        self.reshape_stiffnes2_sparse(x)
+        self.reshape_stiffnes2_again()
+
+    def reshape_stiffnes2_sparse(self, total_stiffness):
+        self.K_glo = coo_matrix((total_stiffness.flatten(), self.stiffness_distribute_coordinates), shape=(self.N_c * self.N_c, 9)).toarray().reshape(self.N_c, self.N_c, 3, 3)
+
+    def reshape_stiffnes2_again(self):
         self.K_glo_conn[:] = self.K_glo[self.connections[:, 0], self.connections[:, 1], :, :]
 
     @staticmethod
@@ -506,6 +607,7 @@ class FiniteBodyForces:
             # move the displacements in the direction of the forces one step
             # but while moving the stiffness tensor is kept constant
             du = self.solve_CG(stepper)
+            #return
 
             # update the forces on each tetrahedron and the global stiffness tensor
             self.updateGloFAndK()
@@ -563,7 +665,8 @@ class FiniteBodyForces:
         if normb > 0:
             # calculate the force for the given displacements (we start with 0 displacements)
             # TODO are the fixed displacements from the boundary conditions somehow included here? Probably in the stiffness tensor K
-            self.mulK(kk, uu)
+            #self.mulK(kk, uu)
+            self.mulK_sparse(kk, uu)
 
             # the difference between the desired force deviations and the current force deviations
             rr = ff - kk
@@ -576,8 +679,14 @@ class FiniteBodyForces:
 
             # iterate maxiter iterations
             for i in range(1, maxiter + 1):
-                # calculate the current forces
-                self.mulK(Ap, pp)
+                #for i in range(100):
+                #    print(i)
+                    # calculate the current forces
+                #self.mulK(Ap, pp)
+                self.mulK_sparse(Ap, pp)
+                #    self.mulK2(Ap, pp, self.connections2, self.K_glo, self.list_of_variable_corners)
+                #    self.mulK3(Ap, pp, self.connections2, self.K_glo)
+                #return
 
                 # calculate a good step size
                 alpha = resid / np.sum(pp * Ap)
@@ -607,7 +716,7 @@ class FiniteBodyForces:
 
             # add the new displacements to the stored displacements
             self.U[self.var] += uu[self.var] * stepper
-            # sum the applied displacements TODO but why stepper**2?
+            # sum the applied displacements
             du = np.sum(uu[self.var]**2) * stepper * stepper
 
             print(i, ":", du, np.sum(self.U), stepper)
@@ -642,6 +751,29 @@ class FiniteBodyForces:
         c1 = self.connections[:, 0]
         c2 = self.connections[:, 1]
         np.add.at(f, c1, np.einsum("nij,nj->ni", self.K_glo_conn, u[c2]))
+        #if np.sum(np.abs(f)) > 0:
+        #    x = "bla"
+
+    def mulK_sparse(self, f, u):
+        dout = np.einsum("nij,nj->ni", self.K_glo_conn, u[self.connections[:, 1]])
+        coo_matrix((dout.flatten(), self.connections_sparse_indices), u.shape).toarray(out=f)
+
+    @staticmethod
+    @jit(nopython=True)
+    def mulK2(f, u, connections2, K_glo, list_of_variable_corners):
+        for i in list_of_variable_corners:
+            f[i] = 0
+            for j in connections2[i]:
+                f[i] += K_glo[i, j] @ u[j]
+            #f[i] = np.einsum("cij,cj->i", K_glo[i, connections2[i]], u[connections2[i]])
+            #    x, y = K_glo[i, connections2[i]], u[connections2[i]]
+            #    f[i] = np.tensordot(x, y, ([2, 0], [1, 0]))
+
+    @staticmethod
+    def mulK3(f, u, connections2, K_glo):
+        for i in range(u.shape[0]):
+            if len(connections2[i]):
+                f[i] = np.einsum("cij,cj->i", K_glo[i, connections2[i]], u[connections2[i]])
 
     def computeStiffening(self, results):
 

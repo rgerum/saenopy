@@ -23,7 +23,7 @@ def main():
     results = {}
     results["ERROR"] = ""
 
-    # //------ START OF MODULE loadParameters --------------------------------------///
+    # ------ START OF MODULE loadParameters --------------------------------------///
 
     print("LOAD PARAMETERS")
 
@@ -38,7 +38,7 @@ def main():
         for a in range(1, len(sys.argv), 2):
             CFG[sys.argv[a]] = parseValue(sys.argv[a+1])
 
-    CFG["DATAOUT"] += "_py"
+    CFG["DATAOUT"] += "_py2"
     outdir = CFG["DATAOUT"]
     indir = CFG["DATAIN"]+"/"
 
@@ -47,29 +47,29 @@ def main():
     else:
         print("WARNING: DATAOUT directory already exists. Overwriting old results.")
 
-    M = FiniteBodyForces(CFG)
+    M = FiniteBodyForces()
     B = VirtualBeads(CFG)
 
-    # //------ END OF MODULE loadParameters --------------------------------------///
+    # ------ END OF MODULE loadParameters --------------------------------------///
 
-    # //------ START OF MODULE buildBeams --------------------------------------///
+    # ------ START OF MODULE buildBeams --------------------------------------///
     print("BUILD BEAMS")
 
     M.computeBeams(int(np.floor(np.sqrt(int(CFG["BEAMS"]) * np.pi + 0.5))))
-    saveBeams(M.s, os.path.join(outdir, "beams.dat"))
+    #saveBeams(M.s, os.path.join(outdir, "beams.dat"))
 
     # precompute the material model
-    M.computeEpsilon()
+    M.computeEpsilon(CFG["K_0"], CFG["D_0"], CFG["L_S"], CFG["D_S"], CFG["EPSMAX"], CFG["EPSSTEP"])
 
     if CFG["SAVEEPSILON"]:
         saveEpsilon(M.epsilon, os.path.join(outdir, "epsilon.dat"), CFG)
         saveEpsilon(M.epsbar, os.path.join(outdir, "epsbar.dat"), CFG)
         saveEpsilon(M.epsbarbar, os.path.join(outdir, "epsbarbar.dat"), CFG)
 
-    # //------ END OF MODULE buildBeams --------------------------------------///
+    # ------ END OF MODULE buildBeams --------------------------------------///
 
     if CFG["BOXMESH"]:
-        # // ------ START OF MODULE makeBoxmesh -------------------------------------- // /
+        #  ------ START OF MODULE makeBoxmesh -------------------------------------- // /
 
         print("MAKE BOXMESH")
 
@@ -77,46 +77,47 @@ def main():
 
         print(M.N_c, " coords")
 
-        #// ------ END OF MODULE makeBoxmesh - ------------------------------------- // /
+        #  ------ END OF MODULE makeBoxmesh - ------------------------------------- // /
 
     else:
-        #//------ START OF MODULE loadMesh --------------------------------------///
+        # ------ START OF MODULE loadMesh --------------------------------------///
 
         print("LOAD MESH")
 
         M.loadMeshCoords(os.path.join(indir, CFG["COORDS"]))
         M.loadMeshTets(os.path.join(indir, CFG["TETS"]))
 
-        #//------ End OF MODULE loadMesh --------------------------------------///
+        # ------ End OF MODULE loadMesh --------------------------------------///
 
     finish = time.time()
     CFG["TIME_INITIALIZATION"] = str(finish - start)
     start = time.time()
 
     if CFG["MODE"] == "relaxation":
-        #// ------ START OF MODULE loadBoundaryConditions -------------------------------------- // /
+        #  ------ START OF MODULE loadBoundaryConditions -------------------------------------- // /
         print("LOAD BOUNDARY CONDITIONS")
 
         M.computePhi()
-        M.computeConnections()
+        #M.computeConnections()
 
         M.loadBoundaryConditions(os.path.join(indir, CFG["BCOND"]))
         M.loadConfiguration(os.path.join(indir, CFG["ICONF"]))
 
-        #// ------ END OF MODULE loadBoundaryConditions - ------------------------------------- // /
+        #  ------ END OF MODULE loadBoundaryConditions - ------------------------------------- // /
 
-        #//------ START OF MODULE solveBoundaryConditions --------------------------------------///
+        # ------ START OF MODULE solveBoundaryConditions --------------------------------------///
         print("SOLVE BOUNDARY CONDITIONS")
+        relrecname = os.path.join(CFG["DATAOUT"], CFG["REL_RELREC"])
 
-        M.relax()
+        M.relax(CFG["REL_SOLVER_STEP"], CFG["REL_ITERATIONS"], CFG["REL_CONV_CRIT"], relrecname)
 
         finish = time.time()
         CFG["TIME_RELAXATION"] = finish - start
         CFG["TIME_TOTALTIME"] = finish - starttotal
 
-        #//------ END OF MODULE solveBoundaryConditions --------------------------------------///
+        # ------ END OF MODULE solveBoundaryConditions --------------------------------------///
 
-        #//------ START OF MODULE saveResults --------------------------------------///
+        # ------ START OF MODULE saveResults --------------------------------------///
         print("SAVE RESULTS")
 
         M.storeF(os.path.join(outdir, "F.dat"))
@@ -124,10 +125,10 @@ def main():
         M.storeEandV(os.path.join(outdir, "RR.dat"), os.path.join(outdir, "EV.dat"))
         saveConfigFile(CFG, os.path.join(outdir, "config.txt"))
 
-        #//------ END OF MODULE saveResults --------------------------------------///
+        # ------ END OF MODULE saveResults --------------------------------------///
     else:
         if CFG["FIBERPATTERNMATCHING"]:
-            #//------ START OF MODULE loadStacks --------------------------------------///
+            # ------ START OF MODULE loadStacks --------------------------------------///
             print("LOAD STACKS")
 
             if CFG["USESPRINTF"]:
@@ -177,9 +178,9 @@ def main():
                 else:
                     readStackWildcard(stackr,str(CFG["STACKR"]),int(CFG["JUMP"]))
 
-            #//------ End OF MODULE loadStacks --------------------------------------///
+            # ------ End OF MODULE loadStacks --------------------------------------///
 
-            #//------ START OF MODULE extractDeformations --------------------------------------///
+            # ------ START OF MODULE extractDeformations --------------------------------------///
             print("EXTRACT DEFORMATIONS")
 
             B.Drift=np.zeros(3)
@@ -211,11 +212,11 @@ def main():
             CFG["TIME_FIBERPATTERNMATCHING"] = finish - start
             start = time.time()
 
-            # //------ END OF MODULE extractDeformations --------------------------------------///
+            # ------ END OF MODULE extractDeformations --------------------------------------///
 
         else:
 
-            # //------ START OF MODULE loadDeformations --------------------------------------///
+            # ------ START OF MODULE loadDeformations --------------------------------------///
             print("LOAD DEFORMATIONS")
 
             B.Drift=np.zeros(3)
@@ -224,11 +225,11 @@ def main():
             if CFG["MODE"] == "computation":
                 M.loadConfiguration(os.path.join(indir, CFG["UFOUND"]))
 
-            # //------ END OF MODULE loadDeformations --------------------------------------///
+            # ------ END OF MODULE loadDeformations --------------------------------------///
 
         if CFG["MODE"] == "regularization":
 
-            #//------ START OF MODULE regularizeDeformations --------------------------------------///
+            # ------ START OF MODULE regularizeDeformations --------------------------------------///
             print("REGULARIZE DEFORMATIONS")
 
             doreg = True
@@ -298,13 +299,13 @@ def main():
                 results["L"]="0.0"
                 results["MISFIT"]="0.0"
 
-            #//------ END OF MODULE regularizeDeformations --------------------------------------///
+            # ------ END OF MODULE regularizeDeformations --------------------------------------///
 
         else:
 
             if CFG["MODE"] == "computation":
 
-                # // ------ START OF MODULE computeResults -------------------------------------- // /
+                #  ------ START OF MODULE computeResults -------------------------------------- // /
                 print("COMPUTE RESULTS")
 
                 if CFG["BOXMESH"]:
@@ -318,12 +319,12 @@ def main():
 
                 M.updateGloFAndK()
 
-                # // ------ END OF MODULE computeResults -------------------------------------- // /
+                #  ------ END OF MODULE computeResults -------------------------------------- // /
 
 
         if CFG["MODE"] != "none":
 
-            # //------ START OF MODULE saveResults --------------------------------------///
+            # ------ START OF MODULE saveResults --------------------------------------///
             print("SAVE RESULTS")
 
             finish = time.time()
@@ -344,7 +345,7 @@ def main():
             saveConfigFile(CFG,os.path.join(outdir, "config.txt"))
             saveConfigFile(results,os.path.join(outdir, "results.txt"))
 
-            #//------ END OF MODULE saveResults --------------------------------------///
+            # ------ END OF MODULE saveResults --------------------------------------///
 
 
 if __name__ == "__main__":

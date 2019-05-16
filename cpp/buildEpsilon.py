@@ -43,12 +43,12 @@ def buildEpsilon(k1, ds0, s1, ds1, epsmax=4.0, epsstep=0.000001):
     # define epsbarbar according to p 43 eq 4.1.5
 
     # the linear spring regime (0 < lambda < s1)
-    epsbarbar = np.ones(imax) * k1
+    epsbarbar = np.ones(imax) * k1#np.full(imax, k1)
 
     # buckling for compression
     if ds0 != 0.0:
         buckling = lambd < 0
-        epsbarbar[buckling] += k1 * (np.exp(lambd[buckling] / ds0) - 1)
+        epsbarbar[buckling] = k1 * np.exp(lambd[buckling] / ds0)
     # and exponential strech for overstreching fibers
     if ds1 > 0.0:
         streching = lambd > s1
