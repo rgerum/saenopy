@@ -1,114 +1,15 @@
 import os
 import time
-import tensorflow as tf
-from scipy.sparse import coo_matrix
 
 import numpy as np
-from numba import jit, double
+from scipy.sparse import coo_matrix
+
+from numba import jit
 
 from .buildBeams import buildBeams
 from .buildEpsilon import buildEpsilon
-from .multigridHelper import makeBoxmeshCoords, makeBoxmeshTets, setActiveFields
-from .tfjit import tfjit
-
-pairs = []
-for t1 in range(4):
-    for t2 in range(4):
-        pairs.append([t1, t2])
-pairs = np.array(pairs).astype(int)
-#p1 = pairs[:, 0]
-#p2 = pairs[:, 1]
-#print(repr(p1))
-#print(repr(p2))
-#exit()
-
-@jit(nopython=True)
-def mulK_static_jit(f, u, connections, K_glo_conn):
-    f[:] = 0
-    # iterate over all connected pairs (contains only connections from variable vertices)
-    for i in range(connections.shape[0]):
-        c1, c2 = connections[i]
-        # the force is the stiffness matrix times the displacement
-        f[c1] += K_glo_conn[i] @ u[c2]
-
-from numba import types
-from numba.extending import overload
-
-@overload(np.linalg.norm)
-def overload_norm(A, axis):
-    """ implement axis keyword """
-    if isinstance(A, types.Array) or isinstance(axis, types.Integer):
-        def norm_impl(A, axis):
-            return np.sqrt(np.sum(A ** 2, axis=axis))
-        return norm_impl
-
-@jit(double[:, :](double[:,:], double[:, :]), nopython=True)
-def dot(a, b):
-    c = np.zeros((a.shape[0], b.shape[1]), dtype=np.double)
-    for i in range(a.shape[0]):
-        for j in range(b.shape[1]):
-            for k in range(a.shape[1]):
-                c[i, j] += a[i, k] * b[k, j]
-    return c
-
-@jit(double[:](double[:,:]), nopython=True)
-def abs0(a):
-    c = np.zeros((a.shape[1]), dtype=np.double)
-    for i in range(a.shape[0]):
-        sum_ = 0
-        for k in range(a.shape[1]):
-            sum_ += a[i, k]*a[i, k]
-        c[i] = np.sqrt(sum_)
-    return c
-
-@jit(double(double[:], double[:]), nopython=True)
-def imul(a, b):
-    c = 0
-    for i in range(a.shape[0]):
-        c += a[i]*b[i]
-    return c
-
-def det(a):
-    xx = a[0, 0]
-    xy = a[0, 1]
-    xz = a[0, 2]
-    yx = a[1, 0]
-    yy = a[1, 1]
-    yz = a[1, 2]
-    zx = a[2, 0]
-    zy = a[2, 1]
-    zz = a[2, 2]
-    return xx * yy * zz\
-            +xy * yz * zx\
-            +xz * zy * yx\
-            -xx * yz * zy\
-            -yy * xz * zx\
-            -zz * xy * yx
-
-def invert(a):
-    deter = det(a)
-    xx = a[0, 0]
-    xy = a[0, 1]
-    xz = a[0, 2]
-    yx = a[1, 0]
-    yy = a[1, 1]
-    yz = a[1, 2]
-    zx = a[2, 0]
-    zy = a[2, 1]
-    zz = a[2, 2]
-    return np.array([
-    [(yy * zz - yz * zy) / deter,
-    (xz * zy - xy * zz) / deter,
-    (xy * yz - yy * xz) / deter],
-    [(yz * zx - yx * zz) / deter,
-    (xx * zz - xz * zx) / deter,
-    (xz * yx - xx * yz) / deter],
-    [(yx * zy - yy * zx) / deter,
-    (xy * zx - xx * zy) / deter,
-    (xx * yy - xy * yx) / deter]])
 
 
-path = None
 class FiniteBodyForces:
     R = None  # the 3D positions of the vertices, dimension: N_c x 3
     T = None  # the tetrahedrons' 4 corner vertices (defined by index), dimensions: N_T x 4
@@ -149,123 +50,57 @@ class FiniteBodyForces:
     def __init__(self):
         pass
 
-    def makeBoxmesh(self):
+    def setMeshCoords(self, data, var=None, displacements=None, forces=None):
+        # check the input
+        assert len(data.shape) == 2, "Mesh vertex data needs to be Nx3."
+        assert data.shape[1] == 3, "Mesh vertices need to have 3 spacial coordinate."
 
-        self.currentgrain = 1
-
-        nx = self.CFG["BM_N"]
-        dx = self.CFG["BM_GRAIN"]
-
-        rin = self.CFG["BM_RIN"]
-        mulout = self.CFG["BM_MULOUT"]
-        rout = nx * dx * 0.5
-
-        if rout < rin:
-            print("WARNING in makeBoxmesh: Mesh BM_RIN should be smaller than BM_MULOUT*BM_GRAIN*0.5")
-
-        self.setMeshCoords(makeBoxmeshCoords(dx, nx, rin, mulout))
-
-        self.setMeshTets(makeBoxmeshTets(nx, self.currentgrain))
-
-        self.var = setActiveFields(nx, self.currentgrain, True)
-
-    def loadMeshCoords(self, fcoordsname):
-        """
-        Load the vertices. Each line represents a vertex and has 3 float entries for the x, y, and z coordinates of the
-        vertex.
-        """
-
-        # load the vertex file
-        data = np.loadtxt(fcoordsname, dtype=float)
-
-        # check the data
-        assert data.shape[1] == 3, "coordinates in "+fcoordsname+" need to have 3 columns for the XYZ"
-        print("%s read (%d entries)" % (fcoordsname, data.shape[0]))
-
-        self.setMeshCoords(data.astype(np.float64))
-
-    def loadMeshTets(self, ftetsname):
-        """
-        Load the tetrahedrons. Each line represents a tetrahedron. Each line has 4 integer values representing the vertex
-        indices.
-        """
-        # load the data
-        data = np.loadtxt(ftetsname, dtype=int)
-
-        # check the data
-        assert data.shape[1] == 4, "vertex indices in "+ftetsname+" need to have 4 columns, the indices of the vertices of the 4 corners fo the tetrahedron"
-        print("%s read (%d entries)" % (ftetsname, data.shape[0]))
-
-        self.setMeshTets(data)
-
-    def loadBeams(self, fbeamsname):
-        self.s = np.loadtxt(fbeamsname)
-        self.N_b = len(self.s)
-
-    def loadBoundaryConditions(self, dbcondsname):
-        """
-        Loads a boundary condition file "bcond.dat".
-
-        It has 4 values in each line.
-        If the last value is 1, the other 3 define a force on a variable vertex
-        If the last value is 0, the other 3 define a displacement on a fixed vertex
-        """
-        # load the data in the file
-        data = np.loadtxt(dbcondsname)
-        assert data.shape[1] == 4, "the boundary conditions need 4 columns"
-        assert data.shape[0] == self.N_c, "the boundary conditions need to have the same count as the number of vertices"
-        print("%s read (%d x %d entries)" % (dbcondsname, data.shape[0], data.shape[1]))
-
-        # the last column is a bool whether the vertex is fixed or not
-        self.var = data[:, 3] > 0.5
-        # if it is fixed, the other coordinates define the displacement
-        self.U[~self.var] = data[~self.var, :3]
-        # if it is variable, the given vector is the force on the vertex
-        self.f_ext[self.var] = data[self.var, :3]
-
-        # update the connections (as they only contain non-fixed vertices)
-        self.computeConnections()
-
-    def loadConfiguration(self, Uname):
-        """
-        Load the displacements for the vertices. The file has to have 3 columns for the displacement in XYZ and one
-        line for each vertex.
-        """
-        data = np.loadtxt(Uname)
-        assert data.shape[1] == 3, "the displacement file needs to have 3 columnds"
-        assert data.shape[0] == self.N_c, "there needs to be a displacement for each vertex"
-        print("%s read (%d entries)" % (Uname, data.shape[0]))
-
-        #data = np.random.rand(data.shape[0], data.shape[1])-0.5
-        #data *= 0#.0001
-        #np.savetxt(Uname, data)
-
-        # store the displacement
-        self.U[:, :] = data
-
-    def setMeshCoords(self, data):
         # store the loaded vertex coordinates
-        self.R = data
+        self.R = data.astype(np.float64)
 
         # store the number of vertices
         self.N_c = data.shape[0]
 
         # initialize 0 displacement for each vertex
-        self.U = np.zeros((self.N_c, 3))
+        if displacements is None:
+            self.U = np.zeros((self.N_c, 3))
+        else:
+            # check the input
+            displacements = np.array(displacements)
+            assert displacements.shape == (self.N_c, 3)
+            self.U = displacements.astype(np.float64)
 
         # start with every vertex being variable (non-fixed)
-        self.var = np.ones(self.N_c, dtype=np.int8) == 1  # type bool!
+        if var is None:
+            self.var = np.ones(self.N_c, dtype=np.int8) == 1  # type bool!
+        else:
+            # check the input
+            var = np.array(var)
+            assert var.shape == (self.N_c, )
+            self.var = var.astype(bool)
 
         # initialize global and external forces
         self.f_glo = np.zeros((self.N_c, 3))
-        self.f_ext = np.zeros((self.N_c, 3))
+        if forces is None:
+            self.f_ext = np.zeros((self.N_c, 3))
+        else:
+            # check the input
+            forces = np.array(forces)
+            assert forces.shape == (self.N_c, 3)
+            self.f_ext = forces.astype(np.float64)
 
         # initialize the list of the global stiffness
         self.K_glo = np.zeros((self.N_c, self.N_c, 3, 3))
 
     def setMeshTets(self, data):
-        # the loaded data are the vertex indices but they start with 1 instead of 0 therefore "-1"
-        self.T = data - 1
+        # check the input
+        assert len(data.shape) == 2, "Mesh tetrahedrons needs to be Nx4."
+        assert data.shape[1] == 4, "Mesh tetrahedrons need to have 4 corners."
+        assert 0 <= data.min(), "Mesh tetrahedron vertex indices are not allowed to be negativ."
+        assert data.max() < self.N_c, "Mesh tetrahedron vertex indices cannot be bigger than the number of vertices."
+
+        # store the tetrahedron data (needs to be int indices)
+        self.T = data.astype(np.int)
 
         # the number of tetrahedrons
         self.N_T = data.shape[0]
@@ -277,7 +112,8 @@ class FiniteBodyForces:
         self.V = np.zeros(self.N_T)
         self.E = np.zeros(self.N_T)
 
-        self.total = np.zeros((self.N_T, 4, 4, 3, 3))
+        self.computePhi()
+        self.computeConnections()
 
     def computeBeams(self, N):
         beams = buildBeams(N)
@@ -287,6 +123,9 @@ class FiniteBodyForces:
     def setBeams(self, beams):
         self.s = beams
         self.N_b = beams.shape[0]
+
+    def setMaterialModel(self, material_model_function):
+        self.lookUpEpsilon = material_model_function
 
     def computeConnections(self):
         # initialize the connections as a set (to prevent double entries)
@@ -315,57 +154,20 @@ class FiniteBodyForces:
         # initialize the stiffness matrix premultiplied with the connections
         self.K_glo_conn = np.zeros((self.connections.shape[0], 3, 3))
 
-        # initialize the connections as a set (to prevent double entries)
-        connections2 = []
-        for i in range(self.N_c):
-            connections2.append([])
-
-        # iterate over all tetrahedrons
-        for tet in self.T:
-            # over all corners
-            for t1 in range(4):
-                c1 = tet[t1]
-
-                # only for non fixed vertices
-                if not self.var[c1]:
-                    continue
-
-                for t2 in range(4):
-                    # get two vertices of the tetrahedron
-                    c2 = tet[t2]
-
-                    # add the connection to the set
-                    connections2[c1].append(c2)
-
-        for i in range(self.N_c):
-            connections2[i] = np.array(connections2[i]).astype(int)
-
-        # convert the list of sets to an array N_connections x 2
-        self.connections2 = connections2
-        self.list_of_variable_corners = np.arange(self.N_c)[self.var]
-
-        c1 = self.connections[:, 0]
-        c2 = self.connections[:, 1]
-        x, y = np.meshgrid(np.arange(3), c2)
-        _, y2 = np.meshgrid(np.arange(3), c1)
-        self.connection_indices = np.c_[y2.ravel(), y.ravel(), x.ravel()]
-        #print(self.connection_indices)
-
-
+        # calculate the indices for "mulK" for multiplying the displacements to the stiffnes matrix
         x, y = np.meshgrid(np.arange(3), self.connections[:, 0])
         self.connections_sparse_indices = (y.flatten(), x.flatten())
 
+        # calculate the indices for "update_f_glo"
         y, x = np.meshgrid(np.arange(3), self.T.flatten())
         self.force_distribute_coordinates = (x.flatten(), y.flatten())
-        pairs = np.array(np.meshgrid(np.arange(4), np.arange(4))).reshape(2, -1)
 
+        # calculate the indices for "update_K_glo"
+        pairs = np.array(np.meshgrid(np.arange(4), np.arange(4))).reshape(2, -1)
         tensor_pairs = self.T[:, pairs.T]  # T x 16 x 2
         tensor_index = tensor_pairs[:, :, 0] + tensor_pairs[:, :, 1] * self.N_c
-
         y, x = np.meshgrid(np.arange(9), tensor_index.flatten())
         self.stiffness_distribute_coordinates = (x.flatten(), y.flatten())
-
-        #exit()
 
     def computePhi(self):
         """
@@ -412,10 +214,6 @@ class FiniteBodyForces:
                 # and store the in inverse distance (on the diagonal of a matrix)
                 self.Laplace[c1][c2] += Idmat * -r_inv
                 self.Laplace[c1][c1] += Idmat * r_inv
-
-    def computeEpsilon(self, k1, ds0, s1, ds1, epsmax=4.0, epsstep=0.000001):
-
-        self.lookUpEpsilon = buildEpsilon(k1, ds0, s1, ds1, epsmax, epsstep)
 
     def updateGloFAndK(self):
         t_start = time.time()
@@ -532,7 +330,6 @@ class FiniteBodyForces:
             # move the displacements in the direction of the forces one step
             # but while moving the stiffness tensor is kept constant
             du = self.solve_CG(stepper)
-            #return
 
             # update the forces on each tetrahedron and the global stiffness tensor
             self.updateGloFAndK()
@@ -540,12 +337,12 @@ class FiniteBodyForces:
             # sum all squared forces of non fixed vertices
             ff = np.sum(self.f_glo[self.var]**2)
 
-            sum_u = np.sum(self.U[self.var]**2)
-
             # print and store status
-            print("Newton ", i, ": du=", du, "  Energy=", self.E_glo, "  Residuum=", ff, "sum_u=", sum_u)
+            print("Newton ", i, ": du=", du, "  Energy=", self.E_glo, "  Residuum=", ff)
+
+            # log and store values (if a target file was provided)
             if relrecname is not None:
-                relrec.append([np.mean(self.K_glo), self.E_glo, sum_u])
+                relrec.append([np.mean(self.K_glo), self.E_glo, ff])
                 np.savetxt(relrecname, relrec)
 
             # if we have passed 6 iterations calculate average and std
@@ -583,20 +380,18 @@ class FiniteBodyForces:
         normb = np.sum(ff * ff)
 
         kk = np.zeros((self.N_c, 3))
-        kk2 = np.zeros((uu[self.var].shape[0], 3))
         Ap = np.zeros((self.N_c, 3))
 
         # if it is not 0 (always has to be positive)
         if normb > 0:
             # calculate the force for the given displacements (we start with 0 displacements)
             # TODO are the fixed displacements from the boundary conditions somehow included here? Probably in the stiffness tensor K
-            #self.mulK(kk, uu)
-            self.mulK_sparse(kk, uu)
+            self.mulK(kk, uu)
 
             # the difference between the desired force deviations and the current force deviations
             rr = ff - kk
 
-            # and store it also in pp? TODO ?
+            # and store it also in pp
             pp = rr
 
             # calculate the total force deviation "amplitude"
@@ -604,14 +399,7 @@ class FiniteBodyForces:
 
             # iterate maxiter iterations
             for i in range(1, maxiter + 1):
-                #for i in range(100):
-                #    print(i)
-                    # calculate the current forces
-                #self.mulK(Ap, pp)
-                self.mulK_sparse(Ap, pp)
-                #    self.mulK2(Ap, pp, self.connections2, self.K_glo, self.list_of_variable_corners)
-                #    self.mulK3(Ap, pp, self.connections2, self.K_glo)
-                #return
+                self.mulK(Ap, pp)
 
                 # calculate a good step size
                 alpha = resid / np.sum(pp * Ap)
@@ -652,6 +440,14 @@ class FiniteBodyForces:
         else:
             return 0
 
+    def mulK(self, f, u):
+        """
+        Multiply the displacement u with the global stiffness tensor K. Or in other words, calculate the forces on all
+        vertices.
+        """
+        dout = np.einsum("nij,nj->ni", self.K_glo_conn, u[self.connections[:, 1]])
+        coo_matrix((dout.flatten(), self.connections_sparse_indices), u.shape).toarray(out=f)
+
     def smoothen(self):
         ddu = 0
         for c in range(self.N_c):
@@ -665,40 +461,6 @@ class FiniteBodyForces:
                 self.U[c] += du
 
                 ddu += np.linalg.norm(du)
-
-    def mulK(self, f, u):
-        """
-        Multiply the displacement u with the global stiffness tensor K. Or in other words, calculate the forces on all
-        vertices.
-        """
-        f[:] = 0
-
-        c1 = self.connections[:, 0]
-        c2 = self.connections[:, 1]
-        np.add.at(f, c1, np.einsum("nij,nj->ni", self.K_glo_conn, u[c2]))
-        #if np.sum(np.abs(f)) > 0:
-        #    x = "bla"
-
-    def mulK_sparse(self, f, u):
-        dout = np.einsum("nij,nj->ni", self.K_glo_conn, u[self.connections[:, 1]])
-        coo_matrix((dout.flatten(), self.connections_sparse_indices), u.shape).toarray(out=f)
-
-    @staticmethod
-    @jit(nopython=True)
-    def mulK2(f, u, connections2, K_glo, list_of_variable_corners):
-        for i in list_of_variable_corners:
-            f[i] = 0
-            for j in connections2[i]:
-                f[i] += K_glo[i, j] @ u[j]
-            #f[i] = np.einsum("cij,cj->i", K_glo[i, connections2[i]], u[connections2[i]])
-            #    x, y = K_glo[i, connections2[i]], u[connections2[i]]
-            #    f[i] = np.tensordot(x, y, ([2, 0], [1, 0]))
-
-    @staticmethod
-    def mulK3(f, u, connections2, K_glo):
-        for i in range(u.shape[0]):
-            if len(connections2[i]):
-                f[i] = np.einsum("cij,cj->i", K_glo[i, connections2[i]], u[connections2[i]])
 
     def computeStiffening(self, results):
 

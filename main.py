@@ -7,6 +7,8 @@ from cpp.FiniteBodyForces import FiniteBodyForces
 from cpp.VirtualBeads import VirtualBeads
 from cpp.buildBeams import buildBeams, saveBeams
 from cpp.buildEpsilon import saveEpsilon
+from cpp.buildEpsilon import buildEpsilon
+from cpp.loadHelpers import loadMeshCoords, loadMeshTets, loadBoundaryConditions, loadConfiguration
 
 __version__ = 0.4
 
@@ -59,7 +61,9 @@ def main():
     #saveBeams(M.s, os.path.join(outdir, "beams.dat"))
 
     # precompute the material model
-    M.computeEpsilon(CFG["K_0"], CFG["D_0"], CFG["L_S"], CFG["D_S"], CFG["EPSMAX"], CFG["EPSSTEP"])
+
+    epsilon = buildEpsilon(CFG["K_0"], CFG["D_0"], CFG["L_S"], CFG["D_S"], CFG["EPSMAX"], CFG["EPSSTEP"])
+    M.setMaterialModel(epsilon)
 
     if CFG["SAVEEPSILON"]:
         saveEpsilon(M.epsilon, os.path.join(outdir, "epsilon.dat"), CFG)
@@ -80,32 +84,29 @@ def main():
         #  ------ END OF MODULE makeBoxmesh - ------------------------------------- // /
 
     else:
-        # ------ START OF MODULE loadMesh --------------------------------------///
+        # ------ START OF MODULE loadMesh -------------------------------------#
 
-        print("LOAD MESH")
+        print("LOAD MESH DATA")
 
-        M.loadMeshCoords(os.path.join(indir, CFG["COORDS"]))
-        M.loadMeshTets(os.path.join(indir, CFG["TETS"]))
+        R = loadMeshCoords(os.path.join(indir, CFG["COORDS"]))
+        T = loadMeshTets(os.path.join(indir, CFG["TETS"]))
 
-        # ------ End OF MODULE loadMesh --------------------------------------///
+        print("LOAD BOUNDARY CONDITIONS")
+        var, U, f_ext = loadBoundaryConditions(os.path.join(indir, CFG["BCOND"]), R.shape[0])
+        U = loadConfiguration(os.path.join(indir, CFG["ICONF"]), R.shape[0])
+
+        print("SET MESH DATA")
+        M.setMeshCoords(R, var, U, f_ext)
+        M.setMeshTets(T)
+
+        # ------ End OF MODULE loadMesh -------------------------------------- #
 
     finish = time.time()
     CFG["TIME_INITIALIZATION"] = str(finish - start)
     start = time.time()
 
     if CFG["MODE"] == "relaxation":
-        #  ------ START OF MODULE loadBoundaryConditions -------------------------------------- // /
-        print("LOAD BOUNDARY CONDITIONS")
-
-        M.computePhi()
-        #M.computeConnections()
-
-        M.loadBoundaryConditions(os.path.join(indir, CFG["BCOND"]))
-        M.loadConfiguration(os.path.join(indir, CFG["ICONF"]))
-
-        #  ------ END OF MODULE loadBoundaryConditions - ------------------------------------- // /
-
-        # ------ START OF MODULE solveBoundaryConditions --------------------------------------///
+        # ------ START OF MODULE solveBoundaryConditions -------------------------------------- #
         print("SOLVE BOUNDARY CONDITIONS")
         relrecname = os.path.join(CFG["DATAOUT"], CFG["REL_RELREC"])
 
@@ -115,9 +116,9 @@ def main():
         CFG["TIME_RELAXATION"] = finish - start
         CFG["TIME_TOTALTIME"] = finish - starttotal
 
-        # ------ END OF MODULE solveBoundaryConditions --------------------------------------///
+        # ------ END OF MODULE solveBoundaryConditions -------------------------------------- #
 
-        # ------ START OF MODULE saveResults --------------------------------------///
+        # ------ START OF MODULE saveResults -------------------------------------- #
         print("SAVE RESULTS")
 
         M.storeF(os.path.join(outdir, "F.dat"))
@@ -125,7 +126,7 @@ def main():
         M.storeEandV(os.path.join(outdir, "RR.dat"), os.path.join(outdir, "EV.dat"))
         saveConfigFile(CFG, os.path.join(outdir, "config.txt"))
 
-        # ------ END OF MODULE saveResults --------------------------------------///
+        # ------ END OF MODULE saveResults -------------------------------------- #
     else:
         if CFG["FIBERPATTERNMATCHING"]:
             # ------ START OF MODULE loadStacks --------------------------------------///
