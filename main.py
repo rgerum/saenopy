@@ -57,7 +57,7 @@ def main():
     # ------ START OF MODULE buildBeams --------------------------------------///
     print("BUILD BEAMS")
 
-    M.computeBeams(int(np.floor(np.sqrt(int(CFG["BEAMS"]) * np.pi + 0.5))))
+    M.setBeams(int(np.floor(np.sqrt(int(CFG["BEAMS"]) * np.pi + 0.5))))
     #saveBeams(M.s, os.path.join(outdir, "beams.dat"))
 
     # precompute the material model
@@ -197,7 +197,7 @@ def main():
                 B.loadGuess(M, os.path.join(indir, CFG["UGUESS"]))
             B.findDisplacements(stackr,stacka,M,float(CFG["VB_REGPARA"]))
             if CFG["REFINEDISPLACEMENTS"]:
-                M.computeConnections()
+                M._computeConnections()
                 B.refineDisplacements(stackr,stacka,M,float(CFG["VB_REGPARAREF"]))
 
             if CFG["SUBTRACTMEDIANDISPL"]:
@@ -261,11 +261,11 @@ def main():
                 else:
                     M.loadBoundaryConditions( os.path.join(indir, CFG["BCOND"]))
 
-                M.computePhi()
-                M.computeConnections()
+                M._computePhi()
+                M._computeConnections()
                 B.computeOutOfStack(M)
                 if CFG["REGMETHOD"] == "laplace":
-                    M.computeLaplace()
+                    M._computeLaplace()
                 B.computeConconnections(M)
                 if CFG["REGMETHOD"] == "laplace":
                     B.computeConconnections_Laplace(M)
@@ -286,16 +286,16 @@ def main():
                 else:
                     M.loadBoundaryConditions( os.path.join(indir, CFG["BCOND"]))
 
-                M.computePhi()
-                M.computeConnections()
+                M._computePhi()
+                M._computeConnections()
                 B.computeOutOfStack(M)
                 if CFG["REGMETHOD"] == "laplace":
-                    M.computeLaplace()
+                    M._computeLaplace()
                 B.computeConconnections(M)
                 if CFG["REGMETHOD"] == "laplace":
                     B.computeConconnections_Laplace(M)
 
-                M.updateGloFAndK()
+                M._updateGloFAndK()
 
                 results["L"]="0.0"
                 results["MISFIT"]="0.0"
@@ -315,10 +315,10 @@ def main():
                 else:
                     M.loadBoundaryConditions( os.path.join(indir, CFG["BCOND"]))
 
-                M.computePhi()
-                M.computeConnections()
+                M._computePhi()
+                M._computeConnections()
 
-                M.updateGloFAndK()
+                M._updateGloFAndK()
 
                 #  ------ END OF MODULE computeResults -------------------------------------- // /
 

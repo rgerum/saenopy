@@ -38,19 +38,23 @@ class FiniteBodyForces:
     s = None  # the beams, dimensions N_b x 3
     N_b = 0  # the number of beams
 
-    epsilon = None  # the lookup table for the material model
-    epsbar = None  # the lookup table for the material model
-    epsbarbar = None  # the lookup table for the material model
-
-    # the min, max and step of the discretisation of the material model
-    dlmin = 0
-    dlmax = 0
-    dlstep = 0
-
-    def __init__(self):
-        pass
+    material_model = None  # the function specifying the material model
 
     def setMeshCoords(self, data, var=None, displacements=None, forces=None):
+        """
+        Provide mesh coordinates, optional with a flag if they can be moved, a displacement and a force.
+
+        Parameters
+        ----------
+        data : ndarray
+            The coordinates of the vertices. Dimensions Nx3
+        var : ndarray, optional
+            A boolean value wether the vertex is allowed to move. By default all vertices can be moved. Dimensions N
+        displacements : ndarray, optional
+            The initial displacement of the vertex. Dimensions Nx3
+        forces : ndarray, optional
+            The forces on the vertex. Dimensions Nx3
+        """
         # check the input
         assert len(data.shape) == 2, "Mesh vertex data needs to be Nx3."
         assert data.shape[1] == 3, "Mesh vertices need to have 3 spacial coordinate."
@@ -72,7 +76,7 @@ class FiniteBodyForces:
 
         # start with every vertex being variable (non-fixed)
         if var is None:
-            self.var = np.ones(self.N_c, dtype=np.int8) == 1  # type bool!
+            self.var = np.ones(self.N_c, dtype=np.bool)
         else:
             # check the input
             var = np.array(var)
@@ -93,6 +97,14 @@ class FiniteBodyForces:
         self.K_glo = np.zeros((self.N_c, self.N_c, 3, 3))
 
     def setMeshTets(self, data):
+        """
+        Provide mesh tetrahedrons. Each tetrahedron consts of the indices of the 4 vertices which it connects.
+
+        Parameters
+        ----------
+        data : ndarray
+            The vertex indices of the 4 cornders. Dimensions Nx4
+        """
         # check the input
         assert len(data.shape) == 2, "Mesh tetrahedrons needs to be Nx4."
         assert data.shape[1] == 4, "Mesh tetrahedrons need to have 4 corners."
@@ -112,22 +124,38 @@ class FiniteBodyForces:
         self.V = np.zeros(self.N_T)
         self.E = np.zeros(self.N_T)
 
-        self.computePhi()
-        self.computeConnections()
+        self._computePhi()
+        self._computeConnections()
 
-    def computeBeams(self, N):
-        beams = buildBeams(N)
-        self.setBeams(beams)
-        print(beams.shape[0], "beams were generated")
+    def setMaterialModel(self, material_model_function):
+        """
+        Provides the material model for the mesh. The function needs to take a deformation and return the potential (w),
+        the energy (w') and the stiffness (w'').
 
-    def setBeams(self, beams):
+        Parameters
+        ----------
+        material_model_function : func
+             The function needs to be able to take an ndarray and return w, w', and w'' with the same shape also as an
+             ndarray.
+        """
+        self.material_model = material_model_function
+
+    def setBeams(self, beams=300):
+        """
+        Sets the beams for the calculation over the whole body angle.
+
+        Parameters
+        ----------
+        beams : int, ndarray
+            Either an integer which defines in how many beams to discretize the whole body angle or an ndarray providing
+            the beams, dimensions Nx3, default 300
+        """
+        if isinstance(beams, int):
+            beams = buildBeams(beams)
         self.s = beams
         self.N_b = beams.shape[0]
 
-    def setMaterialModel(self, material_model_function):
-        self.lookUpEpsilon = material_model_function
-
-    def computeConnections(self):
+    def _computeConnections(self):
         # initialize the connections as a set (to prevent double entries)
         connections = set()
 
@@ -169,7 +197,7 @@ class FiniteBodyForces:
         y, x = np.meshgrid(np.arange(9), tensor_index.flatten())
         self.stiffness_distribute_coordinates = (x.flatten(), y.flatten())
 
-    def computePhi(self):
+    def _computePhi(self):
         """
         Calculate the shape tensors of the tetrahedra (see page 49)
         """
@@ -198,7 +226,7 @@ class FiniteBodyForces:
                 # the shape tensor of the tetrahedron is defined as Chi * B^-1
                 self.Phi[t] = Chi @ np.linalg.inv(B)
 
-    def computeLaplace(self):
+    def _computeLaplace(self):
         self.Laplace = []
         for i in range(self.N_c):
             self.Laplace.append({})
@@ -215,22 +243,22 @@ class FiniteBodyForces:
                 self.Laplace[c1][c2] += Idmat * -r_inv
                 self.Laplace[c1][c1] += Idmat * r_inv
 
-    def updateGloFAndK(self):
+    def _updateGloFAndK(self):
         t_start = time.time()
 
-        s_bar, s_star = self.get_s_star_s_bar()
+        s_bar, s_star = self._get_s_star_s_bar()
 
-        epsilon_b, dEdsbar, dEdsbarbar = self.get_applied_epsilon(s_bar, self.lookUpEpsilon, self.V)
+        epsilon_b, dEdsbar, dEdsbarbar = self._get_applied_epsilon(s_bar, self.material_model, self.V)
 
-        self.update_energy(epsilon_b)
+        self._update_energy(epsilon_b)
 
-        self.update_f_glo(s_star, s_bar, dEdsbar)
+        self._update_f_glo(s_star, s_bar, dEdsbar)
 
-        self.update_K_glo(s_star, s_bar, dEdsbar, dEdsbarbar)
+        self._update_K_glo(s_star, s_bar, dEdsbar, dEdsbarbar)
 
         print("updateGloFAndK time", time.time()-t_start, "s")
 
-    def get_s_star_s_bar(self):
+    def _get_s_star_s_bar(self):
         # get the displacements of all corners of the tetrahedron (N_Tx3x4)
         # u_tim  (t in [0, N_T], i in {x,y,z}, m in {1,2,3,4})
         u_T = self.U[self.T].transpose(0, 2, 1)
@@ -255,7 +283,7 @@ class FiniteBodyForces:
 
     @staticmethod
     @jit(nopython=True, cache=True)
-    def get_applied_epsilon(s_bar, lookUpEpsilon, V):
+    def _get_applied_epsilon(s_bar, lookUpEpsilon, V):
         N_b = s_bar.shape[-1]
 
         # test if one vertex of the tetrahedron is variable
@@ -280,7 +308,7 @@ class FiniteBodyForces:
 
         return epsilon_b, dEdsbar, dEdsbarbar
 
-    def update_energy(self, epsilon_b):
+    def _update_energy(self, epsilon_b):
         # test if one vertex of the tetrahedron is variable
         # only count the energy if not the whole tetrahedron is fixed
         countEnergy = np.any(self.var[self.T], axis=1)
@@ -293,13 +321,13 @@ class FiniteBodyForces:
         # variable vertex
         self.E_glo = np.sum(self.E[countEnergy])
 
-    def update_f_glo(self, s_star, s_bar, dEdsbar):
+    def _update_f_glo(self, s_star, s_bar, dEdsbar):
         # f_tmi = s*_tmb * s'_tib * dEds'_tb  (t in [0, N_T], i in {x,y,z}, m in {1,2,3,4}, b in [0, N_b])
         f = np.einsum("tmb,tib,tb->tmi", s_star, s_bar, dEdsbar)
 
         coo_matrix((f.flatten(), self.force_distribute_coordinates), shape=self.f_glo.shape).toarray(out=self.f_glo)
 
-    def update_K_glo(self, s_star, s_bar, dEdsbar, dEdsbarbar):
+    def _update_K_glo(self, s_star, s_bar, dEdsbar, dEdsbarbar):
         #                              / |  |     \      / |  |     \                   / |    |     \
         #     ___             /  s'  w"| |s'| - 1 | - w' | |s'| - 1 |                w' | | s' | - 1 |             \
         # 1   \   *     *     |   b    \ | b|     /      \ | b|     /                   \ |  b |     /             |
@@ -319,20 +347,54 @@ class FiniteBodyForces:
         self.K_glo_conn[:] = self.K_glo[self.connections[:, 0], self.connections[:, 1], :, :]
 
     def relax(self, stepper=0.066, i_max=300, rel_conv_crit=0.01, relrecname=None):
-        self.updateGloFAndK()
+        """
+        Calculate the displacement of the vertices for the given external forces.
+
+        Parameters
+        ----------
+        stepper : float, optional
+            How much of the displacement of each conjugate gradient step to apply. Defulat 0.066
+        i_max : int, optional
+            The maximal number of iterations for the relaxation. Default 300
+        rel_conv_crit : float, optional
+            If the relative standard deviation of the last 6 energy values is below this threshold, finish the iteration.
+            Default 0.01
+        relrecname : string, optional
+            If a filename is provided, for every iteration the displacement of the conjugate gradient step, the global
+            energy and the residuum are stored in this file.
+        """
+
+        # check if we have vertices
+        if self.N_c == 0:
+            raise ValueError("No vertices have yet been set. Call setMeshCoords first.")
+
+        # check if we have tetrahedrons
+        if self.N_T == 0:
+            raise ValueError("No tetrahedrons have yet been set. Call setMeshTets first.")
+
+        # check if we have a material model
+        if self.material_model is None:
+            raise ValueError("No material model has been set. Call setMaterialModel first.")
+
+        # if the beams have not been set yet, initialize them with the default configuration
+        if self.s is None:
+            self.setBeams()
+
+        # update the forces and stiffnes matrix
+        self._updateGloFAndK()
 
         if relrecname is not None:
-            relrec = [[np.mean(self.K_glo), self.E_glo, np.sum(self.U[self.var]**2)]]
+            relrec = [[0, self.E_glo, np.sum(self.f_glo[self.var]**2)]]
 
         start = time.time()
         # start the iteration
         for i in range(i_max):
             # move the displacements in the direction of the forces one step
             # but while moving the stiffness tensor is kept constant
-            du = self.solve_CG(stepper)
+            du = self._solve_CG(stepper)
 
             # update the forces on each tetrahedron and the global stiffness tensor
-            self.updateGloFAndK()
+            self._updateGloFAndK()
 
             # sum all squared forces of non fixed vertices
             ff = np.sum(self.f_glo[self.var]**2)
@@ -342,7 +404,7 @@ class FiniteBodyForces:
 
             # log and store values (if a target file was provided)
             if relrecname is not None:
-                relrec.append([np.mean(self.K_glo), self.E_glo, ff])
+                relrec.append([du, self.E_glo, ff])
                 np.savetxt(relrecname, relrec)
 
             # if we have passed 6 iterations calculate average and std
@@ -360,7 +422,7 @@ class FiniteBodyForces:
         finish = time.time()
         print("| time for relaxation was", finish - start)
 
-    def solve_CG(self, stepper):
+    def _solve_CG(self, stepper):
         """
         Solve the displacements from the current stiffness tensor using conjugate gradient.
         """
@@ -386,7 +448,7 @@ class FiniteBodyForces:
         if normb > 0:
             # calculate the force for the given displacements (we start with 0 displacements)
             # TODO are the fixed displacements from the boundary conditions somehow included here? Probably in the stiffness tensor K
-            self.mulK(kk, uu)
+            self._mulK(kk, uu)
 
             # the difference between the desired force deviations and the current force deviations
             rr = ff - kk
@@ -399,7 +461,7 @@ class FiniteBodyForces:
 
             # iterate maxiter iterations
             for i in range(1, maxiter + 1):
-                self.mulK(Ap, pp)
+                self._mulK(Ap, pp)
 
                 # calculate a good step size
                 alpha = resid / np.sum(pp * Ap)
@@ -440,7 +502,7 @@ class FiniteBodyForces:
         else:
             return 0
 
-    def mulK(self, f, u):
+    def _mulK(self, f, u):
         """
         Multiply the displacement u with the global stiffness tensor K. Or in other words, calculate the forces on all
         vertices.
@@ -466,7 +528,7 @@ class FiniteBodyForces:
 
         uu = self.U.copy()
 
-        Ku = self.mulK(uu)
+        Ku = self._mulK(uu)
 
         kWithStiffening = np.sum(uu * Ku)
         k1 = self.CFG["K_0"]
@@ -475,11 +537,11 @@ class FiniteBodyForces:
 
         self.epsilon, self.epsbar, self.epsbarbar = buildEpsilon(k1, ds0, 0, 0, self.CFG)
 
-        self.updateGloFAndK()
+        self._updateGloFAndK()
 
         uu = self.U.copy()
 
-        Ku = self.mulK(uu)
+        Ku = self._mulK(uu)
 
         kWithoutStiffening = np.sum(uu, Ku)
 
