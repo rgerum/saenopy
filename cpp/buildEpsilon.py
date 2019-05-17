@@ -1,5 +1,5 @@
 import numpy as np
-
+from numba import njit
 
 def saveEpsilon(epsilon, fname, CFG):
     """
@@ -70,16 +70,18 @@ def buildEpsilon(k1, ds0, s1, ds1, epsmax=4.0, epsstep=0.000001):
     # define the offset so that for lambda = 0 epsilon = 0
     epsilon -= epsilon[imid]
 
-    from numba import jit
-    @jit(nopython=True)
-    def lookUpEpsilon(deltal):
+    @njit()
+    def lookUpEpsilon(delta):
+        shape = delta.shape
+        delta = delta.flatten()
         # we now have to pass this though the non-linearity function w (material model)
         # this function has been discretized and we interpolate between these discretisation steps
 
         # the discretisation step
-        li = np.floor((deltal - epsmin) / epsstep)
+        li = np.floor((delta - epsmin) / epsstep)
+
         # the part between the two steps
-        dli = (deltal - epsmin) / epsstep - li
+        dli = (delta - epsmin) / epsstep - li
 
         # if we are at the border of the discretisation, we stick to the end
         max_index = li > ((epsmax - epsmin) / epsstep) - 2
@@ -87,17 +89,13 @@ def buildEpsilon(k1, ds0, s1, ds1, epsmax=4.0, epsstep=0.000001):
         dli[max_index] = 0
 
         # convert now to int after fixing the maximum
-        li = li.astype(np.int64)
+        lii = li.astype(np.int64)
 
         # interpolate between the two discretisation steps
-        epsilon_b = (1 - dli) * epsilon[li] + dli * epsilon[li + 1]
-        epsbar_b = (1 - dli) * epsbar[li] + dli * epsbar[li + 1]
-        epsbarbar_b = (1 - dli) * epsbarbar[li] + dli * epsbarbar[li + 1]
+        epsilon_b = (1 - dli) * epsilon[lii] + dli * epsilon[lii + 1]
+        epsbar_b = (1 - dli) * epsbar[lii] + dli * epsbar[lii + 1]
+        epsbarbar_b = (1 - dli) * epsbarbar[lii] + dli * epsbarbar[lii + 1]
 
-        return epsilon_b, epsbar_b, epsbarbar_b
-
-    def e0(x):
-        epsilon_b, epsbar_b, epsbarbar_b = lookUpEpsilon(x.flatten())
-        return epsilon_b.reshape(*x.shape), epsbar_b.reshape(*x.shape), epsbarbar_b.reshape(*x.shape)
+        return epsilon_b.reshape(shape), epsbar_b.reshape(shape), epsbarbar_b.reshape(shape)
 
     return lookUpEpsilon

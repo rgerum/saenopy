@@ -9,6 +9,7 @@ from numba import jit, double
 from .buildBeams import buildBeams
 from .buildEpsilon import buildEpsilon
 from .multigridHelper import makeBoxmeshCoords, makeBoxmeshTets, setActiveFields
+from .tfjit import tfjit
 
 pairs = []
 for t1 in range(4):
@@ -419,9 +420,9 @@ class FiniteBodyForces:
     def updateGloFAndK(self):
         t_start = time.time()
 
-        s_bar, s_star = self.get_star_and_bar()
+        s_bar, s_star = self.get_s_star_s_bar()
 
-        epsilon_b, dEdsbar, dEdsbarbar = self.zzEpsilons3(s_bar, self.lookUpEpsilon, self.V)
+        epsilon_b, dEdsbar, dEdsbarbar = self.get_applied_epsilon(s_bar, self.lookUpEpsilon, self.V)
 
         self.update_energy(epsilon_b)
 
@@ -431,42 +432,7 @@ class FiniteBodyForces:
 
         print("updateGloFAndK time", time.time()-t_start, "s")
 
-    def update_f_glo(self, s_star, s_bar, dEdsbar):
-        # f_tmi = s*_tmb * s'_tib * dEds'_tb  (t in [0, N_T], i in {x,y,z}, m in {1,2,3,4}, b in [0, N_b])
-        f = np.einsum("tmb,tib,tb->tmi", s_star, s_bar, dEdsbar)
-
-        #self.reshape_f3(self.T, f, self.f_glo)
-
-        self.reshape_f4(self.force_distribute_coordinates, f, self.f_glo)
-
-    @staticmethod
-    @jit(nopython=True)
-    def reshape_f3(T, f, f_glo):
-        # f_vi = sum(f_tmi over all corner points of each tetrahedron)
-        # (t in [0, N_T], i in {x,y,z}, m in {1,2,3,4}, v in [0, N_c])
-        f_glo[:] = 0
-        for tt in range(T.shape[0]):
-            tet = T[tt]
-            f_glo[tet] += f[tt]
-
-    @staticmethod
-    def reshape_f4(force_distribute_coordinates, f, f_glo):
-        coo_matrix((f.flatten(), force_distribute_coordinates), shape=f_glo.shape).toarray(out=f_glo)
-
-    def update_energy(self, epsilon_b):
-        # test if one vertex of the tetrahedron is variable
-        # only count the energy if not the whole tetrahedron is fixed
-        countEnergy = np.any(self.var[self.T], axis=1)
-
-        # sum the energy of this tetrahedron
-        # E_t = eps_tb * V_t
-        self.E[:] = np.mean(epsilon_b, axis=1) * self.V
-
-        # only count the energy of the tetrahedron to the global energy if the tetrahedron has at least one
-        # variable vertex
-        self.E_glo = np.sum(self.E[countEnergy])
-
-    def get_star_and_bar(self):
+    def get_s_star_s_bar(self):
         # get the displacements of all corners of the tetrahedron (N_Tx3x4)
         # u_tim  (t in [0, N_T], i in {x,y,z}, m in {1,2,3,4})
         u_T = self.U[self.T].transpose(0, 2, 1)
@@ -491,24 +457,18 @@ class FiniteBodyForces:
 
     @staticmethod
     @jit(nopython=True, cache=True)
-    def zzEpsilons3(s_bar, lookUpEpsilon, V):
+    def get_applied_epsilon(s_bar, lookUpEpsilon, V):
         N_b = s_bar.shape[-1]
 
         # test if one vertex of the tetrahedron is variable
         # only count the energy if not the whole tetrahedron is fixed
         # countEnergy = np.any(var[T], axis=1)
 
-        def e0(x):
-            epsilon_b, epsbar_b, epsbarbar_b = lookUpEpsilon(x.flatten())
-            return epsilon_b.reshape(*x.shape), epsbar_b.reshape(*x.shape), epsbarbar_b.reshape(*x.shape)
-
         # the "deformation" amount # p 54 equ 2 part in the parentheses
         # s_tb = |s'_tib|  (t in [0, N_T], i in {x,y,z}, b in [0, N_b])
         s = np.linalg.norm(s_bar, axis=1)
 
-        # evaluate the material function (and its derivatives) at s - 1
-        # eps_tb
-        epsilon_b, epsbar_b, epsbarbar_b = e0(s - 1)
+        epsilon_b, epsbar_b, epsbarbar_b = lookUpEpsilon(s - 1)
 
         #                eps'_tb    1
         # dEdsbar_tb = - ------- * --- * V_t
@@ -522,8 +482,26 @@ class FiniteBodyForces:
 
         return epsilon_b, dEdsbar, dEdsbarbar
 
-    @staticmethod
-    def starbar(s_star, s_bar, dEdsbar, dEdsbarbar):
+    def update_energy(self, epsilon_b):
+        # test if one vertex of the tetrahedron is variable
+        # only count the energy if not the whole tetrahedron is fixed
+        countEnergy = np.any(self.var[self.T], axis=1)
+
+        # sum the energy of this tetrahedron
+        # E_t = eps_tb * V_t
+        self.E[:] = np.mean(epsilon_b, axis=1) * self.V
+
+        # only count the energy of the tetrahedron to the global energy if the tetrahedron has at least one
+        # variable vertex
+        self.E_glo = np.sum(self.E[countEnergy])
+
+    def update_f_glo(self, s_star, s_bar, dEdsbar):
+        # f_tmi = s*_tmb * s'_tib * dEds'_tb  (t in [0, N_T], i in {x,y,z}, m in {1,2,3,4}, b in [0, N_b])
+        f = np.einsum("tmb,tib,tb->tmi", s_star, s_bar, dEdsbar)
+
+        coo_matrix((f.flatten(), self.force_distribute_coordinates), shape=self.f_glo.shape).toarray(out=self.f_glo)
+
+    def update_K_glo(self, s_star, s_bar, dEdsbar, dEdsbarbar):
         #                              / |  |     \      / |  |     \                   / |    |     \
         #     ___             /  s'  w"| |s'| - 1 | - w' | |s'| - 1 |                w' | | s' | - 1 |             \
         # 1   \   *     *     |   b    \ | b|     /      \ | b|     /                   \ |  b |     /             |
@@ -536,64 +514,11 @@ class FiniteBodyForces:
         s_bar_s_bar = 0.5 * (np.einsum("tb,tib,tlb->tilb", dEdsbarbar, s_bar, s_bar)
                              - np.einsum("il,tb->tilb", np.eye(3), dEdsbar))
 
-        return np.einsum("tmrb,tilb->tmril", sstarsstar, s_bar_s_bar)
+        stiffness = np.einsum("tmrb,tilb->tmril", sstarsstar, s_bar_s_bar)
 
-    def starbar_tf(self, s_star, s_bar, dEdsbar, dEdsbarbar):
+        self.K_glo = coo_matrix((stiffness.flatten(), self.stiffness_distribute_coordinates), shape=(self.N_c * self.N_c, 9)).toarray().reshape(self.N_c, self.N_c, 3, 3)
 
-        class TensorFlowTheanoFunction(object):
-            def __init__(self, inputs, outputs):
-                self._inputs = inputs
-                self._outputs = outputs
-
-            def __call__(self, *args, **kwargs):
-                feeds = {}
-                for (argpos, arg) in enumerate(args):
-                    feeds[self._inputs[argpos]] = arg
-                return tf.get_default_session().run(self._outputs, feeds)
-
-        s_star_t = tf.placeholder(dtype=tf.float64, shape=s_star.shape)
-        s_bar_t = tf.placeholder(dtype=tf.float64, shape=s_bar.shape)
-        dEdsbar_t = tf.placeholder(dtype=tf.float64, shape=dEdsbar.shape)
-        dEdsbarbar_t = tf.placeholder(dtype=tf.float64, shape=dEdsbarbar.shape)
-
-        sstarsstar = tf.einsum("tmb,trb->tmrb", s_star_t, s_star_t)
-        s_bar_s_bar = 0.5 * (tf.einsum("tb,tib,tlb->tilb", dEdsbarbar_t, s_bar_t, s_bar_t)
-                             - tf.einsum("il,tb->tilb", tf.eye(3, dtype=tf.float64), dEdsbar_t))
-
-        total = tf.einsum("tmrb,tilb->tmril", sstarsstar, s_bar_s_bar)
-
-        sess = tf.InteractiveSession()
-        f = TensorFlowTheanoFunction([s_star_t, s_bar_t, dEdsbar_t, dEdsbarbar_t], total)
-        self.starbar_tf = f
-        return f(s_star, s_bar, dEdsbar, dEdsbarbar)
-
-    def update_K_glo(self, s_star, s_bar, dEdsbar, dEdsbarbar):
-        x = self.starbar(s_star, s_bar, dEdsbar, dEdsbarbar)
-        #x = self.starbar_tf(s_star, s_bar, dEdsbar, dEdsbarbar)
-
-        #self.reshape_stiffnes2(self.T, x, self.K_glo)
-        #self.reshape_stiffnes2_again()
-
-        self.reshape_stiffnes2_sparse(x)
-        self.reshape_stiffnes2_again()
-
-    def reshape_stiffnes2_sparse(self, total_stiffness):
-        self.K_glo = coo_matrix((total_stiffness.flatten(), self.stiffness_distribute_coordinates), shape=(self.N_c * self.N_c, 9)).toarray().reshape(self.N_c, self.N_c, 3, 3)
-
-    def reshape_stiffnes2_again(self):
         self.K_glo_conn[:] = self.K_glo[self.connections[:, 0], self.connections[:, 1], :, :]
-
-    @staticmethod
-    @jit(nopython=True)
-    def reshape_stiffnes2(T, total, K_glo):
-        K_glo[:] = 0
-        for tt in range(T.shape[0]):
-            tet = T[tt]
-            for t1 in range(4):
-                c1 = tet[t1]
-                for t2 in range(4):
-                    c2 = tet[t2]
-                    K_glo[c1, c2] += total[tt, t1, t2]
 
     def relax(self, stepper=0.066, i_max=300, rel_conv_crit=0.01, relrecname=None):
         self.updateGloFAndK()
