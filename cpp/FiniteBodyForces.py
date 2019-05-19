@@ -8,6 +8,7 @@ from numba import jit
 
 from .buildBeams import buildBeams
 from .buildEpsilon import buildEpsilon
+from .conjugateGradient import cg
 
 
 class FiniteBodyForces:
@@ -31,7 +32,6 @@ class FiniteBodyForces:
     # a list of all vertices are connected via a tetrahedron, stored as pairs: dimensions: N_connections x 2
     connections = None
 
-    currentgrain = 0
     N_T = 0  # the number of tetrahedrons
     N_c = 0  # the number of vertices
 
@@ -197,6 +197,32 @@ class FiniteBodyForces:
         y, x = np.meshgrid(np.arange(9), tensor_index.flatten())
         self.stiffness_distribute_coordinates = (x.flatten(), y.flatten())
 
+        # calculate the indices for "update_K_glo"
+        self.stiffness_distribute_coordinates2 = []
+        self.stiffness_distribute_var = []
+        self.filter_in = []
+        # iterate over all tetrahedrons
+        for tet in self.T:
+            # over all corners
+            for t1 in range(4):
+                c1 = tet[t1]
+
+                for t2 in range(4):
+                    # get two vertices of the tetrahedron
+                    c2 = tet[t2]
+
+                    for i in range(3):
+                        for j in range(3):
+                            # add the connection to the set
+                            self.filter_in.append(self.var[c1])
+                            if self.var[c1]:
+                                self.stiffness_distribute_coordinates2.append((c1*3+i, c2*3+j))
+
+        self.stiffness_distribute_var = np.outer(self.var, np.ones(3, dtype=bool)).flatten()
+        self.filter_in = np.array(self.filter_in, dtype=bool)
+        self.stiffness_distribute_coordinates2 = np.array(self.stiffness_distribute_coordinates2)
+        self.stiffness_distribute_coordinates2 = (self.stiffness_distribute_coordinates2[:, 0], self.stiffness_distribute_coordinates2[:, 1])
+
     def _computePhi(self):
         """
         Calculate the shape tensors of the tetrahedra (see page 49)
@@ -337,14 +363,14 @@ class FiniteBodyForces:
         #
         # (t in [0, N_T], i,l in {x,y,z}, m,r in {1,2,3,4}, b in [0, N_b])
         sstarsstar = np.einsum("tmb,trb->tmrb", s_star, s_star)
+
         s_bar_s_bar = 0.5 * (np.einsum("tb,tib,tlb->tilb", dEdsbarbar, s_bar, s_bar)
                              - np.einsum("il,tb->tilb", np.eye(3), dEdsbar))
 
         stiffness = np.einsum("tmrb,tilb->tmril", sstarsstar, s_bar_s_bar)
 
-        self.K_glo = coo_matrix((stiffness.flatten(), self.stiffness_distribute_coordinates), shape=(self.N_c * self.N_c, 9)).toarray().reshape(self.N_c, self.N_c, 3, 3)
-
-        self.K_glo_conn[:] = self.K_glo[self.connections[:, 0], self.connections[:, 1], :, :]
+        self.K_glo = coo_matrix((stiffness.flatten()[self.filter_in], self.stiffness_distribute_coordinates2),
+                                shape=(self.N_c*3, self.N_c*3)).tocsr()
 
     def relax(self, stepper=0.066, i_max=300, rel_conv_crit=0.01, relrecname=None):
         """
@@ -380,7 +406,7 @@ class FiniteBodyForces:
         if self.s is None:
             self.setBeams()
 
-        # update the forces and stiffnes matrix
+        # update the forces and stiffness matrix
         self._updateGloFAndK()
 
         if relrecname is not None:
@@ -426,89 +452,23 @@ class FiniteBodyForces:
         """
         Solve the displacements from the current stiffness tensor using conjugate gradient.
         """
-        tol = 0.00001
-
-        maxiter = 3 * self.N_c
-
-        uu = np.zeros((self.N_c, 3))
-
         # calculate the difference between the current forces on the vertices and the desired forces
         ff = self.f_glo - self.f_ext
 
         # ignore the force deviations on fixed vertices
         ff[~self.var, :] = 0
 
-        # calculate the total force "amplitude"
-        normb = np.sum(ff * ff)
+        # solve the conjugate gradient which solves the equation A x = b for x
+        # where A is the stiffness matrix K_glo and b is the vector of the target forces
+        uu = cg(self.K_glo, ff.flatten(), maxiter=3 * self.N_c, tol=0.00001).reshape(ff.shape)
 
-        kk = np.zeros((self.N_c, 3))
-        Ap = np.zeros((self.N_c, 3))
+        # add the new displacements to the stored displacements
+        self.U[self.var] += uu[self.var] * stepper
+        # sum the applied displacements
+        du = np.sum(uu[self.var] ** 2) * stepper * stepper
 
-        # if it is not 0 (always has to be positive)
-        if normb > 0:
-            # calculate the force for the given displacements (we start with 0 displacements)
-            # TODO are the fixed displacements from the boundary conditions somehow included here? Probably in the stiffness tensor K
-            self._mulK(kk, uu)
-
-            # the difference between the desired force deviations and the current force deviations
-            rr = ff - kk
-
-            # and store it also in pp
-            pp = rr
-
-            # calculate the total force deviation "amplitude"
-            resid = np.sum(pp * pp)
-
-            # iterate maxiter iterations
-            for i in range(1, maxiter + 1):
-                self._mulK(Ap, pp)
-
-                # calculate a good step size
-                alpha = resid / np.sum(pp * Ap)
-
-                # move the displacements by the stepsize in the directions of the forces
-                uu = uu + alpha * pp
-                # and decrease the forces by the stepsize
-                rr = rr - alpha * Ap
-
-                # calculate the current force deviation "amplitude"
-                rsnew = np.sum(rr * rr)
-
-                # check if we are already below the convergence tolerance
-                if rsnew < tol * normb:
-                    break
-
-                # update pp and resid
-                pp = rr + rsnew / resid * pp
-                resid = rsnew
-
-                # print status every 100 frames
-                if i % 100 == 0:
-                    print(i, ":", resid, "alpha=", alpha, "du=", np.sum(uu[self.var]**2))#, end="\r")
-
-            # now we want to apply the obtained guessed displacements to the vertex displacements "permanently"
-            # therefore we add the guessed displacements times a stepper parameter to the vertex displacements
-
-            # add the new displacements to the stored displacements
-            self.U[self.var] += uu[self.var] * stepper
-            # sum the applied displacements
-            du = np.sum(uu[self.var]**2) * stepper * stepper
-
-            print(i, ":", du, np.sum(self.U), stepper)
-
-            # return the total applied displacement
-            return du
-        # if the deviation is already 0 we are already at our goal
-        else:
-            return 0
-
-    def _mulK(self, f, u):
-        """
-        Multiply the displacement u with the global stiffness tensor K. Or in other words, calculate the forces on all
-        vertices.
-        """
-        dout = np.einsum("nij,nj->ni", self.K_glo_conn, u[self.connections[:, 1]])
-        coo_matrix((dout.flatten(), self.connections_sparse_indices), u.shape).toarray(out=f)
+        # return the total applied displacement
+        return du
 
     def smoothen(self):
         ddu = 0
