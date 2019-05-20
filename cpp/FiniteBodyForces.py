@@ -234,23 +234,15 @@ class FiniteBodyForces:
         Chi[2, :] = [0, 1, 0]
         Chi[3, :] = [0, 0, 1]
 
-        B = np.zeros((3, 3))
+        # tetrahedron matrix B (linear map of the undeformed tetrahedron T onto the primitive tetrahedron P)
+        B = self.R[self.T[:, 1:4]] - self.R[self.T[:, 0]][:, None, :]
+        B = B.transpose(0, 2, 1)
 
-        # for t, tet in enumerate(self.T):
-        for t in range(self.N_T):
-            tet = self.T[t]
-            # tetrahedron matrix B (linear map of the undeformed tetrahedron T onto the primitive tetrahedron P)
-            B[:, 0] = self.R[tet[1]] - self.R[tet[0]]
-            B[:, 1] = self.R[tet[2]] - self.R[tet[0]]
-            B[:, 2] = self.R[tet[3]] - self.R[tet[0]]
+        # calculate the volume of the tetrahedron
+        self.V = np.abs(np.linalg.det(B)) / 6.0
 
-            # calculate the volume of the tetrahedron
-            self.V[t] = abs(np.linalg.det(B)) / 6.0
-
-            # if the tetrahedron has a volume
-            if self.V[t] != 0.0:
-                # the shape tensor of the tetrahedron is defined as Chi * B^-1
-                self.Phi[t] = Chi @ np.linalg.inv(B)
+        # the shape tensor of the tetrahedron is defined as Chi * B^-1
+        self.Phi = Chi @ np.linalg.inv(B)
 
     def _computeLaplace(self):
         self.Laplace = []
