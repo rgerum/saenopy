@@ -123,7 +123,9 @@ class FiniteBodyForces:
         self.V = np.zeros(self.N_T)
         self.E = np.zeros(self.N_T)
 
+        print("compute Phi")
         self._computePhi()
+        print("compute Connections")
         self._computeConnections()
 
     def setMaterialModel(self, material_model_function):
@@ -155,6 +157,9 @@ class FiniteBodyForces:
         self.N_b = beams.shape[0]
 
     def _computeConnections(self):
+        import time
+        """
+        t = time.time()
         # initialize the connections as a set (to prevent double entries)
         connections = set()
 
@@ -177,50 +182,130 @@ class FiniteBodyForces:
 
         # convert the list of sets to an array N_connections x 2
         self.connections = np.array(list(connections), dtype=int)
+        print(time.time()-t)
+        """
+        if 0:
+            #self.T = self.T.astype(np.int64)
+            from numba import njit
+            t = time.time()
+            @njit()
+            def connections_numba(T, var):
+                # initialize the connections as a set (to prevent double entries)
+                connections = set()
 
+                # iterate over all tetrahedrons
+                for t in range(T.shape[0]):
+                    tet = T[t]
+                    # over all corners
+                    for t1 in range(4):
+                        c1 = tet[t1]
+
+                        # only for non fixed vertices
+                        if not var[c1]:
+                            continue
+
+                        for t2 in range(4):
+                            # get two vertices of the tetrahedron
+                            c2 = tet[t2]
+
+                            # add the connection to the set
+                            connections.add((c1, c2))
+                return connections#np.array(list(connections), dtype=int)
+
+            # convert the list of sets to an array N_connections x 2
+            self.connections = np.array(list(connections_numba(self.T, self.var)), dtype=int)
+            print(time.time() - t)
+        else:
+            # self.T = self.T.astype(np.int64)
+            from numba import njit
+            t = time.time()
+
+            #@njit()
+            def connections_numba(T, var):
+                # initialize the connections as a set (to prevent double entries)
+                connections = []
+                for i in range(var.shape[0]):
+                    connections.append(set())
+
+                # iterate over all tetrahedrons
+                for t in range(T.shape[0]):
+                    tet = T[t]
+                    # over all corners
+                    for t1 in range(4):
+                        c1 = tet[t1]
+
+                        # only for non fixed vertices
+                        if not var[c1]:
+                            continue
+
+                        for t2 in range(4):
+                            # get two vertices of the tetrahedron
+                            c2 = tet[t2]
+
+                            # add the connection to the set
+                            connections[c1].add(c2)
+                return connections  # np.array(list(connections), dtype=int)
+
+            # convert the list of sets to an array N_connections x 2
+            self.connections = connections_numba(self.T, self.var)
+            print(time.time() - t)
+
+        print("1")
         # initialize the stiffness matrix premultiplied with the connections
-        self.K_glo_conn = np.zeros((self.connections.shape[0], 3, 3))
+        #self.K_glo_conn = np.zeros((self.connections.shape[0], 3, 3))
 
         # calculate the indices for "mulK" for multiplying the displacements to the stiffnes matrix
-        x, y = np.meshgrid(np.arange(3), self.connections[:, 0])
-        self.connections_sparse_indices = (y.flatten(), x.flatten())
-
+        if 0:
+            x, y = np.meshgrid(np.arange(3), self.connections[:, 0])
+            self.connections_sparse_indices = (y.ravel(), x.ravel())
+        print("2")
         # calculate the indices for "update_f_glo"
-        y, x = np.meshgrid(np.arange(3), self.T.flatten())
-        self.force_distribute_coordinates = (x.flatten(), y.flatten())
-
+        y, x = np.meshgrid(np.arange(3), self.T.ravel())
+        self.force_distribute_coordinates = (x.ravel(), y.ravel())
+        print("3")
         # calculate the indices for "update_K_glo"
         pairs = np.array(np.meshgrid(np.arange(4), np.arange(4))).reshape(2, -1)
         tensor_pairs = self.T[:, pairs.T]  # T x 16 x 2
         tensor_index = tensor_pairs[:, :, 0] + tensor_pairs[:, :, 1] * self.N_c
-        y, x = np.meshgrid(np.arange(9), tensor_index.flatten())
-        self.stiffness_distribute_coordinates = (x.flatten(), y.flatten())
+        y, x = np.meshgrid(np.arange(9), tensor_index.ravel())
+        self.stiffness_distribute_coordinates = (x.ravel(), y.ravel())
 
         # calculate the indices for "update_K_glo"
-        self.stiffness_distribute_coordinates2 = []
-        self.stiffness_distribute_var = []
-        self.filter_in = []
-        # iterate over all tetrahedrons
-        for tet in self.T:
-            # over all corners
-            for t1 in range(4):
-                c1 = tet[t1]
+        @njit()
+        def numba_get_pair_coordinates(T, var):
+            stiffness_distribute_coordinates2 = []
+            filter_in = np.zeros(T.shape[0]*4*4*3*3) == 1
+            # iterate over all tetrahedrons
+            for t in range(T.shape[0]):
+                #if t % 1000:
+                #    print(t, T.shape[0])
+                tet = T[t]
+                # over all corners
+                for t1 in range(4):
+                    c1 = tet[t1]
 
-                for t2 in range(4):
-                    # get two vertices of the tetrahedron
-                    c2 = tet[t2]
+                    #if not var[c1]:
+                    #    continue
+                    #filter_in[t*4*4*3*3:(t+1)*4*4*3*3] = True
 
-                    for i in range(3):
-                        for j in range(3):
-                            # add the connection to the set
-                            self.filter_in.append(self.var[c1])
-                            if self.var[c1]:
-                                self.stiffness_distribute_coordinates2.append((c1*3+i, c2*3+j))
+                    for t2 in range(4):
+                        # get two vertices of the tetrahedron
+                        c2 = tet[t2]
 
-        self.stiffness_distribute_var = np.outer(self.var, np.ones(3, dtype=bool)).flatten()
-        self.filter_in = np.array(self.filter_in, dtype=bool)
-        self.stiffness_distribute_coordinates2 = np.array(self.stiffness_distribute_coordinates2)
-        self.stiffness_distribute_coordinates2 = (self.stiffness_distribute_coordinates2[:, 0], self.stiffness_distribute_coordinates2[:, 1])
+                        for i in range(3):
+                            for j in range(3):
+                                if 1:#if var[c1]:
+                                    filter_in[t*4*4*3*3 + t1*4*3*3 + t2*3*3 + i*3 + j] = True
+                                    # add the connection to the set
+                                    stiffness_distribute_coordinates2.append((c1*3+i, c2*3+j))
+            stiffness_distribute_coordinates2 = np.array(stiffness_distribute_coordinates2)
+            return filter_in, (stiffness_distribute_coordinates2[:, 0], stiffness_distribute_coordinates2[:, 1])
+        print("4")
+        t = time.time()
+        self.filter_in, self.stiffness_distribute_coordinates2 = numba_get_pair_coordinates(self.T, self.var)
+        print(self.filter_in)
+        print(time.time() - t)
+        print("5")
 
     def _computePhi(self):
         """
@@ -284,7 +369,6 @@ class FiniteBodyForces:
         self.K_glo = coo_matrix((K_glo.ravel()[self.filter_in], self.stiffness_distribute_coordinates2),
                                 shape=(self.N_c*3, self.N_c*3)).tocsr()
         print("updateGloFAndK time", time.time() - t_start, "s")
-
 
     def _get_s_star_s_bar(self, s):
         # get the displacements of all corners of the tetrahedron (N_Tx3x4)
@@ -584,6 +668,7 @@ class FiniteBodyForces:
         results["POLARITY"] = fmax / contractility
 
     def storePrincipalStressAndStiffness(self, sbname, sbminname, epkname):
+        return # TODO
         sbrec = []
         sbminrec = []
         epkrec = []
@@ -692,7 +777,7 @@ class FiniteBodyForces:
 
         Frec = []
         for c in range(self.N_c):
-            Frec.apppend(self.f_glo[c] / Vr[c])
+            Frec.append(self.f_glo[c] / Vr[c])
 
         np.savetxt(Fdenname, Frec)
         print(Fdenname, "stored.")

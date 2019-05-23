@@ -13,6 +13,17 @@ from .buildEpsilon import buildEpsilon
 from .multigridHelper import makeBoxmeshCoords, makeBoxmeshTets, setActiveFields
 
 
+def load(filename, *args, **kwargs):
+    file2 = filename[:-4] + ".npy"
+    if not os.path.exists(file2) or os.path.getmtime(filename) > os.path.getmtime(file2):
+        print("Load changed file", filename)
+        data = np.loadtxt(filename, *args, **kwargs)
+        np.save(file2, data)
+    else:
+        data = np.load(file2)
+    return data
+
+
 def makeBoxmesh(mesh, CFG):
     mesh.currentgrain = 1
 
@@ -26,11 +37,13 @@ def makeBoxmesh(mesh, CFG):
     if rout < rin:
         print("WARNING in makeBoxmesh: Mesh BM_RIN should be smaller than BM_MULOUT*BM_GRAIN*0.5")
 
+    print("coords")
     mesh.setMeshCoords(makeBoxmeshCoords(dx, nx, rin, mulout))
-
+    print("tets")
     mesh.setMeshTets(makeBoxmeshTets(nx, mesh.currentgrain))
-
+    print("var")
     mesh.var = setActiveFields(nx, mesh.currentgrain, True)
+    print("done")
 
 
 def loadMeshCoords(fcoordsname):
@@ -40,7 +53,7 @@ def loadMeshCoords(fcoordsname):
     """
 
     # load the vertex file
-    data = np.loadtxt(fcoordsname, dtype=float)
+    data = load(fcoordsname, dtype=float)
 
     # check the data
     assert data.shape[1] == 3, "coordinates in " + fcoordsname + " need to have 3 columns for the XYZ"
@@ -55,7 +68,7 @@ def loadMeshTets(ftetsname):
     indices.
     """
     # load the data
-    data = np.loadtxt(ftetsname, dtype=int)
+    data = load(ftetsname, dtype=int)
 
     # check the data
     assert data.shape[1] == 4, "vertex indices in " + ftetsname + " need to have 4 columns, the indices of the vertices of the 4 corners fo the tetrahedron"

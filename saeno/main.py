@@ -2,15 +2,14 @@ import numpy as np
 import sys
 import time
 import os
-from cpp.configHelper import loadDefaults, loadConfigFile, parseValue, saveConfigFile
-from cpp.FiniteBodyForces import FiniteBodyForces
-from cpp.VirtualBeads import VirtualBeads
-from cpp.buildBeams import buildBeams, saveBeams
-from cpp.buildEpsilon import saveEpsilon
-from cpp.buildEpsilon import buildEpsilon
-from cpp.loadHelpers import loadMeshCoords, loadMeshTets, loadBoundaryConditions, loadConfiguration
+from .configHelper import loadDefaults, loadConfigFile, parseValue, saveConfigFile
+from .FiniteBodyForces import FiniteBodyForces
+from .VirtualBeads import VirtualBeads
+from .buildBeams import buildBeams, saveBeams
+from .buildEpsilon import saveEpsilon
+from .buildEpsilon import buildEpsilon
+from .loadHelpers import loadMeshCoords, loadMeshTets, loadBoundaryConditions, loadConfiguration, makeBoxmesh, load
 
-__version__ = 0.4
 
 def main():
     global CFG
@@ -42,7 +41,8 @@ def main():
 
     CFG["DATAOUT"] += "_py2"
     outdir = CFG["DATAOUT"]
-    indir = CFG["DATAIN"]+"/"
+    indir = CFG["DATAIN"]
+    CFG["BOXMESH"] = 0
 
     if not os.path.exists(outdir):
         os.mkdir(outdir)
@@ -77,7 +77,7 @@ def main():
 
         print("MAKE BOXMESH")
 
-        M.makeBoxmesh()
+        makeBoxmesh(M, CFG)
 
         print(M.N_c, " coords")
 
@@ -91,13 +91,24 @@ def main():
         R = loadMeshCoords(os.path.join(indir, CFG["COORDS"]))
         T = loadMeshTets(os.path.join(indir, CFG["TETS"]))
 
+        if "VAR" in CFG:
+            var = load(os.path.join(indir, CFG["VAR"]), dtype=bool)
+
         print("LOAD BOUNDARY CONDITIONS")
-        var, U, f_ext = loadBoundaryConditions(os.path.join(indir, CFG["BCOND"]), R.shape[0])
-        U = loadConfiguration(os.path.join(indir, CFG["ICONF"]), R.shape[0])
+        if "BCOND" in CFG and CFG["BCOND"]:
+            var, U, f_ext = loadBoundaryConditions(os.path.join(indir, CFG["BCOND"]), R.shape[0])
+        else:
+            f_ext = None
+        if "ICONF" in CFG and CFG["ICONF"]:
+            U = loadConfiguration(os.path.join(indir, CFG["ICONF"]), R.shape[0])
+        else:
+            U = None
 
         print("SET MESH DATA")
         M.setMeshCoords(R, var, U, f_ext)
+        print("done")
         M.setMeshTets(T)
+        print("done")
 
         # ------ End OF MODULE loadMesh -------------------------------------- #
 
@@ -221,7 +232,7 @@ def main():
             print("LOAD DEFORMATIONS")
 
             B.Drift=np.zeros(3)
-            B.loadUfound(os.path.join(indir, CFG["UFOUND"]),os.path.join(indir, CFG["SFOUND"]))
+            B.loadUfound(os.path.join(indir, CFG["UFOUND"]), os.path.join(indir, CFG["SFOUND"]))
 
             if CFG["MODE"] == "computation":
                 M.loadConfiguration(os.path.join(indir, CFG["UFOUND"]))
@@ -237,20 +248,20 @@ def main():
 
             if not CFG["SCATTEREDRFOUND"]:
 
-                B.vbead.assign(M.N_c, True)
+                B.vbead = np.ones(M.N_c, dtype=bool)
 
-                badbeadcount=0
-                goodbeadcount=0
+                badbeadcount = 0
+                goodbeadcount = 0
 
                 for c in range(M.N_c):
                     if B.S_0[c] < float(CFG["VB_MINMATCH"]):
-                        B.vbead[c]= False
-                        if B.S_0[c]!=0.0:
-                            badbeadcount+=1
+                        B.vbead[c] = False
+                        if B.S_0[c] != 0.0:
+                            badbeadcount += 1
                     else:
-                        goodbeadcount+=1
+                        goodbeadcount += 1
 
-                doreg = goodbeadcount>badbeadcount
+                doreg = goodbeadcount > badbeadcount
 
             doreg = True
 
@@ -259,11 +270,12 @@ def main():
                 if CFG["BOXMESH"]:
                     pass
                 else:
-                    M.loadBoundaryConditions( os.path.join(indir, CFG["BCOND"]))
+                    pass #TODO
+                    #M.loadBoundaryConditions(os.path.join(indir, CFG["BCOND"]))
 
-                M._computePhi()
-                M._computeConnections()
-                B.computeOutOfStack(M)
+                #M._computePhi()
+                #M._computeConnections()
+                #B.computeOutOfStack(M)
                 if CFG["REGMETHOD"] == "laplace":
                     M._computeLaplace()
                 B.computeConconnections(M)
@@ -289,7 +301,7 @@ def main():
 
                 M._computePhi()
                 M._computeConnections()
-                B.computeOutOfStack(M)
+                #B.computeOutOfStack(M)
                 if CFG["REGMETHOD"] == "laplace":
                     M._computeLaplace()
                 B.computeConconnections(M)
@@ -344,6 +356,7 @@ def main():
             M.computeForceMoments(results, CFG["FM_RMAX"])
             results["ENERGY"]=M.E_glo
 
+            print(results)
             saveConfigFile(CFG,os.path.join(outdir, "config.txt"))
             saveConfigFile(results,os.path.join(outdir, "results.txt"))
 

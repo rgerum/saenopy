@@ -1,3 +1,6 @@
 syntax: glob
 *__pycache__/*
 */output/*
+.idea/*
+*.ipynb_checkpoints/*
+docs/_build_html/*
