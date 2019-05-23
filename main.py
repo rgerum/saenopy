@@ -270,7 +270,8 @@ def main():
                 if CFG["REGMETHOD"] == "laplace":
                     B.computeConconnections_Laplace(M)
 
-                rvec=B.relax(M)
+                relrecname = os.path.join(CFG["DATAOUT"], CFG["REG_RELREC"])
+                rvec=B.relax(M, CFG["REG_SOLVER_STEP"], CFG["REG_SOLVER_PRECISION"], CFG["REG_ITERATIONS"], CFG["REG_CONV_CRIT"], CFG["ALPHA"], CFG["ROBUSTMETHOD"], relrecname)
 
                 results["MISTFIT"]=rvec[0]
                 results["L"]=rvec[1]
@@ -339,8 +340,8 @@ def main():
             M.storePrincipalStressAndStiffness(os.path.join(outdir, "Sbmax.dat"),os.path.join(outdir, "Sbmin.dat"),os.path.join(outdir, "WPK.dat"))
             B.storeLocalweights(os.path.join(outdir, "weights.dat"))
 
-            M.computeStiffening(results)
-            M.computeForceMoments(results)
+            #M.computeStiffening(results)
+            M.computeForceMoments(results, CFG["FM_RMAX"])
             results["ENERGY"]=M.E_glo
 
             saveConfigFile(CFG,os.path.join(outdir, "config.txt"))
