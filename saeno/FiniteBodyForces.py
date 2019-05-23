@@ -248,9 +248,9 @@ class FiniteBodyForces:
 
             # convert the list of sets to an array N_connections x 2
             self.connections = connections_numba(self.T, self.var)
-            print(time.time() - t)
+            #print(time.time() - t)
 
-        print("1")
+        #print("1")
         # initialize the stiffness matrix premultiplied with the connections
         #self.K_glo_conn = np.zeros((self.connections.shape[0], 3, 3))
 
@@ -258,11 +258,11 @@ class FiniteBodyForces:
         if 0:
             x, y = np.meshgrid(np.arange(3), self.connections[:, 0])
             self.connections_sparse_indices = (y.ravel(), x.ravel())
-        print("2")
+        #print("2")
         # calculate the indices for "update_f_glo"
         y, x = np.meshgrid(np.arange(3), self.T.ravel())
         self.force_distribute_coordinates = (x.ravel(), y.ravel())
-        print("3")
+        #print("3")
         # calculate the indices for "update_K_glo"
         pairs = np.array(np.meshgrid(np.arange(4), np.arange(4))).reshape(2, -1)
         tensor_pairs = self.T[:, pairs.T]  # T x 16 x 2
@@ -300,12 +300,12 @@ class FiniteBodyForces:
                                     stiffness_distribute_coordinates2.append((c1*3+i, c2*3+j))
             stiffness_distribute_coordinates2 = np.array(stiffness_distribute_coordinates2)
             return filter_in, (stiffness_distribute_coordinates2[:, 0], stiffness_distribute_coordinates2[:, 1])
-        print("4")
+        #print("4")
         t = time.time()
         self.filter_in, self.stiffness_distribute_coordinates2 = numba_get_pair_coordinates(self.T, self.var)
-        print(self.filter_in)
-        print(time.time() - t)
-        print("5")
+        #print(self.filter_in)
+        #print(time.time() - t)
+        #print("5")
 
     def _computePhi(self):
         """
@@ -488,8 +488,7 @@ class FiniteBodyForces:
         # update the forces and stiffness matrix
         self._updateGloFAndK()
 
-        if relrecname is not None:
-            relrec = [[0, self.E_glo, np.sum(self.f_glo[self.var]**2)]]
+        relrec = [[0, self.E_glo, np.sum(self.f_glo[self.var]**2)]]
 
         start = time.time()
         # start the iteration
@@ -508,8 +507,8 @@ class FiniteBodyForces:
             print("Newton ", i, ": du=", du, "  Energy=", self.E_glo, "  Residuum=", ff)
 
             # log and store values (if a target file was provided)
+            relrec.append([du, self.E_glo, ff])
             if relrecname is not None:
-                relrec.append([du, self.E_glo, ff])
                 np.savetxt(relrecname, relrec)
 
             # if we have passed 6 iterations calculate average and std
