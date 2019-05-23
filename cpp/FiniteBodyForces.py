@@ -518,33 +518,7 @@ class FiniteBodyForces:
 
         # A += I * np.sum(f**2) - np.outer(f, f)
         A = np.sum(np.einsum("ij,kl,kl->kij", np.eye(3), f, f) - np.einsum("ki,kj->kij", f, f), axis=0)
-        """
-        in_ = np.zeros(self.N_c, dtype=bool)
 
-        Rcms = np.zeros(3)
-        fsum = np.zeros(3)
-        B = np.zeros(3)
-        B1 = np.zeros(3)
-        B2 = np.zeros(3)
-        f = np.zeros(3)
-        A = np.zeros((3, 3))
-
-        I = np.eye(3)
-        
-        f = np.zeros(3)
-        for c in range(self.N_c):
-            if np.linalg.norm(self.R[c]) < rmax:
-                in_[c] = True
-
-                fsum += f
-
-                f = self.f_glo[c]
-
-                B1 += self.R[c] * np.sum(f**2)
-                B2 += f * (self.R[c] @ f)  # TODO ensure matrix multiplication is the right thing to do here
-
-                A += I * np.sum(f**2) - np.outer(f, f)
-       """
         B = B1 - B2
 
         Rcms = np.linalg.inv(A) @ B
@@ -560,17 +534,7 @@ class FiniteBodyForces:
 
         RR = R - Rcms
         contractility = np.sum(np.einsum("ki,ki->k", RR, f) / np.linalg.norm(RR, axis=1))
-        """
-        
-        M = np.zeros((3, 3))
 
-        contractility = 0.0
-        for c in range(self.N_c):
-            if in_[c]:
-                RR = self.R[c] - Rcms
-
-                contractility += (RR @ self.f_glo[c]) / np.linalg.norm(RR)
-        """
         results["CONTRACTILITY"] = contractility
 
         vecs = buildBeams(150)
@@ -590,43 +554,7 @@ class FiniteBodyForces:
         bmin = np.argmin(mm)
         fmin = ff[bmin]
         mmin = mm[bmin]
-        """
-        fmax = 0.0
-        fmin = 0.0
-        mmax = 0.0
-        mmin = 0.0
-        bmax = 0
-        bmin = 0
 
-
-        ff_list = []
-        mm_list = []
-        for b in range(len(vecs)):
-            #break
-            ff = 0
-            mm = 0
-
-            for c in range(self.N_c):
-                if in_[c]:
-                    RR = self.R[c] - Rcms
-                    eR = RR / np.linalg.norm(RR)
-
-                    ff += (eR @ vecs[b]) * (vecs[b] @ self.f_glo[c])
-                    mm += (RR @ vecs[b]) * (vecs[b] @ self.f_glo[c])
-                    
-            ff_list.append(ff)
-            mm_list.append(mm)
-
-            if mm > mmax or b == 0:
-                bmax = b
-                fmax = ff
-                mmax = mm
-
-            if mm < mmin or b == 0: 
-                bmin = b
-                fmin = ff
-                mmin = mm
-        """
         vmid = np.cross(vecs[bmax], vecs[bmin])
         vmid = vmid / np.linalg.norm(vmid)
 
@@ -634,20 +562,6 @@ class FiniteBodyForces:
         fmid = np.sum(np.einsum("ni,i->n", eR, vmid) * np.einsum("i,ni->n", vmid, f), axis=0)
         # (RR @ vmid) * (vmid @ self.f_glo[c])
         mmid = np.sum(np.einsum("ni,i->n", RR, vmid) * np.einsum("i,ni->n", vmid, f), axis=0)
-
-        """
-        fmid = 0
-        mmid = 0
-
-        for c in range(self.N_c):
-            if in_[c]:
-                RR = self.R[c] - Rcms
-                eR = RR / np.linalg.norm(RR)
-
-                fmid += (eR @ vmid) * (vmid @ self.f_glo[c])
-                mmid += (RR @ vmid) * (vmid @ self.f_glo[c])
-                break
-        """
 
         results["FMAX"] = fmax
         results["MMAX"] = mmax
@@ -668,8 +582,6 @@ class FiniteBodyForces:
         results["VMIN_Z"] = vecs[bmin][2]
 
         results["POLARITY"] = fmax / contractility
-
-        #print(results)
 
     def storePrincipalStressAndStiffness(self, sbname, sbminname, epkname):
         sbrec = []
