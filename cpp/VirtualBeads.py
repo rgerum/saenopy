@@ -93,64 +93,18 @@ class VirtualBeads:
         if self.CFG["ROBUSTMETHOD"] == "cauchy":
             k = 2.385
 
-        Fvalues = np.linalg.norm(M.f_glo[M.var], axis=1)
-        indices = np.arange(M.var.shape[0])[M.var]
-        scount = indices.shape[0]
-
-        Fvalues, indices = (np.array(t) for t in zip(*sorted(zip(Fvalues, indices))))
-        Nrenew = int(np.floor(scount / 2))
-        c = indices[scount - Nrenew]
-        print(Fvalues)
-        print(indices)
-        print("Fmedian", Fvalues[c], c, scount, Nrenew)
-        Fmedian = Fvalues[Fvalues.shape[0] // 2 + 0]
-        #Fmedian = 1.95420414349201843645844554439e-25
-
-        #Fnorm = np.linalg.norm(M.f_glo, axis=1)
-        #F_norm_sorted = sorted(Fnorm)
-        """
-        indices = []
-        Fvalues = []
-        scount = 0
-        for c in range(M.N_c):
-            if M.var[c]:
-                indices.append(c)
-                Fvalues.append(np.sqrt(M.f_glo[c, 0]*M.f_glo[c, 0]
-                                     + M.f_glo[c, 1]*M.f_glo[c, 1]
-                                     + M.f_glo[c, 2]*M.f_glo[c, 2]))
-                scount += 1
-
-        # TODO sort
-        #BubbleSort_IVEC_using_associated_dVals(indices,Fvalues);
-
-        Nrenew = scount // 2
-        """
-
-        """
         self.localweight = np.ones(M.N_c)
 
+        Fvalues = np.linalg.norm(M.f_glo, axis=1)
+        Fmedian = np.median(Fvalues[M.var])
 
-        counter = 0.0
-        counterall = 0.0
-
-        ##c = indices[scount-Nrenew]
-
-        Flocal = 0.0
-
-        #Fmedian = np.sqrt(M.f_glo[c, 0]*M.f_glo[c, 0]
-        #                             + M.f_glo[c, 1]*M.f_glo[c, 1]
-        #                             + M.f_glo[c, 2]*M.f_glo[c, 2])
-        #Fmedian = np.median(Fnorm[M.var])
-        #print("Fmedian", Fmedian)
-        #print("Fmedian", F_norm_sorted[Nrenew])
-        #exit()
         if self.CFG["ROBUSTMETHOD"] == "singlepoint":
             self.localweight[int(self.CFG["REG_FORCEPOINT"])] = 1.0e-10
 
         if self.CFG["ROBUSTMETHOD"] == "bisquare":
             index = Fvalues < k * Fmedian
             self.localweight[index * M.var] *= (1 - (Fvalues / k / Fmedian) * (Fvalues / k / Fmedian)) * (
-                        1 - (Fvalues / k / Fmedian) * (Fvalues / k / Fmedian))
+                    1 - (Fvalues / k / Fmedian) * (Fvalues / k / Fmedian))
             self.localweight[~index * M.var] *= 1e-10
 
         if self.CFG["ROBUSTMETHOD"] == "cauchy":
@@ -158,38 +112,16 @@ class VirtualBeads:
                 self.localweight[M.var] *= 1.0 / (1.0 + np.power((Fvalues / k / Fmedian), 2.0))
             else:
                 self.localweight *= 1.0
-        """
-        self.localweight = np.ones(M.N_c)
 
-        if 0:
-            if self.CFG["ROBUSTMETHOD"] == "huber":
-                index = (Fvalues > (k * Fmedian))*M.var
-                self.localweight[index] = k * Fmedian / Fvalues[index]
+        if self.CFG["ROBUSTMETHOD"] == "huber":
+            index = (Fvalues > (k * Fmedian))*M.var
+            self.localweight[index] = k * Fmedian / Fvalues[index]
 
-            index = self.localweight < 1e-10
-            self.localweight[index * M.var] = 1e-10
+        index = self.localweight < 1e-10
+        self.localweight[index * M.var] = 1e-10
 
-            counter = np.sum(1.0 - self.localweight[M.var])
-            counterall = np.sum(M.var)
-        else:
-            counter = 0
-            counterall = 0
-            for i in range(scount):
-                c=indices[i]
-
-                Flocal = np.linalg.norm(M.f_glo[c])
-
-                if 1: # huber
-                    if Flocal > (k * Fmedian):
-                        self.localweight[c] *= k * Fmedian / Flocal
-                    else:
-                        self.localweight[c] *= 1.0
-
-                if self.localweight[c] < 1e-10:
-                    self.localweight[c]=1e-10
-
-                counter += (1.0 - self.localweight[c])
-                counterall += 1
+        counter = np.sum(1.0 - self.localweight[M.var])
+        counterall = np.sum(M.var)
 
 
         print("total weight: ", counter, "/", counterall)
