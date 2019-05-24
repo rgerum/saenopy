@@ -219,6 +219,14 @@ class VirtualBeads:
 
         self.M = M
 
+        # if the shape tensors are not valid, calculate them
+        if self.M.Phi_valid is False:
+            self.M._computePhi()
+
+        # if the connections are not valid, calculate them
+        if self.M.connections_valid is False:
+            self.M._computeConnections()
+
         self.localweight = np.ones(M.N_c)
 
         # update the forces on each tetrahedron and the global stiffness tensor

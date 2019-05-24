@@ -33,5 +33,8 @@ setup(name='saeno',
       ],
       extras_require={
         'compilation':  ["numba"],
-      }
-      )
+      },
+      entry_points={
+           'console_scripts': ['saeno=saeno.main:main'],
+      },
+)

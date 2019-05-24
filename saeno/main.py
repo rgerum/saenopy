@@ -231,7 +231,7 @@ def main():
             # ------ START OF MODULE loadDeformations --------------------------------------///
             print("LOAD DEFORMATIONS")
 
-            B.Drift=np.zeros(3)
+            B.Drift = np.zeros(3)
             B.loadUfound(os.path.join(indir, CFG["UFOUND"]), os.path.join(indir, CFG["SFOUND"]))
 
             if CFG["MODE"] == "computation":
@@ -278,7 +278,7 @@ def main():
                 #B.computeOutOfStack(M)
                 if CFG["REGMETHOD"] == "laplace":
                     M._computeLaplace()
-                B.computeConconnections(M)
+                #B.computeConconnections(M)
                 if CFG["REGMETHOD"] == "laplace":
                     B.computeConconnections_Laplace(M)
 

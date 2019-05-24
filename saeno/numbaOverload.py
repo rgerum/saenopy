@@ -17,7 +17,7 @@ except ImportError:
     print("WARNING: no numba found, iterations can be considerably slowed down", file=sys.stderr)
 
     def empty_decorator(*args, **kwargs):
-        print("!!!")
+
         def wrapper(func):
             return func
 

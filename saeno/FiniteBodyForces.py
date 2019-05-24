@@ -4,7 +4,7 @@ import time
 import numpy as np
 from scipy.sparse import coo_matrix
 
-from numba import jit
+from numba import jit, njit
 
 from .buildBeams import buildBeams
 from .buildEpsilon import buildEpsilon
@@ -19,6 +19,7 @@ class FiniteBodyForces:
     var = None  # a bool if a vertex is movable
 
     Phi = None  # the shape tensor of each tetrahedron, dimensions: N_T x 4 x 3
+    Phi_valid = False
     U = None  # the displacements of each vertex, dimensions: N_c x 3
 
     f_glo = None  # the global forces on each vertex, dimensions: N_c x 3
@@ -31,6 +32,7 @@ class FiniteBodyForces:
 
     # a list of all vertices are connected via a tetrahedron, stored as pairs: dimensions: N_connections x 2
     connections = None
+    connections_valid = False
 
     N_T = 0  # the number of tetrahedrons
     N_c = 0  # the number of vertices
@@ -42,7 +44,9 @@ class FiniteBodyForces:
 
     def setMeshCoords(self, data, var=None, displacements=None, forces=None):
         """
-        Provide mesh coordinates, optional with a flag if they can be moved, a displacement and a force.
+        Provide mesh coordinates, optional with a flag if they can be moved, a displacement and a force. Displacements,
+        variable state, and forces can also be set afterwards with :py:meth:`~.FiniteBodyForces.setDisplacements`,
+        :py:meth:`~.FiniteBodyForces.setVariable`, and :py:meth:`~.FiniteBodyForces.setExternalForces`.
 
         Parameters
         ----------
@@ -62,6 +66,8 @@ class FiniteBodyForces:
 
         # store the loaded vertex coordinates
         self.R = data.astype(np.float64)
+        # schedule to recalculate the shape tensors
+        self.Phi_valid = False
 
         # store the number of vertices
         self.N_c = data.shape[0]
@@ -70,29 +76,69 @@ class FiniteBodyForces:
         if displacements is None:
             self.U = np.zeros((self.N_c, 3))
         else:
-            # check the input
-            displacements = np.asarray(displacements)
-            assert displacements.shape == (self.N_c, 3)
-            self.U = displacements.astype(np.float64)
+            self.setDisplacements(displacements)
 
         # start with every vertex being variable (non-fixed)
         if var is None:
             self.var = np.ones(self.N_c, dtype=np.bool)
         else:
-            # check the input
-            var = np.asarray(var)
-            assert var.shape == (self.N_c, )
-            self.var = var.astype(bool)
+            self.setVariable(var)
 
         # initialize global and external forces
         self.f_glo = np.zeros((self.N_c, 3))
         if forces is None:
             self.f_ext = np.zeros((self.N_c, 3))
         else:
-            # check the input
-            forces = np.asarray(forces)
-            assert forces.shape == (self.N_c, 3)
-            self.f_ext = forces.astype(np.float64)
+            self.setExternalForces(forces)
+
+    def setDisplacements(self, displacements):
+        """
+        Provide initial displacements of the vertices. For non-variable vertices these displacements stay during the
+        relaxation. The displacements can also be set with :py:meth:`~.FiniteBodyForces.setMeshCoords` directly with
+        the vertices.
+
+        Parameters
+        ----------
+        displacements : ndarray
+            The list of displacements. Dimensions Nx3
+        """
+        # check the input
+        displacements = np.asarray(displacements)
+        assert displacements.shape == (self.N_c, 3)
+        self.U = displacements.astype(np.float64)
+
+    def setVariable(self, var):
+        """
+        Specifies whether the vertices can be moved or are fixed. The variable state can also be set with
+        :py:meth:`~.FiniteBodyForces.setMeshCoords` directly with the vertices.
+
+        Parameters
+        ----------
+        var : ndarray
+            A list of boolean values which states whether the vertex can be moved. Dimensions N
+        """
+
+        # check the input
+        var = np.asarray(var)
+        assert var.shape == (self.N_c, )
+        self.var = var.astype(bool)
+        # schedule to recalculate the connections
+        self.connections_valid = False
+
+    def setExternalForces(self, forces):
+        """
+        Provide external forces that act on the vertices. The forces can also be set with
+        :py:meth:`~.FiniteBodyForces.setMeshCoords` directly with the vertices.
+
+        Parameters
+        ----------
+        forces : ndarray
+            The list of forces. Dimensions Nx3
+        """
+        # check the input
+        forces = np.asarray(forces)
+        assert forces.shape == (self.N_c, 3)
+        self.f_ext = forces.astype(np.float64)
 
     def setMeshTets(self, data):
         """
@@ -101,7 +147,7 @@ class FiniteBodyForces:
         Parameters
         ----------
         data : ndarray
-            The vertex indices of the 4 cornders. Dimensions Nx4
+            The vertex indices of the 4 corners. Dimensions Nx4
         """
         # check the input
         data = np.asarray(data)
@@ -123,10 +169,11 @@ class FiniteBodyForces:
         self.V = np.zeros(self.N_T)
         self.E = np.zeros(self.N_T)
 
-        print("compute Phi")
-        self._computePhi()
-        print("compute Connections")
-        self._computeConnections()
+        # schedule to recalculate the shape tensors
+        self.Phi_valid = False
+
+        # schedule to recalculate the connections
+        self.connections_valid = False
 
     def setMaterialModel(self, material_model_function):
         """
@@ -157,118 +204,9 @@ class FiniteBodyForces:
         self.N_b = beams.shape[0]
 
     def _computeConnections(self):
-        import time
-        """
-        t = time.time()
-        # initialize the connections as a set (to prevent double entries)
-        connections = set()
-
-        # iterate over all tetrahedrons
-        for tet in self.T:
-            # over all corners
-            for t1 in range(4):
-                c1 = tet[t1]
-
-                # only for non fixed vertices
-                if not self.var[c1]:
-                    continue
-
-                for t2 in range(4):
-                    # get two vertices of the tetrahedron
-                    c2 = tet[t2]
-
-                    # add the connection to the set
-                    connections.add((c1, c2))
-
-        # convert the list of sets to an array N_connections x 2
-        self.connections = np.array(list(connections), dtype=int)
-        print(time.time()-t)
-        """
-        if 0:
-            #self.T = self.T.astype(np.int64)
-            from numba import njit
-            t = time.time()
-            @njit()
-            def connections_numba(T, var):
-                # initialize the connections as a set (to prevent double entries)
-                connections = set()
-
-                # iterate over all tetrahedrons
-                for t in range(T.shape[0]):
-                    tet = T[t]
-                    # over all corners
-                    for t1 in range(4):
-                        c1 = tet[t1]
-
-                        # only for non fixed vertices
-                        if not var[c1]:
-                            continue
-
-                        for t2 in range(4):
-                            # get two vertices of the tetrahedron
-                            c2 = tet[t2]
-
-                            # add the connection to the set
-                            connections.add((c1, c2))
-                return connections#np.array(list(connections), dtype=int)
-
-            # convert the list of sets to an array N_connections x 2
-            self.connections = np.array(list(connections_numba(self.T, self.var)), dtype=int)
-            print(time.time() - t)
-        else:
-            # self.T = self.T.astype(np.int64)
-            from numba import njit
-            t = time.time()
-
-            #@njit()
-            def connections_numba(T, var):
-                # initialize the connections as a set (to prevent double entries)
-                connections = []
-                for i in range(var.shape[0]):
-                    connections.append(set())
-
-                # iterate over all tetrahedrons
-                for t in range(T.shape[0]):
-                    tet = T[t]
-                    # over all corners
-                    for t1 in range(4):
-                        c1 = tet[t1]
-
-                        # only for non fixed vertices
-                        if not var[c1]:
-                            continue
-
-                        for t2 in range(4):
-                            # get two vertices of the tetrahedron
-                            c2 = tet[t2]
-
-                            # add the connection to the set
-                            connections[c1].add(c2)
-                return connections  # np.array(list(connections), dtype=int)
-
-            # convert the list of sets to an array N_connections x 2
-            self.connections = connections_numba(self.T, self.var)
-            #print(time.time() - t)
-
-        #print("1")
-        # initialize the stiffness matrix premultiplied with the connections
-        #self.K_glo_conn = np.zeros((self.connections.shape[0], 3, 3))
-
-        # calculate the indices for "mulK" for multiplying the displacements to the stiffnes matrix
-        if 0:
-            x, y = np.meshgrid(np.arange(3), self.connections[:, 0])
-            self.connections_sparse_indices = (y.ravel(), x.ravel())
-        #print("2")
         # calculate the indices for "update_f_glo"
         y, x = np.meshgrid(np.arange(3), self.T.ravel())
         self.force_distribute_coordinates = (x.ravel(), y.ravel())
-        #print("3")
-        # calculate the indices for "update_K_glo"
-        pairs = np.array(np.meshgrid(np.arange(4), np.arange(4))).reshape(2, -1)
-        tensor_pairs = self.T[:, pairs.T]  # T x 16 x 2
-        tensor_index = tensor_pairs[:, :, 0] + tensor_pairs[:, :, 1] * self.N_c
-        y, x = np.meshgrid(np.arange(9), tensor_index.ravel())
-        self.stiffness_distribute_coordinates = (x.ravel(), y.ravel())
 
         # calculate the indices for "update_K_glo"
         @njit()
@@ -284,9 +222,8 @@ class FiniteBodyForces:
                 for t1 in range(4):
                     c1 = tet[t1]
 
-                    #if not var[c1]:
-                    #    continue
-                    #filter_in[t*4*4*3*3:(t+1)*4*4*3*3] = True
+                    if not var[c1]:
+                        continue
 
                     for t2 in range(4):
                         # get two vertices of the tetrahedron
@@ -294,22 +231,21 @@ class FiniteBodyForces:
 
                         for i in range(3):
                             for j in range(3):
-                                if 1:#if var[c1]:
+                                if var[c1]:
                                     filter_in[t*4*4*3*3 + t1*4*3*3 + t2*3*3 + i*3 + j] = True
                                     # add the connection to the set
                                     stiffness_distribute_coordinates2.append((c1*3+i, c2*3+j))
             stiffness_distribute_coordinates2 = np.array(stiffness_distribute_coordinates2)
             return filter_in, (stiffness_distribute_coordinates2[:, 0], stiffness_distribute_coordinates2[:, 1])
-        #print("4")
-        t = time.time()
+
         self.filter_in, self.stiffness_distribute_coordinates2 = numba_get_pair_coordinates(self.T, self.var)
-        #print(self.filter_in)
-        #print(time.time() - t)
-        #print("5")
+
+        # remember that for the current configuration the connections have been calculated
+        self.connections_valid = True
 
     def _computePhi(self):
         """
-        Calculate the shape tensors of the tetrahedra (see page 49)
+        Calculate the shape tensors of the tetrahedrons (see page 49)
         """
         # define the helper matrix chi
         Chi = np.zeros((4, 3))
@@ -327,6 +263,9 @@ class FiniteBodyForces:
 
         # the shape tensor of the tetrahedron is defined as Chi * B^-1
         self.Phi = Chi @ np.linalg.inv(B)
+
+        # remember that for the current configuration the shape tensors have been calculated
+        self.Phi_valid = True
 
     def _computeLaplace(self):
         self.Laplace = []
@@ -354,6 +293,7 @@ class FiniteBodyForces:
         K_glo = np.zeros((self.N_T, 4, 4, 3, 3))
 
         for i in range(int(np.ceil(self.T.shape[0]/batchsize))):
+            print("updating forces and stiffness matrix %d%%" % (i/int(np.ceil(self.T.shape[0]/batchsize))*100), end="\r")
             t = slice(i*batchsize, (i+1)*batchsize)
 
             s_bar, s_star = self._get_s_star_s_bar(t)
@@ -364,11 +304,15 @@ class FiniteBodyForces:
             self._update_f_glo(s_star, s_bar, dEdsbar, out=f_glo[t])
             self._update_K_glo(s_star, s_bar, dEdsbar, dEdsbarbar, out=K_glo[t])
 
+        # store the global forces in self.f_glo
+        # transform from N_T x 4 x 3 -> N_v x 3
         coo_matrix((f_glo.ravel(), self.force_distribute_coordinates), shape=self.f_glo.shape).toarray(out=self.f_glo)
 
+        # store the stiffness matrix K in self.K_glo
+        # transform from N_T x 4 x 4 x 3 x 3 -> N_v * 3 x N_v * 3
         self.K_glo = coo_matrix((K_glo.ravel()[self.filter_in], self.stiffness_distribute_coordinates2),
                                 shape=(self.N_c*3, self.N_c*3)).tocsr()
-        print("updateGloFAndK time", time.time() - t_start, "s")
+        print("updating forces and stiffness matrix finished %.2fs" % (time.time() - t_start))
 
     def _get_s_star_s_bar(self, s):
         # get the displacements of all corners of the tetrahedron (N_Tx3x4)
@@ -484,6 +428,14 @@ class FiniteBodyForces:
         # if the beams have not been set yet, initialize them with the default configuration
         if self.s is None:
             self.setBeams()
+
+        # if the shape tensors are not valid, calculate them
+        if self.Phi_valid is False:
+            self._computePhi()
+
+        # if the connections are not valid, calculate them
+        if self.connections_valid is False:
+            self._computeConnections()
 
         # update the forces and stiffness matrix
         self._updateGloFAndK()
