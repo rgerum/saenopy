@@ -6,10 +6,10 @@ from saeno.FiniteBodyForces import FiniteBodyForces
 # initialize the object
 M = FiniteBodyForces()
 
-from saeno.buildEpsilon import buildEpsilon
+from saeno.materials import semiAffineFiberMaterial
 
 # provide a material model
-epsilon = buildEpsilon(1645, 0.0008, 0.0075, 0.033)
+material = semiAffineFiberMaterial(1645, 0.0008, 0.0075, 0.033)
 M.setMaterialModel(epsilon)
 
 import numpy as np

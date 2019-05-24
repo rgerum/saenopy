@@ -7,7 +7,7 @@ import scipy.sparse as ssp
 from numba import jit, njit
 
 from .buildBeams import buildBeams
-from .buildEpsilon import buildEpsilon
+from .materials import semiAffineFiberMaterial
 from .conjugateGradient import cg
 
 
@@ -432,7 +432,7 @@ class FiniteBodyForces:
         Parameters
         ----------
         stepper : float, optional
-            How much of the displacement of each conjugate gradient step to apply. Defulat 0.066
+            How much of the displacement of each conjugate gradient step to apply. Default 0.066
         i_max : int, optional
             The maximal number of iterations for the relaxation. Default 300
         rel_conv_crit : float, optional
@@ -509,7 +509,7 @@ class FiniteBodyForces:
         # return the total applied displacement
         return du
 
-    """ regularisation """
+    """ regularization """
 
     def setFoundDisplacements(self, U_found, vbead=None):
         """
@@ -528,7 +528,7 @@ class FiniteBodyForces:
         self.U_found = U_found
         if vbead is not None:
             vbead = np.asarray(vbead)
-            assert vbead.shape == (self.N_c, 3)
+            assert vbead.shape == (self.N_c, )
             self.vbead = vbead
         else:
             self.vbead = np.ones(U_found[0], dtype=bool)
@@ -608,7 +608,34 @@ class FiniteBodyForces:
         if relrecname is not None:
             np.savetxt(relrecname, relrec)
 
-    def regularize(self, stepper=0.33, REG_SOLVER_PRECISION=1e-18, i_max=100, rel_conv_crit=0.01, alpha=3e9, method="huber", relrecname=None):
+    def regularize(self, stepper=0.33, solver_precision=1e-18, i_max=100, rel_conv_crit=0.01, alpha=3e9, method="huber", relrecname=None):
+        """
+        Fit the provided displacements. Displacements can be provided with
+        :py:meth:`~.FiniteBodyForces.setFoundDisplacements`.
+
+        Parameters
+        ----------
+        stepper : float, optional
+             How much of the displacement of each conjugate gradient step to apply. Default 0.033
+        solver_precision : float, optional
+            The tolerance for the conjugate gradient step. Will be multiplied by the number of nodes. Default 1e-18.
+        i_max : int, optional
+            The maximal number of iterations for the regularisation. Default 100
+        rel_conv_crit :  float, optional
+            If the relative standard deviation of the last 6 energy values is below this threshold, finish the iteration.
+            Default 0.01
+        alpha :  float, optional
+            The regularisation parameter. How much to weight the suppression of forces against the fitting of the measured
+            displacement. Default 3e9
+        method :  string, optional
+            The regularisation method to use:
+                "huber"
+                "bisquare"
+                "cauchy"
+                "singlepoint"
+        relrecname : string, optional
+            The file where to store the output. Default is to not store the output, just to return it.
+        """
         self.I = ssp.lil_matrix((self.vbead.shape[0]*3, self.vbead.shape[0]*3))
         self.I.setdiag(np.repeat(self.vbead, 3))
 
@@ -636,7 +663,7 @@ class FiniteBodyForces:
             self._computeRegularizationAAndb(alpha)
 
             # get and apply the displacements that solve the regularisation term
-            uu = self._solve_regularization_CG(stepper, REG_SOLVER_PRECISION)
+            uu = self._solve_regularization_CG(stepper, solver_precision)
 
             # update the forces on each tetrahedron and the global stiffness tensor
             self._updateGloFAndK()
@@ -659,14 +686,14 @@ class FiniteBodyForces:
 
         return relrec
 
-    def _solve_regularization_CG(self, stepper=0.33, REG_SOLVER_PRECISION=1e-18):
+    def _solve_regularization_CG(self, stepper=0.33, solver_precision=1e-18):
         """
         Solve the displacements from the current stiffness tensor using conjugate gradient.
         """
 
         # solve the conjugate gradient which solves the equation A x = b for x
         # where A is (I - KAK) (K: stiffness matrix, A: weight matrix) and b is (u_meas - u - KAf)
-        uu = cg(self.A, self.b.flatten(), maxiter=25*int(pow(self.N_c, 0.33333)+0.5), tol=self.N_c*REG_SOLVER_PRECISION).reshape((self.N_c, 3))
+        uu = cg(self.A, self.b.flatten(), maxiter=25*int(pow(self.N_c, 0.33333)+0.5), tol=self.N_c * solver_precision).reshape((self.N_c, 3))
 
         # add the new displacements to the stored displacements
         self.U += uu * stepper
@@ -703,7 +730,7 @@ class FiniteBodyForces:
 
         ds0 = self.CFG["D_0"]
 
-        self.epsilon, self.epsbar, self.epsbarbar = buildEpsilon(k1, ds0, 0, 0, self.CFG)
+        self.epsilon, self.epsbar, self.epsbarbar = semiAffineFiberMaterial(k1, ds0, 0, 0, self.CFG)
 
         self._updateGloFAndK()
 
@@ -717,7 +744,9 @@ class FiniteBodyForces:
 
         self.computeEpsilon()
 
-    def computeForceMoments(self, results, rmax):
+    def computeForceMoments(self, rmax):
+        results = {}
+
         inner = np.linalg.norm(self.R, axis=1) < rmax
         f = self.f_glo[inner]
         R = self.R[inner]
@@ -795,6 +824,8 @@ class FiniteBodyForces:
         results["VMIN_Z"] = vecs[bmin][2]
 
         results["POLARITY"] = fmax / contractility
+
+        return results
 
     def storePrincipalStressAndStiffness(self, sbname, sbminname, epkname):
         return # TODO

@@ -9,7 +9,7 @@ from numba import types
 from numba.extending import overload
 
 from .buildBeams import buildBeams
-from .buildEpsilon import buildEpsilon
+from .buildEpsilon import semiAffineFiberMaterial
 from .multigridHelper import makeBoxmeshCoords, makeBoxmeshTets, setActiveFields
 
 

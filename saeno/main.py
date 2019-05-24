@@ -6,8 +6,8 @@ from .configHelper import loadDefaults, loadConfigFile, parseValue, saveConfigFi
 from .FiniteBodyForces import FiniteBodyForces
 from .VirtualBeads import VirtualBeads
 from .buildBeams import buildBeams, saveBeams
-from .buildEpsilon import saveEpsilon
-from .buildEpsilon import buildEpsilon
+from .materials import saveEpsilon
+from .materials import semiAffineFiberMaterial
 from .loadHelpers import loadMeshCoords, loadMeshTets, loadBoundaryConditions, loadConfiguration, makeBoxmesh, load
 
 
@@ -61,8 +61,8 @@ def main():
     #saveBeams(M.s, os.path.join(outdir, "beams.dat"))
 
     # precompute the material model
-
-    epsilon = buildEpsilon(CFG["K_0"], CFG["D_0"], CFG["L_S"], CFG["D_S"], CFG["EPSMAX"], CFG["EPSSTEP"])
+    print("EPSILON PARAMETERS", CFG["K_0"], CFG["D_0"], CFG["L_S"], CFG["D_S"])
+    epsilon = semiAffineFiberMaterial(CFG["K_0"], CFG["D_0"], CFG["L_S"], CFG["D_S"], max=CFG["EPSMAX"], step=CFG["EPSSTEP"])
     M.setMaterialModel(epsilon)
 
     if CFG["SAVEEPSILON"]:
@@ -354,7 +354,7 @@ def main():
             B.storeLocalweights(os.path.join(outdir, "weights.dat"))
 
             #M.computeStiffening(results)
-            M.computeForceMoments(results, CFG["FM_RMAX"])
+            results.extend(M.computeForceMoments(CFG["FM_RMAX"]))
             results["ENERGY"]=M.E_glo
 
             print(results)
