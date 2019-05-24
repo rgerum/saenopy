@@ -38,9 +38,9 @@ def makeBoxmesh(mesh, CFG):
         print("WARNING in makeBoxmesh: Mesh BM_RIN should be smaller than BM_MULOUT*BM_GRAIN*0.5")
 
     print("coords")
-    mesh.setMeshCoords(makeBoxmeshCoords(dx, nx, rin, mulout))
+    mesh.setNodes(makeBoxmeshCoords(dx, nx, rin, mulout))
     print("tets")
-    mesh.setMeshTets(makeBoxmeshTets(nx, mesh.currentgrain))
+    mesh.setTetrahedra(makeBoxmeshTets(nx, mesh.currentgrain))
     print("var")
     mesh.var = setActiveFields(nx, mesh.currentgrain, True)
     print("done")

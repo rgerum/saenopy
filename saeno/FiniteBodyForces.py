@@ -2,7 +2,7 @@ import os
 import time
 
 import numpy as np
-from scipy.sparse import coo_matrix
+import scipy.sparse as ssp
 
 from numba import jit, njit
 
@@ -13,7 +13,7 @@ from .conjugateGradient import cg
 
 class FiniteBodyForces:
     R = None  # the 3D positions of the vertices, dimension: N_c x 3
-    T = None  # the tetrahedrons' 4 corner vertices (defined by index), dimensions: N_T x 4
+    T = None  # the tetrahedra' 4 corner vertices (defined by index), dimensions: N_T x 4
     E = None  # the energy stored in each tetrahedron, dimensions: N_T
     V = None  # the volume of each tetrahedron, dimensions: N_T
     var = None  # a bool if a node is movable
@@ -34,7 +34,7 @@ class FiniteBodyForces:
     connections = None
     connections_valid = False
 
-    N_T = 0  # the number of tetrahedrons
+    N_T = 0  # the number of tetrahedra
     N_c = 0  # the number of vertices
 
     s = None  # the beams, dimensions N_b x 3
@@ -42,7 +42,7 @@ class FiniteBodyForces:
 
     material_model = None  # the function specifying the material model
 
-    def setMeshCoords(self, data, var=None, displacements=None, forces=None):
+    def setNodes(self, data, var=None, displacements=None, forces=None):
         """
         Provide mesh coordinates, optional with a flag if they can be moved, a displacement and a force. Displacements,
         variable state, and forces can also be set afterwards with :py:meth:`~.FiniteBodyForces.setDisplacements`,
@@ -94,7 +94,7 @@ class FiniteBodyForces:
     def setDisplacements(self, displacements):
         """
         Provide initial displacements of the vertices. For non-variable vertices these displacements stay during the
-        relaxation. The displacements can also be set with :py:meth:`~.FiniteBodyForces.setMeshCoords` directly with
+        relaxation. The displacements can also be set with :py:meth:`~.FiniteBodyForces.setNodes` directly with
         the vertices.
 
         Parameters
@@ -110,7 +110,7 @@ class FiniteBodyForces:
     def setVariable(self, var):
         """
         Specifies whether the vertices can be moved or are fixed. The variable state can also be set with
-        :py:meth:`~.FiniteBodyForces.setMeshCoords` directly with the vertices.
+        :py:meth:`~.FiniteBodyForces.setNodes` directly with the vertices.
 
         Parameters
         ----------
@@ -128,7 +128,7 @@ class FiniteBodyForces:
     def setExternalForces(self, forces):
         """
         Provide external forces that act on the vertices. The forces can also be set with
-        :py:meth:`~.FiniteBodyForces.setMeshCoords` directly with the vertices.
+        :py:meth:`~.FiniteBodyForces.setNodes` directly with the vertices.
 
         Parameters
         ----------
@@ -140,9 +140,9 @@ class FiniteBodyForces:
         assert forces.shape == (self.N_c, 3)
         self.f_ext = forces.astype(np.float64)
 
-    def setMeshTets(self, data):
+    def setTetrahedra(self, data):
         """
-        Provide mesh tetrahedrons. Each tetrahedron consts of the indices of the 4 vertices which it connects.
+        Provide mesh tetrahedra. Each tetrahedron consts of the indices of the 4 vertices which it connects.
 
         Parameters
         ----------
@@ -151,15 +151,15 @@ class FiniteBodyForces:
         """
         # check the input
         data = np.asarray(data)
-        assert len(data.shape) == 2, "Mesh tetrahedrons needs to be Nx4."
-        assert data.shape[1] == 4, "Mesh tetrahedrons need to have 4 corners."
+        assert len(data.shape) == 2, "Mesh tetrahedra needs to be Nx4."
+        assert data.shape[1] == 4, "Mesh tetrahedra need to have 4 corners."
         assert 0 <= data.min(), "Mesh tetrahedron node indices are not allowed to be negative."
         assert data.max() < self.N_c, "Mesh tetrahedron node indices cannot be bigger than the number of vertices."
 
         # store the tetrahedron data (needs to be int indices)
         self.T = data.astype(np.int)
 
-        # the number of tetrahedrons
+        # the number of tetrahedra
         self.N_T = data.shape[0]
 
         # Phi is a 4x3 tensor for every tetrahedron
@@ -213,7 +213,7 @@ class FiniteBodyForces:
         def numba_get_pair_coordinates(T, var):
             stiffness_distribute_coordinates2 = []
             filter_in = np.zeros(T.shape[0]*4*4*3*3) == 1
-            # iterate over all tetrahedrons
+            # iterate over all tetrahedra
             for t in range(T.shape[0]):
                 #if t % 1000:
                 #    print(t, T.shape[0])
@@ -245,7 +245,7 @@ class FiniteBodyForces:
 
     def _computePhi(self):
         """
-        Calculate the shape tensors of the tetrahedrons (see page 49)
+        Calculate the shape tensors of the tetrahedra (see page 49)
         """
         # define the helper matrix chi
         Chi = np.zeros((4, 3))
@@ -403,11 +403,11 @@ class FiniteBodyForces:
         """
         # check if we have nodes
         if self.N_c == 0:
-            raise ValueError("No nodes have yet been set. Call setMeshCoords first.")
+            raise ValueError("No nodes have yet been set. Call setNodes first.")
 
-        # check if we have tetrahedrons
+        # check if we have tetrahedra
         if self.N_T == 0:
-            raise ValueError("No tetrahedrons have yet been set. Call setMeshTets first.")
+            raise ValueError("No tetrahedra have yet been set. Call setTetrahedra first.")
 
         # check if we have a material model
         if self.material_model is None:
