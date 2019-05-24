@@ -16,14 +16,14 @@ class FiniteBodyForces:
     T = None  # the tetrahedrons' 4 corner vertices (defined by index), dimensions: N_T x 4
     E = None  # the energy stored in each tetrahedron, dimensions: N_T
     V = None  # the volume of each tetrahedron, dimensions: N_T
-    var = None  # a bool if a vertex is movable
+    var = None  # a bool if a node is movable
 
     Phi = None  # the shape tensor of each tetrahedron, dimensions: N_T x 4 x 3
     Phi_valid = False
-    U = None  # the displacements of each vertex, dimensions: N_c x 3
+    U = None  # the displacements of each node, dimensions: N_c x 3
 
-    f_glo = None  # the global forces on each vertex, dimensions: N_c x 3
-    f_ext = None  # the external forces on each vertex, dimensions: N_c x 3
+    f_glo = None  # the global forces on each node, dimensions: N_c x 3
+    f_ext = None  # the external forces on each node, dimensions: N_c x 3
     K_glo = None  # the global stiffness tensor, dimensions: N_c x N_c x 3 x 3
 
     Laplace = None
@@ -53,18 +53,18 @@ class FiniteBodyForces:
         data : ndarray
             The coordinates of the vertices. Dimensions Nx3
         var : ndarray, optional
-            A boolean value wether the vertex is allowed to move. By default all vertices can be moved. Dimensions N
+            A boolean value whether the node is allowed to move. By default all vertices can be moved. Dimensions N
         displacements : ndarray, optional
-            The initial displacement of the vertex. Dimensions Nx3
+            The initial displacement of the node. Dimensions Nx3
         forces : ndarray, optional
-            The forces on the vertex. Dimensions Nx3
+            The forces on the node. Dimensions Nx3
         """
         # check the input
         data = np.asarray(data)
-        assert len(data.shape) == 2, "Mesh vertex data needs to be Nx3."
+        assert len(data.shape) == 2, "Mesh node data needs to be Nx3."
         assert data.shape[1] == 3, "Mesh vertices need to have 3 spacial coordinate."
 
-        # store the loaded vertex coordinates
+        # store the loaded node coordinates
         self.R = data.astype(np.float64)
         # schedule to recalculate the shape tensors
         self.Phi_valid = False
@@ -72,13 +72,13 @@ class FiniteBodyForces:
         # store the number of vertices
         self.N_c = data.shape[0]
 
-        # initialize 0 displacement for each vertex
+        # initialize 0 displacement for each node
         if displacements is None:
             self.U = np.zeros((self.N_c, 3))
         else:
             self.setDisplacements(displacements)
 
-        # start with every vertex being variable (non-fixed)
+        # start with every node being variable (non-fixed)
         if var is None:
             self.var = np.ones(self.N_c, dtype=np.bool)
         else:
@@ -115,7 +115,7 @@ class FiniteBodyForces:
         Parameters
         ----------
         var : ndarray
-            A list of boolean values which states whether the vertex can be moved. Dimensions N
+            A list of boolean values which states whether the node can be moved. Dimensions N
         """
 
         # check the input
@@ -147,14 +147,14 @@ class FiniteBodyForces:
         Parameters
         ----------
         data : ndarray
-            The vertex indices of the 4 corners. Dimensions Nx4
+            The node indices of the 4 corners. Dimensions Nx4
         """
         # check the input
         data = np.asarray(data)
         assert len(data.shape) == 2, "Mesh tetrahedrons needs to be Nx4."
         assert data.shape[1] == 4, "Mesh tetrahedrons need to have 4 corners."
-        assert 0 <= data.min(), "Mesh tetrahedron vertex indices are not allowed to be negativ."
-        assert data.max() < self.N_c, "Mesh tetrahedron vertex indices cannot be bigger than the number of vertices."
+        assert 0 <= data.min(), "Mesh tetrahedron node indices are not allowed to be negative."
+        assert data.max() < self.N_c, "Mesh tetrahedron node indices cannot be bigger than the number of vertices."
 
         # store the tetrahedron data (needs to be int indices)
         self.T = data.astype(np.int)
@@ -284,6 +284,8 @@ class FiniteBodyForces:
                 self.Laplace[c1][c2] += Idmat * -r_inv
                 self.Laplace[c1][c1] += Idmat * r_inv
 
+    """ relaxation """
+
     def _updateGloFAndK(self):
         t_start = time.time()
         batchsize = 10000
@@ -306,11 +308,11 @@ class FiniteBodyForces:
 
         # store the global forces in self.f_glo
         # transform from N_T x 4 x 3 -> N_v x 3
-        coo_matrix((f_glo.ravel(), self.force_distribute_coordinates), shape=self.f_glo.shape).toarray(out=self.f_glo)
+        ssp.coo_matrix((f_glo.ravel(), self.force_distribute_coordinates), shape=self.f_glo.shape).toarray(out=self.f_glo)
 
         # store the stiffness matrix K in self.K_glo
         # transform from N_T x 4 x 4 x 3 x 3 -> N_v * 3 x N_v * 3
-        self.K_glo = coo_matrix((K_glo.ravel()[self.filter_in], self.stiffness_distribute_coordinates2),
+        self.K_glo = ssp.coo_matrix((K_glo.ravel()[self.filter_in], self.stiffness_distribute_coordinates2),
                                 shape=(self.N_c*3, self.N_c*3)).tocsr()
         print("updating forces and stiffness matrix finished %.2fs" % (time.time() - t_start))
 
@@ -342,7 +344,7 @@ class FiniteBodyForces:
     def _get_applied_epsilon(s_bar, lookUpEpsilon, V):
         N_b = s_bar.shape[-1]
 
-        # test if one vertex of the tetrahedron is variable
+        # test if one node of the tetrahedron is variable
         # only count the energy if not the whole tetrahedron is fixed
         # countEnergy = np.any(var[T], axis=1)
 
@@ -365,7 +367,7 @@ class FiniteBodyForces:
         return epsilon_b, dEdsbar, dEdsbarbar
 
     def _update_energy(self, epsilon_b, t):
-        # test if one vertex of the tetrahedron is variable
+        # test if one node of the tetrahedron is variable
         # only count the energy if not the whole tetrahedron is fixed
         countEnergy = np.any(self.var[self.T[t]], axis=1)
 
@@ -374,7 +376,7 @@ class FiniteBodyForces:
         self.E[t] = np.mean(epsilon_b, axis=1) * self.V[t]
 
         # only count the energy of the tetrahedron to the global energy if the tetrahedron has at least one
-        # variable vertex
+        # variable node
         self.E_glo += np.sum(self.E[t][countEnergy])
 
     def _update_f_glo(self, s_star, s_bar, dEdsbar, out):
@@ -395,27 +397,13 @@ class FiniteBodyForces:
 
         np.einsum("tmb,trb,tilb->tmril", s_star, s_star, s_bar_s_bar, out=out, optimize=['einsum_path', (0, 1), (0, 1)])
 
-    def relax(self, stepper=0.066, i_max=300, rel_conv_crit=0.01, relrecname=None):
+    def _check_relax_ready(self):
         """
-        Calculate the displacement of the vertices for the given external forces.
-
-        Parameters
-        ----------
-        stepper : float, optional
-            How much of the displacement of each conjugate gradient step to apply. Defulat 0.066
-        i_max : int, optional
-            The maximal number of iterations for the relaxation. Default 300
-        rel_conv_crit : float, optional
-            If the relative standard deviation of the last 6 energy values is below this threshold, finish the iteration.
-            Default 0.01
-        relrecname : string, optional
-            If a filename is provided, for every iteration the displacement of the conjugate gradient step, the global
-            energy and the residuum are stored in this file.
+        Checks whether everything is loaded to start a relaxation process.
         """
-
-        # check if we have vertices
+        # check if we have nodes
         if self.N_c == 0:
-            raise ValueError("No vertices have yet been set. Call setMeshCoords first.")
+            raise ValueError("No nodes have yet been set. Call setMeshCoords first.")
 
         # check if we have tetrahedrons
         if self.N_T == 0:
@@ -437,6 +425,27 @@ class FiniteBodyForces:
         if self.connections_valid is False:
             self._computeConnections()
 
+    def relax(self, stepper=0.066, i_max=300, rel_conv_crit=0.01, relrecname=None):
+        """
+        Calculate the displacement of the nodes for the given external forces.
+
+        Parameters
+        ----------
+        stepper : float, optional
+            How much of the displacement of each conjugate gradient step to apply. Defulat 0.066
+        i_max : int, optional
+            The maximal number of iterations for the relaxation. Default 300
+        rel_conv_crit : float, optional
+            If the relative standard deviation of the last 6 energy values is below this threshold, finish the iteration.
+            Default 0.01
+        relrecname : string, optional
+            If a filename is provided, for every iteration the displacement of the conjugate gradient step, the global
+            energy and the residuum are stored in this file.
+        """
+
+        # check if everything is prepared
+        self._check_relax_ready()
+
         # update the forces and stiffness matrix
         self._updateGloFAndK()
 
@@ -452,7 +461,7 @@ class FiniteBodyForces:
             # update the forces on each tetrahedron and the global stiffness tensor
             self._updateGloFAndK()
 
-            # sum all squared forces of non fixed vertices
+            # sum all squared forces of non fixed nodes
             ff = np.sum(self.f_glo[self.var]**2)
 
             # print and store status
@@ -482,10 +491,10 @@ class FiniteBodyForces:
         """
         Solve the displacements from the current stiffness tensor using conjugate gradient.
         """
-        # calculate the difference between the current forces on the vertices and the desired forces
+        # calculate the difference between the current forces on the nodes and the desired forces
         ff = self.f_glo - self.f_ext
 
-        # ignore the force deviations on fixed vertices
+        # ignore the force deviations on fixed nodes
         ff[~self.var, :] = 0
 
         # solve the conjugate gradient which solves the equation A x = b for x

@@ -283,7 +283,7 @@ def main():
                     B.computeConconnections_Laplace(M)
 
                 relrecname = os.path.join(CFG["DATAOUT"], CFG["REG_RELREC"])
-                rvec=B.relax(M, CFG["REG_SOLVER_STEP"], CFG["REG_SOLVER_PRECISION"], CFG["REG_ITERATIONS"], CFG["REG_CONV_CRIT"], CFG["ALPHA"], CFG["ROBUSTMETHOD"], relrecname)
+                rvec=B.regularize(M, CFG["REG_SOLVER_STEP"], CFG["REG_SOLVER_PRECISION"], CFG["REG_ITERATIONS"], CFG["REG_CONV_CRIT"], CFG["ALPHA"], CFG["ROBUSTMETHOD"], relrecname)
 
                 results["MISTFIT"]=rvec[0]
                 results["L"]=rvec[1]

@@ -177,7 +177,7 @@ class VirtualBeads:
     def findDriftCoarse(self):
         pass
 
-    def computeAAndb(self, M, alpha):
+    def _computeRegularizationAAndb(self, M, alpha):
         KA = M.K_glo.multiply(np.repeat(self.localweight * alpha, 3)[None, :])
         self.KAK = KA @ M.K_glo
         self.A = self.I + self.KAK
@@ -187,7 +187,7 @@ class VirtualBeads:
         index = M.var * self.vbead
         self.b[index] += self.U_found[index] - M.U[index]
 
-    def recordRelaxationStatus(self, relrecname, M, relrec):
+    def _recordRegularizationStatus(self, relrecname, M, relrec):
         alpha = self.CFG["ALPHA"]
 
         indices = M.var & self.vbead
@@ -213,7 +213,7 @@ class VirtualBeads:
 
         np.savetxt(relrecname, relrec)
 
-    def relax(self, M, stepper=0.33, REG_SOLVER_PRECISION=1e-18, i_max=100, rel_conv_crit=0.01, alpha=1.0, method="huber", relrecname=None):
+    def regularize(self, M, stepper=0.33, REG_SOLVER_PRECISION=1e-18, i_max=100, rel_conv_crit=0.01, alpha=1.0, method="huber", relrecname=None):
         self.I = ssp.lil_matrix((self.vbead.shape[0]*3, self.vbead.shape[0]*3))
         self.I.setdiag(np.repeat(self.vbead, 3))
 
@@ -236,7 +236,7 @@ class VirtualBeads:
         # log and store values (if a target file was provided)
         if relrecname is not None:
             relrec = []
-            self.recordRelaxationStatus(relrecname, M, relrec)
+            self._recordRegularizationStatus(relrecname, M, relrec)
 
         print("check before relax !")
         # start the iteration
@@ -246,10 +246,10 @@ class VirtualBeads:
                 self.updateLocalWeigth(M, method)
 
             # compute A and b for the linear equation that solves the regularisation problem
-            self.computeAAndb(M, alpha)
+            self._computeRegularizationAAndb(M, alpha)
 
             # get and apply the displacements that solve the regularisation term
-            uu = self._solve_CG(M, stepper, REG_SOLVER_PRECISION)
+            uu = self._solve_regularization_CG(M, stepper, REG_SOLVER_PRECISION)
 
             # update the forces on each tetrahedron and the global stiffness tensor
             M._updateGloFAndK()
@@ -258,7 +258,7 @@ class VirtualBeads:
 
             # log and store values (if a target file was provided)
             if relrecname is not None:
-                self.recordRelaxationStatus(relrecname, M, relrec)
+                self._recordRegularizationStatus(relrecname, M, relrec)
 
             # if we have passed 6 iterations calculate average and std
             if i > 6:
@@ -273,7 +273,7 @@ class VirtualBeads:
 
         return relrec
 
-    def _solve_CG(self, M, stepper=0.33, REG_SOLVER_PRECISION=1e-18):
+    def _solve_regularization_CG(self, M, stepper=0.33, REG_SOLVER_PRECISION=1e-18):
         """
         Solve the displacements from the current stiffness tensor using conjugate gradient.
         """
