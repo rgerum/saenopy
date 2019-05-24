@@ -509,6 +509,175 @@ class FiniteBodyForces:
         # return the total applied displacement
         return du
 
+    """ regularisation """
+
+    def setFoundDisplacements(self, U_found, vbead=None):
+        """
+        Provide the displacements that should be fitted by the regularization.
+
+        Parameters
+        ----------
+        U_found : ndarray
+            The displacements for each node. Dimensions N_n x 3
+        vbead : ndarray, optional
+            A boolean array defining whether to fit the displacement for this node. Default, all displacements are
+            fitted.
+        """
+        U_found = np.asarray(U_found)
+        assert U_found.shape == (self.N_c, 3)
+        self.U_found = U_found
+        if vbead is not None:
+            vbead = np.asarray(vbead)
+            assert vbead.shape == (self.N_c, 3)
+            self.vbead = vbead
+        else:
+            self.vbead = np.ones(U_found[0], dtype=bool)
+
+    def _updateLocalRegularizationWeigth(self, method):
+
+        self.localweight[:] = 1
+
+        Fvalues = np.linalg.norm(self.f_glo, axis=1)
+        Fmedian = np.median(Fvalues[self.var])
+
+        if method == "singlepoint":
+            self.localweight[int(self.CFG["REG_FORCEPOINT"])] = 1.0e-10
+
+        if method == "bisquare":
+            k = 4.685
+
+            index = Fvalues < k * Fmedian
+            self.localweight[index * self.var] *= (1 - (Fvalues / k / Fmedian) * (Fvalues / k / Fmedian)) * (
+                    1 - (Fvalues / k / Fmedian) * (Fvalues / k / Fmedian))
+            self.localweight[~index * self.var] *= 1e-10
+
+        if method == "cauchy":
+            k = 2.385
+
+            if Fmedian > 0:
+                self.localweight[self.var] *= 1.0 / (1.0 + np.power((Fvalues / k / Fmedian), 2.0))
+            else:
+                self.localweight *= 1.0
+
+        if method == "huber":
+            k = 1.345
+
+            index = (Fvalues > (k * Fmedian)) & self.var
+            self.localweight[index] = k * Fmedian / Fvalues[index]
+
+        index = self.localweight < 1e-10
+        self.localweight[index & self.var] = 1e-10
+
+        counter = np.sum(1.0 - self.localweight[self.var])
+        counterall = np.sum(self.var)
+
+        print("total weight: ", counter, "/", counterall)
+
+    def _computeRegularizationAAndb(self, alpha):
+        KA = self.K_glo.multiply(np.repeat(self.localweight * alpha, 3)[None, :])
+        self.KAK = KA @ self.K_glo
+        self.A = self.I + self.KAK
+
+        self.b = (KA @ self.f_glo.ravel()).reshape(self.f_glo.shape)
+
+        index = self.var & self.vbead
+        self.b[index] += self.U_found[index] - self.U[index]
+
+    def _recordRegularizationStatus(self, relrec, alpha, relrecname=None):
+        indices = self.var & self.vbead
+        btemp = self.U_found[indices] - self.U[indices]
+        uuf2 = np.sum(btemp ** 2)
+        suuf = np.sum(np.linalg.norm(btemp, axis=1))
+        bcount = btemp.shape[0]
+
+        u2 = np.sum(self.U[self.var]**2)
+
+        f = np.zeros((self.N_c, 3))
+        f[self.var] = self.f_glo[self.var]
+
+        ff = np.sum(np.sum(f**2, axis=1)*self.localweight*self.var)
+
+        L = alpha*ff + uuf2
+
+        print("|u-uf|^2 =", uuf2, "\t\tperbead=", suuf/bcount)
+        print("|w*f|^2  =", ff, "\t\t|u|^2 =", u2)
+        print("L = |u-uf|^2 + lambda*|w*f|^2 = ", L)
+
+        relrec.append((L, uuf2, ff))
+
+        if relrecname is not None:
+            np.savetxt(relrecname, relrec)
+
+    def regularize(self, stepper=0.33, REG_SOLVER_PRECISION=1e-18, i_max=100, rel_conv_crit=0.01, alpha=3e9, method="huber", relrecname=None):
+        self.I = ssp.lil_matrix((self.vbead.shape[0]*3, self.vbead.shape[0]*3))
+        self.I.setdiag(np.repeat(self.vbead, 3))
+
+        # check if everything is prepared
+        self._check_relax_ready()
+
+        self.localweight = np.ones(self.N_c)
+
+        # update the forces on each tetrahedron and the global stiffness tensor
+        print("going to update glo f and K")
+        self._updateGloFAndK()
+
+        # log and store values (if a target file was provided)
+        relrec = []
+        self._recordRegularizationStatus(relrec, alpha, relrecname)
+
+        print("check before relax !")
+        # start the iteration
+        for i in range(i_max):
+            # compute the weight matrix
+            if method != "normal":
+                self._updateLocalRegularizationWeigth(method)
+
+            # compute A and b for the linear equation that solves the regularisation problem
+            self._computeRegularizationAAndb(alpha)
+
+            # get and apply the displacements that solve the regularisation term
+            uu = self._solve_regularization_CG(stepper, REG_SOLVER_PRECISION)
+
+            # update the forces on each tetrahedron and the global stiffness tensor
+            self._updateGloFAndK()
+
+            print("Round", i+1, " |du|=", uu)
+
+            # log and store values (if a target file was provided)
+            self._recordRegularizationStatus(relrec, alpha, relrecname)
+
+            # if we have passed 6 iterations calculate average and std
+            if i > 6:
+                # calculate the average energy over the last 6 iterations
+                last_Ls = np.array(relrec)[:-6:-1, 1]
+                Lmean = np.mean(last_Ls)
+                Lstd = np.std(last_Ls) / np.sqrt(5)  # the original formula just had /N instead of /sqrt(N)
+
+                # if the iterations converge, stop the iteration
+                if Lstd / Lmean < rel_conv_crit:
+                    break
+
+        return relrec
+
+    def _solve_regularization_CG(self, stepper=0.33, REG_SOLVER_PRECISION=1e-18):
+        """
+        Solve the displacements from the current stiffness tensor using conjugate gradient.
+        """
+
+        # solve the conjugate gradient which solves the equation A x = b for x
+        # where A is (I - KAK) (K: stiffness matrix, A: weight matrix) and b is (u_meas - u - KAf)
+        uu = cg(self.A, self.b.flatten(), maxiter=25*int(pow(self.N_c, 0.33333)+0.5), tol=self.N_c*REG_SOLVER_PRECISION).reshape((self.N_c, 3))
+
+        # add the new displacements to the stored displacements
+        self.U += uu * stepper
+        # sum the applied displacements
+        du = np.sum(uu ** 2) * stepper * stepper
+
+        # return the total applied displacement
+        return np.sqrt(du/self.N_c)
+
+    """ helper methods """
+
     def smoothen(self):
         ddu = 0
         for c in range(self.N_c):

@@ -233,6 +233,7 @@ def main():
 
             B.Drift = np.zeros(3)
             B.loadUfound(os.path.join(indir, CFG["UFOUND"]), os.path.join(indir, CFG["SFOUND"]))
+            M.setFoundDisplacements(B.U_found, B.vbead)
 
             if CFG["MODE"] == "computation":
                 M.loadConfiguration(os.path.join(indir, CFG["UFOUND"]))
@@ -262,7 +263,7 @@ def main():
                         goodbeadcount += 1
 
                 doreg = goodbeadcount > badbeadcount
-
+                M.setFoundDisplacements(B.U_found, B.vbead)
             doreg = True
 
             if doreg:
@@ -283,7 +284,7 @@ def main():
                     B.computeConconnections_Laplace(M)
 
                 relrecname = os.path.join(CFG["DATAOUT"], CFG["REG_RELREC"])
-                rvec=B.regularize(M, CFG["REG_SOLVER_STEP"], CFG["REG_SOLVER_PRECISION"], CFG["REG_ITERATIONS"], CFG["REG_CONV_CRIT"], CFG["ALPHA"], CFG["ROBUSTMETHOD"], relrecname)
+                rvec=M.regularize(CFG["REG_SOLVER_STEP"], CFG["REG_SOLVER_PRECISION"], CFG["REG_ITERATIONS"], CFG["REG_CONV_CRIT"], CFG["ALPHA"], CFG["ROBUSTMETHOD"], relrecname)
 
                 results["MISTFIT"]=rvec[0]
                 results["L"]=rvec[1]
