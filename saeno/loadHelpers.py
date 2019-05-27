@@ -1,15 +1,6 @@
 import os
-import time
-
 import numpy as np
-from scipy.sparse import coo_matrix
 
-from numba import jit, double
-from numba import types
-from numba.extending import overload
-
-from .buildBeams import buildBeams
-from .buildEpsilon import semiAffineFiberMaterial
 from .multigridHelper import makeBoxmeshCoords, makeBoxmeshTets, setActiveFields
 
 

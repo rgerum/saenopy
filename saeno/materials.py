@@ -52,19 +52,19 @@ def sampleAndIntegrateFunction(func, min, max, step, zero_point=0, maximal_value
         dli = (x - min) / step - li
 
         # if we are at the border of the discretisation, we stick to the end
-        max_index = li > ((min - min) / step) - 2
-        li[max_index] = int(((min - min) / step) - 2)
+        max_index = li > ((max - min) / step) - 2
+        li[max_index] = int(((max - min) / step) - 2)
         dli[max_index] = 0
 
         # convert now to int after fixing the maximum
         lii = li.astype(np.int64)
 
         # interpolate between the two discretisation steps
-        epsilon_b = (1 - dli) * y[lii] + dli * y[lii + 1]
-        epsbar_b = (1 - dli) * int_y[lii] + dli * int_y[lii + 1]
-        epsbarbar_b = (1 - dli) * int_int_y[lii] + dli * int_int_y[lii + 1]
+        res0 = (1 - dli) * int_int_y[lii] + dli * int_int_y[lii + 1]
+        res1 = (1 - dli) * int_y[lii] + dli * int_y[lii + 1]
+        res2 = (1 - dli) * y[lii] + dli * y[lii + 1]
 
-        return epsilon_b.reshape(shape), epsbar_b.reshape(shape), epsbarbar_b.reshape(shape)
+        return res0.reshape(shape), res1.reshape(shape), res2.reshape(shape)
 
     return lookUpY
 
@@ -146,3 +146,4 @@ def linearMaterial(k1, min=-1, max=4.0, step=0.000001):
         return stiff
 
     return sampleAndIntegrateFunction(stiffness, min, max, step)
+
