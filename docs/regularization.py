@@ -7,10 +7,10 @@ from saeno.FiniteBodyForces import FiniteBodyForces
 M = FiniteBodyForces()
 
 
-from saeno.materials import semiAffineFiberMaterial
+from saeno.materials import SemiAffineFiberMaterial
 
 # provide a material model
-material = semiAffineFiberMaterial(1645, 0.0008, 0.0075, 0.033)
+material = SemiAffineFiberMaterial(1645, 0.0008, 0.0075, 0.033)
 M.setMaterialModel(material)
 
 
@@ -48,11 +48,11 @@ M.setTetrahedra(T)
 # during the solving
 U = np.array([[ 0.  ,  0.  ,  0.  ],  # 0
               [ 0.  ,  0.  ,  0.  ],  # 1
-              [-0.25,  0.  ,  0.  ],  # 2
-              [-0.25,  0.  ,  0.  ],  # 3
+              [ 0.25,  0.  ,  0.  ],  # 2
+              [ 0.25,  0.  ,  0.  ],  # 3
               [ 0.  ,  0.  ,  0.  ],  # 4
-              [-0.25,  0.  ,  0.  ],  # 5
-              [-0.25,  0.  ,  0.  ],  # 6
+              [ 0.25,  0.  ,  0.  ],  # 5
+              [ 0.25,  0.  ,  0.  ],  # 6
               [ 0.  ,  0.  ,  0.  ]]) # 7
 
 # whether to fit the displacement of this node
