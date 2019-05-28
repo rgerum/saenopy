@@ -134,30 +134,32 @@ class SemiAffineFiberMaterial(Material):
         y = np.zeros_like(x)
 
         # find the buckling range
-        if self.d0 is not None:
+        if self.ds0 is not None:
             buckling = x < 0
         else:
             buckling = np.zeros_like(x) == 1
         # find the stretching range
-        if self.d1 is not None and self.s1 is not None:
+        if self.ds1 is not None and self.s1 is not None:
             stretching = self.s1 <= x
         else:
             stretching = np.zeros_like(x) == 1
         # and the rest is the linear range
         linear = (~buckling) & (~stretching)
 
-        # calculate the buckling energy
-        y[buckling] = self.k1 * self.d0 ** 2 * np.exp(x[buckling] / self.d0) - self.k1 * self.d0 * x[buckling] - self.k1 * self.d0 ** 2
+        if self.ds0 is not None:
+            # calculate the buckling energy
+            y[buckling] = self.k1 * self.ds0 ** 2 * np.exp(x[buckling] / self.ds0) - self.k1 * self.ds0 * x[buckling] - self.k1 * self.ds0 ** 2
 
         # calculate the energy in the linear range
         y[linear] = 0.5 * self.k1 * x[linear] ** 2
 
-        # and in the stretching range
-        dk = self.d1 * self.k1
-        sk = self.s1 * self.k1
-        d2k = self.d1 * dk
-        y[stretching] = - 0.5 * self.s1 ** 2 * self.k1 + self.d1 * self.k1 * self.s1 - d2k \
-                        + d2k * np.exp((x[stretching] - self.s1) / self.d1) - dk * x[stretching] + sk * x[stretching]
+        if self.ds1 is not None and self.s1 is not None:
+            # and in the stretching range
+            dk = self.ds1 * self.k1
+            sk = self.s1 * self.k1
+            d2k = self.ds1 * dk
+            y[stretching] = - 0.5 * self.s1 ** 2 * self.k1 + self.ds1 * self.k1 * self.s1 - d2k \
+                            + d2k * np.exp((x[stretching] - self.s1) / self.ds1) - dk * x[stretching] + sk * x[stretching]
 
         # return the resulting energy
         return y.reshape(x0.shape)
@@ -182,3 +184,7 @@ class LinearMaterial(Material):
         stiff = np.ones_like(s) * self.k1
 
         return stiff
+
+    def energy(self, x):
+        # calculate the energy in the linear range
+        return 0.5 * self.k1 * x**2
