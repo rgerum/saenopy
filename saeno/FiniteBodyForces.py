@@ -7,7 +7,7 @@ import scipy.sparse as ssp
 from numba import jit, njit
 
 from .buildBeams import buildBeams
-from .materials import semiAffineFiberMaterial
+from .materials import SemiAffineFiberMaterial
 from .conjugateGradient import cg
 
 
@@ -175,18 +175,17 @@ class FiniteBodyForces:
         # schedule to recalculate the connections
         self.connections_valid = False
 
-    def setMaterialModel(self, material_model_function):
+    def setMaterialModel(self, material):
         """
-        Provides the material model for the mesh. The function needs to take a deformation and return the potential (w),
-        the energy (w') and the stiffness (w'').
+        Provides the material model for the mesh.
 
         Parameters
         ----------
-        material_model_function : func
-             The function needs to be able to take an ndarray and return w, w', and w'' with the same shape also as an
-             ndarray.
+        material : func
+             The material, must be of a subclass of Material which implements the method `generate_look_up_table`
         """
-        self.material_model = material_model_function
+        self.material_model = material
+        self.material_model_look_up = self.material_model.generate_look_up_table()
 
     def setBeams(self, beams=300):
         """
@@ -300,7 +299,7 @@ class FiniteBodyForces:
 
             s_bar, s_star = self._get_s_star_s_bar(t)
 
-            epsilon_b, dEdsbar, dEdsbarbar = self._get_applied_epsilon(s_bar, self.material_model, self.V[t])
+            epsilon_b, dEdsbar, dEdsbarbar = self._get_applied_epsilon(s_bar, self.material_model_look_up, self.V[t])
 
             self._update_energy(epsilon_b, t)
             self._update_f_glo(s_star, s_bar, dEdsbar, out=f_glo[t])
@@ -730,7 +729,7 @@ class FiniteBodyForces:
 
         ds0 = self.CFG["D_0"]
 
-        self.epsilon, self.epsbar, self.epsbarbar = semiAffineFiberMaterial(k1, ds0, 0, 0, self.CFG)
+        self.epsilon, self.epsbar, self.epsbarbar = SemiAffineFiberMaterial(k1, ds0, 0, 0, self.CFG)
 
         self._updateGloFAndK()
 
@@ -958,3 +957,31 @@ class FiniteBodyForces:
 
         np.savetxt(EVname, EVrec)
         print(EVname, "stored.")
+
+    def plotMesh(self, use_displacement=True, edge_color=None, alpha=0.2):
+        import mpl_toolkits.mplot3d as a3
+        import matplotlib.pyplot as plt
+        from matplotlib import _pylab_helpers
+
+        if _pylab_helpers.Gcf.get_active() is None:
+            axes = a3.Axes3D(plt.figure())
+        else:
+            axes = plt.gca()
+
+        if use_displacement:
+            points = self.R+self.U
+            if edge_color is None:
+                edge_color = "red"
+        else:
+            points = self.R
+            if edge_color is None:
+                edge_color = "blue"
+
+        vts = points[self.T, :]
+        helper = np.array([[0, 1], [0, 2], [0, 3], [1, 2], [1, 3], [2, 3]])
+        tri = a3.art3d.Line3DCollection(vts[:, helper].reshape(-1, 2, 3))
+        tri.set_alpha(alpha)
+        tri.set_edgecolor(edge_color)
+        axes.add_collection3d(tri)
+        axes.plot(points[:, 0], points[:, 1], points[:, 2], 'ko')
+        axes.set_aspect('equal')

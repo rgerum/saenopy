@@ -12,4 +12,5 @@ SAENO - Semi-affine Elastic Network Optimizer, originally developed by Julian St
    installation
    relaxation.ipynb
    regularization.ipynb
+   macrorheology
    api

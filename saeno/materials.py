@@ -69,10 +69,27 @@ def sampleAndIntegrateFunction(func, min, max, step, zero_point=0, maximal_value
     return lookUpY
 
 
-def semiAffineFiberMaterial(k1, ds0=None, s1=None, ds1=None, min=-1, max=4.0, step=0.000001):
+class Material:
+    parameters = {}
+    min = -1
+    max = 4.0
+    step = 0.000001
+
+    def stiffness(self, s):
+        # to be overloaded by a material implementation
+        return s
+
+    def generate_look_up_table(self):
+        return sampleAndIntegrateFunction(self.stiffness, self.min, self.max, self.step)
+
+    def __str__(self):
+        return self.__class__.__name__+"("+", ".join(key+"="+str(value) for key, value in self.parameters.items())+")"
+
+
+class SemiAffineFiberMaterial(Material):
     """
     A material that has a linear stiffness range from 0 to s1 which then goes to an exponential stiffening regime. For
-    compression the material responds with an exponential deay of the stiffness, a buckling response.
+    compression the material responds with an exponential decay of the stiffness, a buckling response.
 
     Parameters
     ----------
@@ -86,39 +103,67 @@ def semiAffineFiberMaterial(k1, ds0=None, s1=None, ds1=None, min=-1, max=4.0, st
     ds1 : float, optional
         The parameter specifying how strong the exponential stiffening is. If omitted the material shows no exponential
         stiffening.
-    min : float, optional
-        Where to start to sample the function.
-    max : float, optional
-        Where to stop to sample the function.
-    step : float, optional
-        In which steps to sample the function.
-
-    Returns
-    -------
-    func : function
-        A function which returns, the stiffness, force, and energy for a given stretching.
     """
+    def __init__(self, k1, ds0=None, s1=None, ds1=None):
+        # parameters
+        self.k1 = k1
+        self.ds0 = ds0
+        self.s1 = s1
+        self.ds1 = ds1
+        self.parameters = dict(k1=k1, ds0=ds0, s1=s1, ds1=ds1)
 
-    def stiffness(s):
+    def stiffness(self, s):
         # the linear spring regime (0 < s < s1)
-        stiff = np.ones_like(s) * k1
+        stiff = np.ones_like(s) * self.k1
 
         # buckling for compression
-        if ds0 is not None:
+        if self.ds0 is not None:
             buckling = s < 0
-            stiff[buckling] = k1 * np.exp(s[buckling] / ds0)
+            stiff[buckling] = self.k1 * np.exp(s[buckling] / self.ds0)
 
         # and exponential stretch for overstretching fibers
-        if ds1 is not None and s1 is not None:
-            stretching = s > s1
-            stiff[stretching] = k1 * np.exp((s[stretching] - s1) / ds1)
+        if self.ds1 is not None and self.s1 is not None:
+            stretching = s > self.s1
+            stiff[stretching] = self.k1 * np.exp((s[stretching] - self.s1) / self.ds1)
 
         return stiff
 
-    return sampleAndIntegrateFunction(stiffness, min, max, step)
+    def energy(self, x0):
+        # generate an empty target array
+        x = x0.ravel()
+        y = np.zeros_like(x)
+
+        # find the buckling range
+        if self.d0 is not None:
+            buckling = x < 0
+        else:
+            buckling = np.zeros_like(x) == 1
+        # find the stretching range
+        if self.d1 is not None and self.s1 is not None:
+            stretching = self.s1 <= x
+        else:
+            stretching = np.zeros_like(x) == 1
+        # and the rest is the linear range
+        linear = (~buckling) & (~stretching)
+
+        # calculate the buckling energy
+        y[buckling] = self.k1 * self.d0 ** 2 * np.exp(x[buckling] / self.d0) - self.k1 * self.d0 * x[buckling] - self.k1 * self.d0 ** 2
+
+        # calculate the energy in the linear range
+        y[linear] = 0.5 * self.k1 * x[linear] ** 2
+
+        # and in the stretching range
+        dk = self.d1 * self.k1
+        sk = self.s1 * self.k1
+        d2k = self.d1 * dk
+        y[stretching] = - 0.5 * self.s1 ** 2 * self.k1 + self.d1 * self.k1 * self.s1 - d2k \
+                        + d2k * np.exp((x[stretching] - self.s1) / self.d1) - dk * x[stretching] + sk * x[stretching]
+
+        # return the resulting energy
+        return y.reshape(x0.shape)
 
 
-def linearMaterial(k1, min=-1, max=4.0, step=0.000001):
+class LinearMaterial(Material):
     """
     A material that has a linear stiffness.
 
@@ -126,24 +171,14 @@ def linearMaterial(k1, min=-1, max=4.0, step=0.000001):
     ----------
     k1 : float
         The stiffness of the material.
-    min : float, optional
-        Where to start to sample the function.
-    max : float, optional
-        Where to stop to sample the function.
-    step : float, optional
-        In which steps to sample the function.
-
-    Returns
-    -------
-    func : function
-        A function which returns, the stiffness, force, and energy for a given stretching.
     """
+    def __init__(self, k1):
+        # parameters
+        self.k1 = k1
+        self.parameters = dict(k1=k1)
 
-    def stiffness(s):
+    def stiffness(self, s):
         # the linear spring regime (0 < s < s1)
-        stiff = np.ones_like(s) * k1
+        stiff = np.ones_like(s) * self.k1
 
         return stiff
-
-    return sampleAndIntegrateFunction(stiffness, min, max, step)
-

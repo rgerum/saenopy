@@ -7,7 +7,7 @@ from .FiniteBodyForces import FiniteBodyForces
 from .VirtualBeads import VirtualBeads
 from .buildBeams import buildBeams, saveBeams
 from .materials import saveEpsilon
-from .materials import semiAffineFiberMaterial
+from .materials import SemiAffineFiberMaterial
 from .loadHelpers import loadMeshCoords, loadMeshTets, loadBoundaryConditions, loadConfiguration, makeBoxmesh, load
 
 
