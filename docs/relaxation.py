@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 # coding: utf-8
 
+
+
 from saeno.FiniteBodyForces import FiniteBodyForces
     
 # initialize the object
@@ -65,9 +67,11 @@ F_ext = np.array([[ 0. ,  0.  ,  0.  ],  # 0
                   [ 0. ,  0.  ,  0.  ]]) # 7
 
 # provide the node data
-M.setNodes(R, var, U, F_ext)
-# and the tetrahedron data
+M.setNodes(R)
+# the tetrahedron data
 M.setTetrahedra(T)
+# and the boundary condition
+M.setBoundaryCondition(var, U, F_ext)
 
 # relax the mesh and move the "varible" nodes
 M.relax()

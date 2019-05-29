@@ -1,4 +1,5 @@
 import os
+import sys
 import time
 
 import numpy as np
@@ -42,22 +43,14 @@ class FiniteBodyForces:
 
     material_model = None  # the function specifying the material model
 
-    def setNodes(self, data, var=None, displacements=None, forces=None):
+    def setNodes(self, data):
         """
-        Provide mesh coordinates, optional with a flag if they can be moved, a displacement and a force. Displacements,
-        variable state, and forces can also be set afterwards with :py:meth:`~.FiniteBodyForces.setDisplacements`,
-        :py:meth:`~.FiniteBodyForces.setVariable`, and :py:meth:`~.FiniteBodyForces.setExternalForces`.
+        Provide mesh coordinates.
 
         Parameters
         ----------
         data : ndarray
             The coordinates of the vertices. Dimensions Nx3
-        var : ndarray, optional
-            A boolean value whether the node is allowed to move. By default all vertices can be moved. Dimensions N
-        displacements : ndarray, optional
-            The initial displacement of the node. Dimensions Nx3
-        forces : ndarray, optional
-            The forces on the node. Dimensions Nx3
         """
         # check the input
         data = np.asarray(data)
@@ -72,11 +65,26 @@ class FiniteBodyForces:
         # store the number of vertices
         self.N_c = data.shape[0]
 
-        # initialize 0 displacement for each node
-        if displacements is None:
-            self.U = np.zeros((self.N_c, 3))
-        else:
-            self.setDisplacements(displacements)
+        self.var = np.ones(self.N_c, dtype=np.bool)
+        self.U = np.zeros((self.N_c, 3))
+        self.f_glo = np.zeros((self.N_c, 3))
+        self.f_ext = np.zeros((self.N_c, 3))
+
+    def setBoundaryCondition(self, var=None, displacements=None, forces=None):
+        """
+        Provide the boundary condition for the mesh, to be used with :py:meth:`~.FiniteBodyForces.relax`.
+
+        Parameters
+        ----------
+        var : ndarray, optional
+            A boolean value whether the node is allowed to move. True means that the node will be given a force
+            boundary condition and False means it will be given a displacement boundary condition.
+            By default all vertices can be moved. Dimensions N
+        displacements : ndarray, optional
+            The initial displacement of the node. Dimensions Nx3
+        forces : ndarray, optional
+            The forces on the node. Dimensions Nx3
+        """
 
         # start with every node being variable (non-fixed)
         if var is None:
@@ -84,12 +92,20 @@ class FiniteBodyForces:
         else:
             self.setVariable(var)
 
+        # initialize 0 displacement for each node
+        if displacements is None:
+            self.U = np.zeros((self.N_c, 3))
+        else:
+            self.setDisplacements(displacements)
+
         # initialize global and external forces
-        self.f_glo = np.zeros((self.N_c, 3))
         if forces is None:
             self.f_ext = np.zeros((self.N_c, 3))
         else:
             self.setExternalForces(forces)
+            if np.sum(self.f_ext[~self.var]) != 0:
+                print("WARNING: Forces for non-variable vertices were specified. These boundary conditions cannot be"
+                      "fulfilled", file=sys.stderr)
 
     def setDisplacements(self, displacements):
         """
@@ -181,8 +197,8 @@ class FiniteBodyForces:
 
         Parameters
         ----------
-        material : func
-             The material, must be of a subclass of Material which implements the method `generate_look_up_table`
+        material : :py:class:`~.materials.Material`
+             The material, must be of a subclass of Material which implements the method :py:func:`generate_look_up_table`
         """
         self.material_model = material
         self.material_model_look_up = self.material_model.generate_look_up_table()

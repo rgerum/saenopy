@@ -70,6 +70,9 @@ def sampleAndIntegrateFunction(func, min, max, step, zero_point=0, maximal_value
 
 
 class Material:
+    """
+    The base class for all material models.
+    """
     parameters = {}
     min = -1
     max = 4.0

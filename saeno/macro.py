@@ -26,7 +26,7 @@ def getShearRheometerStress(gamma, material, s=None):
     ----------
     gamma : ndarray
         The applied strain.
-    material : `py:class:~.materials.Material`
+    material : :py:class:`~.materials.Material`
         The material model to use.
 
     Returns
@@ -58,7 +58,8 @@ def getStretchThinning(lambda_h, lambda_v, material, s=None):
     r"""
     Get the thinning of the material for streching.
 
-    The following shear deformation :math:`\mathbf{F}` is applied to the material:
+    The following deformation :math:`\mathbf{F}` is applied to the material, composed of a horizontal and a vertical
+    stretching:
 
     .. math::
         \mathbf{F}(\gamma) =
@@ -78,7 +79,7 @@ def getStretchThinning(lambda_h, lambda_v, material, s=None):
     lambda_v : ndarray
         The different values for thinning to test. The value with the lowest energy for each horizontal stretch is
         returned.
-    material : `py:class:~.materials.Material`
+    material : :py:class:`~.materials.Material`
         The material model to use.
 
     Returns
@@ -108,7 +109,7 @@ def getExtensionalRheometerStress(epsilon, material, s=None):
     r"""
     Get the stress for a given strain of the material in an extensional rheometer.
 
-    The following shear deformation :math:`\mathbf{F}` is applied to the material:
+    The following deformation :math:`\mathbf{F}` is applied to the material:
 
     .. math::
         \mathbf{F}(\gamma) =
@@ -129,7 +130,7 @@ def getExtensionalRheometerStress(epsilon, material, s=None):
     ----------
     epsilon : ndarray
         The applied strain.
-    material : `py:class:~.materials.Material`
+    material : :py:class:`~.materials.Material`
         The material model to use.
 
     Returns

@@ -105,9 +105,11 @@ def main():
             U = None
 
         print("SET MESH DATA")
-        M.setNodes(R, var, U, f_ext)
+        M.setNodes(R)
         print("done")
         M.setTetrahedra(T)
+        print("done")
+        M.setBoundaryCondition(var, U, f_ext)
         print("done")
 
         # ------ End OF MODULE loadMesh -------------------------------------- #
