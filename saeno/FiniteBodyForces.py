@@ -70,40 +70,41 @@ class FiniteBodyForces:
         self.f_glo = np.zeros((self.N_c, 3))
         self.f_ext = np.zeros((self.N_c, 3))
 
-    def setBoundaryCondition(self, var=None, displacements=None, forces=None):
+    def setBoundaryCondition(self, displacements=None, forces=None):
         """
         Provide the boundary condition for the mesh, to be used with :py:meth:`~.FiniteBodyForces.relax`.
 
         Parameters
         ----------
-        var : ndarray, optional
-            A boolean value whether the node is allowed to move. True means that the node will be given a force
-            boundary condition and False means it will be given a displacement boundary condition.
-            By default all vertices can be moved. Dimensions N
         displacements : ndarray, optional
-            The initial displacement of the node. Dimensions Nx3
+            If the displacement of a node is not nan, it is treated as a Dirichlet boundary condition and the
+            displacement of this node is kept fix during solving. Dimensions Nx3
         forces : ndarray, optional
-            The forces on the node. Dimensions Nx3
+            If the force of a node is not nan, it is treated as a von Neumann boundary condition and the solver tries to
+            match the force on the node with the here given force. In contrast to the displacement conditions the force
+            boundary conditions cannot be strictly enforced. Dimensions Nx3
         """
-
-        # start with every node being variable (non-fixed)
-        if var is None:
-            self.var = np.ones(self.N_c, dtype=np.bool)
-        else:
-            self.setVariable(var)
 
         # initialize 0 displacement for each node
         if displacements is None:
             self.U = np.zeros((self.N_c, 3))
         else:
-            self.setDisplacements(displacements)
+            displacements = np.asarray(displacements)
+            assert displacements.shape == (self.N_c, 3)
+            self.var = np.any(np.isnan(displacements), axis=1)
+            self.U = displacements.astype(np.float64)
+            self.U[self.var] = 0
 
         # initialize global and external forces
         if forces is None:
             self.f_ext = np.zeros((self.N_c, 3))
         else:
             self.setExternalForces(forces)
-            if np.sum(self.f_ext[~self.var]) != 0:
+            # if no displacements where given, take the variable nodes from the nans in the force list
+            if displacements is None:
+                self.var = ~np.any(np.isnan(forces), axis=1)
+            # if not, check if the the fixed displacements have no force
+            elif np.all(np.isnan(self.f_ext[~self.var])) is False:
                 print("WARNING: Forces for non-variable vertices were specified. These boundary conditions cannot be"
                       "fulfilled", file=sys.stderr)
 
@@ -526,27 +527,21 @@ class FiniteBodyForces:
 
     """ regularization """
 
-    def setFoundDisplacements(self, U_found, vbead=None):
+    def setTargetDisplacements(self, displacement):
         """
         Provide the displacements that should be fitted by the regularization.
 
         Parameters
         ----------
-        U_found : ndarray
+        displacement : ndarray
+            If the displacement of a node is not nan, it is
             The displacements for each node. Dimensions N_n x 3
-        vbead : ndarray, optional
-            A boolean array defining whether to fit the displacement for this node. Default, all displacements are
-            fitted.
         """
-        U_found = np.asarray(U_found)
-        assert U_found.shape == (self.N_c, 3)
-        self.U_found = U_found
-        if vbead is not None:
-            vbead = np.asarray(vbead)
-            assert vbead.shape == (self.N_c, )
-            self.vbead = vbead
-        else:
-            self.vbead = np.ones(U_found[0], dtype=bool)
+        displacement = np.asarray(displacement)
+        assert displacement.shape == (self.N_c, 3)
+        self.U_found = displacement
+        # only use displacements that are not nan
+        self.vbead = np.any(~np.isnan(displacement), axis=1)
 
     def _updateLocalRegularizationWeigth(self, method):
 

@@ -46,23 +46,18 @@ M.setTetrahedra(T)
 
 
 # the displacements of the nodes which shall be fitted
-# if the node is fixed (e.g. not variable) than this displacement will be fixed
 # during the solving
-U = np.array([[ 0.  ,  0.  ,  0.  ],  # 0
-              [ 0.  ,  0.  ,  0.  ],  # 1
-              [ 0.25,  0.  ,  0.  ],  # 2
-              [ 0.25,  0.  ,  0.  ],  # 3
-              [ 0.  ,  0.  ,  0.  ],  # 4
-              [ 0.25,  0.  ,  0.  ],  # 5
-              [ 0.25,  0.  ,  0.  ],  # 6
-              [ 0.  ,  0.  ,  0.  ]]) # 7
-
-# whether to fit the displacement of this node
-#                     0      1      2      3      4      5      6      7
-vbead = np.array([ True,  True, False, False,  True, False, False,  True])
+U = np.array([[np.nan, np.nan, np.nan],  # 0
+              [np.nan, np.nan, np.nan],  # 1
+              [ 0.25 ,  0.    ,  0.  ],  # 2
+              [ 0.25 ,  0.    ,  0.  ],  # 3
+              [np.nan, np.nan, np.nan],  # 4
+              [ 0.25 ,  0.    ,  0.  ],  # 5
+              [ 0.25 ,  0.    ,  0.  ],  # 6
+              [np.nan, np.nan, np.nan]]) # 7
 
 # hand the displacements over to the class instance
-M.setFoundDisplacements(U, vbead)
+M.setTargetDisplacements(U)
 
 
 # relax the mesh and move the "varible" nodes

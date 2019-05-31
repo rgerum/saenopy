@@ -36,42 +36,37 @@ T = np.array([[0, 1, 7, 2],
               [2, 5, 6, 7],
               [0, 7, 5, 2]])
 
-# define if the nodes are "variable", e.g. allowed to be moved by the solver
-# a boolean matrix with shape N_n
-#                   0      1      2      3      4      5      6      7
-var = np.array([False, False,  True,  True, False,  True,  True, False])
-
 # the initial displacements of the nodes
 # if the node is fixed (e.g. not variable) than this displacement will be fixed
 # during the solving
-U = np.array([[ 0.  ,  0.  ,  0.  ],  # 0
-              [ 0.  ,  0.  ,  0.  ],  # 1
-              [ 0.  ,  0.  ,  0.  ],  # 2
-              [ 0.  ,  0.  ,  0.  ],  # 3
-              [ 0.  ,  0.  ,  0.  ],  # 4
-              [ 0.  ,  0.  ,  0.  ],  # 5
-              [ 0.  ,  0.  ,  0.  ],  # 6
-              [ 0.  ,  0.  ,  0.  ]]) # 7
+U = np.array([[  0.  ,   0.  ,   0.  ],  # 0
+              [  0.  ,   0.  ,   0.  ],  # 1
+              [np.nan, np.nan, np.nan],  # 2
+              [np.nan, np.nan, np.nan],  # 3
+              [  0.  ,   0.  ,   0.  ],  # 4
+              [np.nan, np.nan, np.nan],  # 5
+              [np.nan, np.nan, np.nan],  # 6
+              [  0.  ,   0.  ,   0.  ]]) # 7
 
 # for the variable nodes, we can specify the target force.
 # this is the force that the material applies after solving onto the nodes
 # therefore for a pull to the right (positive x-direction) we have to provide
 # a target force to the left (negative x-direction)
-F_ext = np.array([[ 0. ,  0.  ,  0.  ],  # 0
-                  [ 0. ,  0.  ,  0.  ],  # 1
-                  [-2.5,  0.  ,  0.  ],  # 2
-                  [-2.5,  0.  ,  0.  ],  # 3
-                  [ 0. ,  0.  ,  0.  ],  # 4
-                  [-2.5,  0.  ,  0.  ],  # 5
-                  [-2.5,  0.  ,  0.  ],  # 6
-                  [ 0. ,  0.  ,  0.  ]]) # 7
+F_ext = np.array([[np.nan, np.nan, np.nan],  # 0
+                  [np.nan, np.nan, np.nan],  # 1
+                  [-2.5  ,  0.   ,  0.   ],  # 2
+                  [-2.5  ,  0.   ,  0.   ],  # 3
+                  [np.nan, np.nan, np.nan],  # 4
+                  [-2.5  ,  0.   ,  0.   ],  # 5
+                  [-2.5  ,  0.   ,  0.   ],  # 6
+                  [np.nan, np.nan, np.nan]]) # 7
 
 # provide the node data
 M.setNodes(R)
 # the tetrahedron data
 M.setTetrahedra(T)
 # and the boundary condition
-M.setBoundaryCondition(var, U, F_ext)
+M.setBoundaryCondition(U, F_ext)
 
 # relax the mesh and move the "varible" nodes
 M.relax()

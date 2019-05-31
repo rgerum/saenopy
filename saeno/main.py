@@ -62,7 +62,7 @@ def main():
 
     # precompute the material model
     print("EPSILON PARAMETERS", CFG["K_0"], CFG["D_0"], CFG["L_S"], CFG["D_S"])
-    epsilon = semiAffineFiberMaterial(CFG["K_0"], CFG["D_0"], CFG["L_S"], CFG["D_S"], max=CFG["EPSMAX"], step=CFG["EPSSTEP"])
+    epsilon = SemiAffineFiberMaterial(CFG["K_0"], CFG["D_0"], CFG["L_S"], CFG["D_S"])#, max=CFG["EPSMAX"], step=CFG["EPSSTEP"])
     M.setMaterialModel(epsilon)
 
     if CFG["SAVEEPSILON"]:
@@ -109,7 +109,12 @@ def main():
         print("done")
         M.setTetrahedra(T)
         print("done")
-        M.setBoundaryCondition(var, U, f_ext)
+        if U is not None:
+            U[var] = np.nan
+        if f_ext is not None:
+            f_ext[~var] = np.nan
+        if U is not None and f_ext is not None:
+            M.setBoundaryCondition(U, f_ext)
         print("done")
 
         # ------ End OF MODULE loadMesh -------------------------------------- #
@@ -235,7 +240,9 @@ def main():
 
             B.Drift = np.zeros(3)
             B.loadUfound(os.path.join(indir, CFG["UFOUND"]), os.path.join(indir, CFG["SFOUND"]))
-            M.setFoundDisplacements(B.U_found, B.vbead)
+            displacements = B.U_found
+            displacements[~B.vbead] = np.nan
+            M.setTargetDisplacements(displacements)
 
             if CFG["MODE"] == "computation":
                 M.loadConfiguration(os.path.join(indir, CFG["UFOUND"]))
@@ -265,7 +272,7 @@ def main():
                         goodbeadcount += 1
 
                 doreg = goodbeadcount > badbeadcount
-                M.setFoundDisplacements(B.U_found, B.vbead)
+                M.setTargetDisplacements(B.U_found)
             doreg = True
 
             if doreg:
