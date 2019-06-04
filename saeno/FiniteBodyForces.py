@@ -22,9 +22,12 @@ class FiniteBodyForces:
     Phi = None  # the shape tensor of each tetrahedron, dimensions: N_T x 4 x 3
     Phi_valid = False
     U = None  # the displacements of each node, dimensions: N_c x 3
+    U_fixed = None
+    U_target = None
+    U_target_mask = None
 
-    f_glo = None  # the global forces on each node, dimensions: N_c x 3
-    f_ext = None  # the external forces on each node, dimensions: N_c x 3
+    f = None  # the global forces on each node, dimensions: N_c x 3
+    f_target = None  # the external forces on each node, dimensions: N_c x 3
     K_glo = None  # the global stiffness tensor, dimensions: N_c x N_c x 3 x 3
 
     Laplace = None
@@ -67,8 +70,8 @@ class FiniteBodyForces:
 
         self.var = np.ones(self.N_c, dtype=np.bool)
         self.U = np.zeros((self.N_c, 3))
-        self.f_glo = np.zeros((self.N_c, 3))
-        self.f_ext = np.zeros((self.N_c, 3))
+        self.f = np.zeros((self.N_c, 3))
+        self.f_target = np.zeros((self.N_c, 3))
 
     def setBoundaryCondition(self, displacements=None, forces=None):
         """
@@ -89,22 +92,22 @@ class FiniteBodyForces:
         if displacements is None:
             self.U = np.zeros((self.N_c, 3))
         else:
-            displacements = np.asarray(displacements)
+            displacements = np.asarray(displacements, dtype=np.float64)
             assert displacements.shape == (self.N_c, 3)
             self.var = np.any(np.isnan(displacements), axis=1)
-            self.U = displacements.astype(np.float64)
-            self.U[self.var] = 0
+            self.U_fixed = displacements
+            self.U[~self.var] = displacements[~self.var]
 
         # initialize global and external forces
         if forces is None:
-            self.f_ext = np.zeros((self.N_c, 3))
+            self.f_target = np.zeros((self.N_c, 3))
         else:
             self.setExternalForces(forces)
             # if no displacements where given, take the variable nodes from the nans in the force list
             if displacements is None:
                 self.var = ~np.any(np.isnan(forces), axis=1)
             # if not, check if the the fixed displacements have no force
-            elif np.all(np.isnan(self.f_ext[~self.var])) is False:
+            elif np.all(np.isnan(self.f_target[~self.var])) is False:
                 print("WARNING: Forces for non-variable vertices were specified. These boundary conditions cannot be"
                       "fulfilled", file=sys.stderr)
 
@@ -155,7 +158,7 @@ class FiniteBodyForces:
         # check the input
         forces = np.asarray(forces)
         assert forces.shape == (self.N_c, 3)
-        self.f_ext = forces.astype(np.float64)
+        self.f_target = forces.astype(np.float64)
 
     def setTetrahedra(self, data):
         """
@@ -324,7 +327,7 @@ class FiniteBodyForces:
 
         # store the global forces in self.f_glo
         # transform from N_T x 4 x 3 -> N_v x 3
-        ssp.coo_matrix((f_glo.ravel(), self.force_distribute_coordinates), shape=self.f_glo.shape).toarray(out=self.f_glo)
+        ssp.coo_matrix((f_glo.ravel(), self.force_distribute_coordinates), shape=self.f.shape).toarray(out=self.f)
 
         # store the stiffness matrix K in self.K_glo
         # transform from N_T x 4 x 4 x 3 x 3 -> N_v * 3 x N_v * 3
@@ -465,7 +468,7 @@ class FiniteBodyForces:
         # update the forces and stiffness matrix
         self._updateGloFAndK()
 
-        relrec = [[0, self.E_glo, np.sum(self.f_glo[self.var]**2)]]
+        relrec = [[0, self.E_glo, np.sum(self.f[self.var] ** 2)]]
 
         start = time.time()
         # start the iteration
@@ -478,7 +481,7 @@ class FiniteBodyForces:
             self._updateGloFAndK()
 
             # sum all squared forces of non fixed nodes
-            ff = np.sum(self.f_glo[self.var]**2)
+            ff = np.sum(self.f[self.var] ** 2)
 
             # print and store status
             print("Newton ", i, ": du=", du, "  Energy=", self.E_glo, "  Residuum=", ff)
@@ -508,7 +511,7 @@ class FiniteBodyForces:
         Solve the displacements from the current stiffness tensor using conjugate gradient.
         """
         # calculate the difference between the current forces on the nodes and the desired forces
-        ff = self.f_glo - self.f_ext
+        ff = self.f - self.f_target
 
         # ignore the force deviations on fixed nodes
         ff[~self.var, :] = 0
@@ -539,15 +542,15 @@ class FiniteBodyForces:
         """
         displacement = np.asarray(displacement)
         assert displacement.shape == (self.N_c, 3)
-        self.U_found = displacement
+        self.U_target = displacement
         # only use displacements that are not nan
-        self.vbead = np.any(~np.isnan(displacement), axis=1)
+        self.U_target_mask = np.any(~np.isnan(displacement), axis=1)
 
     def _updateLocalRegularizationWeigth(self, method):
 
         self.localweight[:] = 1
 
-        Fvalues = np.linalg.norm(self.f_glo, axis=1)
+        Fvalues = np.linalg.norm(self.f, axis=1)
         Fmedian = np.median(Fvalues[self.var])
 
         if method == "singlepoint":
@@ -588,14 +591,14 @@ class FiniteBodyForces:
         self.KAK = KA @ self.K_glo
         self.A = self.I + self.KAK
 
-        self.b = (KA @ self.f_glo.ravel()).reshape(self.f_glo.shape)
+        self.b = (KA @ self.f.ravel()).reshape(self.f.shape)
 
-        index = self.var & self.vbead
-        self.b[index] += self.U_found[index] - self.U[index]
+        index = self.var & self.U_target_mask
+        self.b[index] += self.U_target[index] - self.U[index]
 
     def _recordRegularizationStatus(self, relrec, alpha, relrecname=None):
-        indices = self.var & self.vbead
-        btemp = self.U_found[indices] - self.U[indices]
+        indices = self.var & self.U_target_mask
+        btemp = self.U_target[indices] - self.U[indices]
         uuf2 = np.sum(btemp ** 2)
         suuf = np.sum(np.linalg.norm(btemp, axis=1))
         bcount = btemp.shape[0]
@@ -603,7 +606,7 @@ class FiniteBodyForces:
         u2 = np.sum(self.U[self.var]**2)
 
         f = np.zeros((self.N_c, 3))
-        f[self.var] = self.f_glo[self.var]
+        f[self.var] = self.f[self.var]
 
         ff = np.sum(np.sum(f**2, axis=1)*self.localweight*self.var)
 
@@ -646,8 +649,8 @@ class FiniteBodyForces:
         relrecname : string, optional
             The file where to store the output. Default is to not store the output, just to return it.
         """
-        self.I = ssp.lil_matrix((self.vbead.shape[0]*3, self.vbead.shape[0]*3))
-        self.I.setdiag(np.repeat(self.vbead, 3))
+        self.I = ssp.lil_matrix((self.U_target_mask.shape[0] * 3, self.U_target_mask.shape[0] * 3))
+        self.I.setdiag(np.repeat(self.U_target_mask, 3))
 
         # check if everything is prepared
         self._check_relax_ready()
@@ -721,7 +724,7 @@ class FiniteBodyForces:
             if self.var[c]:
                 A = self.K_glo[c][c]
 
-                f = self.f_glo[c]
+                f = self.f[c]
 
                 du = np.linalg.inv(A) * f
 
@@ -758,7 +761,7 @@ class FiniteBodyForces:
         results = {}
 
         inner = np.linalg.norm(self.R, axis=1) < rmax
-        f = self.f_glo[inner]
+        f = self.f[inner]
         R = self.R[inner]
 
         fsum = np.sum(f, axis=0)
@@ -792,7 +795,7 @@ class FiniteBodyForces:
         vecs = buildBeams(150)
 
         eR = RR / np.linalg.norm(RR, axis=1)[:, None]
-        f = self.f_glo[inner]
+        f = self.f[inner]
 
         # (eR @ vecs[b]) * (vecs[b] @ self.f_glo[c])
         ff = np.sum(np.einsum("ni,bi->nb", eR, vecs) * np.einsum("bi,ni->nb", vecs, f), axis=0)
@@ -933,7 +936,7 @@ class FiniteBodyForces:
         Frec = []
 
         for c in range(self.N_c):
-            Frec.append(self.f_glo[c])
+            Frec.append(self.f[c])
 
         np.savetxt(Fname, Frec)
         print(Fname, "stored.")
@@ -947,7 +950,7 @@ class FiniteBodyForces:
 
         Frec = []
         for c in range(self.N_c):
-            Frec.append(self.f_glo[c] / Vr[c])
+            Frec.append(self.f[c] / Vr[c])
 
         np.savetxt(Fdenname, Frec)
         print(Fdenname, "stored.")
@@ -1000,4 +1003,30 @@ class FiniteBodyForces:
     def viewMesh(self, f1, f2):
         from .meshViewer import MeshViewer
 
-        return MeshViewer(self.R, self.T, self.f_glo, self.U, f1, f2)
+        return MeshViewer(self.R, self.T, self.f, self.U, f1, f2)
+
+    def save(self, filename):
+        parameters = ["R", "T", "U", "f", "U_fixed", "U_target", "f_target"]
+        data = {}
+        for param in parameters:
+            data[param] = getattr(self, param)
+
+        np.savez(filename, **data)
+
+    def load(self, filename):
+        data = np.loadz(filename)
+        for param in data:
+            setattr(self, param, data[param])
+
+        self.var = np.any(np.isnan(self.U_fixed), axis=1)
+        self.U_target_mask = np.any(~np.isnan(self.U_target_mask), axis=1)
+
+
+def save(filename, M):
+    M.save(filename)
+
+
+def load(filename):
+    M = FiniteBodyForces()
+    M.load(filename)
+    return M

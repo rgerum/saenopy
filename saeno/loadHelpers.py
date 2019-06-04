@@ -91,10 +91,10 @@ def loadBoundaryConditions(dbcondsname, N_c=None):
     # the last column is a bool whether the node is fixed or not
     var = data[:, 3] > 0.5
     # if it is fixed, the other coordinates define the displacement
-    U = np.zeros((var.shape[0], 3))
+    U = np.zeros((var.shape[0], 3))*np.nan
     U[~var] = data[~var, :3]
     # if it is variable, the given vector is the force on the node
-    f_ext = np.zeros((var.shape[0], 3))
+    f_ext = np.zeros((var.shape[0], 3))*np.nan
     f_ext[var] = data[var, :3]
 
     # update the connections (as they only contain non-fixed nodes)

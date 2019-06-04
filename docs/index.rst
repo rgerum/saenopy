@@ -28,6 +28,6 @@ required) to cite the following papers:
   In Nat Methods, volume 13, 2016. doi.org/10.1038/nmeth.3685
 
 * Condor M., Steinwachs J., Mark C., Garcia-Aznar J. M., Fabry B. (2017)
-  `"Traction Force Microscopy in 3-Dimensional Extracellular Matrix Networks" <http://dx.doi.org/ doi:10.1111/2041-210X.12702>`_
-  In Curr Protoc Cell Biol, volume 75, doi:10.1111/2041-210X.12702
+  `"Traction Force Microscopy in 3-Dimensional Extracellular Matrix Networks" <http://dx.doi.org/10.1002/cpcb.24>`_
+  In Curr Protoc Cell Biol, volume 75, doi.org/10.1002/cpcb.24
 
