@@ -89,6 +89,5 @@ M.f_glo
 M.R+M.U
 
 # visualize the meshes
-M.plotMesh(use_displacement=False)
-M.plotMesh(use_displacement=True)
+M.viewMesh(50, 0.1)
 

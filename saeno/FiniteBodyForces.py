@@ -286,23 +286,6 @@ class FiniteBodyForces:
         # remember that for the current configuration the shape tensors have been calculated
         self.Phi_valid = True
 
-    def _computeLaplace(self):
-        self.Laplace = []
-        for i in range(self.N_c):
-            self.Laplace.append({})
-
-        Idmat = np.eye(3)
-
-        # iterate over all connected vertices
-        for c1, c2 in self.connections:
-            if c1 != c2:
-                # get the inverse distance between the two vertices
-                r_inv = 1 / np.linalg.norm(self.R[c1] - self.R[c2])
-
-                # and store the in inverse distance (on the diagonal of a matrix)
-                self.Laplace[c1][c2] += Idmat * -r_inv
-                self.Laplace[c1][c1] += Idmat * r_inv
-
     """ relaxation """
 
     def _prepare_temporary_quantities(self):
@@ -317,6 +300,9 @@ class FiniteBodyForces:
         self._V_over_Nb = np.expand_dims(self.V, axis=1) / self.N_b
 
     def _updateGloFAndK(self):
+        """
+        Calculates the stiffness matrix K_ij, the force F_i and the energy E of each node.
+        """
         t_start = time.time()
         batchsize = 10000
 
