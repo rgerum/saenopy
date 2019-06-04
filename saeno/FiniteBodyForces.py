@@ -231,7 +231,7 @@ class FiniteBodyForces:
         @njit()
         def numba_get_pair_coordinates(T, var):
             stiffness_distribute_coordinates2 = []
-            filter_in = np.zeros(T.shape[0]*4*4*3*3) == 1
+            filter_in = np.zeros((T.shape[0], 4, 4, 3, 3)) == 1
             # iterate over all tetrahedra
             for t in range(T.shape[0]):
                 #if t % 1000:
@@ -244,18 +244,18 @@ class FiniteBodyForces:
                     if not var[c1]:
                         continue
 
+                    filter_in[t, t1, :, :, :] = True
+
                     for t2 in range(4):
                         # get two vertices of the tetrahedron
                         c2 = tet[t2]
 
                         for i in range(3):
                             for j in range(3):
-                                if var[c1]:
-                                    filter_in[t*4*4*3*3 + t1*4*3*3 + t2*3*3 + i*3 + j] = True
-                                    # add the connection to the set
-                                    stiffness_distribute_coordinates2.append((c1*3+i, c2*3+j))
+                                # add the connection to the set
+                                stiffness_distribute_coordinates2.append((c1*3+i, c2*3+j))
             stiffness_distribute_coordinates2 = np.array(stiffness_distribute_coordinates2)
-            return filter_in, (stiffness_distribute_coordinates2[:, 0], stiffness_distribute_coordinates2[:, 1])
+            return filter_in.ravel(), (stiffness_distribute_coordinates2[:, 0], stiffness_distribute_coordinates2[:, 1])
 
         self.filter_in, self.stiffness_distribute_coordinates2 = numba_get_pair_coordinates(self.T, self.var)
 
@@ -305,6 +305,17 @@ class FiniteBodyForces:
 
     """ relaxation """
 
+    def _prepare_temporary_quantities(self):
+        # test if one node of the tetrahedron is variable
+        # only count the energy if not the whole tetrahedron is fixed
+        self._countEnergy = np.any(self.var[self.T], axis=1)
+
+        # and the shape tensor with the beam
+        # s*_tmb = Phi_tmj * s_jb  (t in [0, N_T], i,j in {x,y,z}, m in {1,2,3,4}), b in [0, N_b])
+        self._s_star = self.Phi @ self.s.T
+
+        self._V_over_Nb = np.expand_dims(self.V, axis=1) / self.N_b
+
     def _updateGloFAndK(self):
         t_start = time.time()
         batchsize = 10000
@@ -317,13 +328,13 @@ class FiniteBodyForces:
             print("updating forces and stiffness matrix %d%%" % (i/int(np.ceil(self.T.shape[0]/batchsize))*100), end="\r")
             t = slice(i*batchsize, (i+1)*batchsize)
 
-            s_bar, s_star = self._get_s_star_s_bar(t)
+            s_bar = self._get_s_bar(t)
 
-            epsilon_b, dEdsbar, dEdsbarbar = self._get_applied_epsilon(s_bar, self.material_model_look_up, self.V[t])
+            epsilon_b, dEdsbar, dEdsbarbar = self._get_applied_epsilon(s_bar, self.material_model_look_up, self._V_over_Nb[t])
 
             self._update_energy(epsilon_b, t)
-            self._update_f_glo(s_star, s_bar, dEdsbar, out=f_glo[t])
-            self._update_K_glo(s_star, s_bar, dEdsbar, dEdsbarbar, out=K_glo[t])
+            self._update_f_glo(self._s_star[t], s_bar, dEdsbar, out=f_glo[t])
+            self._update_K_glo(self._s_star[t], s_bar, dEdsbar, dEdsbarbar, out=K_glo[t])
 
         # store the global forces in self.f_glo
         # transform from N_T x 4 x 3 -> N_v x 3
@@ -335,38 +346,22 @@ class FiniteBodyForces:
                                 shape=(self.N_c*3, self.N_c*3)).tocsr()
         print("updating forces and stiffness matrix finished %.2fs" % (time.time() - t_start))
 
-    def _get_s_star_s_bar(self, s):
+    def _get_s_bar(self, t):
         # get the displacements of all corners of the tetrahedron (N_Tx3x4)
         # u_tim  (t in [0, N_T], i in {x,y,z}, m in {1,2,3,4})
-        u_T = self.U[self.T[s]].transpose(0, 2, 1)
-
         # F is the linear map from T (the undeformed tetrahedron) to T' (the deformed tetrahedron)
-        # F_tij = d_ij + u_tim * Phi_tmj  (t in [0, N_T], i,j in {x,y,z}, m in {1,2,3,4})
-        F = np.eye(3) + u_T @ self.Phi[s]
-
-        # iterate over the beams
-        # for the elastic strain energy we would need to integrate over the whole solid angle Gamma, but to make this
-        # numerically accessible, we iterate over a finite set of directions (=beams) (c.f. page 53)
+        # F_tij = d_ij + u_tmi * Phi_tmj  (t in [0, N_T], i,j in {x,y,z}, m in {1,2,3,4})
+        F = np.eye(3) + np.einsum("tmi,tmj->tij", self.U[self.T[t]], self.Phi[t])
 
         # multiply the F tensor with the beam
         # s'_tib = F_tij * s_jb  (t in [0, N_T], i,j in {x,y,z}, b in [0, N_b])
         s_bar = F @ self.s.T
 
-        # and the shape tensor with the beam
-        # s*_tmb = Phi_tmj * s_jb  (t in [0, N_T], i,j in {x,y,z}, m in {1,2,3,4}), b in [0, N_b])
-        s_star = self.Phi[s] @ self.s.T
-
-        return s_bar, s_star
+        return s_bar
 
     @staticmethod
     @jit(nopython=True, cache=True)
-    def _get_applied_epsilon(s_bar, lookUpEpsilon, V):
-        N_b = s_bar.shape[-1]
-
-        # test if one node of the tetrahedron is variable
-        # only count the energy if not the whole tetrahedron is fixed
-        # countEnergy = np.any(var[T], axis=1)
-
+    def _get_applied_epsilon(s_bar, lookUpEpsilon, _V_over_Nb):
         # the "deformation" amount # p 54 equ 2 part in the parentheses
         # s_tb = |s'_tib|  (t in [0, N_T], i in {x,y,z}, b in [0, N_b])
         s = np.linalg.norm(s_bar, axis=1)
@@ -376,27 +371,23 @@ class FiniteBodyForces:
         #                eps'_tb    1
         # dEdsbar_tb = - ------- * --- * V_t
         #                 s_tb     N_b
-        dEdsbar = - (epsbar_b / s) / N_b * np.expand_dims(V, axis=1)
+        dEdsbar = - (epsbar_b / s) * _V_over_Nb
 
         #                  s_tb * eps''_tb - eps'_tb     1
         # dEdsbarbar_tb = --------------------------- * --- * V_t
         #                         s_tb**3               N_b
-        dEdsbarbar = ((s * epsbarbar_b - epsbar_b) / (s ** 3)) / N_b * np.expand_dims(V, axis=1)
+        dEdsbarbar = ((s * epsbarbar_b - epsbar_b) / (s ** 3)) * _V_over_Nb
 
         return epsilon_b, dEdsbar, dEdsbarbar
 
     def _update_energy(self, epsilon_b, t):
-        # test if one node of the tetrahedron is variable
-        # only count the energy if not the whole tetrahedron is fixed
-        countEnergy = np.any(self.var[self.T[t]], axis=1)
-
         # sum the energy of this tetrahedron
         # E_t = eps_tb * V_t
         self.E[t] = np.mean(epsilon_b, axis=1) * self.V[t]
 
         # only count the energy of the tetrahedron to the global energy if the tetrahedron has at least one
         # variable node
-        self.E_glo += np.sum(self.E[t][countEnergy])
+        self.E_glo += np.sum(self.E[t][self._countEnergy[t]])
 
     def _update_f_glo(self, s_star, s_bar, dEdsbar, out):
         # f_tmi = s*_tmb * s'_tib * dEds'_tb  (t in [0, N_T], i in {x,y,z}, m in {1,2,3,4}, b in [0, N_b])
@@ -464,6 +455,8 @@ class FiniteBodyForces:
 
         # check if everything is prepared
         self._check_relax_ready()
+
+        self._prepare_temporary_quantities()
 
         # update the forces and stiffness matrix
         self._updateGloFAndK()
@@ -654,6 +647,8 @@ class FiniteBodyForces:
 
         # check if everything is prepared
         self._check_relax_ready()
+
+        self._prepare_temporary_quantities()
 
         self.localweight = np.ones(self.N_c)
 

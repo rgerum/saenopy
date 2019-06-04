@@ -352,23 +352,23 @@ def main():
             print("SAVE RESULTS")
 
             finish = time.time()
-            CFG["TIME_REGULARIZATION"]= finish - start
-            CFG["TIME_TOTALTIME"]=finish - starttotal
+            CFG["TIME_REGULARIZATION"] = finish - start
+            CFG["TIME_TOTALTIME"] = finish - starttotal
 
             M.storeF(os.path.join(outdir, "F.dat"))
             M.storeFden(os.path.join(outdir, "Fden.dat"))
-            M.storeRAndU(os.path.join(outdir, "R.dat"),os.path.join(outdir, "U.dat"))
-            M.storeEandV(os.path.join(outdir, "RR.dat"),os.path.join(outdir, "EV.dat"))
-            M.storePrincipalStressAndStiffness(os.path.join(outdir, "Sbmax.dat"),os.path.join(outdir, "Sbmin.dat"),os.path.join(outdir, "WPK.dat"))
-            B.storeLocalweights(os.path.join(outdir, "weights.dat"))
+            M.storeRAndU(os.path.join(outdir, "R.dat"), os.path.join(outdir, "U.dat"))
+            M.storeEandV(os.path.join(outdir, "RR.dat"), os.path.join(outdir, "EV.dat"))
+            M.storePrincipalStressAndStiffness(os.path.join(outdir, "Sbmax.dat"), os.path.join(outdir, "Sbmin.dat"),os.path.join(outdir, "WPK.dat"))
+            #B.storeLocalweights(os.path.join(outdir, "weights.dat"))
 
             #M.computeStiffening(results)
-            results.extend(M.computeForceMoments(CFG["FM_RMAX"]))
-            results["ENERGY"]=M.E_glo
+            results.update(M.computeForceMoments(CFG["FM_RMAX"]))
+            results["ENERGY"] = M.E_glo
 
             print(results)
-            saveConfigFile(CFG,os.path.join(outdir, "config.txt"))
-            saveConfigFile(results,os.path.join(outdir, "results.txt"))
+            saveConfigFile(CFG, os.path.join(outdir, "config.txt"))
+            saveConfigFile(results, os.path.join(outdir, "results.txt"))
 
             # ------ END OF MODULE saveResults --------------------------------------///
 
