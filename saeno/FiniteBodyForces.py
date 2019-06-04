@@ -996,3 +996,8 @@ class FiniteBodyForces:
         axes.add_collection3d(tri)
         axes.plot(points[:, 0], points[:, 1], points[:, 2], 'ko')
         axes.set_aspect('equal')
+
+    def viewMesh(self, f1, f2):
+        from .meshViewer import MeshViewer
+
+        return MeshViewer(self.R, self.T, self.f_glo, self.U, f1, f2)
