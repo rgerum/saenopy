@@ -1,5 +1,13 @@
 import base64
 import numpy as np
+import os
+
+
+def ensure_file_extension(filename, ext):
+    basename, file_ext = os.path.splitext(filename)
+    if file_ext != ext:
+        return filename + ext
+    return filename
 
 
 def save_vtp(filename, M):
@@ -14,40 +22,39 @@ def save_vtp(filename, M):
         The mesh to save.
     """
     xml = """<?xml version="1.0"?>
-    <VTKFile type="PolyData" version="0.1" byte_order="LittleEndian">
-    <PolyData>
-        <Piece NumberOfPoints="%d" NumberOfVerts="0" NumberOfLines="%d" NumberOfStrips="0" NumberOfPolys="0">
-            <CellData></CellData>
-            <Points>
-                <DataArray Name="Points" NumberOfComponents="3" type="Float64" format="ascii">
+<VTKFile type="PolyData" version="0.1" byte_order="LittleEndian" header_type="UInt64">
+<PolyData>
+    <Piece NumberOfPoints="%d" NumberOfVerts="0" NumberOfLines="%d" NumberOfStrips="0" NumberOfPolys="0">
+        <CellData></CellData>
+        <Points>
+            <DataArray Name="Points" NumberOfComponents="3" type="Float32" format="binary">
+            %s
+            </DataArray>
+        </Points>
+        <Verts>
+        </Verts>
+        <Lines>
+            <DataArray type="UInt32" Name="connectivity" format="binary">
+             %s
+            </DataArray>
+            <DataArray type="UInt32" Name="offsets" format="binary">
+             %s
+            </DataArray>
+        </Lines>
+        <Strips></Strips>
+        <Polys></Polys>
+        <PointData>
+            <DataArray Name="Displacement" NumberOfComponents="3" type="Float32" format="binary">
                 %s
-                </DataArray>
-            </Points>
-            <Verts>
-            </Verts>
-            <Lines>
-                <DataArray type="UInt32" Name="connectivity" format="ascii">
-                 %s
-                </DataArray>
-                <DataArray type="UInt32" Name="offsets" format="ascii">
-                 %s
-                </DataArray>
-            </Lines>
-            <Strips></Strips>
-            <Polys></Polys>
-            <PointData>
-                <DataArray Name="Displacement" NumberOfComponents="3" type="Float64" format="ascii">
-                    %s
-                </DataArray>
-                <DataArray Name="Force" NumberOfComponents="3" type="Float64" format="ascii">
-                    %s
-                </DataArray>
-            </PointData>
-        </Piece>
-    </PolyData>
-    </VTKFile>
-    """
-
+            </DataArray>
+            <DataArray Name="Force" NumberOfComponents="3" type="Float32" format="binary">
+                %s
+            </DataArray>
+        </PointData>
+    </Piece>
+</PolyData>
+</VTKFile>
+"""
     line_pairs = set()
     for tet in M.T:
         for i in range(4):
@@ -64,14 +71,70 @@ def save_vtp(filename, M):
         return " ".join(str(i) for i in a.ravel())
 
     def to_binary(a):
-        return repr(base64.b64encode(a.astype("uint8")))  # [2:-1]
+        byts = base64.b64encode(np.array(a.nbytes, np.uint64).tobytes() + a.tobytes())
+        return repr(byts)[2:-1]
 
     xml = xml % (
-    M.R.shape[0], n_lines, to_ascii(M.R), to_ascii(line_pairs), to_ascii(np.arange(n_lines) * 2 + 2), to_ascii(M.U),
-    to_ascii(M.f_glo))
-    with open(filename, "w") as fp:
+    M.R.shape[0], n_lines, to_binary(M.R.astype("float32")), to_binary(line_pairs.astype("uint32")), to_binary((np.arange(n_lines) * 2 + 2).astype("uint32")), to_binary(M.U.astype("float32")),
+    to_binary(M.f.astype("float32")))
+    with open(ensure_file_extension(filename, ".vtp"), "w") as fp:
         fp.write(xml)
 
+def save_vtu(filename, M):
+    xml="""<?xml version="1.0"?>
+<VTKFile type="UnstructuredGrid" version="0.1" byte_order="LittleEndian" header_type="UInt64">
+    <UnstructuredGrid>
+        <Piece NumberOfPoints="%d" NumberOfCells="%s">
+            <Points>
+                <DataArray Name="Points" NumberOfComponents="3" type="Float32" format="binary">
+                %s
+                </DataArray>
+            </Points>
+            
+            <PointData>
+                <DataArray Name="Displacement" NumberOfComponents="3" type="Float32" format="binary">
+                    %s
+                </DataArray>
+                <DataArray Name="Force" NumberOfComponents="3" type="Float32" format="binary">
+                    %s
+                </DataArray>
+            </PointData>
+            
+            <Cells>
+                <DataArray type="UInt32" Name="connectivity" format="binary">
+                    %s
+                </DataArray>
+                <DataArray type="UInt32" Name="offsets" format="binary">
+                    %s
+                </DataArray>
+                <DataArray type="UInt8" Name="types" format="binary">
+                    %s
+                </DataArray>
+            </Cells>
+        </Piece>
+  </UnstructuredGrid>
+</VTKFile>
+"""
+    def to_ascii(a):
+        return " ".join(str(i) for i in a.ravel())
+
+    def to_binary(a):
+        byts = base64.b64encode(np.array(a.nbytes, np.uint64).tobytes() + a.tobytes())
+        return repr(byts)[2:-1]
+
+    T = M.T
+    n_tets = M.T.shape[0]
+
+    xml = xml % (
+        M.R.shape[0], M.T.shape[0], to_binary(M.R.astype("float32")),
+        to_binary(M.U.astype("float32")),
+        to_binary(M.f.astype("float32")),
+        to_binary(T.astype("uint32")),
+        to_binary((np.arange(n_tets) * 4 + 4).astype("uint32")),
+        to_binary((np.ones(n_tets, dtype=np.uint8) * 10).astype("uint8")),
+    )
+    with open(ensure_file_extension(filename, ".vtu"), "w") as fp:
+        fp.write(xml)
 
 def save_gmsh(filename, M):
     """
@@ -89,7 +152,7 @@ def save_gmsh(filename, M):
     tets = M.T+1
     num_tets = tets.shape[0]
 
-    with open(filename, "w") as fp:
+    with open(ensure_file_extension(filename, ".msh"), "w") as fp:
         fp.write("$MeshFormat\n")
         fp.write("4.2 0 8\n")
         fp.write("$EndMeshFormat\n")
