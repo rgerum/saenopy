@@ -7,6 +7,7 @@ import scipy.sparse as ssp
 
 from numba import jit, njit
 
+from .multigridHelper import getLinesTetrahedra
 from .buildBeams import buildBeams
 from .materials import SemiAffineFiberMaterial
 from .conjugateGradient import cg
@@ -460,7 +461,8 @@ class FiniteBodyForces:
             self._updateGloFAndK()
 
             # sum all squared forces of non fixed nodes
-            ff = np.sum(self.f[self.var] ** 2)
+            ff = np.sum((self.f[self.var] - self.f_target[self.var]) ** 2)
+            #ff = np.sum(self.f[self.var] ** 2)
 
             # print and store status
             print("Newton ", i, ": du=", du, "  Energy=", self.E_glo, "  Residuum=", ff)
@@ -984,23 +986,36 @@ class FiniteBodyForces:
     def viewMesh(self, f1, f2):
         from .meshViewer import MeshViewer
 
-        return MeshViewer(self.R, self.T, self.f, self.U, f1, f2)
+        L, Li = getLinesTetrahedra(self.T)
+
+        return MeshViewer(self.R, L, self.f, self.U, f1, f2)
 
     def save(self, filename):
         parameters = ["R", "T", "U", "f", "U_fixed", "U_target", "f_target"]
         data = {}
         for param in parameters:
             data[param] = getattr(self, param)
+        data["type"] = self.__class__.__name__
 
         np.savez(filename, **data)
 
     def load(self, filename):
-        data = np.loadz(filename)
+        data = np.load(filename, allow_pickle=True)
+
+        if "R" in data:
+            self.setNodes(data["R"])
+        if "T" in data:
+            self.setTetrahedra(data["T"])
+        if "U_fixed" in data:
+            self.setBoundaryCondition(data["U_fixed"], data["f_target"])
+
         for param in data:
             setattr(self, param, data[param])
 
-        self.var = np.any(np.isnan(self.U_fixed), axis=1)
-        self.U_target_mask = np.any(~np.isnan(self.U_target_mask), axis=1)
+        #if self.U_fixed is not None:
+        #    self.var = np.any(np.isnan(self.U_fixed), axis=1)
+        #if self.U_target_mask is not None:
+        #    self.U_target_mask = np.any(~np.isnan(self.U_target_mask), axis=1)
 
 
 def save(filename, M):

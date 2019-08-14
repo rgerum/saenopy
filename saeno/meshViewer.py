@@ -1,7 +1,7 @@
 import numpy as np
 import base64
 
-def MeshViewer(R, T, F, U, f1, f2):
+def MeshViewer(R, L, F, U, f1, f2):
     source = """
     <!--<div id="info"><a href="http://threejs.org" target="_blank" rel="noopener">three.js</a> - dashed lines example</div>-->
     <div id="container"></div>
@@ -126,9 +126,9 @@ def MeshViewer(R, T, F, U, f1, f2):
         }
     
     
-        function addMesh(points1, tets1, F1, U1) {
+        function addMesh(points1, lines1, F1, U1) {
             points = points1;
-            tets = tets1;
+            lines = lines1;
             F = F1;
             U = U1;
     
@@ -141,34 +141,15 @@ def MeshViewer(R, T, F, U, f1, f2):
     
             var geometry = new THREE.BufferGeometry();
             var position = [];
-            console.log(points.length, tets.length);
-    
-            connections = [];
-    
-            for(var t=0; t < tets.length/4; t++) {
-                for(var i=0; i < 4; i++) {
-                    for(var j=0; j < 4; j++) {
-                        var t1 = tets[t*4+i];
-                        var t2 = tets[t*4+j];
-                        if(t1 >= t2)
-                            continue;
-                        found = false;
-                        for(var c=0; c < connections.length; c++) {
-                            if(connections[c][0] == t1 && connections[c][1] == t2) {
-                                found = true;
-                                break;
-                            }
-    
-                        }
-                        if(found)
-                            continue;
-                        connections.push([t1, t2]);
+            //console.log(points.length, tets.length);
+        
+            for(var t=0; t < lines1.length/2; t++) {
+                        var t1 = lines1[t*2+0];
+                        var t2 = lines1[t*2+1];
                         for(var x=0; x < 3; x++)
                             position.push(points[t1*3+x]);
                         for(var x=0; x < 3; x++)
                             position.push(points[t2*3+x]);
-                    }
-                }
                 //console.log(t);
             }
             console.log("ready");
@@ -272,7 +253,7 @@ def MeshViewer(R, T, F, U, f1, f2):
     
                 //if ( object.isLine ) {
     
-                    object.rotation.y = 0.25 * time;
+                    //object.rotation.y = 0.25 * time;
                     //object.rotation.y = 0.25 * time;
     
                 //}
@@ -342,7 +323,7 @@ def MeshViewer(R, T, F, U, f1, f2):
             raise TypeError(array.dtype)
         return "NewArray("+data_type+", \""+repr(base64.b64encode(array))[2:-1]+"\")"
 
-    here = source % (f1, f2, wrap(R-np.mean(R, axis=0)), wrap(T), wrap(F), wrap(U))
+    here = source % (f1, f2, wrap(R-np.mean(R, axis=0)), wrap(L), wrap(F), wrap(U))
     from IPython.core.display import HTML, display
     code = "<h1></h1><iframe srcdoc='{0}' scrolling=no style='border:none; width: 100%; height: 600px'></iframe>".format(here)
     display(HTML(code))
