@@ -1,7 +1,7 @@
 API
 ===
 
-.. currentmodule:: saeno.FiniteBodyForces
+.. currentmodule:: saenopy.FiniteBodyForces
 
 .. autoclass:: FiniteBodyForces
    :members:

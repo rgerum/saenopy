@@ -28,7 +28,7 @@ With :math:`\mathrm{F}` being the deformation gradient, :math:`\vec{e_r}` a unit
 Materials
 ---------
 
-.. currentmodule:: saeno.materials
+.. currentmodule:: saenopy.materials
 
 .. autoclass:: Material
    :members:
@@ -42,14 +42,14 @@ Materials
 Defining custom materials
 -------------------------
 
-To define a custom material, simply subclass the base class `:py:class:saeno.materials.Material` and define a stiffness
+To define a custom material, simply subclass the base class `:py:class:saenopy.materials.Material` and define a stiffness
 function as a method. For the use in the relaxation and regularization mode, this function is automatically evaluated to
 create a look up table and integrated two times numerically to get the energy function.
 
 .. code-block:: python
     :linenos:
 
-    from saeno.materials import Material
+    from saenopy.materials import Material
 
     class QuadracticMaterial(Material):
         """

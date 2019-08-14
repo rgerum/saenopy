@@ -1,9 +1,9 @@
-.. saeno documentation master file
+.. saenopy documentation master file
 
-Welcome to the SAENO Documentation
+Welcome to the SAENOPY Documentation
 ============================================
 
-SAENO - Semi-affine Elastic Network Optimizer, originally developed by Julian Steinwachs.
+SAENOPY a python implementation of the SAENO - Semi-affine Elastic Network Optimizer, originally developed by Julian Steinwachs.
 
 .. toctree::
    :caption: Contents
@@ -17,10 +17,10 @@ SAENO - Semi-affine Elastic Network Optimizer, originally developed by Julian St
    material
    api
 
-Citing Saeno
-------------
+Citing Saenopy
+--------------
 
-If you use Saeno for academic research, you are highly encouraged (though not
+If you use Saenopy for academic research, you are highly encouraged (though not
 required) to cite the following papers:
 
 * Steinwachs J., Metzner C., Skodzek K., Lang N., Thievessen I., Mark C., Munster S., Aifantis K. E., Fabry B. (2016)

@@ -3,7 +3,7 @@
 
 
 
-from saeno.FiniteBodyForces import FiniteBodyForces
+from saeno import FiniteBodyForces
     
 # initialize the object
 M = FiniteBodyForces()
@@ -47,21 +47,21 @@ M.setTetrahedra(T)
 
 # the displacements of the nodes which shall be fitted
 # during the solving
-U = np.array([[np.nan, np.nan, np.nan],  # 0
-              [np.nan, np.nan, np.nan],  # 1
-              [ 0.25 ,  0.    ,  0.  ],  # 2
-              [ 0.25 ,  0.    ,  0.  ],  # 3
-              [np.nan, np.nan, np.nan],  # 4
-              [ 0.25 ,  0.    ,  0.  ],  # 5
-              [ 0.25 ,  0.    ,  0.  ],  # 6
-              [np.nan, np.nan, np.nan]]) # 7
+U = np.array([[0   , 0, 0],  # 0
+              [0   , 0, 0],  # 1
+              [0.01, 0, 0],  # 2
+              [0.01, 0, 0],  # 3
+              [0   , 0, 0],  # 4
+              [0.01, 0, 0],  # 5
+              [0.01, 0, 0],  # 6
+              [0   , 0, 0]]) # 7
 
 # hand the displacements over to the class instance
 M.setTargetDisplacements(U)
 
 
 # relax the mesh and move the "varible" nodes
-M.regularize()
+M.regularize(stepper=0.1, alpha=0.001)
 
 
 results = M.computeForceMoments(rmax=100e-6)
@@ -72,4 +72,9 @@ M.storeF("F.dat")
 M.storeRAndU("R.dat", "U.dat")
 # store the center of each tetrahedron and a combined list with energies and volumina of the tetrahedrons
 M.storeEandV("RR.dat", "EV.dat")
+
+M.U
+#M._updateGloFAndK()
+
+M.viewMesh(10, 1)
 

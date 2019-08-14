@@ -1,11 +1,11 @@
 Command Line Interface
 ======================
 
-Saeno can be used as a python package but can also be used as a command line tool:
+Saenopy can be used as a python package but can also be used as a command line tool:
 
 .. code-block:: ini
 
-   saeno CONFIG config.txt
+   saenopy CONFIG config.txt
 
 The `config.txt` file can contain all the parameters that the execution needs.
 
