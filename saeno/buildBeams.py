@@ -22,6 +22,7 @@ def buildBeams(N):
     """
     Builds a sphere of unit vectors with N beams in the xy plane.
     """
+    N = int(np.floor(np.sqrt(int(N) * np.pi + 0.5)))
 
     # start with an empty list
     beams = []
