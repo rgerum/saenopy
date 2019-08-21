@@ -79,9 +79,9 @@ def MeshViewer(R, L, F, U, f1, f2):
         return new type(bytes.buffer);
     }
     
-        if ( WEBGL.isWebGLAvailable() === false ) {
-            document.body.appendChild( WEBGL.getWebGLErrorMessage() );
-        }
+        //if ( WEBGL.isWebGLAvailable() === false ) {
+        //    document.body.appendChild( WEBGL.getWebGLErrorMessage() );
+        //}
     
         var renderer, scene, camera, stats, controls;
         var objects = [];

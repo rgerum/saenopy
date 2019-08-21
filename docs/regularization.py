@@ -3,13 +3,13 @@
 
 
 
-from saeno import FiniteBodyForces
+from saenopy import FiniteBodyForces
     
 # initialize the object
 M = FiniteBodyForces()
 
 
-from saeno.materials import SemiAffineFiberMaterial
+from saenopy.materials import SemiAffineFiberMaterial
 
 # provide a material model
 material = SemiAffineFiberMaterial(1645, 0.0008, 0.0075, 0.033)
@@ -74,7 +74,8 @@ M.storeRAndU("R.dat", "U.dat")
 M.storeEandV("RR.dat", "EV.dat")
 
 M.U
-#M._updateGloFAndK()
 
-M.viewMesh(10, 1)
+M.viewMesh(50, 1)
+
+
 

@@ -1,5 +1,5 @@
 import numpy as np
-from saeno.buildBeams import buildBeams
+from .buildBeams import buildBeams
 
 
 def getShearRheometerStress(gamma, material, s=None):
