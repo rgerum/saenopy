@@ -33,17 +33,12 @@ R = np.array([[0., 0., 0.],  # 0
 # define the tetrahedra of the mesh
 # the array has to have the shape N_t x 4
 # every entry is an index referencing a verces in R (indices start with 0)
-T = np.array([[0, 1, 5, 2],
-              [0, 2, 7, 3],
-              [0, 4, 7, 5],
-              [2, 7, 6, 5],
-              [0, 5, 7, 2]])
 T = np.array([[0, 1, 3, 5],
-             [1, 2, 3, 5],
-             [0, 5, 3, 4],
-             [4, 5, 3, 7],
-             [5, 2, 3, 6],
-             [3, 5, 6, 7]])
+              [1, 2, 3, 5],
+              [0, 5, 3, 4],
+              [4, 5, 3, 7],
+              [5, 2, 3, 6],
+              [3, 5, 6, 7]])
 
 # the initial displacements of the nodes
 # if the node is fixed (e.g. not variable) than this displacement will be fixed

@@ -4,3 +4,12 @@ SAENO.pro.user
 /SAENO.pro.user
 /SAENO.pro.user.d4d720b
 .idea/
+docs/_build_html/
+*/__pycache__/
+*.pyc
+*.py.orig
+*.py~
+*.egg-info*
+dist/*
+build/*
+*-checkpoint.ipynb
