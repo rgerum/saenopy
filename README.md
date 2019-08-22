@@ -1,6 +1,7 @@
-SAENO
-=====
+SAENOPY
+=======
 
-SAENO - Semi-affine Elastic Network Optimizer
+SAENOPY a python implementation of the SAENO - Semi-affine Elastic Network Optimizer, originally developed by Julian
+ Steinwachs.
 
-[Wiki](../../wiki)
+[Documentation](https://saenopy.readthedocs.io)
