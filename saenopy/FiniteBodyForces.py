@@ -280,6 +280,11 @@ class FiniteBodyForces:
 
         # calculate the volume of the tetrahedron
         self.V = np.abs(np.linalg.det(B)) / 6.0
+        sum_zero = np.sum(self.V == 0)
+        if np.sum(self.V == 0):
+            print("WARNING: found %d elements with volumne of 0. Removing those elements." % sum_zero)
+            self.setTetrahedra(self.T[self.V != 0])
+            return self._computePhi()
 
         # the shape tensor of the tetrahedron is defined as Chi * B^-1
         self.Phi = Chi @ np.linalg.inv(B)
