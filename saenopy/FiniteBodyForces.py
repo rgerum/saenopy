@@ -7,7 +7,7 @@ import scipy.sparse as ssp
 
 from numba import jit, njit
 
-from .multigridHelper import getLinesTetrahedra
+from .multigridHelper import getLinesTetrahedra, getLinesTetrahedra2
 from .buildBeams import buildBeams
 from .materials import SemiAffineFiberMaterial
 from .conjugateGradient import cg
@@ -991,7 +991,7 @@ class FiniteBodyForces:
     def viewMesh(self, f1, f2):
         from .meshViewer import MeshViewer
 
-        L, Li = getLinesTetrahedra(self.T)
+        L = getLinesTetrahedra2(self.T)
 
         return MeshViewer(self.R, L, self.f, self.U, f1, f2)
 

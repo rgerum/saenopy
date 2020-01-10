@@ -256,15 +256,20 @@ def getFaces(T):
     return np.array(faces), np.array(faces_of_T)
 
 
+@njit()
 def getLinesTetrahedra(T):
     lines = []
     lines_of_T = []
-    for tet in T:
+    for i in range(T.shape[0]):
+        tet = T[i]
+    #for tet in T:
         t1, t2, t3, t4 = tet
         tet_lines = [sorted([t1, t2]), sorted([t1, t3]), sorted([t1, t4]), sorted([t2, t3]), sorted([t2, t4]),
                      sorted([t3, t4])]
         line_indices = []
-        for line in tet_lines:
+        for j in range(len(tet_lines)):
+            line = tet_lines[j]
+        #for line in tet_lines:
             i = 0
             for i in range(len(lines)):
                 if lines[i] == line:
@@ -276,6 +281,16 @@ def getLinesTetrahedra(T):
             line_indices.append(i)
         lines_of_T.append(line_indices)
     return np.array(lines), np.array(lines_of_T)
+
+
+
+def getLinesTetrahedra2(T):
+    indi = np.array([[i, j] for i in range(4) for j in range(i + 1, 4)], dtype=int)
+    lines = set()
+    for tet in T:
+        lines |= {frozenset(i) for i in tet[indi]}
+    return np.array([tuple(l) for l in lines])
+
 
 def getLinesHexahedra(T):
     lines = []
