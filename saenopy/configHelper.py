@@ -1,6 +1,8 @@
 
 #include <map>
 def parseValue(value):
+    if value == "None":
+        return None
     try:
         return int(value)
     except ValueError:
