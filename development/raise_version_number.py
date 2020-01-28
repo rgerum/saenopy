@@ -16,7 +16,7 @@ current_version = str(get_current_version())
 try:
     new_version = sys.argv[1]
 except IndexError:
-    print("ERROR: no new version number supplied.", file=sys.stderr)
+    print(f"ERROR: no new version number supplied. Current version is {current_version}", file=sys.stderr)
     sys.exit(1)
 
 # check if new version name differs
@@ -27,14 +27,13 @@ print(current_version, new_version)
 
 print("setting version number to", new_version)
 
-# check for uncommitted changes
-check_for_uncommited_changes()
+files = ["setup.py", "docs/conf.py", "saenopy/__init__.py"]
 
 # Let's go
-replace_version("setup.py", current_version, new_version)
-replace_version("docs/conf.py", current_version, new_version)
-replace_version("saenopy/__init__.py", current_version, new_version)
-
+for file in files:
+    replace_version(file, current_version, new_version)
+    os.system(f"git add {file}")
+    
 # commit changes
-os.system("hg commit -m \"set version to v%s\"" % new_version)
-os.system("hg tag \"v%s\"" % new_version)
+os.system("git commit -m \"set version to v%s\"" % new_version)
+os.system("git tag \"v%s\"" % new_version)
