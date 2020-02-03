@@ -221,6 +221,140 @@ class special_file_iter:
         for i in range(n):
             yield next(self.iter)
 
+def gmsh_get_version(filename):
+    with open(filename, "r") as fp:
+        file_iter = special_file_iter(fp)
+        file_iter.nodes = None
+        for line in file_iter:
+            if line == "$MeshFormat":
+                line = next(file_iter)
+                version, file_type, data_size = line.split()
+                try:
+                    version_major, version_minor = version.split(".")
+                except ValueError:
+                    version_major = version
+                    version_minor = "0"
+    return version_major, version_minor
+
+def load_gmsh4(filename):
+    nodes = None
+    tetrahedra = None
+    entities = {}
+
+    def read_node_block(file_iter):
+        line = next(file_iter)
+        # print("read_node_block", line)
+        entityTag, entityDim, parametric, numNodesInBlock = line.split()
+        data = np.loadtxt(file_iter.get_next_n_lines(int(numNodesInBlock)), dtype=float).reshape(-1, 4)
+        # the first part contains the indices
+        indices = data[:, 0].astype(int)
+        # the second the point data
+        data = data[:, 1:]
+        # print(indices.min(), indices.max(), indices.shape, data.shape)
+        file_iter.nodes = ensure_array_length(file_iter.nodes, indices.max() + 1)
+        file_iter.nodes[indices, :] = data
+        return entityDim + "_" + entityTag, data, indices[0]
+
+    def read_nodes(file_iter):
+        line = next(file_iter).split()
+        try:
+            numEntityBlocks, numNodes, minNodeTag, maxNodeTag = line
+        except ValueError:
+            numEntityBlocks, numNodes = line
+
+        # iterate over all node blocks
+        for i in range(int(numEntityBlocks)):
+            tag, data, first_index = read_node_block(file_iter)
+            entities[tag]["nodes"] = data
+            entities[tag]["first_index"] = first_index
+
+    def read_elements_block(file_iter):
+        line = next(file_iter)
+        # print("read_elements_block", line)
+        entityTag, entityDim, elementType, numElementsInBlock = line.split()
+        nodes_per_type = {"1": 2, "2": 3, "3": 4, "4": 4, "5": 8, "6": 6, "7": 5, "8": 3, "9": 6, "10": 9, "11": 10,
+                          "12": 27, "13": 18, "14": 14, "15": 1}
+        if elementType in nodes_per_type.keys():
+            n = nodes_per_type[elementType]
+            data = np.loadtxt(file_iter.get_next_n_lines(int(numElementsInBlock)), dtype=int).reshape(-1, n + 1)[:, 1:]
+            # if elementType == "4":
+            #    print("44444", data, data.min(), data.max(), np.unique(data).shape, file_iter.nodes.shape)
+        else:
+            # ignore data
+            _ = [l for l in file_iter.get_next_n_lines(int(numElementsInBlock))]
+            data = None
+        return entityDim + "_" + entityTag, data
+
+    def read_elements(file_iter):
+        line = next(file_iter)
+        numEntityBlocks, numNodes = line.split()
+        for i in range(int(numEntityBlocks)):
+            tag, data = read_elements_block(file_iter)
+            entities[tag]["elements"] = data
+
+    def read_entities(file_iter):
+        numPoints, numCurves, numSurfaces, numVolumes = next(file_iter).split()
+        for i in range(int(numPoints)):
+            line = next(file_iter)
+            tag, _ = line.split(maxsplit=1)
+            entities["0_" + tag] = dict(type="point")
+        for i in range(int(numCurves)):
+            line = next(file_iter)
+            tag, _ = line.split(maxsplit=1)
+            entities["1_" + tag] = dict(type="curve")
+        for i in range(int(numSurfaces)):
+            line = next(file_iter)
+            tag, _ = line.split(maxsplit=1)
+            entities["2_" + tag] = dict(type="surface")
+        for i in range(int(numVolumes)):
+            line = next(file_iter)
+            data = line.split()
+            volumeTag, minX, minY, minZ, maxX, maxY, maxZ = data[:7]
+            numPhysicalTags = int(data[7])
+            phys_tags = []
+            for t in data[7:numPhysicalTags]:
+                phys_tags.append(int(t))
+            numBoundngSurfaces = int(data[7 + numPhysicalTags])
+            surf_tags = []
+            for t in data[7 + numPhysicalTags:7 + numPhysicalTags + numBoundngSurfaces]:
+                surf_tags.append(int(t))
+            entities["3_" + volumeTag] = dict(type="volume", minX=float(minX), minY=float(maxY), minZ=float(minZ),
+                                              maxX=float(maxX), maxY=float(maxY), maxZ=float(maxZ),
+                                              physical_tags=phys_tags, surface_tags=surf_tags)
+
+    with open(filename, "r") as fp:
+        file_iter = special_file_iter(fp)
+        file_iter.nodes = None
+        for line in file_iter:
+            if line == "$MeshFormat":
+                line = next(file_iter)
+                version, file_type, data_size = line.split()
+                try:
+                    version_major, version_minor = version.split(".")
+                except ValueError:
+                    version_major = version
+                    version_minor = "0"
+            if line == "$Entities":
+                read_entities(file_iter)
+            if line == "$Nodes":
+                nodes = read_nodes(file_iter)
+            if line == "$Elements":
+                tetrahedra = read_elements(file_iter)
+        nodes = file_iter.nodes
+
+    for entityId in entities:
+        entity = entities[entityId]
+        # print("---- entity ----", entityId, entity["type"], len(entity["elements"]))
+        # print(entities[entityId])
+        if entity["type"] == "volume":
+            # nodes = entity["nodes"]
+            tetrahedra = entity["elements"]
+            # print(tetrahedra.min(), tetrahedra.max())
+            # print("volumne", tetrahedra, entity)
+
+    return tetrahedra, nodes
+
+
 def load_gmsh(filename):
     nodes = None
     tetrahedra = None
@@ -328,36 +462,40 @@ def load_gmsh(filename):
                                                            maxX=float(maxX), maxY=float(maxY), maxZ=float(maxZ),
                                                            physical_tags=phys_tags, surface_tags=surf_tags)
 
+    version_major, version_minor = gmsh_get_version(filename)
 
-    with open(filename, "r") as fp:
-        file_iter = special_file_iter(fp)
-        file_iter.nodes = None
-        for line in file_iter:
-            if line == "$MeshFormat":
-                line = next(file_iter)
-                version, file_type, data_size = line.split()
-                try:
-                    version_major, version_minor = version.split(".")
-                except ValueError:
-                    version_major = version
-                    version_minor = "0"
-            if line == "$Entities":
-                read_entities(file_iter)
-            if line == "$Nodes":
-                nodes = read_nodes(file_iter)
-            if line == "$Elements":
-                tetrahedra = read_elements(file_iter)
-        nodes = file_iter.nodes
+    if version_major == "4" and version_minor == "0":
+        tetrahedra, nodes = load_gmsh4(filename)
+    else:
+        with open(filename, "r") as fp:
+            file_iter = special_file_iter(fp)
+            file_iter.nodes = None
+            for line in file_iter:
+                if line == "$MeshFormat":
+                    line = next(file_iter)
+                    version, file_type, data_size = line.split()
+                    try:
+                        version_major, version_minor = version.split(".")
+                    except ValueError:
+                        version_major = version
+                        version_minor = "0"
+                if line == "$Entities":
+                    read_entities(file_iter)
+                if line == "$Nodes":
+                    nodes = read_nodes(file_iter)
+                if line == "$Elements":
+                    tetrahedra = read_elements(file_iter)
+            nodes = file_iter.nodes
 
-    for entityId in entities:
-        entity = entities[entityId]
-        #print("---- entity ----", entityId, entity["type"], len(entity["elements"]))
-        #print(entities[entityId])
-        if entity["type"] == "volume":
-            #nodes = entity["nodes"]
-            tetrahedra = entity["elements"]
-            #print(tetrahedra.min(), tetrahedra.max())
-            #print("volumne", tetrahedra, entity)
+        for entityId in entities:
+            entity = entities[entityId]
+            #print("---- entity ----", entityId, entity["type"], len(entity["elements"]))
+            #print(entities[entityId])
+            if entity["type"] == "volume":
+                #nodes = entity["nodes"]
+                tetrahedra = entity["elements"]
+                #print(tetrahedra.min(), tetrahedra.max())
+                #print("volumne", tetrahedra, entity)
 
     if tetrahedra.shape[1] == 4:
         from .FiniteBodyForces import FiniteBodyForces
