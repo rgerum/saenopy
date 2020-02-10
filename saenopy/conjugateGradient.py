@@ -1,7 +1,8 @@
 import numpy as np
 
 
-def cg(A, b, maxiter=1000, tol=0.00001):
+def cg(A: np.ndarray, b: np.ndarray, maxiter: int = 1000, tol: float = 0.00001):
+    """ solve the equation Ax=b with the conjugate gradient method """
     def norm(x):
         return np.inner(x.flatten(), x.flatten())
 
