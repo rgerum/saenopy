@@ -6,10 +6,11 @@ import numpy as np
 import scipy.sparse as ssp
 
 from numba import jit, njit
+from typing import Union
 
 from .multigridHelper import getLinesTetrahedra, getLinesTetrahedra2
 from .buildBeams import buildBeams
-from .materials import SemiAffineFiberMaterial
+from .materials import Material, SemiAffineFiberMaterial
 from .conjugateGradient import cg
 
 
@@ -47,7 +48,7 @@ class FiniteBodyForces:
 
     material_model = None  # the function specifying the material model
 
-    def setNodes(self, data):
+    def setNodes(self, data: np.ndarray):
         """
         Provide mesh coordinates.
 
@@ -74,7 +75,7 @@ class FiniteBodyForces:
         self.f = np.zeros((self.N_c, 3))
         self.f_target = np.zeros((self.N_c, 3))
 
-    def setBoundaryCondition(self, displacements=None, forces=None):
+    def setBoundaryCondition(self, displacements: np.ndarray = None, forces: np.ndarray = None):
         """
         Provide the boundary condition for the mesh, to be used with :py:meth:`~.FiniteBodyForces.relax`.
 
@@ -112,7 +113,7 @@ class FiniteBodyForces:
                 print("WARNING: Forces for non-variable vertices were specified. These boundary conditions cannot be"
                       "fulfilled", file=sys.stderr)
 
-    def setDisplacements(self, displacements):
+    def setDisplacements(self, displacements: np.ndarray):
         """
         Provide initial displacements of the vertices. For non-variable vertices these displacements stay during the
         relaxation. The displacements can also be set with :py:meth:`~.FiniteBodyForces.setNodes` directly with
@@ -128,7 +129,7 @@ class FiniteBodyForces:
         assert displacements.shape == (self.N_c, 3)
         self.U = displacements.astype(np.float64)
 
-    def setVariable(self, var):
+    def setVariable(self, var: np.ndarray):
         """
         Specifies whether the vertices can be moved or are fixed. The variable state can also be set with
         :py:meth:`~.FiniteBodyForces.setNodes` directly with the vertices.
@@ -146,7 +147,7 @@ class FiniteBodyForces:
         # schedule to recalculate the connections
         self.connections_valid = False
 
-    def setExternalForces(self, forces):
+    def setExternalForces(self, forces: np.ndarray):
         """
         Provide external forces that act on the vertices. The forces can also be set with
         :py:meth:`~.FiniteBodyForces.setNodes` directly with the vertices.
@@ -161,7 +162,7 @@ class FiniteBodyForces:
         assert forces.shape == (self.N_c, 3)
         self.f_target = forces.astype(np.float64)
 
-    def setTetrahedra(self, data):
+    def setTetrahedra(self, data: np.ndarray):
         """
         Provide mesh tetrahedra. Each tetrahedron consts of the indices of the 4 vertices which it connects.
 
@@ -196,7 +197,7 @@ class FiniteBodyForces:
         # schedule to recalculate the connections
         self.connections_valid = False
 
-    def setMaterialModel(self, material):
+    def setMaterialModel(self, material: Material):
         """
         Provides the material model for the mesh.
 
@@ -208,7 +209,7 @@ class FiniteBodyForces:
         self.material_model = material
         self.material_model_look_up = self.material_model.generate_look_up_table()
 
-    def setBeams(self, beams=300):
+    def setBeams(self, beams: Union[int, np.ndarray] = 300):
         """
         Sets the beams for the calculation over the whole body angle.
 
@@ -338,7 +339,7 @@ class FiniteBodyForces:
                                 shape=(self.N_c*3, self.N_c*3)).tocsr()
         print("updating forces and stiffness matrix finished %.2fs" % (time.time() - t_start))
 
-    def _get_s_bar(self, t):
+    def _get_s_bar(self, t: np.ndarray):
         # get the displacements of all corners of the tetrahedron (N_Tx3x4)
         # u_tim  (t in [0, N_T], i in {x,y,z}, m in {1,2,3,4})
         # F is the linear map from T (the undeformed tetrahedron) to T' (the deformed tetrahedron)
@@ -353,7 +354,7 @@ class FiniteBodyForces:
 
     @staticmethod
     @jit(nopython=True, cache=True)
-    def _get_applied_epsilon(s_bar, lookUpEpsilon, _V_over_Nb):
+    def _get_applied_epsilon(s_bar: np.ndarray, lookUpEpsilon: callable, _V_over_Nb: np.ndarray):
         # the "deformation" amount # p 54 equ 2 part in the parentheses
         # s_tb = |s'_tib|  (t in [0, N_T], i in {x,y,z}, b in [0, N_b])
         s = np.linalg.norm(s_bar, axis=1)
@@ -372,7 +373,7 @@ class FiniteBodyForces:
 
         return epsilon_b, dEdsbar, dEdsbarbar
 
-    def _update_energy(self, epsilon_b, t):
+    def _update_energy(self, epsilon_b: np.ndarray, t: np.ndarray):
         # sum the energy of this tetrahedron
         # E_t = eps_tb * V_t
         self.E[t] = np.mean(epsilon_b, axis=1) * self.V[t]
@@ -381,11 +382,11 @@ class FiniteBodyForces:
         # variable node
         self.E_glo += np.sum(self.E[t][self._countEnergy[t]])
 
-    def _update_f_glo(self, s_star, s_bar, dEdsbar, out):
+    def _update_f_glo(self, s_star: np.ndarray, s_bar: np.ndarray, dEdsbar: np.ndarray, out: np.ndarray):
         # f_tmi = s*_tmb * s'_tib * dEds'_tb  (t in [0, N_T], i in {x,y,z}, m in {1,2,3,4}, b in [0, N_b])
         np.einsum("tmb,tib,tb->tmi", s_star, s_bar, dEdsbar, out=out)
 
-    def _update_K_glo(self, s_star, s_bar, dEdsbar, dEdsbarbar, out):
+    def _update_K_glo(self, s_star: np.ndarray, s_bar: np.ndarray, dEdsbar: np.ndarray, dEdsbarbar: np.ndarray, out: np.ndarray):
         #                              / |  |     \      / |  |     \                   / |    |     \
         #     ___             /  s'  w"| |s'| - 1 | - w' | |s'| - 1 |                w' | | s' | - 1 |             \
         # 1   \   *     *     |   b    \ | b|     /      \ | b|     /                   \ |  b |     /             |
@@ -427,7 +428,7 @@ class FiniteBodyForces:
         if self.connections_valid is False:
             self._computeConnections()
 
-    def relax(self, stepper=0.066, i_max=300, rel_conv_crit=0.01, relrecname=None):
+    def relax(self, stepper: float = 0.066, i_max: int = 300, rel_conv_crit: float = 0.01, relrecname: str = None):
         """
         Calculate the displacement of the nodes for the given external forces.
 
@@ -492,7 +493,7 @@ class FiniteBodyForces:
         finish = time.time()
         print("| time for relaxation was", finish - start)
 
-    def _solve_CG(self, stepper):
+    def _solve_CG(self, stepper: float):
         """
         Solve the displacements from the current stiffness tensor using conjugate gradient.
         """
@@ -516,7 +517,7 @@ class FiniteBodyForces:
 
     """ regularization """
 
-    def setTargetDisplacements(self, displacement):
+    def setTargetDisplacements(self, displacement: np.ndarray):
         """
         Provide the displacements that should be fitted by the regularization.
 
@@ -532,7 +533,7 @@ class FiniteBodyForces:
         # only use displacements that are not nan
         self.U_target_mask = np.any(~np.isnan(displacement), axis=1)
 
-    def _updateLocalRegularizationWeigth(self, method):
+    def _updateLocalRegularizationWeigth(self, method: str):
 
         self.localweight[:] = 1
 
@@ -572,7 +573,7 @@ class FiniteBodyForces:
 
         print("total weight: ", counter, "/", counterall)
 
-    def _computeRegularizationAAndb(self, alpha):
+    def _computeRegularizationAAndb(self, alpha: float):
         KA = self.K_glo.multiply(np.repeat(self.localweight * alpha, 3)[None, :])
         self.KAK = KA @ self.K_glo
         self.A = self.I + self.KAK
@@ -582,7 +583,7 @@ class FiniteBodyForces:
         index = self.var & self.U_target_mask
         self.b[index] += self.U_target[index] - self.U[index]
 
-    def _recordRegularizationStatus(self, relrec, alpha, relrecname=None):
+    def _recordRegularizationStatus(self, relrec: list, alpha: float, relrecname: str = None):
         indices = self.var & self.U_target_mask
         btemp = self.U_target[indices] - self.U[indices]
         uuf2 = np.sum(btemp ** 2)
@@ -607,7 +608,8 @@ class FiniteBodyForces:
         if relrecname is not None:
             np.savetxt(relrecname, relrec)
 
-    def regularize(self, stepper=0.33, solver_precision=1e-18, i_max=100, rel_conv_crit=0.01, alpha=3e9, method="huber", relrecname=None):
+    def regularize(self, stepper: float =0.33, solver_precision: float =1e-18, i_max: int = 100,
+                   rel_conv_crit: float = 0.01, alpha: float = 3e9, method: str = "huber", relrecname: str = None):
         """
         Fit the provided displacements. Displacements can be provided with
         :py:meth:`~.FiniteBodyForces.setFoundDisplacements`.
@@ -687,7 +689,7 @@ class FiniteBodyForces:
 
         return relrec
 
-    def _solve_regularization_CG(self, stepper=0.33, solver_precision=1e-18):
+    def _solve_regularization_CG(self, stepper: float =0.33, solver_precision: float = 1e-18):
         """
         Solve the displacements from the current stiffness tensor using conjugate gradient.
         """
@@ -907,7 +909,7 @@ class FiniteBodyForces:
         np.savetxt(epkname, epkrec)
         print(epkname, "stored.")
 
-    def storeRAndU(self, Rname, Uname):
+    def storeRAndU(self, Rname: str, Uname: str):
         Rrec = []
         Urec = []
 
@@ -920,7 +922,7 @@ class FiniteBodyForces:
         np.savetxt(Uname, Urec)
         print(Uname, "stored.")
 
-    def storeF(self, Fname):
+    def storeF(self, Fname: str):
         Frec = []
 
         for c in range(self.N_c):
@@ -929,7 +931,7 @@ class FiniteBodyForces:
         np.savetxt(Fname, Frec)
         print(Fname, "stored.")
 
-    def storeFden(self, Fdenname):
+    def storeFden(self, Fdenname: str):
         Vr = np.zeros(self.N_c)
 
         for tt in range(self.N_T):
@@ -943,7 +945,7 @@ class FiniteBodyForces:
         np.savetxt(Fdenname, Frec)
         print(Fdenname, "stored.")
 
-    def storeEandV(self, Rname, EVname):
+    def storeEandV(self, Rname: str, EVname: str):
         Rrec = []
         EVrec = []
 
@@ -960,7 +962,7 @@ class FiniteBodyForces:
         np.savetxt(EVname, EVrec)
         print(EVname, "stored.")
 
-    def plotMesh(self, use_displacement=True, edge_color=None, alpha=0.2):
+    def plotMesh(self, use_displacement: bool = True, edge_color: str = None, alpha: float = 0.2):
         import mpl_toolkits.mplot3d as a3
         import matplotlib.pyplot as plt
         from matplotlib import _pylab_helpers
@@ -988,14 +990,14 @@ class FiniteBodyForces:
         axes.plot(points[:, 0], points[:, 1], points[:, 2], 'ko')
         axes.set_aspect('equal')
 
-    def viewMesh(self, f1, f2):
+    def viewMesh(self, f1: float, f2: float):
         from .meshViewer import MeshViewer
 
         L = getLinesTetrahedra2(self.T)
 
         return MeshViewer(self.R, L, self.f, self.U, f1, f2)
 
-    def save(self, filename):
+    def save(self, filename: str):
         parameters = ["R", "T", "U", "f", "U_fixed", "U_target", "f_target"]
         data = {}
         for param in parameters:
@@ -1004,7 +1006,7 @@ class FiniteBodyForces:
 
         np.savez(filename, **data)
 
-    def load(self, filename):
+    def load(self, filename: str):
         data = np.load(filename, allow_pickle=True)
 
         if "R" in data:
@@ -1023,11 +1025,11 @@ class FiniteBodyForces:
         #    self.U_target_mask = np.any(~np.isnan(self.U_target_mask), axis=1)
 
 
-def save(filename, M):
+def save(filename: str, M: FiniteBodyForces):
     M.save(filename)
 
 
-def load(filename):
+def load(filename: str) -> FiniteBodyForces:
     M = FiniteBodyForces()
     M.load(filename)
     return M
