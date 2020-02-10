@@ -1,7 +1,7 @@
 import numpy as np
 
 
-def MakeFromPolar(r, theta, phi):
+def MakeFromPolar(r: float, theta: float, phi: float) -> np.ndarray:
     """
     Convert from polar coordinates to cartesian coordinates
     """
@@ -18,7 +18,7 @@ def MakeFromPolar(r, theta, phi):
     return np.array([x, y, z])
 
 
-def buildBeams(N):
+def buildBeams(N: int) -> np.ndarray:
     """
     Builds a sphere of unit vectors with N beams in the xy plane.
     """
@@ -47,5 +47,5 @@ def buildBeams(N):
     return np.array(beams)
 
 
-def saveBeams(beams, fname):
+def saveBeams(beams: np.ndarray, fname: str):
     np.savetxt(fname, beams)
