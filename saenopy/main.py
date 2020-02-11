@@ -1,14 +1,15 @@
-import numpy as np
+import os
 import sys
 import time
-import os
-from .configHelper import loadDefaults, loadConfigFile, parseValue, saveConfigFile
+
+import numpy as np
+
 from .FiniteBodyForces import FiniteBodyForces
 from .VirtualBeads import VirtualBeads
-from .buildBeams import buildBeams, saveBeams
-from .materials import saveEpsilon
-from .materials import SemiAffineFiberMaterial
+from .configHelper import loadDefaults, loadConfigFile, parseValue, saveConfigFile
 from .loadHelpers import loadMeshCoords, loadMeshTets, loadBoundaryConditions, loadConfiguration, makeBoxmesh, load
+from .materials import SemiAffineFiberMaterial
+from .materials import saveEpsilon
 
 
 def main():
@@ -33,11 +34,11 @@ def main():
     if len(sys.argv) > 1:
         for a in range(1, len(sys.argv), 2):
             if sys.argv[a] == "CONFIG":
-                CFG.update(loadConfigFile(sys.argv[a+1]))
-                os.chdir(os.path.dirname(sys.argv[a+1]))
+                CFG.update(loadConfigFile(sys.argv[a + 1]))
+                os.chdir(os.path.dirname(sys.argv[a + 1]))
 
         for a in range(1, len(sys.argv), 2):
-            CFG[sys.argv[a]] = parseValue(sys.argv[a+1])
+            CFG[sys.argv[a]] = parseValue(sys.argv[a + 1])
 
     CFG["DATAOUT"] += "_py2"
     outdir = CFG["DATAOUT"]
@@ -58,11 +59,12 @@ def main():
     print("BUILD BEAMS")
 
     M.setBeams(int(np.floor(np.sqrt(int(CFG["BEAMS"]) * np.pi + 0.5))))
-    #saveBeams(M.s, os.path.join(outdir, "beams.dat"))
+    # saveBeams(M.s, os.path.join(outdir, "beams.dat"))
 
     # precompute the material model
     print("EPSILON PARAMETERS", CFG["K_0"], CFG["D_0"], CFG["L_S"], CFG["D_S"])
-    epsilon = SemiAffineFiberMaterial(CFG["K_0"], CFG["D_0"], CFG["L_S"], CFG["D_S"])#, max=CFG["EPSMAX"], step=CFG["EPSSTEP"])
+    epsilon = SemiAffineFiberMaterial(CFG["K_0"], CFG["D_0"], CFG["L_S"],
+                                      CFG["D_S"])  # , max=CFG["EPSMAX"], step=CFG["EPSSTEP"])
     M.setMaterialModel(epsilon)
 
     if CFG["SAVEEPSILON"]:
@@ -147,81 +149,76 @@ def main():
         # ------ END OF MODULE saveResults -------------------------------------- #
     else:
         if CFG["FIBERPATTERNMATCHING"]:
+            from .stack3DHelper import readStackSprintf, readStackWildcard, allignStacks, saveStack
             # ------ START OF MODULE loadStacks --------------------------------------///
             print("LOAD STACKS")
 
             if CFG["USESPRINTF"]:
-                readStackSprintf(stacka, CFG["STACKA"], int(CFG["ZFROM"]), int(CFG["ZTO"]), int(CFG["JUMP"]))
+                stacka = readStackSprintf(CFG["STACKA"], int(CFG["ZFROM"]), int(CFG["ZTO"]), int(CFG["JUMP"]))
             else:
-                readStackWildcard(stacka, CFG["STACKA"], int(CFG["JUMP"]))
+                stacka = readStackWildcard(CFG["STACKA"], int(CFG["JUMP"]))
 
-            sX=stacka.size()
-            sY=stacka[0].size()
-            sZ=stacka[0][0].size()
+            sX, sY, sZ = stacka.shape
 
-            B=VirtualBeads(sX,sY,sZ,double(CFG["VOXELSIZEX"]),double(CFG["VOXELSIZEY"]),double(CFG["VOXELSIZEZ"])*float(CFG["JUMP"]))
+            B = VirtualBeads(sX, sY, sZ, CFG["VOXELSIZEX"], CFG["VOXELSIZEY"], CFG["VOXELSIZEZ"] * CFG["JUMP"])
             B.allBeads(M)
 
             if CFG["ALLIGNSTACKS"]:
 
                 if CFG["USESPRINTF"]:
-                    readStackSprintf(stackro,str(CFG["STACKR"]),int(CFG["ZFROM"]),int(CFG["ZTO"]),int(CFG["JUMP"]))
+                    stackro = readStackSprintf(str(CFG["STACKR"]), int(CFG["ZFROM"]), int(CFG["ZTO"]), int(CFG["JUMP"]))
                 else:
-                    readStackWildcard(stackro,str(CFG["STACKR"]),int(CFG["JUMP"]))
+                    stackro = readStackWildcard(str(CFG["STACKR"]), int(CFG["JUMP"]))
 
-                stackr=stack3D()
+                B.Drift = B.findDriftCoarse(stackro, stacka, float(CFG["DRIFT_RANGE"]), float(CFG["DRIFT_STEP"]))
+                B.Drift = B.findDrift(stackro, stacka)
+                print("Drift is", B.Drift[0], B.Drift[1], B.Drift[2], "before alligning stacks")
 
-                B.Drift = B.findDriftCoarse(stackro,stacka,float(CFG["DRIFT_RANGE"]),float(CFG["DRIFT_STEP"]))
-                B.Drift = B.findDrift(stackro,stacka)
-                print("Drift is ",B.Drift[0]," ", B.Drift[1]," ",B.Drift[2]," before alligning stacks")
+                CFG["DRIFT_FOUNDX"] = B.Drift[0]
+                CFG["DRIFT_FOUNDY"] = B.Drift[1]
+                CFG["DRIFT_FOUNDZ"] = B.Drift[2]
 
-                CFG["DRIFT_FOUNDX"]=B.Drift[0]
-                CFG["DRIFT_FOUNDY"]=B.Drift[1]
-                CFG["DRIFT_FOUNDZ"]=B.Drift[2]
+                dx = -np.floor(B.Drift[0] / B.dX + 0.5)
+                dy = -np.floor(B.Drift[1] / B.dY + 0.5)
+                dz = -np.floor(B.Drift[2] / B.dZ + 0.5)
 
-                dx=-np.floor(B.Drift[0]/B.dX+0.5)
-                dy=-np.floor(B.Drift[1]/B.dY+0.5)
-                dz=-np.floor(B.Drift[2]/B.dZ+0.5)
-
-                allignStacks(stacka,stackro,stackr,dx,dy,dz)
+                stackr = allignStacks(stacka, stackro, dx, dy, dz)
 
                 if CFG["SAVEALLIGNEDSTACK"]:
                     saveStack(stackr, os.path.join(outdir, "stackr"))
 
-                stackro.clear()
-
-
+                del stackro
             else:
                 if CFG["USESPRINTF"]:
-                    readStackSprintf(stackr, str(CFG["STACKR"]),int(CFG["ZFROM"]),int(CFG["ZTO"]),int(CFG["JUMP"]))
+                    stackr = readStackSprintf(str(CFG["STACKR"]), int(CFG["ZFROM"]), int(CFG["ZTO"]), int(CFG["JUMP"]))
                 else:
-                    readStackWildcard(stackr,str(CFG["STACKR"]),int(CFG["JUMP"]))
+                    stackr = readStackWildcard(str(CFG["STACKR"]), int(CFG["JUMP"]))
 
             # ------ End OF MODULE loadStacks --------------------------------------///
 
             # ------ START OF MODULE extractDeformations --------------------------------------///
             print("EXTRACT DEFORMATIONS")
 
-            B.Drift=np.zeros(3)
+            B.Drift = np.zeros(3)
 
             if CFG["DRIFTCORRECTION"]:
-                B.Drift=B.findDriftCoarse(stackr,stacka,float(CFG["DRIFT_RANGE"]),float(CFG["DRIFT_STEP"]))
-                B.Drift=B.findDrift(stackr,stacka)
-                print("Drift is ", B.Drif[0], " ", B.Drift[1], " ", B.Drift[2])
+                B.Drift = B.findDriftCoarse(stackr, stacka, float(CFG["DRIFT_RANGE"]), float(CFG["DRIFT_STEP"]))
+                B.Drift = B.findDrift(stackr, stacka)
+                print("Drift is ", B.Drift[0], " ", B.Drift[1], " ", B.Drift[2])
             elif not CFG["BOXMESH"]:
                 B.loadVbeads(os.path.join(indir, CFG["VBEADS"]))
 
             if CFG["INITIALGUESS"]:
                 B.loadGuess(M, os.path.join(indir, CFG["UGUESS"]))
-            B.findDisplacements(stackr,stacka,M,float(CFG["VB_REGPARA"]))
+            B.findDisplacements(stackr, stacka, M, float(CFG["VB_REGPARA"]))
             if CFG["REFINEDISPLACEMENTS"]:
                 M._computeConnections()
-                B.refineDisplacements(stackr,stacka,M,float(CFG["VB_REGPARAREF"]))
+                B.refineDisplacements(stackr, stacka, M, float(CFG["VB_REGPARAREF"]))
 
             if CFG["SUBTRACTMEDIANDISPL"]:
                 B.substractMedianDisplacements()
 
-            B.storeUfound( os.path.join(outdir, CFG["UFOUND"]), os.path.join(outdir, CFG["SFOUND"]))
+            B.storeUfound(os.path.join(outdir, CFG["UFOUND"]), os.path.join(outdir, CFG["SFOUND"]))
             M.storeRAndU(os.path.join(outdir, "R.dat"), os.path.join(outdir, "U.dat"))
 
             stacka.clear()
@@ -280,38 +277,40 @@ def main():
                 if CFG["BOXMESH"]:
                     pass
                 else:
-                    pass #TODO
-                    #M.loadBoundaryConditions(os.path.join(indir, CFG["BCOND"]))
+                    pass  # TODO
+                    # M.loadBoundaryConditions(os.path.join(indir, CFG["BCOND"]))
 
-                #M._computePhi()
-                #M._computeConnections()
-                #B.computeOutOfStack(M)
+                # M._computePhi()
+                # M._computeConnections()
+                # B.computeOutOfStack(M)
                 if CFG["REGMETHOD"] == "laplace":
                     M._computeLaplace()
-                #B.computeConconnections(M)
+                # B.computeConconnections(M)
                 if CFG["REGMETHOD"] == "laplace":
                     B.computeConconnections_Laplace(M)
 
                 relrecname = os.path.join(CFG["DATAOUT"], CFG["REG_RELREC"])
-                rvec=M.regularize(CFG["REG_SOLVER_STEP"], CFG["REG_SOLVER_PRECISION"], CFG["REG_ITERATIONS"], CFG["REG_CONV_CRIT"], CFG["ALPHA"], CFG["ROBUSTMETHOD"], relrecname)
+                rvec = M.regularize(CFG["REG_SOLVER_STEP"], CFG["REG_SOLVER_PRECISION"], CFG["REG_ITERATIONS"],
+                                    CFG["REG_CONV_CRIT"], CFG["ALPHA"], CFG["ROBUSTMETHOD"], relrecname)
 
-                results["MISTFIT"]=rvec[0]
-                results["L"]=rvec[1]
+                results["MISTFIT"] = rvec[0]
+                results["L"] = rvec[1]
 
             else:
 
                 print("ERROR: Stacks could not be matched onto one another. Skipped regularization.")
-                results["ERROR"]=results["ERROR"]+"ERROR: Stacks could not be matched onto one another. Skipped regularization."
+                results["ERROR"] = results[
+                                       "ERROR"] + "ERROR: Stacks could not be matched onto one another. Skipped regularization."
 
                 if CFG["BOXMESH"]:
                     pass
 
                 else:
-                    M.loadBoundaryConditions( os.path.join(indir, CFG["BCOND"]))
+                    M.loadBoundaryConditions(os.path.join(indir, CFG["BCOND"]))
 
                 M._computePhi()
                 M._computeConnections()
-                #B.computeOutOfStack(M)
+                # B.computeOutOfStack(M)
                 if CFG["REGMETHOD"] == "laplace":
                     M._computeLaplace()
                 B.computeConconnections(M)
@@ -320,8 +319,8 @@ def main():
 
                 M._updateGloFAndK()
 
-                results["L"]="0.0"
-                results["MISFIT"]="0.0"
+                results["L"] = "0.0"
+                results["MISFIT"] = "0.0"
 
             # ------ END OF MODULE regularizeDeformations --------------------------------------///
 
@@ -336,7 +335,7 @@ def main():
                     pass
 
                 else:
-                    M.loadBoundaryConditions( os.path.join(indir, CFG["BCOND"]))
+                    M.loadBoundaryConditions(os.path.join(indir, CFG["BCOND"]))
 
                 M._computePhi()
                 M._computeConnections()
@@ -345,9 +344,7 @@ def main():
 
                 #  ------ END OF MODULE computeResults -------------------------------------- // /
 
-
         if CFG["MODE"] != "none":
-
             # ------ START OF MODULE saveResults --------------------------------------///
             print("SAVE RESULTS")
 
@@ -359,10 +356,11 @@ def main():
             M.storeFden(os.path.join(outdir, "Fden.dat"))
             M.storeRAndU(os.path.join(outdir, "R.dat"), os.path.join(outdir, "U.dat"))
             M.storeEandV(os.path.join(outdir, "RR.dat"), os.path.join(outdir, "EV.dat"))
-            M.storePrincipalStressAndStiffness(os.path.join(outdir, "Sbmax.dat"), os.path.join(outdir, "Sbmin.dat"),os.path.join(outdir, "WPK.dat"))
-            #B.storeLocalweights(os.path.join(outdir, "weights.dat"))
+            M.storePrincipalStressAndStiffness(os.path.join(outdir, "Sbmax.dat"), os.path.join(outdir, "Sbmin.dat"),
+                                               os.path.join(outdir, "WPK.dat"))
+            # B.storeLocalweights(os.path.join(outdir, "weights.dat"))
 
-            #M.computeStiffening(results)
+            # M.computeStiffening(results)
             results.update(M.computeForceMoments(CFG["FM_RMAX"]))
             results["ENERGY"] = M.E_glo
 
