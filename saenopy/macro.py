@@ -271,3 +271,126 @@ def getExtensionalRheometerStress(epsilon, material, s=None):
     W = np.mean(eps, axis=-1)
     dW = np.diff(W) / np.diff(epsilon)
     return epsilon[:-1] + np.diff(epsilon) / 2, dW
+
+
+import numpy as np
+from scipy import interpolate
+import matplotlib.pyplot as plt
+from saenopy.materials import SemiAffineFiberMaterial
+
+def fit_error(xy, xy0, w=None):
+    # split the data
+    x, y = xy
+    x0, y0 = xy0.T
+    # interpolate the fit to ensure we have values at the correct x positions
+    f = interpolate.interp1d(x, y, bounds_error=False)
+    # evaluate the interpolated fit at the x0 values and calculate the squared difference to the y0 values
+    difference = (y0-f(x0))**2
+    # if we have no weights
+    if w is None:
+        # just take the mean (ignoring nans)
+        return np.sqrt(np.nanmean(difference))
+    # if not ignore the nans by finding the indices
+    indices = ~np.isnan(difference)
+    # and average with the given weights
+    return np.sqrt(np.average(difference[indices], weights=w[indices]))
+
+
+def get_cost_function(func, data_shear1, params):
+    # find a reasonable range of shear values
+    x0 = data_shear1[:, 0]
+    dx = x0[1] - x0[0]
+    gamma1 = np.linspace(np.min(x0), np.max(x0), 1000)
+
+    # define weights for logarithmic weighting of points of the shear data
+    weights1 = np.diff(np.log(x0), append=np.log(x0[-1] + np.diff(x0[-3:-1])[0])) ** 2
+
+    # weights1[:] = 1
+
+    def cost(p):
+        material = SemiAffineFiberMaterial(*params(p))
+        # print(material)
+        return fit_error(func(gamma1, material), data_shear1, weights1)
+
+    def plot(p):
+        def plot_me():
+            material = SemiAffineFiberMaterial(*params(p))
+            plt.plot(data_shear1[:, 0], data_shear1[:, 1], "o", label="data")
+
+            x, y = func(gamma1, material)
+            plt.plot(x, y, "r-", lw=3, label="model")
+        return plot_me
+
+    return cost, plot
+
+
+def get_cost_function_log(func: callable, data_shear1: np.ndarray, params: Sequence):
+    # find a reasonable range of shear values
+    x0 = data_shear1[:, 0]
+    dx = x0[1] - x0[0]
+    gamma1 = np.arange(0.004, 0.25, 0.001)
+
+    # define weights for logarithmic weighting of points of the shear data
+    weights1 = np.diff(np.log(x0), append=np.log(x0[-1] + np.diff(x0[-3:-1])[0])) ** 2
+    # weights1[:] = 1
+
+    data_shear1 = np.log(data_shear1)
+
+    def cost(p):
+        material = SemiAffineFiberMaterial(*params(p))
+        # print(material)
+        return fit_error(np.log(func(gamma1, material)), data_shear1, weights1)
+
+    return cost
+
+
+def minimize(cost_data: list, parameter_start: Sequence, method='Nelder-Mead', maxfev:int = 1e4, **kwargs):
+    costs = []
+    plots = []
+
+    for func, data, params in cost_data:
+        if func == getStretchThinning:
+            def func(x, material):
+                lambda_v = np.arange(0, 1.1, 0.01)
+                return getStretchThinning(x, lambda_v, material)
+        c, p = get_cost_function(func, data, params)
+        costs.append(c)
+        plots.append(p)
+
+    from tqdm.notebook import tqdm
+    pbar = tqdm(total=maxfev)
+
+    # define the cost function
+    def cost(p):
+        pbar.update(1)
+        return sum([c(p) for c in costs])
+
+    # minimize the cost with reasonable start parameters
+    from scipy.optimize import minimize
+    sol = minimize(cost, parameter_start, method=method, options={'maxfev': maxfev}, **kwargs)
+
+    if sol.success is True:
+        pbar.close()
+
+    def plot_all():
+        subplot_index = 0
+        subplot_dict = {}
+        for func, data, params in cost_data:
+            if func not in subplot_dict:
+                subplot_index += 1
+                subplot_dict[func] = subplot_index
+
+        for func in subplot_dict:
+            subplot_dict[func] = plt.subplot(1, subplot_index, subplot_dict[func])
+            if func == getShearRheometerStress or func == getExtensionalRheometerStress:
+                plt.xlabel("strain")
+                plt.ylabel("stress")
+            if func == getStretchThinning:
+                plt.xlabel("horizontal stretch")
+                plt.ylabel("vertical contraction")
+
+        for (func, data, params), p in zip(cost_data, plots):
+            plt.sca(subplot_dict[func])
+            p(sol.x)()
+
+    return sol.x, plot_all

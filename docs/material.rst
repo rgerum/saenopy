@@ -1,3 +1,5 @@
+.. _SectionMaterial:
+
 Material
 ========
 
