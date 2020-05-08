@@ -34,7 +34,7 @@ while True:
     try:
         # here are the modules that should be imported for the documentation
         import saenopy
-        import saenopy.Solver
+        from saenopy import Solver
     # if an import error occurs
     except ImportError as err:
         # get the module name from the error message
