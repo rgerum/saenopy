@@ -33,8 +33,8 @@ import mock
 while True:
     try:
         # here are the modules that should be imported for the documentation
-        import saeno
-        import saeno.FiniteBodyForces
+        import saenopy
+        import saenopy.Solver
     # if an import error occurs
     except ImportError as err:
         # get the module name from the error message

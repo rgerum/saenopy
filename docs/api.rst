@@ -1,8 +1,8 @@
 API
 ===
 
-.. currentmodule:: saenopy.FiniteBodyForces
+.. currentmodule:: saenopy.Solver
 
-.. autoclass:: FiniteBodyForces
+.. autoclass:: Solver
    :members:
 
