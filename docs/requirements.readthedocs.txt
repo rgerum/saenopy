@@ -6,4 +6,3 @@ sphinxcontrib-bibtex
 sphinxcontrib-svg2pdfconverter
 ipywidgets
 nbsphinx
-.
