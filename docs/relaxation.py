@@ -30,9 +30,9 @@ R = np.array([[0., 0., 0.],  # 0
               [1., 1., 1.],  # 6
               [1., 0., 1.]]) # 7
 
-# define the tetrahedra of the mesh
+# define the concetivity of the mesh (only tetrahedra are allowed)
 # the array has to have the shape N_t x 4
-# every entry is an index referencing a verces in R (indices start with 0)
+# every entry is an index referencing a node in R (indices start with 0)
 T = np.array([[0, 1, 3, 5],
               [1, 2, 3, 5],
               [0, 5, 3, 4],
@@ -40,9 +40,8 @@ T = np.array([[0, 1, 3, 5],
               [5, 2, 3, 6],
               [3, 5, 6, 7]])
 
-# the initial displacements of the nodes
-# if the node is fixed (e.g. not variable) than this displacement will be fixed
-# during the solving
+# the displacement boundary conditions of the nodes
+# if a displacement boundary condition is given, the node will be fixed
 U = np.array([[  0.  ,   0.  ,   0.  ],  # 0
               [  0.  ,   0.  ,   0.  ],  # 1
               [np.nan, np.nan, np.nan],  # 2
@@ -52,7 +51,8 @@ U = np.array([[  0.  ,   0.  ,   0.  ],  # 0
               [np.nan, np.nan, np.nan],  # 6
               [np.nan, np.nan, np.nan]]) # 7
 
-# for the variable nodes, we can specify the target force.
+# the force boundary conditions of the nodes
+# if a target force boundary condition is given, the node will be free
 # this is the force that the material applies after solving onto the nodes
 # therefore for a pull to the right (positive x-direction) we have to provide
 # a target force to the left (negative x-direction)
