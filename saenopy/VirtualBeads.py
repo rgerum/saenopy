@@ -3,7 +3,7 @@ import time
 import numpy as np
 import scipy.sparse as ssp
 
-from .FiniteBodyForces import FiniteBodyForces
+from .solver import Solver
 from .conjugateGradient import cg
 from .stack3DHelper import crosscorrelateStacks, getSubstack, findLocalDisplacement
 
@@ -343,7 +343,7 @@ class VirtualBeads:
 
         return crosscorrelateStacks(stack1, stack2, U)
 
-    def findDisplacements(self, stack_r: np.ndarray, stack_a: np.ndarray, M: FiniteBodyForces, lambd: float):
+    def findDisplacements(self, stack_r: np.ndarray, stack_a: np.ndarray, M: Solver, lambd: float):
 
         Srec = []
 
@@ -498,7 +498,7 @@ class VirtualBeads:
                     self.S_0[t] = Srec[-1]
                     self.U_found[t] = U_new
 
-    def refineDisplacements(self, stack_r: np.ndarray, stack_a: np.ndarray, M: FiniteBodyForces, lambd: float):
+    def refineDisplacements(self, stack_r: np.ndarray, stack_a: np.ndarray, M: Solver, lambd: float):
 
         Srec = []
 

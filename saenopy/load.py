@@ -1,7 +1,7 @@
 import numpy as np
 __name2__ = __name__
 __name__ = "saenopy"
-from .FiniteBodyForces import FiniteBodyForces
+from .solver import Solver
 
 
 def load_gmsh(filename):
@@ -179,8 +179,8 @@ def load_gmsh(filename):
     #print(nodes[3])
 
     if tetrahedra.shape[1] == 4:
-        from .FiniteBodyForces import FiniteBodyForces
-        M = FiniteBodyForces()
+        from .solver import Solver
+        M = Solver()
         tetrahedra -= 1
         unique_indices = np.unique(tetrahedra[tetrahedra[:, 0] != -1])
         index_lookup = np.ones(max([tetrahedra.max() + 1, unique_indices.max() + 1]), dtype=int) * np.nan
@@ -498,8 +498,8 @@ def load_gmsh(filename):
                 #print("volumne", tetrahedra, entity)
 
     if tetrahedra.shape[1] == 4:
-        from .FiniteBodyForces import FiniteBodyForces
-        M = FiniteBodyForces()
+        from .solver import Solver
+        M = Solver()
         #tetrahedra -= 1
         #unique_indices = np.unique(tetrahedra)
         #print(nodes.shape, tetrahedra.shape, tetrahedra.min(), tetrahedra.max())

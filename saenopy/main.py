@@ -4,7 +4,7 @@ import time
 
 import numpy as np
 
-from .FiniteBodyForces import FiniteBodyForces
+from .solver import Solver
 from .VirtualBeads import VirtualBeads
 from .configHelper import loadDefaults, loadConfigFile, parseValue, saveConfigFile
 from .loadHelpers import loadMeshCoords, loadMeshTets, loadBoundaryConditions, loadConfiguration, makeBoxmesh, load
@@ -50,7 +50,7 @@ def main():
     else:
         print("WARNING: DATAOUT directory already exists. Overwriting old results.")
 
-    M = FiniteBodyForces()
+    M = Solver()
     B = VirtualBeads(CFG)
 
     # ------ END OF MODULE loadParameters --------------------------------------///

@@ -4,10 +4,10 @@
 
 
 
-from saenopy import FiniteBodyForces
+from saenopy import Solver
 import saenopy
 # initialize the object
-M = FiniteBodyForces()
+M = Solver()
 
 
 from saenopy.materials import SemiAffineFiberMaterial
