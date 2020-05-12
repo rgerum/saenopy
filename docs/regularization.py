@@ -73,7 +73,5 @@ M.storeRAndU("R.dat", "U.dat")
 # store the center of each tetrahedron and a combined list with energies and volumina of the tetrahedrons
 M.storeEandV("RR.dat", "EV.dat")
 
-M.U
-
 M.viewMesh(50, 1)
 
