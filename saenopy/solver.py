@@ -77,7 +77,7 @@ class Solver:
 
     def setBoundaryCondition(self, displacements: np.ndarray = None, forces: np.ndarray = None):
         """
-        Provide the boundary condition for the mesh, to be used with :py:meth:`~.FiniteBodyForces.relax`.
+        Provide the boundary condition for the mesh, to be used with :py:meth:`~.Solver.relax`.
 
         Parameters
         ----------
@@ -115,8 +115,8 @@ class Solver:
 
     def setDisplacements(self, displacements: np.ndarray):
         """
-        Provide initial displacements of the vertices. For non-variable vertices these displacements stay during the
-        relaxation. The displacements can also be set with :py:meth:`~.FiniteBodyForces.setNodes` directly with
+        Provide initial displacements of the nodes. For fixed nodes these displacements stay during the
+        relaxation. The displacements can also be set with :py:meth:`~.Solver.setNodes` directly with
         the vertices.
 
         Parameters
@@ -132,7 +132,7 @@ class Solver:
     def setVariable(self, var: np.ndarray):
         """
         Specifies whether the vertices can be moved or are fixed. The variable state can also be set with
-        :py:meth:`~.FiniteBodyForces.setNodes` directly with the vertices.
+        :py:meth:`~.Solver.setNodes` directly with the vertices.
 
         Parameters
         ----------
@@ -150,7 +150,7 @@ class Solver:
     def setExternalForces(self, forces: np.ndarray):
         """
         Provide external forces that act on the vertices. The forces can also be set with
-        :py:meth:`~.FiniteBodyForces.setNodes` directly with the vertices.
+        :py:meth:`~.Solver.setNodes` directly with the vertices.
 
         Parameters
         ----------
@@ -612,7 +612,7 @@ class Solver:
                    rel_conv_crit: float = 0.01, alpha: float = 3e9, method: str = "huber", relrecname: str = None):
         """
         Fit the provided displacements. Displacements can be provided with
-        :py:meth:`~.FiniteBodyForces.setFoundDisplacements`.
+        :py:meth:`~.Solver.setFoundDisplacements`.
 
         Parameters
         ----------

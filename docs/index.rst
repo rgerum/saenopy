@@ -12,6 +12,7 @@ SAENOPY a python implementation of the SAENO - Semi-affine Elastic Network Optim
    installation
    relaxation.ipynb
    regularization.ipynb
+   mesh
    material.ipynb
    api
 
