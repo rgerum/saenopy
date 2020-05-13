@@ -93,7 +93,7 @@ def getShearRheometerStress(gamma: np.ndarray, material: Material, s: np.ndarray
     r"""
     Get the stress for a given strain of the material in a shear rheometer.
 
-    The following shear deformation :math:`\mathbf{F}` is applied to the material:
+    The following shear deformation gradient :math:`\mathbf{F}` is applied to the material:
 
     .. math::
         \mathbf{F}(\gamma) =
@@ -173,7 +173,7 @@ def getStretchThinning(lambda_h, lambda_v, material, s=None):
     r"""
     Get the thinning of the material for streching.
 
-    The following deformation :math:`\mathbf{F}` is applied to the material, composed of a horizontal and a vertical
+    The following deformation gradient :math:`\mathbf{F}` is applied to the material, composed of a horizontal and a vertical
     stretching:
 
     .. math::
@@ -224,7 +224,7 @@ def getExtensionalRheometerStress(epsilon, material, s=None):
     r"""
     Get the stress for a given strain of the material in an extensional rheometer.
 
-    The following deformation :math:`\mathbf{F}` is applied to the material:
+    The following deformation gradient :math:`\mathbf{F}` is applied to the material:
 
     .. math::
         \mathbf{F}(\gamma) =

@@ -13,9 +13,7 @@ SAENOPY a python implementation of the SAENO - Semi-affine Elastic Network Optim
    command_line
    relaxation.ipynb
    regularization.ipynb
-   macrorheology.ipynb
-   material
-   fit_material_parameters.ipynb
+   material.ipynb
    api
 
 Citing Saenopy
