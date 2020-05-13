@@ -91,9 +91,10 @@ def combineQuadrature(p1_w1: Sequence, p2_w2: Sequence) -> (np.ndarray, np.ndarr
 
 def getShearRheometerStress(gamma: np.ndarray, material: Material, s: np.ndarray = None) -> (np.ndarray, np.ndarray):
     r"""
-    Get the stress for a given strain of the material in a shear rheometer.
+    This function returns the stress the material model generates when subjected to a shear strain,
+    as seen in a shear rheometer.
 
-    The following shear deformation gradient :math:`\mathbf{F}` is applied to the material:
+    The shear strain is described using the following deformation gradient :math:`\mathbf{F}`:
 
     .. math::
         \mathbf{F}(\gamma) =
@@ -112,7 +113,7 @@ def getShearRheometerStress(gamma: np.ndarray, material: Material, s: np.ndarray
     Parameters
     ----------
     gamma : ndarray
-        The applied strain.
+        The strain values for which to calculate the stress.
     material : :py:class:`~.materials.Material`
         The material model to use.
 
@@ -169,45 +170,45 @@ def getShearRheometerStressRotation(gamma, material, H=1e-3, R=10e-3, s=30, q=2)
     return gamma[:-1] + np.diff(gamma) / 2, dW
 
 
-def getStretchThinning(lambda_h, lambda_v, material, s=None):
+def getStretchThinning(gamma_h, gamma_v, material, s=None):
     r"""
-    Get the thinning of the material for streching.
+    This function returns the vertical thinning (strain in z direction) of the material model
+    when the material model is stretched horizonally (strain in x direction), as seen in a stretcher device.
 
-    The following deformation gradient :math:`\mathbf{F}` is applied to the material, composed of a horizontal and a vertical
-    stretching:
+    The strain in x and z direction is described using the following deformation gradient :math:`\mathbf{F}`:
 
     .. math::
         \mathbf{F}(\gamma) =
         \begin{pmatrix}
-            \lambda_h & 0 & 0 \\
+            \gamma_h & 0 & 0 \\
             0 & 1 & 0 \\
-            0 & 0 & \lambda_v \\
+            0 & 0 & \gamma_v \\
         \end{pmatrix}
 
-    the resulting energy density :math:`W(\mathbf{F}(\lambda_h,\lambda_v))` is then minimized numerically for every
-    :math:`\lambda_h` to obtain the :math:`\lambda_v` that results in the lowest energy of the system.
+    the resulting energy density :math:`W(\mathbf{F}(\gamma_h,\gamma_v))` is then minimized numerically for every
+    :math:`\gamma_h` to obtain the :math:`\gamma_v` that results in the lowest energy of the system.
 
     Parameters
     ----------
-    lambda_h : ndarray
-        The applied stretching in horizontal direction.
-    lambda_v : ndarray
-        The different values for thinning to test. The value with the lowest energy for each horizontal stretch is
+    gamma_h : ndarray
+        The applied strain in horizontal direction.
+    gamma_v : ndarray
+        The different values for thinning to test. The value with the lowest energy for each horizontal strain is
         returned.
     material : :py:class:`~.materials.Material`
         The material model to use.
 
     Returns
     -------
-    lambda_h : ndarray
-        The horizontal stretching values.
-    lambda_v : ndarray
-        The vertical stretching that minimizes the energy for the horizontal stretching.
+    gamma_h : ndarray
+        The horizontal strain values.
+    gamma_v : ndarray
+        The vertical strain that minimizes the energy for the horizontal strain.
     """
     if s is None:
         s = buildBeams(30)
 
-    F00, F22 = np.meshgrid(lambda_v, lambda_h)
+    F00, F22 = np.meshgrid(gamma_v, gamma_h)
     F11 = np.ones_like(F00)
     F = np.dstack((F00, F11, F22))
 
@@ -217,34 +218,35 @@ def getStretchThinning(lambda_h, lambda_v, material, s=None):
     W = np.mean(eps, axis=-1)
 
     index = np.argmin(W, axis=1)
-    return lambda_h, lambda_v[index]
+    return gamma_h, gamma_v[index]
 
 
-def getExtensionalRheometerStress(epsilon, material, s=None):
+def getExtensionalRheometerStress(gamma, material, s=None):
     r"""
-    Get the stress for a given strain of the material in an extensional rheometer.
+    This function returns the stress the material model generates when subjected to an extensional strain,
+    as seen in an extensional rheometer.
 
-    The following deformation gradient :math:`\mathbf{F}` is applied to the material:
+    The extensional strain is described using the following deformation gradient :math:`\mathbf{F}`:
 
     .. math::
         \mathbf{F}(\gamma) =
         \begin{pmatrix}
-            \epsilon & 0 & 0 \\
+            \gamma & 0 & 0 \\
             0 & 1 & 0 \\
             0 & 0 & 1 \\
         \end{pmatrix}
 
     and the resulting stress is obtained by calculating numerically the derivative of the energy density :math:`W` with
-    respect to the strain :math:`\epsilon`:
+    respect to the strain :math:`\gamma`:
 
     .. math::
-        \sigma(\gamma) = \frac{dW(\mathbf{F}(\gamma))}{d\epsilon}
+        \sigma(\gamma) = \frac{dW(\mathbf{F}(\gamma))}{d\gamma}
 
 
     Parameters
     ----------
-    epsilon : ndarray
-        The applied strain.
+    gamma : ndarray
+        The strain values for which to calculate the stress.
     material : :py:class:`~.materials.Material`
         The material model to use.
 
@@ -259,8 +261,8 @@ def getExtensionalRheometerStress(epsilon, material, s=None):
         s = buildBeams(30)
 
     F = np.eye(3)
-    F = np.tile(F, (epsilon.shape[0], 1, 1))
-    F[:, 0, 0] = epsilon
+    F = np.tile(F, (gamma.shape[0], 1, 1))
+    F[:, 0, 0] = gamma
 
     s_bar = F @ s.T
 
@@ -269,8 +271,8 @@ def getExtensionalRheometerStress(epsilon, material, s=None):
     eps = material.energy(s_abs - 1)
 
     W = np.mean(eps, axis=-1)
-    dW = np.diff(W) / np.diff(epsilon)
-    return epsilon[:-1] + np.diff(epsilon) / 2, dW
+    dW = np.diff(W) / np.diff(gamma)
+    return gamma[:-1] + np.diff(gamma) / 2, dW
 
 
 import numpy as np
