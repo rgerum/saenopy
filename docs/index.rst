@@ -10,7 +10,6 @@ SAENOPY a python implementation of the SAENO - Semi-affine Elastic Network Optim
    :maxdepth: 2
 
    installation
-   command_line
    relaxation.ipynb
    regularization.ipynb
    material.ipynb
