@@ -16,7 +16,7 @@ From the repository
 If you want to have the development version, either download a static version from Github_ or
 clone the repository.
 
-    ``hg clone https://github.com/rgerum/saenopy``
+    ``git clone https://github.com/rgerum/saenopy``
 
 To install the downloaded/cloned package, open the folder an execute in a command line:
 
