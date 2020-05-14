@@ -9,12 +9,18 @@ SAENOPY a python implementation of the SAENO - Semi-affine Elastic Network Optim
    :caption: Contents
    :maxdepth: 2
 
-   installation
    relaxation.ipynb
    regularization.ipynb
    mesh
    material.ipynb
    api
+
+Installation
+------------
+
+Saenopy can be installed directly using pip:
+
+    ``pip install saenopy``
 
 Citing Saenopy
 --------------
