@@ -60,7 +60,7 @@ U = np.array([[0   , 0, 0],  # 0
 M.setTargetDisplacements(U)
 
 
-# relax the mesh and move the "varible" nodes
+# call the regularisation
 M.regularize(stepper=0.1, alpha=0.001)
 
 

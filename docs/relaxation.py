@@ -40,6 +40,12 @@ T = np.array([[0, 1, 3, 5],
               [5, 2, 3, 6],
               [3, 5, 6, 7]])
 
+# provide the node data
+M.setNodes(R)
+# the tetrahedron data
+M.setTetrahedra(T)
+
+
 # the displacement boundary conditions of the nodes
 # if a displacement boundary condition is given, the node will be fixed
 U = np.array([[  0.  ,   0.  ,   0.  ],  # 0
@@ -65,11 +71,6 @@ F_ext = np.array([[np.nan, np.nan, np.nan],  # 0
                   [-2.5  ,  0.   ,  0.   ],  # 6
                   [-2.5  ,  0.   ,  0.   ]]) # 7
 
-
-# provide the node data
-M.setNodes(R)
-# the tetrahedron data
-M.setTetrahedra(T)
 # and the boundary condition
 M.setBoundaryCondition(U, F_ext)
 
