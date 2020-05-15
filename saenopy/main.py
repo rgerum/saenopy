@@ -130,7 +130,7 @@ def main():
         print("SOLVE BOUNDARY CONDITIONS")
         relrecname = os.path.join(CFG["DATAOUT"], CFG["REL_RELREC"])
 
-        M.relax(CFG["REL_SOLVER_STEP"], CFG["REL_ITERATIONS"], CFG["REL_CONV_CRIT"], relrecname)
+        M.solve_nonregularized(CFG["REL_SOLVER_STEP"], CFG["REL_ITERATIONS"], CFG["REL_CONV_CRIT"], relrecname)
 
         finish = time.time()
         CFG["TIME_RELAXATION"] = finish - start
@@ -290,8 +290,8 @@ def main():
                     B.computeConconnections_Laplace(M)
 
                 relrecname = os.path.join(CFG["DATAOUT"], CFG["REG_RELREC"])
-                rvec = M.regularize(CFG["REG_SOLVER_STEP"], CFG["REG_SOLVER_PRECISION"], CFG["REG_ITERATIONS"],
-                                    CFG["REG_CONV_CRIT"], CFG["ALPHA"], CFG["ROBUSTMETHOD"], relrecname)
+                rvec = M.solve_regularized(CFG["REG_SOLVER_STEP"], CFG["REG_SOLVER_PRECISION"], CFG["REG_ITERATIONS"],
+                                           CFG["REG_CONV_CRIT"], CFG["ALPHA"], CFG["ROBUSTMETHOD"], relrecname)
 
                 results["MISTFIT"] = rvec[0]
                 results["L"] = rvec[1]

@@ -77,17 +77,16 @@ class Solver:
 
     def setBoundaryCondition(self, displacements: np.ndarray = None, forces: np.ndarray = None):
         """
-        Provide the boundary condition for the mesh, to be used with :py:meth:`~.Solver.relax`.
+        Provide the boundary condition for the mesh, to be used with :py:meth:`~.Solver.solve_nonregularized`.
 
         Parameters
         ----------
         displacements : ndarray, optional
             If the displacement of a node is not nan, it is treated as a Dirichlet boundary condition and the
-            displacement of this node is kept fix during solving. Dimensions Nx3
+            displacement of this node is kept fixed during solving. Dimensions Nx3
         forces : ndarray, optional
             If the force of a node is not nan, it is treated as a von Neumann boundary condition and the solver tries to
-            match the force on the node with the here given force. In contrast to the displacement conditions the force
-            boundary conditions cannot be strictly enforced. Dimensions Nx3
+            match the force on the node with the here given force. Dimensions Nx3
         """
 
         # initialize 0 displacement for each node
@@ -104,20 +103,18 @@ class Solver:
         if forces is None:
             self.f_target = np.zeros((self.N_c, 3))
         else:
-            self.setExternalForces(forces)
+            self._setExternalForces(forces)
             # if no displacements where given, take the variable nodes from the nans in the force list
             if displacements is None:
                 self.var = ~np.any(np.isnan(forces), axis=1)
             # if not, check if the the fixed displacements have no force
             elif np.all(np.isnan(self.f_target[~self.var])) is False:
-                print("WARNING: Forces for non-variable vertices were specified. These boundary conditions cannot be"
+                print("WARNING: Forces for fixed vertices were specified. These boundary conditions cannot be"
                       "fulfilled", file=sys.stderr)
 
-    def setDisplacements(self, displacements: np.ndarray):
+    def setInitialDisplacements(self, displacements: np.ndarray):
         """
-        Provide initial displacements of the nodes. For fixed nodes these displacements stay during the
-        relaxation. The displacements can also be set with :py:meth:`~.Solver.setNodes` directly with
-        the vertices.
+        Provide initial displacements of the nodes. For fixed nodes these displacements are ignored.
 
         Parameters
         ----------
@@ -127,27 +124,9 @@ class Solver:
         # check the input
         displacements = np.asarray(displacements)
         assert displacements.shape == (self.N_c, 3)
-        self.U = displacements.astype(np.float64)
+        self.U[self.var] = displacements[self.var].astype(np.float64)
 
-    def setVariable(self, var: np.ndarray):
-        """
-        Specifies whether the vertices can be moved or are fixed. The variable state can also be set with
-        :py:meth:`~.Solver.setNodes` directly with the vertices.
-
-        Parameters
-        ----------
-        var : ndarray
-            A list of boolean values which states whether the node can be moved. Dimensions N
-        """
-
-        # check the input
-        var = np.asarray(var)
-        assert var.shape == (self.N_c, )
-        self.var = var.astype(bool)
-        # schedule to recalculate the connections
-        self.connections_valid = False
-
-    def setExternalForces(self, forces: np.ndarray):
+    def _setExternalForces(self, forces: np.ndarray):
         """
         Provide external forces that act on the vertices. The forces can also be set with
         :py:meth:`~.Solver.setNodes` directly with the vertices.
@@ -164,7 +143,8 @@ class Solver:
 
     def setTetrahedra(self, data: np.ndarray):
         """
-        Provide mesh tetrahedra. Each tetrahedron consts of the indices of the 4 vertices which it connects.
+        Provide mesh connectivity. Nodes have to be connected by tetrahedra. Each tetraherdon consts of the indices of
+        the 4 vertices which it connects.
 
         Parameters
         ----------
@@ -199,19 +179,19 @@ class Solver:
 
     def setMaterialModel(self, material: Material):
         """
-        Provides the material model for the mesh.
+        Provides the material model.
 
         Parameters
         ----------
         material : :py:class:`~.materials.Material`
-             The material, must be of a subclass of Material which implements the method :py:func:`generate_look_up_table`
+             The material, must be of a subclass of Material.
         """
         self.material_model = material
         self.material_model_look_up = self.material_model.generate_look_up_table()
 
     def setBeams(self, beams: Union[int, np.ndarray] = 300):
         """
-        Sets the beams for the calculation over the whole body angle.
+        Sets the beams for the calculation over the whole solid angle.
 
         Parameters
         ----------
@@ -428,9 +408,9 @@ class Solver:
         if self.connections_valid is False:
             self._computeConnections()
 
-    def relax(self, stepper: float = 0.066, i_max: int = 300, rel_conv_crit: float = 0.01, relrecname: str = None):
+    def solve_nonregularized(self, stepper: float = 0.066, i_max: int = 300, rel_conv_crit: float = 0.01, relrecname: str = None):
         """
-        Calculate the displacement of the nodes for the given external forces.
+        Solve the displacement of the free nodes constraint to the boundary conditions.
 
         Parameters
         ----------
@@ -525,7 +505,7 @@ class Solver:
         ----------
         displacement : ndarray
             If the displacement of a node is not nan, it is
-            The displacements for each node. Dimensions N_n x 3
+            The displacements for each node. Dimensions N x 3
         """
         displacement = np.asarray(displacement)
         assert displacement.shape == (self.N_c, 3)
@@ -608,11 +588,11 @@ class Solver:
         if relrecname is not None:
             np.savetxt(relrecname, relrec)
 
-    def regularize(self, stepper: float =0.33, solver_precision: float =1e-18, i_max: int = 100,
-                   rel_conv_crit: float = 0.01, alpha: float = 3e9, method: str = "huber", relrecname: str = None):
+    def solve_regularized(self, stepper: float =0.33, solver_precision: float =1e-18, i_max: int = 100,
+                          rel_conv_crit: float = 0.01, alpha: float = 3e9, method: str = "huber", relrecname: str = None):
         """
         Fit the provided displacements. Displacements can be provided with
-        :py:meth:`~.Solver.setFoundDisplacements`.
+        :py:meth:`~.Solver.setTargetDisplacements`.
 
         Parameters
         ----------
@@ -635,7 +615,7 @@ class Solver:
                 "cauchy"
                 "singlepoint"
         relrecname : string, optional
-            The file where to store the output. Default is to not store the output, just to return it.
+            The filename where to store the output. Default is to not store the output, just to return it.
         """
         self.I = ssp.lil_matrix((self.U_target_mask.shape[0] * 3, self.U_target_mask.shape[0] * 3))
         self.I.setdiag(np.repeat(self.U_target_mask, 3))

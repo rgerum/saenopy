@@ -2,19 +2,16 @@
 # coding: utf-8
 
 
-
 from saenopy import Solver
     
 # initialize the object
 M = Solver()
-
 
 from saenopy.materials import SemiAffineFiberMaterial
 
 # provide a material model
 material = SemiAffineFiberMaterial(1645, 0.0008, 0.0075, 0.033)
 M.setMaterialModel(material)
-
 
 import numpy as np
 
@@ -38,12 +35,10 @@ T = np.array([[0, 1, 7, 2],
               [2, 5, 6, 7],
               [0, 7, 5, 2]])
 
-
 # provide the node data
 M.setNodes(R)
 # and the tetrahedron data
 M.setTetrahedra(T)
-
 
 # the displacements of the nodes which shall be fitted
 # during the solving
@@ -59,9 +54,8 @@ U = np.array([[0   , 0, 0],  # 0
 # hand the displacements over to the class instance
 M.setTargetDisplacements(U)
 
-
 # call the regularisation
-M.regularize(stepper=0.1, alpha=0.001)
+M.solve_regularized(stepper=0.1, alpha=0.001)
 
 
 results = M.computeForceMoments(rmax=100e-6)

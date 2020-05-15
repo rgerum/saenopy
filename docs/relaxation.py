@@ -3,19 +3,16 @@
 
 
 
-
 from saenopy import Solver
 import saenopy
 # initialize the object
 M = Solver()
-
 
 from saenopy.materials import SemiAffineFiberMaterial
 
 # provide a material model
 material = SemiAffineFiberMaterial(1645, 0.0008, 0.0075, 0.033)
 M.setMaterialModel(material)
-
 
 import numpy as np
 
@@ -45,7 +42,6 @@ M.setNodes(R)
 # the tetrahedron data
 M.setTetrahedra(T)
 
-
 # the displacement boundary conditions of the nodes
 # if a displacement boundary condition is given, the node will be fixed
 U = np.array([[  0.  ,   0.  ,   0.  ],  # 0
@@ -74,9 +70,8 @@ F_ext = np.array([[np.nan, np.nan, np.nan],  # 0
 # and the boundary condition
 M.setBoundaryCondition(U, F_ext)
 
-
 # relax the mesh and move the "varible" nodes
-M.relax()
+M.solve_nonregularized()
 
 # store the forces of the nodes
 M.storeF("F.dat")
