@@ -339,7 +339,7 @@ class Solver:
         # s_tb = |s'_tib|  (t in [0, N_T], i in {x,y,z}, b in [0, N_b])
         s = np.linalg.norm(s_bar, axis=1)
 
-        epsilon_b, epsbar_b, epsbarbar_b = lookUpEpsilon(s - 1)
+        epsilon_b, epsbar_b, epsbarbar_b = lookUpEpsilon(s)
 
         #                eps'_tb    1
         # dEdsbar_tb = - ------- * --- * V_t
@@ -472,6 +472,8 @@ class Solver:
         # print the elapsed time
         finish = time.time()
         print("| time for relaxation was", finish - start)
+
+        return relrec
 
     def _solve_CG(self, stepper: float):
         """

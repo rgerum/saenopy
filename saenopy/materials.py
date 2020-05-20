@@ -17,7 +17,7 @@ def saveEpsilon(epsilon, fname, CFG):
     np.save(fname.replace(".dat", ".npy"), np.array([lambd, epsilon]).T)
 
 
-def sampleAndIntegrateFunction(func, min, max, step, zero_point=0, maximal_value=10e10):
+def sampleAndIntegrateFunction(func, min, max, step, zero_point=1, maximal_value=10e10):
     def iToX(i):
         return i * step + min
 

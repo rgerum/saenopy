@@ -11,7 +11,7 @@ M = Solver()
 from saenopy.materials import SemiAffineFiberMaterial
 
 # provide a material model
-material = SemiAffineFiberMaterial(1645, 0.0008, 0.0075, 0.033)
+material = SemiAffineFiberMaterial(1645, 0.0008, 1.0075, 0.033)
 M.setMaterialModel(material)
 
 import numpy as np
