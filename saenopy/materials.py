@@ -91,8 +91,9 @@ class Material:
 
 class SemiAffineFiberMaterial(Material):
     """
-    A material that has a linear stiffness range from 0 to s1 which then goes to an exponential stiffening regime. For
-    compression the material responds with an exponential decay of the stiffness, a buckling response.
+    This class defines the default material of saenopy. The fibers show buckling (i.e. decaying stiffness) for
+    0 < lambda < 1, a linear stiffness response for small strains 1 < lambda < lambda_s, and strain stiffening for
+    large strains lambda_s < lambda.
 
     Parameters
     ----------
