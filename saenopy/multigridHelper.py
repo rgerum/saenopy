@@ -1,6 +1,13 @@
 import numpy as np
 
 
+def createBoxMesh(x):
+    mesh = np.array(np.meshgrid(x, x, x)).reshape(3, -1).T
+    R = np.zeros(mesh.shape)
+    R[:, :] = mesh
+    T = makeBoxmeshTets(len(x))
+    return R, T
+
 def makeBoxmeshCoords(dx, nx, rin, mulout):
     ny = nx
     nz = nx
