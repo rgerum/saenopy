@@ -48,6 +48,8 @@ class Solver:
 
     material_model = None  # the function specifying the material model
 
+    verbose = False
+
     def setNodes(self, data: np.ndarray):
         """
         Provide mesh coordinates.
@@ -263,7 +265,7 @@ class Solver:
         self.V = np.abs(np.linalg.det(B)) / 6.0
         sum_zero = np.sum(self.V == 0)
         if np.sum(self.V == 0):
-            print("WARNING: found %d elements with volumne of 0. Removing those elements." % sum_zero)
+            print("WARNING: found %d elements with volume of 0. Removing those elements." % sum_zero)
             self.setTetrahedra(self.T[self.V != 0])
             return self._computePhi()
 
@@ -298,7 +300,8 @@ class Solver:
         K_glo = np.zeros((self.N_T, 4, 4, 3, 3))
 
         for i in range(int(np.ceil(self.T.shape[0]/batchsize))):
-            print("updating forces and stiffness matrix %d%%" % (i/int(np.ceil(self.T.shape[0]/batchsize))*100), end="\r")
+            if self.verbose:
+                print("updating forces and stiffness matrix %d%%" % (i/int(np.ceil(self.T.shape[0]/batchsize))*100), end="\r")
             t = slice(i*batchsize, (i+1)*batchsize)
 
             s_bar = self._get_s_bar(t)
@@ -317,7 +320,8 @@ class Solver:
         # transform from N_T x 4 x 4 x 3 x 3 -> N_v * 3 x N_v * 3
         self.K_glo = ssp.coo_matrix((K_glo.ravel()[self.filter_in], self.stiffness_distribute_coordinates2),
                                 shape=(self.N_c*3, self.N_c*3)).tocsr()
-        print("updating forces and stiffness matrix finished %.2fs" % (time.time() - t_start))
+        if self.verbose:
+            print("updating forces and stiffness matrix finished %.2fs" % (time.time() - t_start))
 
     def _get_s_bar(self, t: np.ndarray):
         # get the displacements of all corners of the tetrahedron (N_Tx3x4)
@@ -408,7 +412,7 @@ class Solver:
         if self.connections_valid is False:
             self._computeConnections()
 
-    def solve_nonregularized(self, stepper: float = 0.066, i_max: int = 300, rel_conv_crit: float = 0.01, relrecname: str = None):
+    def solve_nonregularized(self, stepper: float = 0.066, i_max: int = 300, rel_conv_crit: float = 0.01, relrecname: str = None, verbose: bool = False):
         """
         Solve the displacement of the free nodes constraint to the boundary conditions.
 
@@ -424,7 +428,11 @@ class Solver:
         relrecname : string, optional
             If a filename is provided, for every iteration the displacement of the conjugate gradient step, the global
             energy and the residuum are stored in this file.
+        verbose : bool, optional
+            If true print status during optimisation
         """
+        # set the verbosity level
+        self.verbose = verbose
 
         # check if everything is prepared
         self._check_relax_ready()
@@ -451,7 +459,8 @@ class Solver:
             #ff = np.sum(self.f[self.var] ** 2)
 
             # print and store status
-            print("Newton ", i, ": du=", du, "  Energy=", self.E_glo, "  Residuum=", ff)
+            if self.verbose:
+                print("Newton ", i, ": du=", du, "  Energy=", self.E_glo, "  Residuum=", ff)
 
             # log and store values (if a target file was provided)
             relrec.append([du, self.E_glo, ff])
@@ -471,7 +480,8 @@ class Solver:
 
         # print the elapsed time
         finish = time.time()
-        print("| time for relaxation was", finish - start)
+        if self.verbose:
+            print("| time for relaxation was", finish - start)
 
         return relrec
 
@@ -487,7 +497,7 @@ class Solver:
 
         # solve the conjugate gradient which solves the equation A x = b for x
         # where A is the stiffness matrix K_glo and b is the vector of the target forces
-        uu = cg(self.K_glo, ff.ravel(), maxiter=3 * self.N_c, tol=0.00001).reshape(ff.shape)
+        uu = cg(self.K_glo, ff.ravel(), maxiter=3 * self.N_c, tol=0.00001, verbose=self.verbose).reshape(ff.shape)
 
         # add the new displacements to the stored displacements
         self.U[self.var] += uu[self.var] * stepper
@@ -553,7 +563,8 @@ class Solver:
         counter = np.sum(1.0 - self.localweight[self.var])
         counterall = np.sum(self.var)
 
-        print("total weight: ", counter, "/", counterall)
+        if self.verbose:
+            print("total weight: ", counter, "/", counterall)
 
     def _computeRegularizationAAndb(self, alpha: float):
         KA = self.K_glo.multiply(np.repeat(self.localweight * alpha, 3)[None, :])
@@ -581,9 +592,10 @@ class Solver:
 
         L = alpha*ff + uuf2
 
-        print("|u-uf|^2 =", uuf2, "\t\tperbead=", suuf/bcount)
-        print("|w*f|^2  =", ff, "\t\t|u|^2 =", u2)
-        print("L = |u-uf|^2 + lambda*|w*f|^2 = ", L)
+        if self.verbose:
+            print("|u-uf|^2 =", uuf2, "\t\tperbead=", suuf/bcount)
+            print("|w*f|^2  =", ff, "\t\t|u|^2 =", u2)
+            print("L = |u-uf|^2 + lambda*|w*f|^2 = ", L)
 
         relrec.append((L, uuf2, ff))
 
@@ -591,7 +603,8 @@ class Solver:
             np.savetxt(relrecname, relrec)
 
     def solve_regularized(self, stepper: float =0.33, solver_precision: float =1e-18, i_max: int = 100,
-                          rel_conv_crit: float = 0.01, alpha: float = 3e9, method: str = "huber", relrecname: str = None):
+                          rel_conv_crit: float = 0.01, alpha: float = 3e9, method: str = "huber", relrecname: str = None,
+                          verbose: bool = False):
         """
         Fit the provided displacements. Displacements can be provided with
         :py:meth:`~.Solver.setTargetDisplacements`.
@@ -618,7 +631,12 @@ class Solver:
                 "singlepoint"
         relrecname : string, optional
             The filename where to store the output. Default is to not store the output, just to return it.
+        verbose : bool, optional
+            If true print status during optimisation
         """
+        # set the verbosity level
+        self.verbose = verbose
+
         self.I = ssp.lil_matrix((self.U_target_mask.shape[0] * 3, self.U_target_mask.shape[0] * 3))
         self.I.setdiag(np.repeat(self.U_target_mask, 3))
 
@@ -630,14 +648,16 @@ class Solver:
         self.localweight = np.ones(self.N_c)
 
         # update the forces on each tetrahedron and the global stiffness tensor
-        print("going to update glo f and K")
+        if self.verbose:
+            print("going to update glo f and K")
         self._updateGloFAndK()
 
         # log and store values (if a target file was provided)
         relrec = []
         self._recordRegularizationStatus(relrec, alpha, relrecname)
 
-        print("check before relax !")
+        if self.verbose:
+            print("check before relax !")
         # start the iteration
         for i in range(i_max):
             # compute the weight matrix
@@ -653,7 +673,8 @@ class Solver:
             # update the forces on each tetrahedron and the global stiffness tensor
             self._updateGloFAndK()
 
-            print("Round", i+1, " |du|=", uu)
+            if self.verbose:
+                print("Round", i+1, " |du|=", uu)
 
             # log and store values (if a target file was provided)
             self._recordRegularizationStatus(relrec, alpha, relrecname)

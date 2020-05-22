@@ -1,7 +1,7 @@
 import numpy as np
 
 
-def cg(A: np.ndarray, b: np.ndarray, maxiter: int = 1000, tol: float = 0.00001):
+def cg(A: np.ndarray, b: np.ndarray, maxiter: int = 1000, tol: float = 0.00001, verbose: bool = False):
     """ solve the equation Ax=b with the conjugate gradient method """
     def norm(x):
         return np.inner(x.flatten(), x.flatten())
@@ -46,7 +46,7 @@ def cg(A: np.ndarray, b: np.ndarray, maxiter: int = 1000, tol: float = 0.00001):
         resid = rsnew
 
         # print status every 100 frames
-        if i % 100 == 0:
+        if i % 100 == 0 and verbose:
             print(i, ":", resid, "alpha=", alpha, "du=", np.sum(x ** 2))  # , end="\r")
 
     return x
