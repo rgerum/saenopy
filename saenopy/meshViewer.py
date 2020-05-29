@@ -315,10 +315,26 @@ def MeshViewer(R, L, F, U, f1, f2):
     source = source.replace("'", "\"")
 
     def wrap(array):
-        if array.dtype == "float64":
+        if array.dtype == "float32":
+            data_type = "Float32Array"
+        elif array.dtype == "float64":
             data_type = "Float64Array"
+        elif array.dtype == "int8":
+            data_type = "Int8Array"
+        elif array.dtype == "uint8":
+            data_type = "Uint8Array"
+        elif array.dtype == "int16":
+            data_type = "Int16Array"
+        elif array.dtype == "uint16":
+            data_type = "Uint16Array"
         elif array.dtype == "int32":
             data_type = "Int32Array"
+        elif array.dtype == "uint32":
+            data_type = "Uint32Array"
+        elif array.dtype == "int64":
+            data_type = "BigInt64Array"
+        elif array.dtype == "uint64":
+            data_type = "BigUint64Array"
         else:
             raise TypeError(array.dtype)
         return "NewArray("+data_type+", \""+repr(base64.b64encode(array))[2:-1]+"\")"
