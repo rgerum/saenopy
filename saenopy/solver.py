@@ -198,7 +198,7 @@ class Solver:
         Parameters
         ----------
         beams : int, ndarray
-            Either an integer which defines in how many beams to discretize the whole body angle or an ndarray providing
+            Either an integer which defines in how many beams to discretize the whole solid angle or an ndarray providing
             the beams, dimensions Nx3, default 300
         """
         if isinstance(beams, int):
@@ -412,7 +412,7 @@ class Solver:
         if self.connections_valid is False:
             self._computeConnections()
 
-    def solve_nonregularized(self, stepper: float = 0.066, i_max: int = 300, rel_conv_crit: float = 0.01, relrecname: str = None, verbose: bool = False):
+    def solve_nonregularized(self, stepper: float = 0.066, i_max: int = 300, rel_conv_crit: float = 0.01, relrecname: str = None, verbose: bool = False, callback: callable = None):
         """
         Solve the displacement of the free nodes constraint to the boundary conditions.
 
@@ -430,6 +430,8 @@ class Solver:
             energy and the residuum are stored in this file.
         verbose : bool, optional
             If true print status during optimisation
+        callback : callable, optional
+            A function to call after each iteration (e.g. for a live plot of the convergence)
         """
         # set the verbosity level
         self.verbose = verbose
@@ -466,6 +468,8 @@ class Solver:
             relrec.append([du, self.E_glo, ff])
             if relrecname is not None:
                 np.savetxt(relrecname, relrec)
+            if callback is not None:
+                callback(self, relrec)
 
             # if we have passed 6 iterations calculate average and std
             if i > 6:
