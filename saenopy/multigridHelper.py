@@ -1,8 +1,13 @@
 import numpy as np
 
 
-def createBoxMesh(x):
-    mesh = np.array(np.meshgrid(x, x, x)).reshape(3, -1).T
+def createBoxMesh(x,y=None,z=None):
+    #if y,z coordinates are specified
+    if any([any(x),any(y)]) == True:  
+        mesh = np.array(np.meshgrid(x, y, z)).reshape(3, -1).T
+    # otherwise same length in each direction
+    else:
+        mesh = np.array(np.meshgrid(x, x, x)).reshape(3, -1).T
     R = np.zeros(mesh.shape)
     R[:, :] = mesh
     T = makeBoxmeshTets(len(x))
