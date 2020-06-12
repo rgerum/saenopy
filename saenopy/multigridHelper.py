@@ -1,11 +1,15 @@
 import numpy as np
 
 
-def createBoxMesh(x):
-    mesh = np.array(np.meshgrid(x, x, x)).reshape(3, -1).T
+def createBoxMesh(x, y=None, z=None):
+    if y is None:
+        y = x
+    if z is None:
+        z = x
+    mesh = np.array(np.meshgrid(x, y, z)).reshape(3, -1).T
     R = np.zeros(mesh.shape)
     R[:, :] = mesh
-    T = makeBoxmeshTets(len(x))
+    T = makeBoxmeshTets(len(x), len(y), len(z))
     return R, T
 
 def makeBoxmeshCoords(dx, nx, rin, mulout):
@@ -42,9 +46,11 @@ def makeBoxmeshCoords(dx, nx, rin, mulout):
 from numba import njit
 
 @njit()
-def makeBoxmeshTets(nx, grain=1):
-    ny = nx
-    nz = nx
+def makeBoxmeshTets(nx, ny=None, nz=None, grain=1):
+    if ny is None:
+        ny = nx
+    if nz is None:
+        nz = nx
     T = []
 
     for x in range(0, nx, grain):
