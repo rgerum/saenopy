@@ -74,8 +74,8 @@ class Material:
     The base class for all material models.
     """
     parameters = {}
-    min = -1
-    max = 4.0
+    min = 0.0
+    max = 5.0
     step = 0.000001
 
     def stiffness(self, s):
@@ -97,38 +97,39 @@ class SemiAffineFiberMaterial(Material):
 
     Parameters
     ----------
-    k1 : float
+    k : float
         The stiffness of the material in the linear regime.
-    ds0 : float, optional
+    d0 : float, optional
         The decay parameter in the buckling regime. If omitted the material shows no buckling but has a linear response
         for compression.
-    s1 : float, optional
+    lambda_s : float, optional
         The stretching where the exponential stiffening starts. If omitted the material shows no exponential stiffening.
-    ds1 : float, optional
+    ds : float, optional
         The parameter specifying how strong the exponential stiffening is. If omitted the material shows no exponential
         stiffening.
     """
-    def __init__(self, k1, ds0=None, s1=None, ds1=None):
+
+    def __init__(self, k, d0=None, lambda_s=None, ds=None):
         # parameters
-        self.k1 = k1
-        self.ds0 = ds0 if ds0 is not None and ds0 > 0 else None
-        self.s1 = s1 if s1 is not None and s1 > 0 else None
-        self.ds1 = ds1 if ds1 is not None and ds1 > 0 else None
-        self.parameters = dict(k1=k1, ds0=ds0, s1=s1, ds1=ds1)
+        self.k = k
+        self.d0 = d0 if d0 is not None and d0 > 0 else None
+        self.lambda_s = lambda_s if lambda_s is not None and lambda_s > 0 else None
+        self.ds = ds if ds is not None and ds > 0 else None
+        self.parameters = dict(k=k, d0=d0, lambda_s=lambda_s, ds=ds)
 
     def stiffness(self, s):
         # the linear spring regime (0 < s < s1)
-        stiff = np.ones_like(s) * self.k1
+        stiff = np.ones_like(s) * self.k
 
         # buckling for compression
-        if self.ds0 is not None:
-            buckling = s < 0
-            stiff[buckling] = self.k1 * np.exp(s[buckling] / self.ds0)
+        if self.d0 is not None:
+            buckling = s < 1
+            stiff[buckling] = self.k * np.exp((s[buckling] - 1) / self.d0)
 
         # and exponential stretch for overstretching fibers
-        if self.ds1 is not None and self.s1 is not None:
-            stretching = s > self.s1
-            stiff[stretching] = self.k1 * np.exp((s[stretching] - self.s1) / self.ds1)
+        if self.ds is not None and self.lambda_s is not None:
+            stretching = s > self.lambda_s
+            stiff[stretching] = self.k * np.exp((s[stretching] - self.lambda_s) / self.ds)
 
         return stiff
 
@@ -138,32 +139,63 @@ class SemiAffineFiberMaterial(Material):
         y = np.zeros_like(x)
 
         # find the buckling range
-        if self.ds0 is not None:
-            buckling = x < 0
+        if self.d0 is not None:
+            buckling = x < 1
         else:
             buckling = np.zeros_like(x) == 1
         # find the stretching range
-        if self.ds1 is not None and self.s1 is not None:
-            stretching = self.s1 <= x
+        if self.ds is not None and self.lambda_s is not None:
+            stretching = self.lambda_s <= x
         else:
             stretching = np.zeros_like(x) == 1
         # and the rest is the linear range
         linear = (~buckling) & (~stretching)
 
-        if self.ds0 is not None:
+        k = self.k
+        d0 = self.d0
+        lambda_s = self.lambda_s
+        ds = self.ds
+
+        if self.d0 is not None:
             # calculate the buckling energy
-            y[buckling] = self.k1 * self.ds0 ** 2 * np.exp(x[buckling] / self.ds0) - self.k1 * self.ds0 * x[buckling] - self.k1 * self.ds0 ** 2
+
+            y[buckling] = k * d0 ** 2 * np.exp((x[buckling] - 1) / self.d0) - k * d0 * x[buckling] - k * d0 ** 2 + k * d0
+        y[linear] = 0.5 * k * x[linear] ** 2 - k * x[linear] + 0.5 * k
+        if self.ds is not None and self.lambda_s is not None:
+            y[stretching] = 0.5 * k * lambda_s ** 2 - k * lambda_s + 0.5 * k \
+                            + (k * lambda_s - k - k * ds) * x[stretching] + k * ds ** 2 * np.exp((x[stretching] - lambda_s) / ds) \
+                            - (k * lambda_s - k - k * ds) * lambda_s - k * ds ** 2
+
+        # return the resulting energy
+        return y.reshape(x0.shape)
+
+    def force(self, x0):
+        # generate an empty target array
+        x = x0.ravel()
+        y = np.zeros_like(x)
+
+        # find the buckling range
+        if self.d0 is not None:
+            buckling = x < 1
+        else:
+            buckling = np.zeros_like(x) == 1
+        # find the stretching range
+        if self.ds is not None and self.lambda_s is not None:
+            stretching = self.lambda_s <= x
+        else:
+            stretching = np.zeros_like(x) == 1
+        # and the rest is the linear range
+        linear = (~buckling) & (~stretching)
+
+        if self.d0 is not None:
+            # calculate the buckling energy
+            y[buckling] = self.k * self.d0 * np.exp((x[buckling] - 1) / self.d0) - self.d0 * self.k
 
         # calculate the energy in the linear range
-        y[linear] = 0.5 * self.k1 * x[linear] ** 2
-
-        if self.ds1 is not None and self.s1 is not None:
-            # and in the stretching range
-            dk = self.ds1 * self.k1
-            sk = self.s1 * self.k1
-            d2k = self.ds1 * dk
-            y[stretching] = - 0.5 * self.s1 ** 2 * self.k1 + self.ds1 * self.k1 * self.s1 - d2k \
-                            + d2k * np.exp((x[stretching] - self.s1) / self.ds1) - dk * x[stretching] + sk * x[stretching]
+        y[linear] = self.k * x[linear] - self.k
+        if self.ds is not None and self.lambda_s is not None:
+            y[stretching] = self.k * self.lambda_s - self.k - self.ds * self.k + self.ds * self.k * np.exp(
+                (x[stretching] - self.lambda_s) / self.ds)
 
         # return the resulting energy
         return y.reshape(x0.shape)
@@ -175,20 +207,20 @@ class LinearMaterial(Material):
 
     Parameters
     ----------
-    k1 : float
+    k : float
         The stiffness of the material.
     """
-    def __init__(self, k1):
+    def __init__(self, k):
         # parameters
-        self.k1 = k1
-        self.parameters = dict(k1=k1)
+        self.k = k
+        self.parameters = dict(k=k)
 
     def stiffness(self, s):
         # the linear spring regime (0 < s < s1)
-        stiff = np.ones_like(s) * self.k1
+        stiff = np.ones_like(s) * self.k
 
         return stiff
 
     def energy(self, x):
         # calculate the energy in the linear range
-        return 0.5 * self.k1 * x**2
+        return 0.5 * self.k * x ** 2
