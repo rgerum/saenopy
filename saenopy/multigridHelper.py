@@ -52,21 +52,24 @@ def makeBoxmeshTets(nx, ny=None, nz=None, grain=1):
     if nz is None:
         nz = nx
     T = []
+    
+    def index_of(x, y, z):
+        return ny * nz * x + nz * y + z
 
-    for x in range(0, nx, grain):
-        for y in range(0, ny, grain):
-            for z in range(0, nz, grain):
-                i = x + nx * y + nx * ny * z
+    for x in range(0, nx):
+        for y in range(0, ny):
+            for z in range(0, nz):
+                i = index_of(x, y, z)
 
                 if x > 0 and y > 0 and z > 0:
-                    i1 = i
-                    i2 = (x - 0) + nx * (y - grain) + nx * ny * (z - 0)
-                    i3 = (x - grain) + nx * (y - grain) + nx * ny * (z - 0)
-                    i4 = (x - grain) + nx * (y - 0) + nx * ny * (z - 0)
-                    i5 = (x - 0) + nx * (y - 0) + nx * ny * (z - grain)
-                    i6 = (x - grain) + nx * (y - 0) + nx * ny * (z - grain)
-                    i7 = (x - grain) + nx * (y - grain) + nx * ny * (z - grain)
-                    i8 = (x - 0) + nx * (y - grain) + nx * ny * (z - grain)
+                    i1 = index_of(x-0, y-0, z-0)
+                    i2 = index_of(x-0, y-1, z-0)#(x - 0) + nx * (y - grain) + nx * ny * (z - 0)
+                    i3 = index_of(x-1, y-1, z-0)#(x - grain) + nx * (y - grain) + nx * ny * (z - 0)
+                    i4 = index_of(x-1, y-0, z-0)#(x - grain) + nx * (y - 0) + nx * ny * (z - 0)
+                    i5 = index_of(x-0, y-0, z-1)#(x - 0) + nx * (y - 0) + nx * ny * (z - grain)
+                    i6 = index_of(x-1, y-0, z-1)#(x - grain) + nx * (y - 0) + nx * ny * (z - grain)
+                    i7 = index_of(x-1, y-1, z-1)#(x - grain) + nx * (y - grain) + nx * ny * (z - grain)
+                    i8 = index_of(x-0, y-1, z-1)#(x - 0) + nx * (y - grain) + nx * ny * (z - grain)
 
                     T.append([i1, i2, i3, i8])
 
