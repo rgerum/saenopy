@@ -6,11 +6,12 @@ def createBoxMesh(x, y=None, z=None):
         y = x
     if z is None:
         z = x
-    mesh = np.array(np.meshgrid(x, y, z)).reshape(3, -1).T
+    mesh = np.array(np.meshgrid(x, y, z, indexing="ij")).reshape(3, -1).T
     R = np.zeros(mesh.shape)
     R[:, :] = mesh
     T = makeBoxmeshTets(len(x), len(y), len(z))
     return R, T
+
 
 def makeBoxmeshCoords(dx, nx, rin, mulout):
     ny = nx
