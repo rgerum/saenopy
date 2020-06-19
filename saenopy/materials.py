@@ -118,8 +118,13 @@ class SemiAffineFiberMaterial(Material):
         self.parameters = dict(k=k, d0=d0, lambda_s=lambda_s, ds=ds)
 
     def stiffness(self, s):
-        # the linear spring regime (0 < s < s1)
+        # stiffening is not allowed in the buckling regime
+        if self.lambda_s <= 1:
+            self.lambda_s = 1
+
+        # the linear spring regime (1 < s < s1)
         stiff = np.ones_like(s) * self.k
+
 
         # buckling for compression
         if self.d0 is not None:
@@ -134,6 +139,10 @@ class SemiAffineFiberMaterial(Material):
         return stiff
 
     def energy(self, x0):
+        # stiffening is not allowed in the buckling regime
+        if self.lambda_s <= 1:
+            self.lambda_s = 1
+
         # generate an empty target array
         x = x0.ravel()
         y = np.zeros_like(x)
@@ -170,6 +179,10 @@ class SemiAffineFiberMaterial(Material):
         return y.reshape(x0.shape)
 
     def force(self, x0):
+        # stiffening is not allowed in the buckling regime
+        if self.lambda_s <= 1:
+            self.lambda_s = 1
+
         # generate an empty target array
         x = x0.ravel()
         y = np.zeros_like(x)
