@@ -1,6 +1,37 @@
 import numpy as np
 
 
+def createMesh(count=None, element_width=None, box_width=None):
+    if element_width is None:
+        element_width = box_width / count
+
+    if isinstance(box_width, (int, float)):
+        box_width = [box_width, box_width, box_width]
+    if isinstance(element_width, (int, float)):
+        element_width = [element_width, element_width, element_width]
+
+    R, T = createBoxMesh(
+        *[np.linspace(-box_width[i] / 2, box_width[i] / 2, int(np.ceil(box_width[i] / element_width[i]))) for i in
+          range(3)])
+    print("Box size", np.max(R[:, 0]) - np.min(R[:, 0]), "Total Count", R.shape[0], "Count", count, "element_width",
+          element_width)
+    return R, T
+
+
+def createSolverBoxMesh(count=None, element_width=None, box_width=None, material=None):
+    from saenopy import Solver
+    M = Solver()
+    if material is not None:
+        M.setMaterialModel(material)
+
+    R, T = createMesh(count, element_width, box_width)
+
+    M.setNodes(R)
+    M.setTetrahedra(T)
+
+    return M
+
+
 def createBoxMesh(x, y=None, z=None):
     if y is None:
         y = x
