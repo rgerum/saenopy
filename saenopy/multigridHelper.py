@@ -1,20 +1,29 @@
 import numpy as np
+import time
 
 
 def createMesh(count=None, element_width=None, box_width=None):
-    if element_width is None:
-        element_width = box_width / count
-
     if isinstance(box_width, (int, float)):
         box_width = [box_width, box_width, box_width]
+
     if isinstance(element_width, (int, float)):
         element_width = [element_width, element_width, element_width]
 
-    R, T = createBoxMesh(
-        *[np.linspace(-box_width[i] / 2, box_width[i] / 2, int(np.ceil(box_width[i] / element_width[i]))) for i in
-          range(3)])
-    print("Box size", np.max(R[:, 0]) - np.min(R[:, 0]), "Total Count", R.shape[0], "Count", count, "element_width",
-          element_width)
+    if isinstance(count, (int, float)):
+        count = [count, count, count]
+
+    if element_width is None:
+        element_width = np.array(box_width) / np.array(count)
+    if box_width is None:
+        box_width = np.array(element_width) * np.array(count)
+    if count is None:
+        count = [int(np.round(box_width[i] / element_width[i])) for i in range(3)]
+
+    # R, T = createBoxMesh(*[np.linspace(-box_width[i]/2, box_width[i]/2, count[i]) for i in range(3)])
+    R, T = createBoxMesh(np.linspace(0, box_width[0], count[0]),
+                         np.linspace(-box_width[1] / 2, box_width[1] / 2, count[1]),
+                         np.linspace(-box_width[2] / 2, box_width[2] / 2, count[2])
+                         )
     return R, T
 
 
@@ -387,3 +396,85 @@ def getFacesHexahedra(T):
             face_indices.append(i)
         faces_of_T.append(face_indices)
     return np.array(faces), np.array(faces_of_T)
+
+
+def getStrain(M, stress, stepper=0.066, rel_conv_crit=0.01, verbose=False, callback=None):
+    t = time.time()
+
+    left = (M.R[:, 0] == np.min(M.R[:, 0]))
+    right = (M.R[:, 0] == np.max(M.R[:, 0]))
+
+    l, w, h = np.max(M.R, axis=0) - np.min(M.R, axis=0)
+
+    A = w * h
+    count = M.R[left, 0].shape[0]
+    f = stress * A / count
+
+    # displacement boundary coundition is nan in the bluk and the border
+    displacement = np.zeros(M.R.shape)
+    displacement[:] = np.nan
+    displacement[left, :] = 0
+    # force boundary condition is 0 in the bulk
+    # and f in the border
+    force = np.zeros(M.R.shape)
+    force[:] = 0
+    force[left, :] = np.nan
+    force[right, 0] = -f
+
+    # initial displacement is a uniform strain field in x direction
+    initial_displacement = np.zeros(M.R.shape)
+    # initial_displacement[:, 0] = (lambd-1)*M.R[:, 0]
+
+    # give the boundary conditions and initial displacement guess to the solver
+    M.setBoundaryCondition(displacement, force)
+    M.setInitialDisplacements(initial_displacement)
+
+    M.solve_nonregularized(stepper=stepper, verbose=verbose, rel_conv_crit=rel_conv_crit,
+                                         callback=callback)
+    strain = np.mean(M.U[right, 0] / l)
+
+    print("stress", stress, "strain", strain, "duration", time.time() - t)
+    return strain
+
+
+def getStress(M, lambd, stepper=0.066, rel_conv_crit=0.01, verbose=False, callback=None):
+    t = time.time()
+
+    left = (M.R[:, 0] == np.min(M.R[:, 0]))
+    right = (M.R[:, 0] == np.max(M.R[:, 0]))
+
+    x_min = np.min(M.R[:, 0])
+
+    l, w, h = np.max(M.R, axis=0) - np.min(M.R, axis=0)
+
+    A = w * h
+
+    # displacement boundary coundition is nan in the bluk
+    # and ad the border lambda in x and 0 in yz
+    displacement = np.zeros(M.R.shape)
+    displacement[:] = np.nan
+
+    displacement[left, :] = 0
+
+    displacement[right, :] = 0
+    displacement[right, 0] = (lambd - 1) * (M.R[right, 0] - x_min)
+    # force boundary condition is 0 in the bulk
+    # and nan in the border
+    force = np.zeros(M.R.shape)
+    force[:] = 0
+    force[right] = np.nan
+
+    # initial displacement is a uniform strain field in x direction
+    initial_displacement = np.zeros(M.R.shape)
+    initial_displacement[:, 0] = (lambd - 1) * (M.R[:, 0] - x_min)
+
+    # give the boundary condutions and initial displacement guess to the solver
+    M.setBoundaryCondition(displacement, force)
+    M.setInitialDisplacements(initial_displacement)
+
+    M.solve_nonregularized(stepper=stepper, verbose=verbose, rel_conv_crit=rel_conv_crit,
+                                         callback=callback)
+
+    stress = -np.sum(M.f[right, 0], axis=0) / A
+    print("strain", lambd, "stress", stress, "duration", time.time() - t)
+    return stress
