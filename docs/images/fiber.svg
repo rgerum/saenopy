@@ -15,7 +15,7 @@
    version="1.1"
    id="svg9479"
    inkscape:version="0.92.4 (5da689c313, 2019-01-14)"
-   sodipodi:docname="Fiber.svg"
+   sodipodi:docname="fiber.svg"
    inkscape:export-filename="E:\saenopy\docs\images\Fiber.png"
    inkscape:export-xdpi="203"
    inkscape:export-ydpi="203">
@@ -1529,9 +1529,9 @@
      borderopacity="1.0"
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
-     inkscape:zoom="1.4"
-     inkscape:cx="41.192334"
-     inkscape:cy="214.73997"
+     inkscape:zoom="2.8"
+     inkscape:cx="104.47723"
+     inkscape:cy="145.78345"
      inkscape:document-units="mm"
      inkscape:current-layer="layer1"
      showgrid="false"
@@ -1539,8 +1539,8 @@
      fit-margin-left="0"
      fit-margin-right="0"
      fit-margin-bottom="0"
-     inkscape:window-width="1888"
-     inkscape:window-height="960"
+     inkscape:window-width="1920"
+     inkscape:window-height="1137"
      inkscape:window-x="-8"
      inkscape:window-y="-8"
      inkscape:window-maximized="1" />
@@ -1552,7 +1552,7 @@
         <dc:format>image/svg+xml</dc:format>
         <dc:type
            rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
-        <dc:title></dc:title>
+        <dc:title />
       </cc:Work>
     </rdf:RDF>
   </metadata>
@@ -1561,6 +1561,11 @@
      inkscape:groupmode="layer"
      id="layer1"
      transform="translate(-16.76008,-21.36745)">
+    <path
+       style="fill:#434343;fill-opacity:1;fill-rule:evenodd;stroke:#434343;stroke-width:0.26499999;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:0.26499999, 0.52999997;stroke-dashoffset:0;stroke-opacity:1"
+       d="M 39.361059,72.133037 V 92.111433"
+       id="path1374"
+       inkscape:connector-curvature="0" />
     <g
        id="g1725"
        transform="matrix(0.35277777,0,0,-0.35277777,-62.128569,99.834659)">
@@ -2340,7 +2345,7 @@
          inkscape:connector-curvature="0" />
     </g>
     <g
-       transform="matrix(0.35277777,0,0,0.35277777,-67.340325,-11.234408)"
+       transform="matrix(0.35277777,0,0,0.35277777,-67.181634,-11.24276)"
        id="g2187">
       <path
          d="m 283.391,291.25 c 16.992,-2.16 18.886,-8.406 18.886,-8.406 l 93.383,-0.235 c 0,0 15.621,-1.796 26.789,-11.992 10.891,-9.402 13.742,-23.457 13.742,-23.457"
@@ -2565,10 +2570,7 @@
          id="tspan2209-4-6-6-9"
          style="stroke-width:0.35276392"
          x="84.309212"
-         y="96.639397">strain λ<tspan
-   style="font-size:1.96142173px;baseline-shift:sub;stroke-width:0.35276392"
-   id="tspan1402-9-9" />
-</tspan>
+         y="96.639397">stretch λ</tspan>
     </text>
     <g
        transform="matrix(0.35277777,0,0,0.35277777,-100.47588,-11.089855)"
@@ -2601,5 +2603,34 @@
          id="path2201-2-0"
          inkscape:connector-curvature="0" />
     </g>
+    <path
+       style="fill:#434343;fill-opacity:1;fill-rule:evenodd;stroke:#434343;stroke-width:0.26499999;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:0.26499999, 1.05999995;stroke-dashoffset:0;stroke-opacity:1"
+       d="M 72.486196,72.133037 V 92.111433"
+       id="path1374-1"
+       inkscape:connector-curvature="0" />
+    <text
+       xml:space="preserve"
+       style="font-style:normal;font-weight:normal;font-size:10.58333302px;line-height:125%;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26458332px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       x="-82.643562"
+       y="38.184399"
+       id="text1393"
+       transform="rotate(-90)"><tspan
+         sodipodi:role="line"
+         id="tspan1391"
+         x="-82.643562"
+         y="38.184399"
+         style="font-size:1.41111112px;stroke-width:0.26458332px">compression</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-style:normal;font-weight:normal;font-size:1.41111112px;line-height:125%;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26458332px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       x="-81.61451"
+       y="41.178188"
+       id="text1393-6"
+       transform="rotate(-90)"><tspan
+         sodipodi:role="line"
+         id="tspan1391-5"
+         x="-81.61451"
+         y="41.178188"
+         style="font-size:1.41111112px;stroke-width:0.26458332px">extension</tspan></text>
   </g>
 </svg>
