@@ -429,8 +429,8 @@ def getStrain(M, stress, stepper=0.066, rel_conv_crit=0.01, verbose=False, callb
     M.setBoundaryCondition(displacement, force)
     M.setInitialDisplacements(initial_displacement)
 
-    M.solve_nonregularized(stepper=stepper, verbose=verbose, rel_conv_crit=rel_conv_crit,
-                                         callback=callback)
+    M.solve_boundarycondition(stepper=stepper, verbose=verbose, rel_conv_crit=rel_conv_crit,
+                              callback=callback)
     strain = np.mean(M.U[right, 0] / l)
 
     print("stress", stress, "strain", strain, "duration", time.time() - t)
@@ -472,8 +472,8 @@ def getStress(M, lambd, stepper=0.066, rel_conv_crit=0.01, verbose=False, callba
     M.setBoundaryCondition(displacement, force)
     M.setInitialDisplacements(initial_displacement)
 
-    M.solve_nonregularized(stepper=stepper, verbose=verbose, rel_conv_crit=rel_conv_crit,
-                                         callback=callback)
+    M.solve_boundarycondition(stepper=stepper, verbose=verbose, rel_conv_crit=rel_conv_crit,
+                              callback=callback)
 
     stress = -np.sum(M.f[right, 0], axis=0) / A
     print("strain", lambd, "stress", stress, "duration", time.time() - t)

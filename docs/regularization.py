@@ -55,17 +55,8 @@ U = np.array([[0   , 0, 0],  # 0
 M.setTargetDisplacements(U)
 
 # call the regularisation
-M.solve_regularized(stepper=0.1, alpha=0.001)
+M.solve_regularized(stepper=0.1, alpha=0.001);
 
-
-results = M.computeForceMoments(rmax=100e-6)
-
-# store the forces of the nodes
-M.storeF("F.dat")
-# store the positions and the displacements
-M.storeRAndU("R.dat", "U.dat")
-# store the center of each tetrahedron and a combined list with energies and volumina of the tetrahedrons
-M.storeEandV("RR.dat", "EV.dat")
 
 M.viewMesh(50, 1)
 

@@ -68,10 +68,11 @@ As an alternative, saenopy provides a loader to directly load files of the `Gmsh
 
 
 .. _SectionBoundaryConditions:
-Boundary Conditions (for non-regularized mode)
-----------------------------------------------
 
-For using the non-regularized mode (see :ref:`SectionNonRegularizedMode`), constraints for displacement (Nx3 array) and force (Nx3 array) have to be provided.
+Boundary Conditions (for boundary condition mode)
+-------------------------------------------------
+
+For using the non-regularized mode (see :ref:`SectionBoundaryConditionMode`), constraints for displacement (Nx3 array) and force (Nx3 array) have to be provided.
 For each node, either a displacement or a force needs to be given, the other has to be nan.
 
 
@@ -109,6 +110,7 @@ Both can be loaded using `np.loadtxt` and added to the solver using :py:meth:`~.
     M.setBoundaryCondition(node_displacement, node_force)
 
 .. _SectionMeasuredDisplacement:
+
 Measured displacement (for regularized mode)
 --------------------------------------------
 

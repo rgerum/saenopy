@@ -55,7 +55,7 @@ class Test_DataFile(unittest.TestCase):
 
             M.setBoundaryCondition(displacement, force)
             M.setInitialDisplacements(initial_displacement)
-            convergence = M.solve_nonregularized(stepper=stepper, verbose=verbose)
+            convergence = M.solve_boundarycondition(stepper=stepper, verbose=verbose)
             return np.mean(np.concatenate((M.f[left, 0], -M.f[right, 0])))
 
         getForce(1.01)

@@ -412,7 +412,7 @@ class Solver:
         if self.connections_valid is False:
             self._computeConnections()
 
-    def solve_nonregularized(self, stepper: float = 0.066, i_max: int = 300, rel_conv_crit: float = 0.01, relrecname: str = None, verbose: bool = False, callback: callable = None):
+    def solve_boundarycondition(self, stepper: float = 0.066, i_max: int = 300, rel_conv_crit: float = 0.01, relrecname: str = None, verbose: bool = False, callback: callable = None):
         """
         Solve the displacement of the free nodes constraint to the boundary conditions.
 
@@ -607,7 +607,7 @@ class Solver:
             np.savetxt(relrecname, relrec)
 
     def solve_regularized(self, stepper: float =0.33, solver_precision: float =1e-18, i_max: int = 100,
-                          rel_conv_crit: float = 0.01, alpha: float = 3e9, method: str = "huber", relrecname: str = None,
+                          rel_conv_crit: float = 0.01, alpha: float = 10e-3, method: str = "huber", relrecname: str = None,
                           verbose: bool = False):
         """
         Fit the provided displacements. Displacements can be provided with

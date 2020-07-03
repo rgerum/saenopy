@@ -130,7 +130,7 @@ def main():
         print("SOLVE BOUNDARY CONDITIONS")
         relrecname = os.path.join(CFG["DATAOUT"], CFG["REL_RELREC"])
 
-        M.solve_nonregularized(CFG["REL_SOLVER_STEP"], CFG["REL_ITERATIONS"], CFG["REL_CONV_CRIT"], relrecname)
+        M.solve_boundarycondition(CFG["REL_SOLVER_STEP"], CFG["REL_ITERATIONS"], CFG["REL_CONV_CRIT"], relrecname)
 
         finish = time.time()
         CFG["TIME_RELAXATION"] = finish - start
