@@ -1,8 +1,8 @@
-nan nan nan
-nan nan nan
--2.5 0. 0.
--2.5 0. 0.
-nan nan nan
-nan nan nan
--2.5 0. 0.
--2.5 0. 0.
+nan      nan nan
+nan      nan nan
+-2.5e-12 0.  0.
+-2.5e-12 0.  0.
+nan      nan nan
+nan      nan nan
+-2.5e-12 0.  0.
+-2.5e-12 0.  0.

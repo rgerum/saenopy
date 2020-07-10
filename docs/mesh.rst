@@ -49,7 +49,7 @@ Both can be loaded using `np.loadtxt` and added to the solver using :py:meth:`~.
 
     # initialize the solver
     M = Solver()
-    # load the nodes
+    # load the nodes (units in meter)
     M.setNodes(np.loadtxt("nodes.txt"))
     # load the connectivity
     M.setTetrahedra(np.loadtxt("connectivity.txt"))
@@ -105,8 +105,11 @@ Both can be loaded using `np.loadtxt` and added to the solver using :py:meth:`~.
 .. code-block:: python
     :linenos:
 
+    # load the displacement constraints (in meter)
     node_displacement = np.loadtxt("constraint_displacement.txt")
+    # load the force constraints (in Newton)
     node_force = np.loadtxt("constraint_force.txt")
+    # hand the boundary conditions to the solver
     M.setBoundaryCondition(node_displacement, node_force)
 
 .. _SectionMeasuredDisplacement:
