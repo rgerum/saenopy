@@ -103,9 +103,9 @@ class SemiAffineFiberMaterial(Material):
         The decay parameter in the buckling regime. If omitted the material shows no buckling but has a linear response
         for compression.
     lambda_s : float, optional
-        The stretching where the exponential stiffening starts. If omitted the material shows no exponential stiffening.
+        The stretching where the strain stiffening starts. If omitted the material shows no strain stiffening.
     ds : float, optional
-        The parameter specifying how strong the exponential stiffening is. If omitted the material shows no exponential
+        The parameter specifying how strong the strain stiffening is. If omitted the material shows no strain
         stiffening.
     """
 
