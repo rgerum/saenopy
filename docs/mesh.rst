@@ -16,9 +16,9 @@ Text files
 
     .. container:: leftside
 
-        Nodes are an Nx3 float array (three spatial dimensions).
+        Nodes are an Nx3 float array (three spatial dimensions). Units are in meters.
 
-        Nodes can for example be loaded from a .txt file structured like this
+        Nodes can be loaded from a .txt file structured like this
 
         .. literalinclude:: nodes.txt
            :caption:
@@ -49,14 +49,14 @@ Both can be loaded using `np.loadtxt` and added to the solver using :py:meth:`~.
 
     # initialize the solver
     M = Solver()
-    # load the nodes (units in meter)
+    # load the nodes (units in meters)
     M.setNodes(np.loadtxt("nodes.txt"))
     # load the connectivity
     M.setTetrahedra(np.loadtxt("connectivity.txt"))
 
 Gmsh file
 ~~~~~~~~~
-As an alternative, saenopy provides a loader to directly load files of the `Gmsh format <http://gmsh.info/>`_.
+If the mesh was created in gmsh, saenopy provides a loader to directly load files of the `Gmsh format <http://gmsh.info/>`_.
 
 .. code-block:: python
     :linenos:
@@ -67,18 +67,23 @@ As an alternative, saenopy provides a loader to directly load files of the `Gmsh
     M = load.load_gmsh("mesh.msh")
 
 
+Defining Inputs
+---------------
+
 .. _SectionBoundaryConditions:
 
-Boundary Conditions (for boundary condition mode)
--------------------------------------------------
+Boundary Conditions
+~~~~~~~~~~~~~~~~~~~
 
-For using the non-regularized mode (see :ref:`SectionBoundaryConditionMode`), constraints for displacement (Nx3 array) and force (Nx3 array) have to be provided.
+For using the :ref:`SectionBoundaryConditionMode`, constraints for displacement (Nx3 array) and force (Nx3 array) have to be provided.
 For each node, either a displacement or a force needs to be given, the other has to be nan.
 
-
-If node is a fixed node (with fixed displacement),
-the displacement should contain 3 float values and the force should be nan, if the node is a free node
-(with target force), the displacement should be nan and the force should contain 3 float values.
+- For a fixed node
+    - the displacement should be provided (3 float values, in meters)
+    - the force should left open (3 nan values)
+- For a free node,
+    - the displacement should be left open (3 nan values)
+    - the force should provided (3 float values, in Newtons).
 
 
 .. container:: twocol
@@ -105,7 +110,7 @@ Both can be loaded using `np.loadtxt` and added to the solver using :py:meth:`~.
 .. code-block:: python
     :linenos:
 
-    # load the displacement constraints (in meter)
+    # load the displacement constraints (in meters)
     node_displacement = np.loadtxt("constraint_displacement.txt")
     # load the force constraints (in Newton)
     node_force = np.loadtxt("constraint_force.txt")
@@ -114,10 +119,10 @@ Both can be loaded using `np.loadtxt` and added to the solver using :py:meth:`~.
 
 .. _SectionMeasuredDisplacement:
 
-Measured displacement (for regularized mode)
---------------------------------------------
+Measured displacement
+~~~~~~~~~~~~~~~~~~~~~
 
-For using the regularized mode (see :ref:`SectionRegularizationMode`), the measured (or target) displacement (Nx3 array) has to be provided for
+For using :ref:`SectionRegularizationMode`, the measured (or target) displacement (Nx3 array, in meters) has to be provided for
 all nodes.
 
 .. literalinclude:: measured_displacement.txt
