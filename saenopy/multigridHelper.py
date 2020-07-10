@@ -407,7 +407,11 @@ def getStrain(M, stress, stepper=0.066, rel_conv_crit=0.01, verbose=False, callb
     l, w, h = np.max(M.R, axis=0) - np.min(M.R, axis=0)
 
     A = w * h
-    count = M.R[left, 0].shape[0]
+
+    # omit two borders for the sum
+    sum_region = (M.R[left, 1] < np.max(M.R[left, 1])) & \
+                 (M.R[left, 2] < np.max(M.R[left, 2]))
+    count = M.R[left, 0][sum_region].shape[0]
     f = stress * A / count
 
     # displacement boundary coundition is nan in the bluk and the border
@@ -431,7 +435,7 @@ def getStrain(M, stress, stepper=0.066, rel_conv_crit=0.01, verbose=False, callb
 
     M.solve_boundarycondition(stepper=stepper, verbose=verbose, rel_conv_crit=rel_conv_crit,
                               callback=callback)
-    strain = np.mean(M.U[right, 0] / l)
+    strain = np.mean(M.U[right, 0] / l) - 1
 
     print("stress", stress, "strain", strain, "duration", time.time() - t)
     return strain
@@ -457,7 +461,7 @@ def getStress(M, lambd, stepper=0.066, rel_conv_crit=0.01, verbose=False, callba
     displacement[left, :] = 0
 
     displacement[right, :] = 0
-    displacement[right, 0] = (lambd - 1) * (M.R[right, 0] - x_min)
+    displacement[right, 0] = lambd * (M.R[right, 0] - x_min)
     # force boundary condition is 0 in the bulk
     # and nan in the border
     force = np.zeros(M.R.shape)
@@ -466,7 +470,7 @@ def getStress(M, lambd, stepper=0.066, rel_conv_crit=0.01, verbose=False, callba
 
     # initial displacement is a uniform strain field in x direction
     initial_displacement = np.zeros(M.R.shape)
-    initial_displacement[:, 0] = (lambd - 1) * (M.R[:, 0] - x_min)
+    initial_displacement[:, 0] = lambd * (M.R[:, 0] - x_min)
 
     # give the boundary condutions and initial displacement guess to the solver
     M.setBoundaryCondition(displacement, force)
@@ -475,6 +479,10 @@ def getStress(M, lambd, stepper=0.066, rel_conv_crit=0.01, verbose=False, callba
     M.solve_boundarycondition(stepper=stepper, verbose=verbose, rel_conv_crit=rel_conv_crit,
                               callback=callback)
 
-    stress = -np.sum(M.f[right, 0], axis=0) / A
+    # omit two borders for the sum
+    sum_region = (M.R[right, 1] < np.max(M.R[right, 1])) & \
+                 (M.R[right, 2] < np.max(M.R[right, 2]))
+
+    stress = -np.sum(M.f[right, 0][sum_region], axis=0) / A
     print("strain", lambd, "stress", stress, "duration", time.time() - t)
     return stress
