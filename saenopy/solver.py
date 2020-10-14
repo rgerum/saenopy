@@ -833,6 +833,8 @@ class Solver:
         results["VMIN_Y"] = vecs[bmin][1]
         results["VMIN_Z"] = vecs[bmin][2]
 
+        results["E_GLO"] = self.E_glo
+
         results["POLARITY"] = fmax / contractility
 
         return results
@@ -1005,7 +1007,7 @@ class Solver:
         return MeshViewer(self.R, L, self.f, self.U, f1, f2)
 
     def save(self, filename: str):
-        parameters = ["R", "T", "U", "f", "U_fixed", "U_target", "f_target"]
+        parameters = ["R", "T", "U", "f", "U_fixed", "U_target", "f_target", "E_glo", "var"]
         data = {}
         for param in parameters:
             data[param] = getattr(self, param)
@@ -1021,7 +1023,9 @@ class Solver:
         if "T" in data:
             self.setTetrahedra(data["T"])
         if "U_fixed" in data:
-            self.setBoundaryCondition(data["U_fixed"], data["f_target"])
+            print(data["U_fixed"].shape)
+            print(data["f_target"].shape)
+            self.setBoundaryCondition(data["f_target"], data["f_target"])
 
         for param in data:
             setattr(self, param, data[param])
