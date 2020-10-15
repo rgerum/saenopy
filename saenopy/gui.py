@@ -205,7 +205,7 @@ class Commander(QtWidgets.QWidget):
         #plt.subplot(121)
         #plt.plot([2, 1], [1, 2])
 
-        self.loadFile(r"..\output.npz")
+        #self.loadFile(r"..\output.npz")
 
     def openLoadDialog(self):
         filename = QtWidgets.QFileDialog.getOpenFileName(self, "Open Positions", "", "Position Files (*.npz)")
