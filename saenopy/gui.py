@@ -132,9 +132,8 @@ def quiver_3D(u, v, w, x=None, y=None, z=None, mask_filtered=None, filter_def=0,
     norm = matplotlib.colors.Normalize(vmin=vmin, vmax=vmax)  # 10 ) #cbound[1] ) #)
     sm = matplotlib.cm.ScalarMappable(cmap=cmap, norm=norm)
     sm.set_array([])
-    # different option
-    colors = matplotlib.cm.jet(norm(df))  #
-
+    # different option 
+    colors = matplotlib.cm.get_cmap(cmap)(norm(df))  
     colors = [c for c, d in zip(colors, df) if d > 0] + list(chain(*[[c, c] for c, d in zip(colors, df) if d > 0]))
     # colors in ax.quiver 3d is really fucked up/ will probably change with updates:
     # requires list with: first len(u) entries define the colors of the shaft, then the next len(u)*2 entries define
@@ -349,8 +348,9 @@ class Commander(QtWidgets.QWidget):
         lengths = np.linalg.norm(U, axis=1)
         print(U.shape, R.shape)
         fig = quiver_3D(U[:, 0] * factor, U[:, 1] * factor, U[:, 2] * factor,
-                  R[:, 0] * factor, R[:, 1] * factor, R[:, 2] * factor, filter_reg=(1,1,1), filter_def=np.nanpercentile(lengths, 0) * factor,
-                  arrow_scale = 0.15,quiv_args={"alpha":0.8, "pivot":'tail', "linewidth":0.5, "length":1})
+                  R[:, 0] * factor, R[:, 1] * factor, R[:, 2] * factor, filter_reg=(1,1,1),
+                  vmin=np.nanpercentile(lengths, 90) * factor, vmax=np.nanpercentile(lengths, 99) * factor,
+                  cmap = "autumn_r", arrow_scale = 0.15,quiv_args={"alpha":0.8, "pivot":'tail', "linewidth":0.5, "length":1})
         ax = plt.gca()
         ax.set_xlim(self.M.R[:, 0].min() * 1e6, self.M.R[:, 0].max() * 1e6)
         ax.set_ylim(self.M.R[:, 1].min() * 1e6, self.M.R[:, 1].max() * 1e6)
