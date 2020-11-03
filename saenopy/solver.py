@@ -607,7 +607,7 @@ class Solver:
             np.savetxt(relrecname, relrec)
 
     def solve_regularized(self, stepper: float =0.33, solver_precision: float =1e-18, i_max: int = 100,
-                          rel_conv_crit: float = 0.01, alpha: float = 10e-3, method: str = "huber", relrecname: str = None,
+                          rel_conv_crit: float = 0.01, alpha: float = 1e-3, method: str = "huber", relrecname: str = None,
                           verbose: bool = False):
         """
         Fit the provided displacements. Displacements can be provided with
@@ -694,6 +694,8 @@ class Solver:
                 if Lstd / Lmean < rel_conv_crit:
                     break
 
+        self.regularisation_results = relrec
+
         return relrec
 
     def _solve_regularization_CG(self, stepper: float =0.33, solver_precision: float = 1e-18):
@@ -754,6 +756,17 @@ class Solver:
 
         self.computeEpsilon()
 
+    def contractility(R, f):
+        B = np.einsum("ni,ni,nj->j", f, f, R) - np.einsum("kj,ki,ki->j", f, R, f)
+
+        A = np.sum(np.einsum("ij,kl,kl->kij", np.eye(3), f, f) - np.einsum("ki,kj->kij", f, f), axis=0)
+
+        Rcms = np.linalg.inv(A) @ B
+
+        RR = R - Rcms
+        contractility = np.sum(np.einsum("ki,ki->k", RR, f) / np.linalg.norm(RR, axis=1))
+        return contractility
+
     def computeForceMoments(self, rmax):
         results = {}
 
@@ -764,9 +777,9 @@ class Solver:
         fsum = np.sum(f, axis=0)
 
         # B1 += self.R[c] * np.sum(f**2)
-        B1 = np.einsum("kj,ki->j", R, f**2)
+        B1 = np.einsum("ni,ni,nj->j", f, f, R)
         # B2 += f * (self.R[c] @ f)
-        B2 = np.einsum("kj,ki,ki->j", f, R, f)
+        B2 = np.einsum("ki,ki,kj->j", f, R, f)
 
         # A += I * np.sum(f**2) - np.outer(f, f)
         A = np.sum(np.einsum("ij,kl,kl->kij", np.eye(3), f, f) - np.einsum("ki,kj->kij", f, f), axis=0)
@@ -1007,7 +1020,16 @@ class Solver:
         return MeshViewer(self.R, L, self.f, self.U, f1, f2)
 
     def save(self, filename: str):
-        parameters = ["R", "T", "U", "f", "U_fixed", "U_target", "f_target", "E_glo", "var"]
+        parameters = ["R", "T", "U", "f", "U_fixed", "U_target", "f_target", "E_glo", "var", "regularisation_results"]
+        if filename.endswith("h5"):
+            import h5py
+            hf = h5py.File(filename, 'w')
+            for param in parameters:
+                if getattr(self, param) is not None:
+                    hf.create_dataset(param, data=getattr(self, param))
+            hf.create_dataset("type", data=self.__class__.__name__)
+            hf.close()
+            return
         data = {}
         for param in parameters:
             data[param] = getattr(self, param)
