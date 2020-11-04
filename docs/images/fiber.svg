@@ -14,7 +14,7 @@
    id="svg9479"
    inkscape:version="1.0.1 (3bc2e813f5, 2020-09-07)"
    sodipodi:docname="fiber.svg"
-   inkscape:export-filename="E:\saenopy\docs\images\Fiber.png"
+   inkscape:export-filename="fiber.png"
    inkscape:export-xdpi="203"
    inkscape:export-ydpi="203">
   <defs
@@ -2375,7 +2375,7 @@
          id="tspan2209-4"
          style="stroke-width:0.352764"
          x="26.770035"
-         y="68.824501">-1&lt;σ&lt;0</tspan></text>
+         y="68.824501">-1&lt;λ&lt;0</tspan></text>
     <text
        transform="scale(1.0000392,0.9999608)"
        style="font-variant:normal;font-weight:normal;font-size:3.01757px;font-family:Arial;-inkscape-font-specification:ArialMT;writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:0.352764"
@@ -2386,7 +2386,7 @@
          id="tspan2209-4-6"
          style="stroke-width:0.352764"
          x="57.22649"
-         y="68.824501">1&lt;σ&lt;σ<tspan
+         y="68.824501">1&lt;λ&lt;λ<tspan
    style="font-size:65%;baseline-shift:sub"
    id="tspan1402">s</tspan></tspan></text>
     <text
@@ -2401,9 +2401,9 @@
          id="tspan2209-4-6-5"
          style="stroke-width:0.352764"
          x="79.53566"
-         y="68.815659">σ<tspan
+         y="68.815659">λ<tspan
    style="font-size:65%;baseline-shift:sub"
-   id="tspan1425">s</tspan>&lt;σ</tspan></text>
+   id="tspan1425">s</tspan>&lt;λ</tspan></text>
     <text
        transform="scale(1.0000392,0.9999608)"
        style="font-variant:normal;font-weight:normal;font-size:3.01757px;font-family:Arial;-inkscape-font-specification:ArialMT;writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:0.352764"
@@ -2414,7 +2414,7 @@
          id="tspan2209-4-3"
          style="stroke-width:0.352764"
          x="20.242968"
-         y="40.030125">σ=0</tspan></text>
+         y="40.030125">λ=0</tspan></text>
     <text
        transform="scale(1.0000392,0.9999608)"
        style="font-variant:normal;font-weight:normal;font-size:3.01757px;font-family:Arial;-inkscape-font-specification:ArialMT;writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:0.352764"
@@ -2536,7 +2536,7 @@
          id="tspan2209-4-6-6-9"
          style="stroke-width:0.352764"
          x="84.309212"
-         y="96.639397">strain σ</tspan></text>
+         y="96.639397">strain λ</tspan></text>
     <g
        transform="matrix(0.35277777,0,0,0.35277777,-100.47588,-11.089855)"
        id="g2203-4">
