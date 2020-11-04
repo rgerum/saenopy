@@ -343,7 +343,7 @@ class Solver:
         # s_tb = |s'_tib|  (t in [0, N_T], i in {x,y,z}, b in [0, N_b])
         s = np.linalg.norm(s_bar, axis=1)
 
-        epsilon_b, epsbar_b, epsbarbar_b = lookUpEpsilon(s)
+        epsilon_b, epsbar_b, epsbarbar_b = lookUpEpsilon(s - 1)
 
         #                eps'_tb    1
         # dEdsbar_tb = - ------- * --- * V_t
@@ -1032,7 +1032,8 @@ class Solver:
             return
         data = {}
         for param in parameters:
-            data[param] = getattr(self, param)
+            if getattr(self, param, None) is not None:
+                data[param] = getattr(self, param)
         data["type"] = self.__class__.__name__
 
         np.savez(filename, **data)

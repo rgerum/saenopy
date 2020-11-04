@@ -74,8 +74,8 @@ class Material:
     The base class for all material models.
     """
     parameters = {}
-    min = 0.0
-    max = 5.0
+    min = -1.0
+    max = 4.0
     step = 0.000001
 
     def stiffness(self, s):
@@ -92,8 +92,8 @@ class Material:
 class SemiAffineFiberMaterial(Material):
     """
     This class defines the default material of saenopy. The fibers show buckling (i.e. decaying stiffness) for
-    0 < lambda < 1, a linear stiffness response for small strains 1 < lambda < lambda_s, and strain stiffening for
-    large strains lambda_s < lambda.
+    -1 < sigma < 0, a linear stiffness response for small strains 0 < sigma < sigma_s, and strain stiffening for
+    large strains sigma_s < sigma.
 
     Parameters
     ----------
@@ -102,20 +102,20 @@ class SemiAffineFiberMaterial(Material):
     d0 : float, optional
         The decay parameter in the buckling regime. If omitted the material shows no buckling but has a linear response
         for compression.
-    lambda_s : float, optional
+    sigma_s : float, optional
         The stretching where the strain stiffening starts. If omitted the material shows no strain stiffening.
     ds : float, optional
         The parameter specifying how strong the strain stiffening is. If omitted the material shows no strain
         stiffening.
     """
 
-    def __init__(self, k, d0=None, lambda_s=None, ds=None):
+    def __init__(self, k, d0=None, sigma_s=None, ds=None):
         # parameters
         self.k = k
         self.d0 = d0 if d0 is not None and d0 > 0 else None
-        self.lambda_s = lambda_s if lambda_s is not None and lambda_s > 0 else None
+        self.sigma_s = sigma_s if sigma_s is not None and sigma_s > 0 else None
         self.ds = ds if ds is not None and ds > 0 else None
-        self.parameters = dict(k=k, d0=d0, lambda_s=lambda_s, ds=ds)
+        self.parameters = dict(k=k, d0=d0, sigma_s=sigma_s, ds=ds)
 
     def stiffness(self, s):
         self._check_parameters_valid()
@@ -125,13 +125,13 @@ class SemiAffineFiberMaterial(Material):
 
         # buckling for compression
         if self.d0 is not None:
-            buckling = s < 1
-            stiff[buckling] = self.k * np.exp((s[buckling] - 1) / self.d0)
+            buckling = s < 0
+            stiff[buckling] = self.k * np.exp(s[buckling] / self.d0)
 
         # and exponential stretch for overstretching fibers
-        if self.ds is not None and self.lambda_s is not None:
-            stretching = s > self.lambda_s
-            stiff[stretching] = self.k * np.exp((s[stretching] - self.lambda_s) / self.ds)
+        if self.ds is not None and self.sigma_s is not None:
+            stretching = s > self.sigma_s
+            stiff[stretching] = self.k * np.exp((s[stretching] - self.sigma_s) / self.ds)
 
         return stiff
 
@@ -144,12 +144,12 @@ class SemiAffineFiberMaterial(Material):
 
         # find the buckling range
         if self.d0 is not None:
-            buckling = x < 1
+            buckling = x < 0
         else:
             buckling = np.zeros_like(x) == 1
         # find the stretching range
-        if self.ds is not None and self.lambda_s is not None:
-            stretching = self.lambda_s <= x
+        if self.ds is not None and self.sigma_s is not None:
+            stretching = self.sigma_s <= x
         else:
             stretching = np.zeros_like(x) == 1
         # and the rest is the linear range
@@ -157,18 +157,21 @@ class SemiAffineFiberMaterial(Material):
 
         k = self.k
         d0 = self.d0
-        lambda_s = self.lambda_s
+        sigma_s = self.sigma_s
         ds = self.ds
 
         if self.d0 is not None:
             # calculate the buckling energy
 
-            y[buckling] = k * d0 ** 2 * np.exp((x[buckling] - 1) / self.d0) - k * d0 * x[buckling] - k * d0 ** 2 + k * d0
-        y[linear] = 0.5 * k * x[linear] ** 2 - k * x[linear] + 0.5 * k
-        if self.ds is not None and self.lambda_s is not None:
-            y[stretching] = 0.5 * k * lambda_s ** 2 - k * lambda_s + 0.5 * k \
-                            + (k * lambda_s - k - k * ds) * x[stretching] + k * ds ** 2 * np.exp((x[stretching] - lambda_s) / ds) \
-                            - (k * lambda_s - k - k * ds) * lambda_s - k * ds ** 2
+            y[buckling] = k * d0 ** 2 * np.exp(x[buckling] / self.d0) - k * d0 * x[buckling] - k * d0 ** 2
+        y[linear] = 0.5 * k * x[linear] ** 2
+        if self.ds is not None and self.sigma_s is not None:
+            y[stretching] = 0.5 * k * sigma_s ** 2 + k * sigma_s * x[stretching] \
+                            + k * ds ** 2 * np.exp((x[stretching] - sigma_s) / ds) \
+                            - ds * k * x[stretching] \
+                            - k * sigma_s ** 2 \
+                            + ds ** 2 * k \
+                            - ds * k * sigma_s
 
         # return the resulting energy
         return y.reshape(x0.shape)
@@ -182,12 +185,12 @@ class SemiAffineFiberMaterial(Material):
 
         # find the buckling range
         if self.d0 is not None:
-            buckling = x < 1
+            buckling = x < 0
         else:
             buckling = np.zeros_like(x) == 1
         # find the stretching range
-        if self.ds is not None and self.lambda_s is not None:
-            stretching = self.lambda_s <= x
+        if self.ds is not None and self.sigma_s is not None:
+            stretching = self.sigma_s <= x
         else:
             stretching = np.zeros_like(x) == 1
         # and the rest is the linear range
@@ -195,21 +198,21 @@ class SemiAffineFiberMaterial(Material):
 
         if self.d0 is not None:
             # calculate the buckling energy
-            y[buckling] = self.k * self.d0 * np.exp((x[buckling] - 1) / self.d0) - self.d0 * self.k
+            y[buckling] = self.k * self.d0 * np.exp(x[buckling] / self.d0) - self.d0 * self.k
 
         # calculate the energy in the linear range
-        y[linear] = self.k * x[linear] - self.k
-        if self.ds is not None and self.lambda_s is not None:
-            y[stretching] = self.k * self.lambda_s - self.k - self.ds * self.k + self.ds * self.k * np.exp(
-                (x[stretching] - self.lambda_s) / self.ds)
+        y[linear] = self.k * x[linear]
+        if self.ds is not None and self.sigma_s is not None:
+            y[stretching] = self.k * self.sigma_s - self.ds * self.k + self.ds * self.k * np.exp(
+                (x[stretching] - self.sigma_s) / self.ds)
 
         # return the resulting energy
         return y.reshape(x0.shape)
 
     def _check_parameters_valid(self):
         # stiffening is not allowed in the buckling regime
-        if self.lambda_s is not None and self.lambda_s <= 1:
-            self.lambda_s = 1
+        if self.sigma_s is not None and self.sigma_s <= 1:
+            self.sigma_s = 1
 
 
 class LinearMaterial(Material):
