@@ -82,6 +82,20 @@ def getStack(filename):
     return stack
 
 
+def center_field(U,R):
+# find center of deformation field analog to force field in Saeno/Saenopy for deformation field
+        # U = U[~np.isnan(U)]
+        # R = R[~np.isnan(R)]
+        Usum = np.sum(U, axis=0)
+        B1 = np.einsum("kj,ki->j", R, U**2)
+        B2 = np.einsum("kj,ki,ki->j", U, R, U)
+        A = np.sum(np.einsum("ij,kl,kl->kij", np.eye(3), U,U) - np.einsum("ki,kj->kij", U, U), axis=0)
+        B = B1 - B2
+        center = np.linalg.inv(A) @ B
+        return center
+
+
+
 
 
 # Example:
