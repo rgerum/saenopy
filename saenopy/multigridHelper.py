@@ -84,6 +84,16 @@ def makeBoxmeshCoords(dx, nx, rin, mulout):
 
     return R
 
+
+def scaleMesh(R, center, rin, rout, mulout):
+    center = np.asarray(center)
+    R_centered = R - center
+
+    mul = np.clip(((np.abs(R_centered) - rin) / (rout - rin) + 1.0) * (mulout - 1.0) + 1.0, 1, np.inf)
+    R_new = R_centered * mul + center
+    return R_new
+
+
 from numba import njit
 
 @njit()
