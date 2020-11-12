@@ -18,7 +18,7 @@ from itertools import chain
 from saenopy import load
 import time
 from matplotlib import _pylab_helpers
-from openpiv.PIV_3D_plotting import set_axes_equal
+#from openpiv.PIV_3D_plotting import set_axes_equal
 from qtpy import QtCore, QtWidgets, QtGui
 from qtpy.QtCore import QSettings
 
@@ -171,8 +171,8 @@ def quiver_3D(u, v, w, x=None, y=None, z=None, mask_filtered=None, filter_def=0,
     ax.set_ylim(ax_dims[1])
     ax.set_zlim(ax_dims[2])
 
-    if equal_ax:
-        set_axes_equal(ax)
+    #if equal_ax:
+    #    set_axes_equal(ax)
 
     ax.set_xlabel("x")
     ax.set_ylabel("y")
@@ -311,7 +311,7 @@ class Commander(QtWidgets.QWidget):
         ax.set_xlim(self.M.R[:, 0].min() * 1e6, self.M.R[:, 0].max() * 1e6)
         ax.set_ylim(self.M.R[:, 1].min() * 1e6, self.M.R[:, 1].max() * 1e6)
         ax.set_zlim(self.M.R[:, 2].min() * 1e6, self.M.R[:, 2].max() * 1e6)
-        set_axes_equal(ax)
+        #set_axes_equal(ax)
         self.canvas.draw()
         
         
@@ -333,7 +333,7 @@ class Commander(QtWidgets.QWidget):
         ax.set_xlim(self.M.R[:, 0].min() * 1e6, self.M.R[:, 0].max() * 1e6)
         ax.set_ylim(self.M.R[:, 1].min() * 1e6, self.M.R[:, 1].max() * 1e6)
         ax.set_zlim(self.M.R[:, 2].min() * 1e6, self.M.R[:, 2].max() * 1e6)
-        set_axes_equal(ax)
+        #set_axes_equal(ax)
         self.canvas.draw()
 
 
@@ -355,7 +355,7 @@ class Commander(QtWidgets.QWidget):
         ax.set_xlim(self.M.R[:, 0].min() * 1e6, self.M.R[:, 0].max() * 1e6)
         ax.set_ylim(self.M.R[:, 1].min() * 1e6, self.M.R[:, 1].max() * 1e6)
         ax.set_zlim(self.M.R[:, 2].min() * 1e6, self.M.R[:, 2].max() * 1e6)
-        set_axes_equal(ax)
+        #set_axes_equal(ax)
         self.canvas.draw()
         
         
