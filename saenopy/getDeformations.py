@@ -14,8 +14,7 @@ from openpiv.validation import sig2noise_val
 from openpiv.filters import replace_outliers
 from openpiv.lib import replace_nans
 from skimage import io
-
-
+from scipy import interpolate
  
 # Full 3D Deformation analysis
 def getDisplacementsFromStacks(stack_deformed, stack_relaxed, voxel_size, win_um=12, fac_overlap=0.6, signoise_filter=1.3, drift_correction=True):
@@ -95,19 +94,45 @@ def center_field(U,R):
         return center
 
 
+def interpolate_different_mesh(R,U,Rnew):
+    """
+    Interpolate Deformations (or any quantity) from one mesh to another.
+    
+    Nonoverlapping regimes between meshes are filled with nans - linear interpolation.
 
+    Parameters
+    ----------
+    R : Old coordinates (saenopy format: M.R)
+    U : Old deformations (saenopy format: M.U)
+    Rnew: New coordinates
 
+    Returns
+    -------
+    Unew : New interpolated deformations 
 
-# Example:
+    """
 
-# stack_deformed = getStack(r"..\Mark_and_Find_001_Pos002_S001_t02_z*_RAW_ch00.tif")[:,:,30:-30]  # cut upper lower part here
-# stack_relaxed = getStack(r"..\\Mark_and_Find_001_Pos002_S001_t21_z*_RAW_ch00.tif")[:,:,30:-30]
-
-# deformation = getDisplacementsFromStacks(stack_deformed, stack_relaxed, (0.2407,0.2407,1), win_um=12, fac_overlap=0.6, signoise_filter=1.3)  #win  12
-
-# deformation.save("test")
-
-
+    # find unique coordinates 
+    x_points = np.unique(R[:,0])
+    y_points = np.unique(R[:,1])
+    z_points = np.unique(R[:,2])
+    # shaoe off data array for reshaping
+    arr_shape = (x_points.shape[0],y_points.shape[0],z_points.shape[0])
+ 
+    # Shift the centered coordinates
+    Rnew -= np.min(Rnew, axis=0)
+    
+    # Interpolate deformations to new mesh
+    Ux_new = interpolate.interpn((x_points, y_points, z_points), U[:,0].reshape(arr_shape)                                      
+                                            , (Rnew), method='linear', bounds_error=False, fill_value=np.nan)
+    Uy_new = interpolate.interpn((x_points, y_points, z_points), U[:,1].reshape(arr_shape)                                      
+                                            , (Rnew), method='linear', bounds_error=False, fill_value=np.nan)
+    Uz_new = interpolate.interpn((x_points, y_points, z_points), U[:,2].reshape(arr_shape)                                      
+                                            , (Rnew), method='linear', bounds_error=False, fill_value=np.nan)
+    # new interpolated deformations
+    Unew = np.array([Ux_new,Uy_new,Uz_new]).T
+    
+    return Unew
 
 
 
