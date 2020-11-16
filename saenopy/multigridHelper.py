@@ -85,15 +85,6 @@ def makeBoxmeshCoords(dx, nx, rin, mulout):
     return R
 
 
-def scaleMesh(R, center, rin, rout, mulout):
-    center = np.asarray(center)
-    R_centered = R - center
-
-    mul = np.clip(((np.abs(R_centered) - rin) / (rout - rin) + 1.0) * (mulout - 1.0) + 1.0, 1, np.inf)
-    R_new = R_centered * mul + center
-    return R_new
-
-
 from numba import njit
 
 @njit()
@@ -133,6 +124,26 @@ def makeBoxmeshTets(nx, ny=None, nz=None, grain=1):
                     T.append([i1, i8, i3, i6])
 
     return np.array(T, dtype=np.int64)
+
+
+def getScaling(voxel_in, size_in, size_out, center, a):
+    n0 = size_in / voxel_in
+    nplus = (voxel_in * (2 * a * n0 - 1) + np.sqrt(
+        voxel_in * (-4 * a * voxel_in * n0 + 4 * a * (size_out - center) + voxel_in))) / (2 * a * voxel_in)
+    nminus = (voxel_in * (2 * a * n0 - 1) + np.sqrt(
+        voxel_in * (-4 * a * voxel_in * n0 + 4 * a * (size_out + center) + voxel_in))) / (2 * a * voxel_in)
+
+    n = np.arange(-np.floor(nminus), np.floor(nplus))
+    y = voxel_in * n + voxel_in * a * np.clip(n - n0, 0, np.inf) ** 2 - voxel_in * a * np.clip(-n - n0, 0,
+                                                                                               np.inf) ** 2 + center
+    return y
+
+def getScaledMesh(voxel_in, size_in, size_out, center, a):
+    x = getScaling(voxel_in, size_in, size_out, center[0], a)
+    y = getScaling(voxel_in, size_in, size_out, center[1], a)
+    z = getScaling(voxel_in, size_in, size_out, center[1], a)
+    R, T = createBoxMesh(x, y, z)
+    return R, T
 
 def getTetrahedraFromHexahedra(hexs):
     T = []

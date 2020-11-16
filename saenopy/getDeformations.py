@@ -20,12 +20,14 @@ from scipy import interpolate
 def getDisplacementsFromStacks(stack_deformed, stack_relaxed, voxel_size, win_um=12, fac_overlap=0.6, signoise_filter=1.3, drift_correction=True):
     from saenopy.multigridHelper import createBoxMesh
     from saenopy import Solver
+
     # set properties
     voxel_size = np.array(voxel_size)
     window_size = (win_um/voxel_size).astype(int)
     overlap = ((fac_overlap * win_um)/voxel_size).astype(int)
     du, dv, dw = voxel_size
-    print ("Calculate Deformations")
+    print("Calculate Deformations")
+
     # calculate deformations
     u, v, w, sig2noise = extended_search_area_piv3D(stack_relaxed,stack_deformed,
                                                 window_size=window_size,
@@ -35,7 +37,7 @@ def getDisplacementsFromStacks(stack_deformed, stack_relaxed, voxel_size, win_um
                                                 subpixel_method='gaussian',
                                                 sig2noise_method='peak2peak',
                                                 width=2,
-                                                nfftx=None,nffty=None)
+                                                nfftx=None, nffty=None)
 
     # correcting stage drift between the field of views
     if drift_correction:
@@ -47,12 +49,11 @@ def getDisplacementsFromStacks(stack_deformed, stack_relaxed, voxel_size, win_um
     uf, vf, wf, mask = sig2noise_val(u, v, w=w, sig2noise=sig2noise, threshold=signoise_filter)
     uf, vf, wf = replace_outliers(uf, vf, wf, max_iter=1, tol=100, kernel_size=2, method='disk')
 
-    # get coodrinates (by multiplication with the ratio of image dimension and deformation grid)
+    # get coordinates (by multiplication with the ratio of image dimension and deformation grid)
     y, x, z = np.indices(u.shape) 
     y, x, z = (y * stack_deformed.shape[0] * dv/ u.shape[0], 
                x * stack_deformed.shape[1] * du/ u.shape[1],
                z * stack_deformed.shape[2] * dw/ u.shape[2])
-    
 
     # create a box mesh - convert to meters for saenopy conversion
     R, T = createBoxMesh(np.unique(x.ravel())*1e-6,
