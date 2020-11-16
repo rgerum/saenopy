@@ -29,7 +29,10 @@ setup(name='saenopy',
       install_requires=[
           'numpy',
           'scipy',
-          'tqdm'
+          'tqdm',
+          'qimage2ndarray',
+          'pyvista',
+          'pyvistaqt',
       ],
       extras_require={
         'compilation':  ["numba"],
