@@ -61,7 +61,7 @@ def getDisplacementsFromStacks(stack_deformed, stack_relaxed, voxel_size, win_um
                         
     # bring deformations in right order (switch from OpenPIV conversion ot saenopy conversion)
     # - convert to meters for saenopy conversion
-    U = np.vstack([v.ravel()*1e-6, -u.ravel()*1e-6, w.ravel()*1e-6]).T
+    U = np.vstack([-u.ravel()*1e-6, v.ravel()*1e-6, w.ravel()*1e-6]).T
     M = Solver()
     # provide the node data
     M.setNodes(R)
