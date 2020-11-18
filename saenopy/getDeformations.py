@@ -56,13 +56,13 @@ def getDisplacementsFromStacks(stack_deformed, stack_relaxed, voxel_size, win_um
                z * stack_deformed.shape[2] * dw/ u.shape[2])
 
     # create a box mesh - convert to meters for saenopy conversion
-    R, T = createBoxMesh(np.unique(x.ravel())*1e-6,
-                         np.unique(y.ravel())*1e-6,
-                         np.unique(z.ravel())*1e-6)
+    R, T = createBoxMesh(np.unique(y.ravel())*1e-6,      #saeno x
+                         np.unique(x.ravel())*1e-6,      #saeno y
+                         np.unique(z.ravel())*1e-6)      #saeno z
                         
     # bring deformations in right order (switch from OpenPIV conversion ot saenopy conversion)
     # - convert to meters for saenopy conversion
-    U = np.vstack([-u.ravel()*1e-6, v.ravel()*1e-6, w.ravel()*1e-6]).T
+    U = np.vstack([v.ravel()*1e-6, -u.ravel()*1e-6, w.ravel()*1e-6]).T
     M = Solver()
     # provide the node data
     M.setNodes(R)
