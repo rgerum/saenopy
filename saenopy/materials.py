@@ -17,7 +17,7 @@ def saveEpsilon(epsilon, fname, CFG):
     np.save(fname.replace(".dat", ".npy"), np.array([lambd, epsilon]).T)
 
 
-def sampleAndIntegrateFunction(func, min, max, step, zero_point=1, maximal_value=10e10):
+def sampleAndIntegrateFunction(func, min, max, step, zero_point=0, maximal_value=10e10):
     def iToX(i):
         return i * step + min
 
@@ -155,23 +155,22 @@ class SemiAffineFiberMaterial(Material):
         # and the rest is the linear range
         linear = (~buckling) & (~stretching)
 
-        k = self.k
-        d0 = self.d0
-        lambda_s = self.lambda_s
-        ds = self.ds
-
         if self.d0 is not None:
             # calculate the buckling energy
+            y[buckling] = self.k * self.d0 ** 2 * np.exp(x[buckling] / self.d0) - self.k * self.d0 * x[
+                buckling] - self.k * self.d0 ** 2
 
-            y[buckling] = k * d0 ** 2 * np.exp(x[buckling] / self.d0) - k * d0 * x[buckling] - k * d0 ** 2
-        y[linear] = 0.5 * k * x[linear] ** 2
+        # calculate the energy in the linear range
+        y[linear] = 0.5 * self.k * x[linear] ** 2
+
         if self.ds is not None and self.lambda_s is not None:
-            y[stretching] = 0.5 * k * lambda_s ** 2 + k * lambda_s * x[stretching] \
-                            + k * ds ** 2 * np.exp((x[stretching] - lambda_s) / ds) \
-                            - ds * k * x[stretching] \
-                            - k * lambda_s ** 2 \
-                            + ds ** 2 * k \
-                            - ds * k * lambda_s
+            # and in the stretching range
+            dk = self.ds * self.k
+            sk = self.lambda_s * self.k
+            d2k = self.ds * dk
+            y[stretching] = - 0.5 * self.lambda_s ** 2 * self.k + self.ds * self.k * self.lambda_s - d2k \
+                            + d2k * np.exp((x[stretching] - self.lambda_s) / self.ds) - dk * x[stretching] + sk * x[
+                                stretching]
 
         # return the resulting energy
         return y.reshape(x0.shape)
@@ -211,8 +210,8 @@ class SemiAffineFiberMaterial(Material):
 
     def _check_parameters_valid(self):
         # stiffening is not allowed in the buckling regime
-        if self.lambda_s is not None and self.lambda_s <= 1:
-            self.lambda_s = 1
+        if self.lambda_s is not None and self.lambda_s <= 0:
+            self.lambda_s = 0
 
 
 class LinearMaterial(Material):

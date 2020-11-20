@@ -135,7 +135,7 @@ def getShearRheometerStress(gamma: np.ndarray, material: Material, s: np.ndarray
 
     s_abs = np.linalg.norm(s_bar, axis=-2)
 
-    eps = material.energy(s_abs)
+    eps = material.energy(s_abs - 1)
 
     W = np.mean(eps, axis=-1)
     dW = np.diff(W) / np.diff(gamma)
@@ -161,7 +161,7 @@ def getShearRheometerStressRotation(gamma, material, H=1e-3, R=10e-3, s=30, q=2)
     s_bar = F @ s.T
 
     s_abs = np.linalg.norm(s_bar, axis=-2)
-    eps = material.energy(s_abs)
+    eps = material.energy(s_abs - 1)
 
     W = np.mean(eps, axis=-1)
     W = np.average(W, axis=-1, weights=w)
@@ -214,7 +214,7 @@ def getStretchThinning(gamma_h, gamma_v, material, s=None):
 
     s_bar = np.einsum("hvj,bj->hvjb", F, s)
     s_abs = np.linalg.norm(s_bar, axis=-2)
-    eps = material.energy(s_abs)
+    eps = material.energy(s_abs - 1)
     W = np.mean(eps, axis=-1)
 
     index = np.argmin(W, axis=1)
@@ -268,7 +268,7 @@ def getExtensionalRheometerStress(gamma, material, s=None):
 
     s_abs = np.linalg.norm(s_bar, axis=-2)
 
-    eps = material.energy(s_abs)
+    eps = material.energy(s_abs - 1)
 
     W = np.mean(eps, axis=-1)
     dW = np.diff(W) / np.diff(gamma)
