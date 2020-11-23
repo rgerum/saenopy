@@ -298,7 +298,7 @@ def fit_error(xy, xy0, w=None):
     return np.sqrt(np.average(difference[indices], weights=w[indices]))
 
 
-def get_cost_function(func, data_shear1, params):
+def get_cost_function(func, data_shear1, params, MaterialClass):
     # find a reasonable range of shear values
     x0 = data_shear1[:, 0]
     dx = x0[1] - x0[0]
@@ -310,13 +310,14 @@ def get_cost_function(func, data_shear1, params):
     # weights1[:] = 1
 
     def cost(p):
-        material = SemiAffineFiberMaterial(*params(p))
+        material = MaterialClass(*params(p))
         # print(material)
         return fit_error(func(gamma1, material), data_shear1, weights1)
 
     def plot(p):
         def plot_me():
-            material = SemiAffineFiberMaterial(*params(p))
+            material = MaterialClass(*params(p))
+            print(material, *params(p))
             plt.plot(data_shear1[:, 0], data_shear1[:, 1], "o", label="data")
 
             x, y = func(gamma1, material)
@@ -326,7 +327,7 @@ def get_cost_function(func, data_shear1, params):
     return cost, plot
 
 
-def get_cost_function_log(func: callable, data_shear1: np.ndarray, params: Sequence):
+def get_cost_function_log(func: callable, data_shear1: np.ndarray, params: Sequence, MaterialClass):
     # find a reasonable range of shear values
     x0 = data_shear1[:, 0]
     dx = x0[1] - x0[0]
@@ -339,14 +340,14 @@ def get_cost_function_log(func: callable, data_shear1: np.ndarray, params: Seque
     data_shear1 = np.log(data_shear1)
 
     def cost(p):
-        material = SemiAffineFiberMaterial(*params(p))
+        material = MaterialClass(*params(p))
         # print(material)
         return fit_error(np.log(func(gamma1, material)), data_shear1, weights1)
 
     return cost
 
 
-def minimize(cost_data: list, parameter_start: Sequence, method='Nelder-Mead', maxfev:int = 1e4, **kwargs):
+def minimize(cost_data: list, parameter_start: Sequence, method='Nelder-Mead', maxfev:int = 1e4, MaterialClass=SemiAffineFiberMaterial, **kwargs):
     costs = []
     plots = []
 
@@ -355,7 +356,7 @@ def minimize(cost_data: list, parameter_start: Sequence, method='Nelder-Mead', m
             def func(x, material):
                 lambda_v = np.arange(0, 1.1, 0.01)
                 return getStretchThinning(x, lambda_v, material)
-        c, p = get_cost_function(func, data, params)
+        c, p = get_cost_function(func, data, params, MaterialClass=MaterialClass)
         costs.append(c)
         plots.append(p)
 
