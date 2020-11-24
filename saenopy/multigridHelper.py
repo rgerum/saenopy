@@ -133,15 +133,24 @@ def getScaling(voxel_in, size_in, size_out, center, a):
     nminus = (voxel_in * (2 * a * n0 - 1) + np.sqrt(
         voxel_in * (-4 * a * voxel_in * n0 + 4 * a * (size_out + center) + voxel_in))) / (2 * a * voxel_in)
 
+    if np.isnan(nplus):
+        nplus = (size_out - center) / voxel_in
+    if np.isnan(nminus):
+        nminus = (size_out + center) / voxel_in
+
     n = np.arange(-np.floor(nminus), np.floor(nplus))
     y = voxel_in * n + voxel_in * a * np.clip(n - n0, 0, np.inf) ** 2 - voxel_in * a * np.clip(-n - n0, 0,
                                                                                                np.inf) ** 2 + center
     return y
 
 def getScaledMesh(voxel_in, size_in, size_out, center, a):
-    x = getScaling(voxel_in, size_in, size_out, center[0], a)
-    y = getScaling(voxel_in, size_in, size_out, center[1], a)
-    z = getScaling(voxel_in, size_in, size_out, center[1], a)
+    if isinstance(size_out, (int, float)):
+        size_out = [size_out]*3
+    x = getScaling(voxel_in, size_in, size_out[0], center[0], a)
+    y = getScaling(voxel_in, size_in, size_out[1], center[1], a)
+    z = getScaling(voxel_in, size_in, size_out[2], center[1], a)
+
+
     R, T = createBoxMesh(x, y, z)
     return R, T
 
