@@ -27,8 +27,48 @@ sys._excepthook = sys.excepthook
 sys.excepthook = lambda *args: sys._excepthook(*args)
 
 
+def getVectorfieldCenter(R, f):
+    B = np.einsum("ni,ni,nj->j", f, f, R) - np.einsum("kj,ki,ki->j", f, R, f)
+
+    A = np.sum(np.einsum("ij,kl,kl->kij", np.eye(3), f, f) - np.einsum("ki,kj->kij", f, f), axis=0)
+
+    Rcms = np.linalg.inv(A) @ B
+    return Rcms
+
+class VectorField:
+    point_cloud = None
+    def __init__(self, plotter):
+        self.plotter = plotter
+
+    def plot(self, R, U):
+        if self.point_cloud is None:
+            # Create random XYZ points
+            points = R
+            # Make PolyData
+            self.point_cloud = pv.PolyData(points)
+
+            vectors = U
+            vectors[0:5, :]
+            self.point_cloud['vectors'] = vectors
+            arrows = self.point_cloud.glyph(orient='vectors', scale=False, factor=0.15, )
+            self.arrows = arrows
+
+            # Display the arrows
+            plotter = self.plotter#pv.Plotter()
+            #self.my_point_could = plotter.add_mesh(self.point_cloud, color='maroon', point_size=10.,
+            #                 render_points_as_spheres=True)
+            plotter.add_mesh(arrows, color='lightblue')
+        else:
+            self.point_cloud.points = R
+            self.point_cloud['vectors'] = U# * np.random.rand()
+
+            arrows = self.point_cloud.glyph(orient='vectors', scale=False, factor=0.00015)
+            self.arrows.points = arrows.points
+            self.arrows.faces = arrows.faces
+
 class MainWindow(QtWidgets.QMainWindow):
     vector_field = None
+    scale = 1
     im = None
 
     def __init__(self, parent=None, show=True):
@@ -91,6 +131,8 @@ class MainWindow(QtWidgets.QMainWindow):
         exitButton.triggered.connect(self.close)
         fileMenu.addAction(exitButton)
 
+        self.plotter_vector_field = VectorField(self.plotter)
+
         if show:
             self.show()
 
@@ -99,7 +141,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.input_max = QtShortCuts.QInputNumber(vlayout, "max", value=1, min=0, max=1, use_slider=True)
         self.input_min = QtShortCuts.QInputNumber(vlayout, "min", value=0, min=0, max=1, use_slider=True)
-        self.input_scale = QtShortCuts.QInputNumber(vlayout, "scale", value=1, min=1, max=10000000, use_slider=True)
+        self.input_scale = QtShortCuts.QInputNumber(vlayout, "scale", value=1, min=1, max=10, use_slider=True)
         self.input_max.valueChanged.connect(self.replot)
         self.input_min.valueChanged.connect(self.replot)
         self.input_scale.valueChanged.connect(self.replot)
@@ -126,6 +168,29 @@ class MainWindow(QtWidgets.QMainWindow):
         self.offset = np.zeros(3)
 
         #self.displayImage()
+
+        self.setAcceptDrops(True)
+
+    def dragEnterEvent(self, event: QtGui.QDragEnterEvent):
+        # accept url lists (files by drag and drop)
+        for url in event.mimeData().urls():
+            if str(url.toString()).strip().endswith(".npz"):
+                event.accept()
+                return
+        event.ignore()
+
+    def dragMoveEvent(self, event: QtGui.QDragMoveEvent):
+        event.acceptProposedAction()
+
+    def dropEvent(self, event: QtCore.QEvent):
+        for url in event.mimeData().urls():
+            print(url)
+            url = str(url.toString()).strip()
+            if url.startswith("file:///"):
+                url = url[len("file:///"):]
+            if url.startswith("file:"):
+                url = url[len("file:"):]
+            self.loadFile(url)
 
     def pixel_to_mu(self, x):
         return np.asarray(x)*self.pixel_size + self.offset
@@ -235,9 +300,15 @@ class MainWindow(QtWidgets.QMainWindow):
             self.settings.sync()
             self.loadFile(filename)
 
+    plot_field = None
     def loadFile(self, filename):
         print("Loading", filename)
         self.M = saenopy.load(filename)
+
+        self.point_cloud = pv.PolyData(self.M.R)
+        self.point_cloud.point_arrays["f"] = self.M.f
+        self.point_cloud.point_arrays["U"] = self.M.U
+        self.point_cloud.point_arrays["U_target"] = self.M.U_target
         self.offset = np.min(self.M.R, axis=0)
         if 0:
             self.stats_label.setText(f"""
@@ -247,32 +318,149 @@ class MainWindow(QtWidgets.QMainWindow):
         self.plotter.clear()
 
     def doPlotU(self):
+        self.plot_field = "U"
         self.vector_field = self.M.U
+        self.center = getVectorfieldCenter(self.M.R, self.vector_field)
+        self.scale = 5
         self.replot()
 
     def doPlotUt(self):
+        self.plot_field = "U_target"
         self.vector_field = self.M.U_target
+        self.center = getVectorfieldCenter(self.M.R, self.vector_field)
+        self.scale = 5
         self.replot()
 
     def doPlotF(self):
+        self.plot_field = "f"
         self.vector_field = self.M.f
+        self.center = getVectorfieldCenter(self.M.R, self.vector_field)
+        print(self.center)
+
+        RR = self.M.R - self.center
+        f = self.vector_field
+        contractility = np.sum(np.einsum("ki,ki->k", RR, f) / np.linalg.norm(RR, axis=1))
+        print(contractility)
+
+        self.vector_field = -self.M.f
+        self.center = getVectorfieldCenter(self.M.R, self.vector_field)
+        print(self.center)
+
+        RR = self.M.R - self.center
+        f = self.vector_field
+        contractility = np.sum(np.einsum("ki,ki->k", RR, f) / np.linalg.norm(RR, axis=1))
+        to_center = np.einsum("ki,ki->k", RR, f) / np.linalg.norm(RR, axis=1)
+        mag = np.linalg.norm(f, axis=1)
+        print(to_center)
+        print(np.min(to_center), np.max(to_center))
+        print("mag", np.min(mag), np.mean(mag), np.max(mag))
+        i = mag > np.max(mag)*1e-1
+        print(np.min(to_center[i]), np.max(to_center[i]))
+        print(np.sum(to_center[i]))
+        print(np.sum(to_center < 0), np.sum(to_center > 0))
+        print(np.sum(to_center[i] < 0), np.sum(to_center[i] > 0))
+        print(contractility)
+
+        self.scale = 2e4
         self.replot()
 
+    point_cloud = None
     def replot(self):
-        self.plotter.clear()
+        if 0:
+            if self.plot_field is not None:
+                arrows = self.point_cloud.glyph(orient=self.plot_field, scale=self.plot_field, factor=self.scale)
+                self.plotter.add_mesh(arrows, colormap='turbo', name="arrows")
+                mag = np.linalg.norm(self.point_cloud.point_arrays[self.plot_field], axis=1)
+                #self.plotter.update_scalar_bar_range([np.min(mag), np.max(mag)])#, name=self.plot_field)
+                #self.plotter.render()
+                self.plotter.add_bounding_box()
+                self.plotter.show_grid()
+
+            return
+        #self.point_cloud = pv.PolyData(self.M.R)
+        if 0:
+            if self.vector_field is None:
+                return
+            if self.point_cloud is None:
+                # Create random XYZ points
+                points = self.M.R
+                # Make PolyData
+                self.point_cloud = pv.PolyData(points)
+
+                def compute_vectors(mesh):
+                    origin = mesh.center
+                    vectors = mesh.points - origin
+                    vectors = vectors / np.linalg.norm(vectors, axis=1)[:, None]
+                    return vectors
+
+                vectors = self.vector_field#compute_vectors(self.point_cloud)
+                vectors[0:5, :]
+                self.point_cloud['vectors'] = vectors
+                arrows = self.point_cloud.glyph(orient='vectors', scale=False, factor=0.000015, )
+                self.arrows = arrows
+
+                # Display the arrows
+                plotter = self.plotter#pv.Plotter()
+                #self.my_point_could = plotter.add_mesh(self.point_cloud, color='maroon', point_size=10.,
+                #                 render_points_as_spheres=True)
+                plotter.add_mesh(arrows, color='lightblue')
+                # plotter.add_point_labels([point_cloud.center,], ['Center',],
+                #                          point_color='yellow', point_size=20)
+                plotter.show_grid()
+                plotter.show()
+            else:
+                vectors = self.vector_field
+                self.point_cloud['vectors'] = vectors
+                self.point_cloud.points = self.M.R
+                arrows = self.point_cloud.glyph(orient='vectors', scale=False, factor=0.000015, )
+                self.arrows.points = arrows.points
+                self.arrows.faces = arrows.faces
+                print(self.arrows.points.shape)
+                #self.arrows.verts = np.random.rand(100, 3)
+                self.plotter.render()
+                #self.plotter.update_coordinates(np.random.rand(100, 3), self.point_cloud)
+                #self.arrows.points = np.random.rand(100, 3)
+                print(self.arrows.points.shape)
+                print(self.arrows)
+                print(type(self.arrows))
+                print(dir(self.arrows))
+
+            return
+            #self.plotter.clear()
+
         if self.vector_field is not None:
             x, v = self.getX_Vector()
             mag = np.linalg.norm(self.vector_field, axis=1)
             v1, v2 = np.quantile(mag[~np.isnan(mag)], [self.input_min.value(), self.input_max.value()])
             indices = (v1 < mag) & (mag < v2)
-            self.add_arrows(x[indices], v[indices], self.input_scale.value(), cmap="turbo")
-        self.plotter.add_axes()
-        #self.plotter.add_floor()
 
-        self.plotter.add_bounding_box()
-        self.replot_plane()
+            #self.plotter_vector_field.plot(x[indices], v[indices])
 
-    plane_actor = None
+            if 1:
+                if self.actor_vectorfield is not None:
+                    self.plotter.remove_actor(self.actor_vectorfield)
+                self.actor_vectorfield = self.add_arrows(x[indices], v[indices], self.input_scale.value()*self.scale, cmap="turbo", render=False)
+                self.plotter.render()
+            if 1:
+                point = pv.PolyData(self.center[None, :])
+                if self.actor_center is not None:
+                    self.plotter.remove_actor(self.actor_center)
+                self.actor_center = self.plotter.add_mesh(point, render=False)
+
+        if 0:#self.actor_axes is None:
+            self.actor_axes = self.plotter.add_axes()
+            print("self.actor_axes", self.actor_axes)
+            #self.plotter.add_floor()
+
+            self.plotter.add_bounding_box()
+            self.plotter.show_grid()
+
+            self.replot_plane()
+
+    actor_plane = None
+    actor_vectorfield = None
+    actor_center = None
+    actor_axes = None
     def replot_plane(self):
         if self.im is not None:
             x = np.array([0, self.im.shape[1]])
@@ -287,10 +475,12 @@ class MainWindow(QtWidgets.QMainWindow):
             mesh.texture_map_to_plane(inplace=True)
 
             im = pv.numpy_to_texture(self.im[::-1, ::])
-            if self.plane_actor is not None:
-                self.plotter.remove_actor(self.plane_actor)
-            self.plane_actor = self.plotter.add_mesh(mesh, show_edges=False, color='white', texture=im)
+            if self.actor_plane is not None:
+                self.plotter.remove_actor(self.actor_plane)
+            self.actor_plane = self.plotter.add_mesh(mesh, show_edges=False, color='white', texture=im)
 
+    last_arrows = None
+    glyph3D = None
     def add_arrows(self, cent, direction, mag=1, **kwargs):
         """Add arrows to the plotter.
 
@@ -332,20 +522,46 @@ class MainWindow(QtWidgets.QMainWindow):
         # Create arrow object
         arrow = vtk.vtkArrowSource()
         arrow.Update()
-        glyph3D = vtk.vtkGlyph3D()
-        glyph3D.SetSourceData(arrow.GetOutput())
-        glyph3D.SetInputData(pdata)
-        glyph3D.SetVectorModeToUseVector()
-        glyph3D.SetScaling(True)
-        glyph3D.SetScaleFactor(mag)
-        glyph3D.Update()
 
-        arrows = pv.utilities.wrap(glyph3D.GetOutput())
+        if 1:#self.glyph3D is None:
+            glyph3D = vtk.vtkGlyph3D()
+            glyph3D.SetSourceData(arrow.GetOutput())
+            glyph3D.SetInputData(pdata)
+            glyph3D.SetVectorModeToUseVector()
+            glyph3D.SetScaling(True)
+            glyph3D.SetScaleFactor(mag)
+            glyph3D.Update()
+            self.glyph3D = glyph3D
+        else:
+            self.glyph3D.SetInputData(pdata)
+            self.glyph3D.SetScaleFactor(mag)
+            self.glyph3D.Update()
 
-        return self.plotter.add_mesh(arrows, **kwargs)
+        arrows = pv.utilities.wrap(self.glyph3D.GetOutput())
+        if 0:
+            if self.last_arrows is not None:
+                self.last_arrows.points = arrows.points
+                self.last_arrows.faces = arrows.faces
+                print(dir(self.last_arrows))
+                self.last_arrows.point_arrays["mag"] = arrows.point_arrays["mag"]
+                self.last_arrows.set_active_scalars("mag")
+            else:
+                self.last_arrows = arrows
+                last_arrows = self.plotter.add_mesh(arrows, **kwargs)
+            return self.last_arrows
+
+        last_arrows = self.plotter.add_mesh(arrows, **kwargs)
+        return last_arrows
+        if self.last_arrows is not None:
+            self.plotter.remove_actor(self.last_arrows)
+        self.last_arrows = last_arrows
+        return self.last_arrows
 
 
 if __name__ == '__main__':
     app = QtWidgets.QApplication(sys.argv)
+    print(sys.argv)
     window = MainWindow()
+    if len(sys.argv) >= 2:
+        window.loadFile(sys.argv[1])
     sys.exit(app.exec_())
