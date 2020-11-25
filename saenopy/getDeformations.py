@@ -95,7 +95,7 @@ def center_field(U,R):
         return center
 
 
-def interpolate_different_mesh(R,U,Rnew):
+def interpolate_different_mesh(R, U, Rnew):
     """
     Interpolate Deformations (or any quantity) from one mesh to another.
     
@@ -113,37 +113,18 @@ def interpolate_different_mesh(R,U,Rnew):
 
     """
 
-    # find unique coordinates 
-    x_points = np.unique(R[:,0])
-    y_points = np.unique(R[:,1])
-    z_points = np.unique(R[:,2])
-    # shaoe off data array for reshaping
-    arr_shape = (x_points.shape[0],y_points.shape[0],z_points.shape[0])
- 
-    # Shift the centered coordinates
-    Rnew -= np.min(Rnew, axis=0)
-    
+    # find unique coordinates
+    points = [np.unique(R[:, i]) for i in range(3)]
+
+    # shape off data array for reshaping
+    arr_shape = (points[0].shape[0], points[1].shape[0], points[2].shape[0])
+
     # Interpolate deformations to new mesh
-    Ux_new = interpolate.interpn((x_points, y_points, z_points), U[:,0].reshape(arr_shape)                                      
-                                            , (Rnew), method='linear', bounds_error=False, fill_value=np.nan)
-    Uy_new = interpolate.interpn((x_points, y_points, z_points), U[:,1].reshape(arr_shape)                                      
-                                            , (Rnew), method='linear', bounds_error=False, fill_value=np.nan)
-    Uz_new = interpolate.interpn((x_points, y_points, z_points), U[:,2].reshape(arr_shape)                                      
-                                            , (Rnew), method='linear', bounds_error=False, fill_value=np.nan)
-    # new interpolated deformations
-    Unew = np.array([Ux_new,Uy_new,Uz_new]).T
-    
+    Unew = np.array([interpolate.interpn(points, U[:, i].reshape(arr_shape), Rnew, method='linear', bounds_error=False, fill_value=np.nan) for i in range(3)]).T
+
+    # if the mesh contains nans, interpolate nearest instead of linear to prevent the nans from spreading
+    if np.any(np.isnan(Unew)):
+        Unew2 = np.array([interpolate.interpn(points, U[:, i].reshape(arr_shape), Rnew, method='nearest', bounds_error=False, fill_value=np.nan) for i in range(3)]).T
+        Unew[np.isnan(Unew[:, 0]), :] = Unew2[np.isnan(Unew[:, 0]), :]
+
     return Unew
-
-
-
-
-
-
-
-
-
-
-
-
-
