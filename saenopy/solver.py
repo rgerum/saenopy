@@ -179,7 +179,7 @@ class Solver:
         # schedule to recalculate the connections
         self.connections_valid = False
 
-    def setMaterialModel(self, material: Material):
+    def setMaterialModel(self, material: Material, generate_lookup: True):
         """
         Provides the material model.
 
@@ -189,7 +189,8 @@ class Solver:
              The material, must be of a subclass of Material.
         """
         self.material_model = material
-        self.material_model_look_up = self.material_model.generate_look_up_table()
+        if generate_lookup is True:
+            self.material_model_look_up = self.material_model.generate_look_up_table()
 
     def setBeams(self, beams: Union[int, np.ndarray] = 300):
         """
@@ -322,6 +323,30 @@ class Solver:
                                 shape=(self.N_c*3, self.N_c*3)).tocsr()
         if self.verbose:
             print("updating forces and stiffness matrix finished %.2fs" % (time.time() - t_start))
+
+    def getMaxTetStiffness(self):
+        """
+        Calculates the stiffness matrix K_ij, the force F_i and the energy E of each node.
+        """
+        t_start = time.time()
+        batchsize = 10000
+
+        tetrahedra_stiffness = np.zeros(self.T.shape[0])
+
+        for i in range(int(np.ceil(self.T.shape[0]/batchsize))):
+            if self.verbose:
+                print("updating forces and stiffness matrix %d%%" % (i/int(np.ceil(self.T.shape[0]/batchsize))*100), end="\r")
+            t = slice(i*batchsize, (i+1)*batchsize)
+
+            s_bar = self._get_s_bar(t)
+
+            s = np.linalg.norm(s_bar, axis=1)
+
+            epsbarbar_b = self.material_model.stiffness(s - 1)
+
+            tetrahedra_stiffness[t] = np.max(epsbarbar_b, axis=1)
+
+        return tetrahedra_stiffness
 
     def _get_s_bar(self, t: np.ndarray):
         # get the displacements of all corners of the tetrahedron (N_Tx3x4)
@@ -607,7 +632,7 @@ class Solver:
             np.savetxt(relrecname, relrec)
 
     def solve_regularized(self, stepper: float =0.33, solver_precision: float =1e-18, i_max: int = 100,
-                          rel_conv_crit: float = 0.01, alpha: float = 1e-3, method: str = "huber", relrecname: str = None,
+                          rel_conv_crit: float = 0.01, alpha: float = 3e9, method: str = "huber", relrecname: str = None,
                           verbose: bool = False):
         """
         Fit the provided displacements. Displacements can be provided with
@@ -1025,7 +1050,7 @@ class Solver:
             import h5py
             hf = h5py.File(filename, 'w')
             for param in parameters:
-                if getattr(self, param) is not None:
+                if getattr(self, param, None) is not None:
                     hf.create_dataset(param, data=getattr(self, param))
             hf.create_dataset("type", data=self.__class__.__name__)
             hf.close()
@@ -1058,6 +1083,13 @@ class Solver:
         #if self.U_target_mask is not None:
         #    self.U_target_mask = np.any(~np.isnan(self.U_target_mask), axis=1)
 
+    def vtk(self):
+        import pyvista as pv
+        point_cloud = pv.PolyData(self.R)
+        #point_cloud.point_arrays["f"] = self.f
+        #point_cloud.point_arrays["U"] = self.U
+        point_cloud["U_target"] = self.U_target
+        return point_cloud
 
 def save(filename: str, M: Solver):
     M.save(filename)
