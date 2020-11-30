@@ -179,7 +179,7 @@ class Solver:
         # schedule to recalculate the connections
         self.connections_valid = False
 
-    def setMaterialModel(self, material: Material, generate_lookup: True):
+    def setMaterialModel(self, material: Material, generate_lookup=True):
         """
         Provides the material model.
 
@@ -362,7 +362,7 @@ class Solver:
         return s_bar
 
     @staticmethod
-    @jit(nopython=True, cache=True)
+    #@njit()#nopython=True, cache=True)
     def _get_applied_epsilon(s_bar: np.ndarray, lookUpEpsilon: callable, _V_over_Nb: np.ndarray):
         # the "deformation" amount # p 54 equ 2 part in the parentheses
         # s_tb = |s'_tib|  (t in [0, N_T], i in {x,y,z}, b in [0, N_b])
