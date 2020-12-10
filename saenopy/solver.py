@@ -1091,6 +1091,57 @@ class Solver:
         point_cloud["U_target"] = self.U_target
         return point_cloud
 
+    def plot(self, name="U", scale=None, vmin=None, vmax=None, cmap="turbo", export=None, camera_position=None, window_size=None, shape=None):
+        if getattr(self, "point_cloud", None) is None:
+            self.point_cloud = self.vtk()
+
+        import pyvista as pv
+        import matplotlib.pyplot as plt
+        if export is not None:
+            pv.set_plot_theme("document")
+        if isinstance(name, str):
+            name = [name]
+        if shape is None:
+            shape = (1, len(name))
+        plotter = pv.Plotter(off_screen=export is not None, shape=shape, window_size=window_size)
+        for i, n in enumerate(name):
+            plotter.subplot(i // shape[1], i % shape[1])
+            # if the scale is not defined use default values
+            if scale is None:
+                if n == "f" or n == "f_target":
+                    s = 3e4
+                else:
+                    s = 5
+            else:
+                s = scale
+
+            point_cloud = pv.PolyData(self.R)
+            point_cloud.point_arrays[n] = getattr(self, n)
+            point_cloud.point_arrays[n+"_mag"] = np.linalg.norm(getattr(self, n), axis=1)
+
+            # generate the arrows
+            arrows = point_cloud.glyph(orient=n, scale=n+"_mag", factor=s)
+            print(n, s)
+            # select the colormap, if "turbo" should be used but is not defined, use "jet" instead
+            if cmap is "turbo":
+                try:
+                    cmap = plt.get_cmap(cmap)
+                except ValueError:
+                    cmap = "jet"
+            # add the mesh
+            plotter.add_mesh(point_cloud, colormap=cmap, scalars=n+"_mag")
+            plotter.add_mesh(arrows, colormap=cmap, name="arrows")
+            # optionally set the value range
+            if vmin is not None and vmax is not None:
+                plotter.update_scalar_bar_range([vmin, vmax])
+            plotter.show_grid()
+
+        plotter.link_views()
+        if camera_position is not None:
+            plotter.camera_position = camera_position
+        campos = plotter.show(screenshot=export)
+        return plotter, campos
+
 def save(filename: str, M: Solver):
     M.save(filename)
 
