@@ -74,7 +74,10 @@ def getDisplacementsFromStacks(stack_deformed, stack_relaxed, voxel_size, win_um
 
 # read in image stack
 def getStack(filename):
-    images = glob.glob(filename)
+    if isinstance(filename, str):
+        images = glob.glob(filename)
+    else:
+        images = list(filename)
     im = io.imread(images[0], as_gray=True)
     stack = np.zeros((im.shape[0], im.shape[1], len(images)), dtype=im.dtype)
     for i, im in enumerate(images):
