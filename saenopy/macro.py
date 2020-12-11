@@ -298,11 +298,11 @@ def fit_error(xy, xy0, w=None):
     return np.sqrt(np.average(difference[indices], weights=w[indices]))
 
 
-def get_cost_function(func, data_shear1, params, MaterialClass):
+def get_cost_function(func, data_shear1, params, MaterialClass, x_sample=100):
     # find a reasonable range of shear values
     x0 = data_shear1[:, 0]
     dx = x0[1] - x0[0]
-    gamma1 = np.linspace(np.min(x0), np.max(x0), 1000)
+    gamma1 = np.linspace(np.min(x0), np.max(x0), x_sample)
 
     # define weights for logarithmic weighting of points of the shear data
     weights1 = np.diff(np.log(x0), append=np.log(x0[-1] + np.diff(x0[-3:-1])[0])) ** 2
@@ -347,7 +347,7 @@ def get_cost_function_log(func: callable, data_shear1: np.ndarray, params: Seque
     return cost
 
 
-def minimize(cost_data: list, parameter_start: Sequence, method='Nelder-Mead', maxfev:int = 1e4, MaterialClass=SemiAffineFiberMaterial, **kwargs):
+def minimize(cost_data: list, parameter_start: Sequence, method='Nelder-Mead', maxfev:int = 1e4, MaterialClass=SemiAffineFiberMaterial, x_sample=100, **kwargs):
     costs = []
     plots = []
 
@@ -356,7 +356,7 @@ def minimize(cost_data: list, parameter_start: Sequence, method='Nelder-Mead', m
             def func(x, material):
                 lambda_v = np.arange(0, 1.1, 0.01)
                 return getStretchThinning(x, lambda_v, material)
-        c, p = get_cost_function(func, data, params, MaterialClass=MaterialClass)
+        c, p = get_cost_function(func, data, params, x_sample=x_sample, MaterialClass=MaterialClass)
         costs.append(c)
         plots.append(p)
 
