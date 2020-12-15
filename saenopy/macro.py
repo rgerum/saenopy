@@ -291,11 +291,11 @@ def fit_error(xy, xy0, w=None):
     # if we have no weights
     if w is None:
         # just take the mean (ignoring nans)
-        return np.sqrt(np.nanmean(difference))
+        return np.sqrt(np.nanmean(difference/np.nanmax(y0)))
     # if not ignore the nans by finding the indices
     indices = ~np.isnan(difference)
     # and average with the given weights
-    return np.sqrt(np.average(difference[indices], weights=w[indices]))
+    return np.sqrt(np.average(difference[indices]/np.nanmax(y0[indices]), weights=w[indices]))
 
 
 def get_cost_function(func, data_shear1, params, MaterialClass, x_sample=100):
@@ -305,7 +305,7 @@ def get_cost_function(func, data_shear1, params, MaterialClass, x_sample=100):
     gamma1 = np.linspace(np.min(x0), np.max(x0), x_sample)
 
     # define weights for logarithmic weighting of points of the shear data
-    weights1 = np.diff(np.log(x0), append=np.log(x0[-1] + np.diff(x0[-3:-1])[0])) ** 2
+    weights1 = None#np.diff(np.log(x0), append=np.log(x0[-1] + dx))**2 #needs to be improved (based on spacing of data points in logarithmic space)
 
     # weights1[:] = 1
 
@@ -325,26 +325,6 @@ def get_cost_function(func, data_shear1, params, MaterialClass, x_sample=100):
         return plot_me
 
     return cost, plot
-
-
-def get_cost_function_log(func: callable, data_shear1: np.ndarray, params: Sequence, MaterialClass):
-    # find a reasonable range of shear values
-    x0 = data_shear1[:, 0]
-    dx = x0[1] - x0[0]
-    gamma1 = np.arange(0.004, 0.25, 0.001)
-
-    # define weights for logarithmic weighting of points of the shear data
-    weights1 = np.diff(np.log(x0), append=np.log(x0[-1] + np.diff(x0[-3:-1])[0])) ** 2
-    # weights1[:] = 1
-
-    data_shear1 = np.log(data_shear1)
-
-    def cost(p):
-        material = MaterialClass(*params(p))
-        # print(material)
-        return fit_error(np.log(func(gamma1, material)), data_shear1, weights1)
-
-    return cost
 
 
 def minimize(cost_data: list, parameter_start: Sequence, method='Nelder-Mead', maxfev:int = 1e4, MaterialClass=SemiAffineFiberMaterial, x_sample=100, **kwargs):
