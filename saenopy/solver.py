@@ -1118,7 +1118,8 @@ class Solver:
             point_cloud = pv.PolyData(self.R)
             point_cloud.point_arrays[n] = getattr(self, n)
             point_cloud.point_arrays[n+"_mag"] = np.linalg.norm(getattr(self, n), axis=1)
-
+           
+                
             # generate the arrows
             arrows = point_cloud.glyph(orient=n, scale=n+"_mag", factor=s)
             print(n, s)
@@ -1130,10 +1131,14 @@ class Solver:
                     cmap = "jet"
             # add the mesh
             plotter.add_mesh(point_cloud, colormap=cmap, scalars=n+"_mag")
-            plotter.add_mesh(arrows, colormap=cmap, name="arrows")
-            # optionally set the value range
+            # colorrange if specified
             if vmin is not None and vmax is not None:
+                plotter.add_mesh(arrows, colormap=cmap, name="arrows",clim=[vmin, vmax])
                 plotter.update_scalar_bar_range([vmin, vmax])
+            else:
+                plotter.add_mesh(arrows, colormap=cmap, name="arrows")
+           
+
             plotter.show_grid()
 
         plotter.link_views()
