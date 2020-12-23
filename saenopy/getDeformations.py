@@ -46,7 +46,7 @@ def getDisplacementsFromStacks(stack_deformed, stack_relaxed, voxel_size, win_um
         w -= np.nanmean(w)
           
     # filter deformations
-    uf, vf, wf, mask = sig2noise_val(u, v, w=w, sig2noise=sig2noise, threshold=signoise_filter)
+    uf, vf, wf, mask = sig2noise_val(u, v,sig2noise, w=w, threshold=signoise_filter)
     uf, vf, wf = replace_outliers(uf, vf, wf, max_iter=1, tol=100, kernel_size=2, method='disk')
 
     # get coordinates (by multiplication with the ratio of image dimension and deformation grid)
