@@ -187,10 +187,13 @@ class MainWindow(QtWidgets.QMainWindow):
             elif name == "f":
                 arrows = self.point_cloud.glyph(orient="f", scale="f_mag", factor=3e4)
                 plotter.add_mesh(arrows, colormap='turbo', name="arrows")
+            elif name == "U_target":
+               arrows = self.point_cloud.glyph(orient="U_target", scale="U_target_mag", factor=5)
+               plotter.add_mesh(arrows, colormap='turbo', name="arrows")          
             else:
-                arrows = self.point_cloud.glyph(orient=name, scale=name + "_mag", factor=5)
-                plotter.add_mesh(arrows, colormap='turbo', name="arrows")
-                plotter.update_scalar_bar_range(np.nanpercentile(self.point_cloud["U_mag"], [1, 99.9]))
+               arrows = self.point_cloud.glyph(orient=name, scale=name + "U_mag", factor=5)
+               plotter.add_mesh(arrows, colormap='turbo', name="arrows")
+               #plotter.update_scalar_bar_range(np.nanpercentile(self.point_cloud["U_mag"], [1, 99.9]))
             plotter.show_grid()
         print(names)
 
