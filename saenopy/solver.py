@@ -538,7 +538,7 @@ class Solver:
 
     """ regularization """
 
-    def setTargetDisplacements(self, displacement: np.ndarray):
+    def setTargetDisplacements(self, displacement: np.ndarray, reg_mask: np.ndarray=None):
         """
         Provide the displacements that should be fitted by the regularization.
 
@@ -553,13 +553,21 @@ class Solver:
         self.U_target = displacement
         # only use displacements that are not nan
         self.U_target_mask = np.any(~np.isnan(displacement), axis=1)
+        # regularisation mask
+        if reg_mask is not None:
+            assert reg_mask.shape == (self.N_c,)
+            assert reg_mask.dtype == bool
+            self.reg_mask = reg_mask
+        else:
+            self.reg_mask = np.ones_like(displacement[:, 0]).astype(np.bool)
 
     def _updateLocalRegularizationWeigth(self, method: str):
 
         self.localweight[:] = 1
 
         Fvalues = np.linalg.norm(self.f, axis=1)
-        Fmedian = np.median(Fvalues[self.var])
+        #Fmedian = np.median(Fvalues[self.var])
+        Fmedian = np.median(Fvalues[self.var & self.reg_mask])
 
         if method == "singlepoint":
             self.localweight[int(self.CFG["REG_FORCEPOINT"])] = 1.0e-10
@@ -568,8 +576,8 @@ class Solver:
             k = 4.685
 
             index = Fvalues < k * Fmedian
-            self.localweight[index * self.var] *= (1 - (Fvalues / k / Fmedian) * (Fvalues / k / Fmedian)) * (
-                    1 - (Fvalues / k / Fmedian) * (Fvalues / k / Fmedian))
+            self.localweight[index * self.var] *= (1 - (Fvalues[index * self.var] / k / Fmedian) * (Fvalues[index * self.var] / k / Fmedian)) * (
+                    1 - (Fvalues[index * self.var] / k / Fmedian) * (Fvalues[index * self.var] / k / Fmedian))
             self.localweight[~index * self.var] *= 1e-10
 
         if method == "cauchy":
@@ -588,6 +596,8 @@ class Solver:
 
         index = self.localweight < 1e-10
         self.localweight[index & self.var] = 1e-10
+
+        self.localweight[~self.reg_mask] = 0
 
         counter = np.sum(1.0 - self.localweight[self.var])
         counterall = np.sum(self.var)
