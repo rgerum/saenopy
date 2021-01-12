@@ -179,22 +179,29 @@ class MainWindow(QtWidgets.QMainWindow):
         plotter = self.plotter
         for i, name in enumerate(names):
             plotter.subplot(i//plotter.shape[1], i%plotter.shape[1])
+            # scale plot with axis length later
+            norm_stack_size = np.abs(np.max(self.M.R)-np.min(self.M.R))
             if name == "stiffness":
                 if self.point_cloud2 is None:
                     self.calculateStiffness()
                 plotter.add_mesh(self.point_cloud2,  colormap="turbo", point_size=4., render_points_as_spheres=True)
                 plotter.update_scalar_bar_range(np.nanpercentile(self.point_cloud2["stiffness"], [50, 99.9]))
-            elif name == "f":
-                arrows = self.point_cloud.glyph(orient="f", scale="f_mag", factor=3e4)
-                plotter.add_mesh(arrows, colormap='turbo', name="arrows")
+            elif name == "f":   
+                arrows = self.point_cloud.glyph(orient="f", scale="f_mag", \
+                                                # Automatically scale maximal force to 15% of axis length
+                                                factor= 0.15*norm_stack_size/np.nanmax(np.linalg.norm(self.M.f, axis=1)))   
+                plotter.add_mesh(arrows, colormap='turbo', name="arrows")      
             elif name == "U_target":
-               arrows2 = self.point_cloud.glyph(orient="U_target", scale="U_target_mag", factor=5)
-               plotter.add_mesh(arrows2, colormap='turbo', name="arrows2")   
-               plotter.update_scalar_bar_range(np.nanpercentile(self.point_cloud["U_target_mag"], [1, 99.9]))
+               arrows2 = self.point_cloud.glyph(orient="U_target", scale="U_target_mag",  \
+                                                # Automatically scale maximal force to 10% of axis length
+                                                factor= 0.1*norm_stack_size/np.nanmax(np.linalg.norm(self.M.U_target, axis=1)))   
+               plotter.add_mesh(arrows2, colormap='turbo', name="arrows2")    
             else:
-                arrows3 = self.point_cloud.glyph(orient=name, scale=name + "_mag", factor=5)
+                arrows3 = self.point_cloud.glyph(orient=name, scale=name + "_mag",  \
+                                                # Automatically scale maximal force to 10% of axis length
+                                                factor= 0.1*norm_stack_size/np.nanmax(np.linalg.norm(self.M.U, axis=1)))                     
                 plotter.add_mesh(arrows3, colormap='turbo', name="arrows3")
-                plotter.update_scalar_bar_range(np.nanpercentile(self.point_cloud["U_mag"], [1, 99.9]))
+                #plotter.update_scalar_bar_range(np.nanpercentile(self.point_cloud["U_mag"], [1, 99.9]))
             plotter.show_grid()
         print(names)
 
