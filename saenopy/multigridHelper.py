@@ -516,3 +516,13 @@ def getStress(M, lambd, stepper=0.066, rel_conv_crit=0.01, verbose=False, callba
     stress = -np.sum(M.f[right, 0][sum_region], axis=0) / A
     print("strain", lambd, "stress", stress, "duration", time.time() - t)
     return stress
+
+def getBorder(R):
+    minR = np.min(R, axis=0)
+    maxR = np.max(R, axis=0)
+    width = 0.5e-6
+    border = (R[:, 0] < minR[0] + width) | (R[:, 0] > maxR[0] - width) | \
+             (R[:, 1] < minR[1] + width) | (R[:, 1] > maxR[1] - width) | \
+             (R[:, 2] < minR[2] + width) | (R[:, 2] > maxR[2] - width)
+    return border
+                
