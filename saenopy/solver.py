@@ -1054,6 +1054,30 @@ class Solver:
 
         return MeshViewer(self.R, L, self.f, self.U, f1, f2)
 
+    def getCenter(self):
+        f = self.f
+        R = self.R
+        # B1 += self.R[c] * np.sum(f**2)
+        B1 = np.einsum("ni,ni,nj->j", f, f, R)
+        # B2 += f * (self.R[c] @ f)
+        B2 = np.einsum("ki,ki,kj->j", f, R, f)
+        # A += I * np.sum(f**2) - np.outer(f, f)
+        A = np.sum(np.einsum("ij,kl,kl->kij", np.eye(3), f, f) - np.einsum("ki,kj->kij", f, f), axis=0)
+        B = B1 - B2
+        Rcms = np.linalg.inv(A) @ B
+        return Rcms
+    
+    def getContractility(self):
+        f = self.f
+        R = self.R
+        # get center of force field
+        Rcms = self.getCenter()
+        R -= Rcms
+        #mag = np.linalg.norm(f, axis=1)
+        RR = R - Rcms
+        contractility = np.sum(np.einsum("ki,ki->k", RR, f) / np.linalg.norm(RR, axis=1))
+        return contractility
+
     def save(self, filename: str):
         parameters = ["R", "T", "U", "f", "U_fixed", "U_target", "f_target", "E_glo", "var", "regularisation_results"]
         if filename.endswith("h5"):
