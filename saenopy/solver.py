@@ -27,6 +27,7 @@ class Solver:
     U_fixed = None
     U_target = None
     U_target_mask = None
+    reg_mask = None
 
     f = None  # the global forces on each node, dimensions: N_c x 3
     f_target = None  # the external forces on each node, dimensions: N_c x 3
@@ -294,7 +295,7 @@ class Solver:
         Calculates the stiffness matrix K_ij, the force F_i and the energy E of each node.
         """
         t_start = time.time()
-        batchsize = 10000
+        batchsize = 1000
 
         self.E_glo = 0
         f_glo = np.zeros((self.N_T, 4, 3))
@@ -1110,7 +1111,7 @@ class Solver:
         return contractility
 
     def save(self, filename: str):
-        parameters = ["R", "T", "U", "f", "U_fixed", "U_target", "f_target", "E_glo", "var", "regularisation_results"]
+        parameters = ["R", "T", "U", "f", "U_fixed", "U_target", "f_target", "E_glo", "var", "regularisation_results", "reg_mask"]
         if filename.endswith("h5"):
             import h5py
             hf = h5py.File(filename, 'w')
