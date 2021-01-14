@@ -6,7 +6,7 @@ import os
 os.environ["QT_API"] = "pyqt5"
 
 from qtpy import QtCore, QtWidgets, QtGui
-
+from pathlib import Path
 import numpy as np
 
 import pyvista as pv
@@ -27,6 +27,12 @@ sys._excepthook = sys.excepthook
 sys.excepthook = lambda *args: sys._excepthook(*args)
 
 
+def pathParts(path):
+    if path.parent == path:
+        return [path]
+    return pathParts(path.parent) + [path]
+
+
 class MainWindow(QtWidgets.QMainWindow):
     vector_field = None
     scale = 1
@@ -44,7 +50,44 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # create the frame
         self.frame = QtWidgets.QFrame()
-        hlayout = QtWidgets.QHBoxLayout()
+        #self.setCentralWidget(self.frame)
+        hlayout = QtWidgets.QVBoxLayout(self.frame)
+        self.frame.setLayout(hlayout)
+
+        """ browser"""
+        self.fileBrowserWidget = QtWidgets.QWidget(self)
+        self.setCentralWidget(self.fileBrowserWidget)
+
+        self.dirmodel = QtWidgets.QFileSystemModel()
+        # Don't show files, just folders
+        # self.dirmodel.setFilter(QtCore.QDir.NoDotAndDotDot | QtCore.QDir.AllDirs)
+        self.dirmodel.setNameFilters(["*.npz"])
+        self.dirmodel.setNameFilterDisables(False)
+        self.folder_view = QtWidgets.QTreeView(parent=self)
+        self.folder_view.setModel(self.dirmodel)
+        self.folder_view.activated[QtCore.QModelIndex].connect(self.clicked)
+        #self.folder_view.selected[QtCore.QModelIndex].connect(self.clicked)
+
+        # Don't show columns for size, file type, and last modified
+        self.folder_view.setHeaderHidden(True)
+        self.folder_view.hideColumn(1)
+        self.folder_view.hideColumn(2)
+        self.folder_view.hideColumn(3)
+
+        self.selectionModel = self.folder_view.selectionModel()
+
+        splitter_filebrowser = QtWidgets.QSplitter()
+        splitter_filebrowser.addWidget(self.folder_view)
+        splitter_filebrowser.addWidget(self.frame)
+        splitter_filebrowser.setStretchFactor(0, 2)
+        splitter_filebrowser.setStretchFactor(1, 4)
+
+        hbox = QtWidgets.QHBoxLayout(self.fileBrowserWidget)
+        hbox.addWidget(splitter_filebrowser)
+        self.set_path(__file__)
+        """"""
+        #return
+
         vlayout = QtWidgets.QVBoxLayout()
         hlayout.addLayout(vlayout)
 
@@ -64,9 +107,6 @@ class MainWindow(QtWidgets.QMainWindow):
         self.plotter_layout.addWidget(self.plotter.interactor)
         vlayout.addLayout(self.plotter_layout)
 
-        self.frame.setLayout(hlayout)
-        self.setCentralWidget(self.frame)
-
         # simple menu to demo functions
         mainMenu = self.menuBar()
         fileMenu = mainMenu.addMenu('File')
@@ -81,6 +121,28 @@ class MainWindow(QtWidgets.QMainWindow):
         fileMenu.addAction(exitButton)
 
         self.setAcceptDrops(True)
+        print("show")
+
+    def set_path(self, path):
+        path = Path(path)
+        self.dirmodel.setRootPath(str(path.parent))
+        for path in pathParts(path.parent):
+            self.folder_view.expand(self.dirmodel.index(str(path)))
+
+    def clicked(self, index):
+        # get selected path of folder_view
+        index = self.selectionModel.currentIndex()
+        dir_path = self.dirmodel.filePath(index)
+        ###############################################
+        # Here's my problem: How do I set the dir_path
+        # for the file_view widget / the filemodel?
+        ###############################################
+        if dir_path.endswith(".npz"):
+            print("################# load", dir_path)
+            self.loadFile(dir_path)
+        return
+        self.filemodel.setRootPath(dir_path)
+        self.file_view.setRootIndex(self.filemodel.index(dir_path))
 
     def dragEnterEvent(self, event: QtGui.QDragEnterEvent):
         # accept url lists (files by drag and drop)
@@ -133,9 +195,16 @@ class MainWindow(QtWidgets.QMainWindow):
             vmin, vmax = np.nanpercentile(m, [1, 99.9])
             return np.clip((m-vmin)/(vmax-vmin), 0, 1)*(vmax-vmin)
 
+        R = self.M.R
+        minR = np.min(R, axis=0)
+        maxR = np.max(R, axis=0)
+        border = (R[:, 0] < minR[0] + 0.5e-6) | (R[:, 0] > maxR[0] - 0.5e-6) | \
+                 (R[:, 1] < minR[1] + 0.5e-6) | (R[:, 1] > maxR[1] - 0.5e-6) | \
+                 (R[:, 2] < minR[2] + 0.5e-6) | (R[:, 2] > maxR[2] - 0.5e-6)
+
         self.point_cloud = pv.PolyData(self.M.R)
-        self.point_cloud.point_arrays["f"] = -self.M.f
-        self.point_cloud["f_mag"] = np.linalg.norm(self.M.f, axis=1)
+        self.point_cloud.point_arrays["f"] = -self.M.f*~border[:, None]
+        self.point_cloud["f_mag"] = np.linalg.norm(self.M.f*~border[:, None], axis=1)
         self.point_cloud.point_arrays["U"] = self.M.U
         self.point_cloud["U_mag"] = np.linalg.norm(self.M.U, axis=1)
         self.point_cloud.point_arrays["U_target"] = self.M.U_target
@@ -179,28 +248,18 @@ class MainWindow(QtWidgets.QMainWindow):
         plotter = self.plotter
         for i, name in enumerate(names):
             plotter.subplot(i//plotter.shape[1], i%plotter.shape[1])
-            # scale plot with axis length later
-            norm_stack_size = np.abs(np.max(self.M.R)-np.min(self.M.R))
             if name == "stiffness":
                 if self.point_cloud2 is None:
                     self.calculateStiffness()
                 plotter.add_mesh(self.point_cloud2,  colormap="turbo", point_size=4., render_points_as_spheres=True)
                 plotter.update_scalar_bar_range(np.nanpercentile(self.point_cloud2["stiffness"], [50, 99.9]))
-            elif name == "f":   
-                arrows = self.point_cloud.glyph(orient="f", scale="f_mag", \
-                                                # Automatically scale maximal force to 15% of axis length
-                                                factor= 0.15*norm_stack_size/np.nanmax(np.linalg.norm(self.M.f, axis=1)))   
-                plotter.add_mesh(arrows, colormap='turbo', name="arrows")      
-            elif name == "U_target":
-               arrows2 = self.point_cloud.glyph(orient="U_target", scale="U_target_mag",  \
-                                                # Automatically scale maximal force to 10% of axis length
-                                                factor= 0.1*norm_stack_size/np.nanmax(np.linalg.norm(self.M.U_target, axis=1)))   
-               plotter.add_mesh(arrows2, colormap='turbo', name="arrows2")    
+            elif name == "f":
+                arrows = self.point_cloud.glyph(orient="f", scale="f_mag", factor=6e3)
+                plotter.add_mesh(arrows, colormap='turbo', name="arrows")
+                plotter.update_scalar_bar_range([0, 2.7e-9])
             else:
-                arrows3 = self.point_cloud.glyph(orient=name, scale=name + "_mag",  \
-                                                # Automatically scale maximal force to 10% of axis length
-                                                factor= 0.1*norm_stack_size/np.nanmax(np.linalg.norm(self.M.U, axis=1)))                     
-                plotter.add_mesh(arrows3, colormap='turbo', name="arrows3")
+                arrows = self.point_cloud.glyph(orient=name, scale=name + "_mag", factor=5)
+                plotter.add_mesh(arrows, colormap='turbo', name="arrows")
                 #plotter.update_scalar_bar_range(np.nanpercentile(self.point_cloud["U_mag"], [1, 99.9]))
             plotter.show_grid()
         print(names)
