@@ -1054,7 +1054,7 @@ class Solver:
 
         return MeshViewer(self.R, L, self.f, self.U, f1, f2)
 
-    def getCenter(self, mode="Force"):
+    def getCenter(self, mode="Deformation"):
         f = self.f
         R = self.R
         U = self.U  #_target
@@ -1068,7 +1068,7 @@ class Solver:
             B = B1 - B2
             #print (U,R)
             Rcms = np.linalg.inv(A) @ B
-        else:
+        else:   # calculate Force center if mode is not "Deformation"
             # B1 += self.R[c] * np.sum(f**2)
             B1 = np.einsum("ni,ni,nj->j", f, f, R)
             # B2 += f * (self.R[c] @ f)
@@ -1080,7 +1080,7 @@ class Solver:
             
         return Rcms
     
-    def getContractility(self, center_mode="Force", r_max = None):
+    def getContractility(self, center_mode="Deformation", r_max = None):
         f = self.f
         R = self.R
         
