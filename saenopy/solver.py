@@ -1080,11 +1080,18 @@ class Solver:
             
         return Rcms
     
-    def getContractility(self):
+    def getContractility(self, center_mode="Force", r_max = None):
         f = self.f
         R = self.R
+        
+        # if r_max specified only use forces within this distance for contractility
+        if r_max:  
+            inner = np.linalg.norm(self.R, axis=1) < r_max
+            f = self.f[inner]
+            R = self.R[inner]  
+            
         # get center of force field
-        Rcms = self.getCenter()
+        Rcms = self.getCenter(mode = center_mode)
         R -= Rcms
         #mag = np.linalg.norm(f, axis=1)
         RR = R - Rcms
