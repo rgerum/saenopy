@@ -96,7 +96,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.input_checks = {}
         for name in ["U_target", "U", "f", "stiffness"]:
-            input = QtShortCuts.QInputBool(layout_vert_plot, name, True)
+            input = QtShortCuts.QInputBool(layout_vert_plot, name, name != "stiffness")
             input.valueChanged.connect(self.replot)
             self.input_checks[name] = input
         layout_vert_plot.addStretch()
@@ -126,23 +126,20 @@ class MainWindow(QtWidgets.QMainWindow):
     def set_path(self, path):
         path = Path(path)
         self.dirmodel.setRootPath(str(path.parent))
-        for path in pathParts(path.parent):
-            self.folder_view.expand(self.dirmodel.index(str(path)))
+        for p in pathParts(path):
+            self.folder_view.expand(self.dirmodel.index(str(p)))
+        self.folder_view.setCurrentIndex(self.dirmodel.index(str(path)))
+        print("scroll to ", str(path), self.dirmodel.index(str(path)))
+        self.folder_view.scrollTo(self.dirmodel.index(str(path)))
 
     def clicked(self, index):
         # get selected path of folder_view
         index = self.selectionModel.currentIndex()
         dir_path = self.dirmodel.filePath(index)
-        ###############################################
-        # Here's my problem: How do I set the dir_path
-        # for the file_view widget / the filemodel?
-        ###############################################
+
         if dir_path.endswith(".npz"):
             print("################# load", dir_path)
             self.loadFile(dir_path)
-        return
-        self.filemodel.setRootPath(dir_path)
-        self.file_view.setRootIndex(self.filemodel.index(dir_path))
 
     def dragEnterEvent(self, event: QtGui.QDragEnterEvent):
         # accept url lists (files by drag and drop)
@@ -189,6 +186,7 @@ class MainWindow(QtWidgets.QMainWindow):
     plot_field = None
     def loadFile(self, filename):
         print("Loading", filename)
+        self.set_path(Path(filename))
         self.M = saenopy.load(filename)
 
         def scale(m):
@@ -248,19 +246,31 @@ class MainWindow(QtWidgets.QMainWindow):
         plotter = self.plotter
         for i, name in enumerate(names):
             plotter.subplot(i//plotter.shape[1], i%plotter.shape[1])
+            # scale plot with axis length later
+            norm_stack_size = np.abs(np.max(self.M.R)-np.min(self.M.R))
             if name == "stiffness":
                 if self.point_cloud2 is None:
                     self.calculateStiffness()
                 plotter.add_mesh(self.point_cloud2,  colormap="turbo", point_size=4., render_points_as_spheres=True)
                 plotter.update_scalar_bar_range(np.nanpercentile(self.point_cloud2["stiffness"], [50, 99.9]))
             elif name == "f":
-                arrows = self.point_cloud.glyph(orient="f", scale="f_mag", factor=6e3)
+                arrows = self.point_cloud.glyph(orient="f", scale="f_mag", \
+                                                # Automatically scale maximal force to 15% of axis length
+                                                factor=0.15 * norm_stack_size / np.nanmax(
+                                                    np.linalg.norm(self.M.f, axis=1)))
                 plotter.add_mesh(arrows, colormap='turbo', name="arrows")
-                plotter.update_scalar_bar_range([0, 2.7e-9])
+            elif name == "U_target":
+                arrows2 = self.point_cloud.glyph(orient="U_target", scale="U_target_mag", \
+                                                 # Automatically scale maximal force to 10% of axis length
+                                                 factor=0.1 * norm_stack_size / np.nanmax(
+                                                     np.linalg.norm(self.M.U_target, axis=1)))
+                plotter.add_mesh(arrows2, colormap='turbo', name="arrows2")
             else:
-                arrows = self.point_cloud.glyph(orient=name, scale=name + "_mag", factor=5)
-                plotter.add_mesh(arrows, colormap='turbo', name="arrows")
-                #plotter.update_scalar_bar_range(np.nanpercentile(self.point_cloud["U_mag"], [1, 99.9]))
+                arrows3 = self.point_cloud.glyph(orient=name, scale=name + "_mag", \
+                                                 # Automatically scale maximal force to 10% of axis length
+                                                 factor=0.1 * norm_stack_size / np.nanmax(
+                                                     np.linalg.norm(self.M.U, axis=1)))
+                plotter.add_mesh(arrows3, colormap='turbo', name="arrows3")
             plotter.show_grid()
         print(names)
 
