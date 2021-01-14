@@ -1054,17 +1054,30 @@ class Solver:
 
         return MeshViewer(self.R, L, self.f, self.U, f1, f2)
 
-    def getCenter(self):
+    def getCenter(self, mode="Force"):
         f = self.f
         R = self.R
-        # B1 += self.R[c] * np.sum(f**2)
-        B1 = np.einsum("ni,ni,nj->j", f, f, R)
-        # B2 += f * (self.R[c] @ f)
-        B2 = np.einsum("ki,ki,kj->j", f, R, f)
-        # A += I * np.sum(f**2) - np.outer(f, f)
-        A = np.sum(np.einsum("ij,kl,kl->kij", np.eye(3), f, f) - np.einsum("ki,kj->kij", f, f), axis=0)
-        B = B1 - B2
-        Rcms = np.linalg.inv(A) @ B
+        U = self.U  #_target
+        if mode == "Deformation":
+            # B1 += self.R[c] * np.sum(f**2)
+            B1 = np.einsum("ni,ni,nj->j", U, U, R)
+            # B2 += f * (self.R[c] @ f)
+            B2 = np.einsum("ki,ki,kj->j", U, R, U)
+            # A += I * np.sum(f**2) - np.outer(f, f)
+            A = np.sum(np.einsum("ij,kl,kl->kij", np.eye(3), U, U) - np.einsum("ki,kj->kij", U, U), axis=0)
+            B = B1 - B2
+            #print (U,R)
+            Rcms = np.linalg.inv(A) @ B
+        else:
+            # B1 += self.R[c] * np.sum(f**2)
+            B1 = np.einsum("ni,ni,nj->j", f, f, R)
+            # B2 += f * (self.R[c] @ f)
+            B2 = np.einsum("ki,ki,kj->j", f, R, f)
+            # A += I * np.sum(f**2) - np.outer(f, f)
+            A = np.sum(np.einsum("ij,kl,kl->kij", np.eye(3), f, f) - np.einsum("ki,kj->kij", f, f), axis=0)
+            B = B1 - B2
+            Rcms = np.linalg.inv(A) @ B
+            
         return Rcms
     
     def getContractility(self):
