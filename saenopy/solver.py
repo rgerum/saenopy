@@ -643,7 +643,7 @@ class Solver:
 
     def solve_regularized(self, stepper: float =0.33, solver_precision: float =1e-18, i_max: int = 100,
                           rel_conv_crit: float = 0.01, alpha: float = 3e9, method: str = "huber", relrecname: str = None,
-                          verbose: bool = False):
+                          verbose: bool = False, callback: callable = None):
         """
         Fit the provided displacements. Displacements can be provided with
         :py:meth:`~.Solver.setTargetDisplacements`.
@@ -672,6 +672,8 @@ class Solver:
             The filename where to store the output. Default is to not store the output, just to return it.
         verbose : bool, optional
             If true print status during optimisation
+        callback : callable, optional
+            A function to call after each iteration (e.g. for a live plot of the convergence)
         """
         # set the verbosity level
         self.verbose = verbose
@@ -717,6 +719,9 @@ class Solver:
 
             # log and store values (if a target file was provided)
             self._recordRegularizationStatus(relrec, alpha, relrecname)
+
+            if callback is not None:
+                callback(self, relrec)
 
             # if we have passed 6 iterations calculate average and std
             if i > 6:
@@ -1080,9 +1085,15 @@ class Solver:
             
         return Rcms
     
-    def getContractility(self, center_mode="Deformation", r_max = None):
+    def getContractility(self, center_mode="Deformation", r_max=None, border=None):
         f = self.f
         R = self.R
+
+        if self.reg_mask is not None:
+            f = self.f * self.reg_mask[:, None]
+
+        if border is not None:
+            f = self.f * ~border[:, None]
         
         # if r_max specified only use forces within this distance for contractility
         if r_max:  
@@ -1146,8 +1157,8 @@ class Solver:
         return point_cloud
 
     def plot(self, name="U", scale=None, vmin=None, vmax=None, cmap="turbo", export=None, camera_position=None, window_size=None, shape=None):
-        if getattr(self, "point_cloud", None) is None:
-            self.point_cloud = self.vtk()
+        #if getattr(self, "point_cloud", None) is None:
+        #    self.point_cloud = self.vtk()
 
         import pyvista as pv
         import matplotlib.pyplot as plt
