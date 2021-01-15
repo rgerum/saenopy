@@ -27,7 +27,6 @@ class Solver:
     U_fixed = None
     U_target = None
     U_target_mask = None
-    reg_mask = None
 
     f = None  # the global forces on each node, dimensions: N_c x 3
     f_target = None  # the external forces on each node, dimensions: N_c x 3
@@ -295,7 +294,7 @@ class Solver:
         Calculates the stiffness matrix K_ij, the force F_i and the energy E of each node.
         """
         t_start = time.time()
-        batchsize = 1000
+        batchsize = 10000
 
         self.E_glo = 0
         f_glo = np.zeros((self.N_T, 4, 3))
@@ -539,7 +538,7 @@ class Solver:
 
     """ regularization """
 
-    def setTargetDisplacements(self, displacement: np.ndarray, reg_mask: np.ndarray=None):
+    def setTargetDisplacements(self, displacement: np.ndarray):
         """
         Provide the displacements that should be fitted by the regularization.
 
@@ -554,21 +553,13 @@ class Solver:
         self.U_target = displacement
         # only use displacements that are not nan
         self.U_target_mask = np.any(~np.isnan(displacement), axis=1)
-        # regularisation mask
-        if reg_mask is not None:
-            assert reg_mask.shape == (self.N_c,)
-            assert reg_mask.dtype == bool
-            self.reg_mask = reg_mask
-        else:
-            self.reg_mask = np.ones_like(displacement[:, 0]).astype(np.bool)
 
     def _updateLocalRegularizationWeigth(self, method: str):
 
         self.localweight[:] = 1
 
         Fvalues = np.linalg.norm(self.f, axis=1)
-        #Fmedian = np.median(Fvalues[self.var])
-        Fmedian = np.median(Fvalues[self.var & self.reg_mask])
+        Fmedian = np.median(Fvalues[self.var])
 
         if method == "singlepoint":
             self.localweight[int(self.CFG["REG_FORCEPOINT"])] = 1.0e-10
@@ -577,8 +568,8 @@ class Solver:
             k = 4.685
 
             index = Fvalues < k * Fmedian
-            self.localweight[index * self.var] *= (1 - (Fvalues[index * self.var] / k / Fmedian) * (Fvalues[index * self.var] / k / Fmedian)) * (
-                    1 - (Fvalues[index * self.var] / k / Fmedian) * (Fvalues[index * self.var] / k / Fmedian))
+            self.localweight[index * self.var] *= (1 - (Fvalues / k / Fmedian) * (Fvalues / k / Fmedian)) * (
+                    1 - (Fvalues / k / Fmedian) * (Fvalues / k / Fmedian))
             self.localweight[~index * self.var] *= 1e-10
 
         if method == "cauchy":
@@ -597,8 +588,6 @@ class Solver:
 
         index = self.localweight < 1e-10
         self.localweight[index & self.var] = 1e-10
-
-        self.localweight[~self.reg_mask] = 0
 
         counter = np.sum(1.0 - self.localweight[self.var])
         counterall = np.sum(self.var)
@@ -644,7 +633,7 @@ class Solver:
 
     def solve_regularized(self, stepper: float =0.33, solver_precision: float =1e-18, i_max: int = 100,
                           rel_conv_crit: float = 0.01, alpha: float = 3e9, method: str = "huber", relrecname: str = None,
-                          verbose: bool = False, callback: callable = None):
+                          verbose: bool = False):
         """
         Fit the provided displacements. Displacements can be provided with
         :py:meth:`~.Solver.setTargetDisplacements`.
@@ -673,8 +662,6 @@ class Solver:
             The filename where to store the output. Default is to not store the output, just to return it.
         verbose : bool, optional
             If true print status during optimisation
-        callback : callable, optional
-            A function to call after each iteration (e.g. for a live plot of the convergence)
         """
         # set the verbosity level
         self.verbose = verbose
@@ -720,9 +707,6 @@ class Solver:
 
             # log and store values (if a target file was provided)
             self._recordRegularizationStatus(relrec, alpha, relrecname)
-
-            if callback is not None:
-                callback(self, relrec)
 
             # if we have passed 6 iterations calculate average and std
             if i > 6:
@@ -1060,58 +1044,8 @@ class Solver:
 
         return MeshViewer(self.R, L, self.f, self.U, f1, f2)
 
-    def getCenter(self, mode="Deformation"):
-        f = self.f
-        R = self.R
-        U = self.U  #_target
-        if mode == "Deformation":
-            # B1 += self.R[c] * np.sum(f**2)
-            B1 = np.einsum("ni,ni,nj->j", U, U, R)
-            # B2 += f * (self.R[c] @ f)
-            B2 = np.einsum("ki,ki,kj->j", U, R, U)
-            # A += I * np.sum(f**2) - np.outer(f, f)
-            A = np.sum(np.einsum("ij,kl,kl->kij", np.eye(3), U, U) - np.einsum("ki,kj->kij", U, U), axis=0)
-            B = B1 - B2
-            #print (U,R)
-            Rcms = np.linalg.inv(A) @ B
-        else:   # calculate Force center if mode is not "Deformation"
-            # B1 += self.R[c] * np.sum(f**2)
-            B1 = np.einsum("ni,ni,nj->j", f, f, R)
-            # B2 += f * (self.R[c] @ f)
-            B2 = np.einsum("ki,ki,kj->j", f, R, f)
-            # A += I * np.sum(f**2) - np.outer(f, f)
-            A = np.sum(np.einsum("ij,kl,kl->kij", np.eye(3), f, f) - np.einsum("ki,kj->kij", f, f), axis=0)
-            B = B1 - B2
-            Rcms = np.linalg.inv(A) @ B
-            
-        return Rcms
-    
-    def getContractility(self, center_mode="Deformation", r_max=None, border=None):  #self.reg_mask   
-        f = self.f
-        R = self.R
-
-        if self.reg_mask is not None:
-            f = self.f * self.reg_mask[:, None]
-
-        if border is not None:
-            f = self.f * ~border[:, None]
-        
-        # if r_max specified only use forces within this distance for contractility
-        if r_max:  
-            inner = np.linalg.norm(self.R, axis=1) < r_max
-            f = self.f[inner]
-            R = self.R[inner]  
-            
-        # get center of force field
-        Rcms = self.getCenter(mode = center_mode)
-        R -= Rcms
-        #mag = np.linalg.norm(f, axis=1)
-        RR = R - Rcms
-        contractility = np.sum(np.einsum("ki,ki->k", RR, f) / np.linalg.norm(RR, axis=1))
-        return contractility
-
     def save(self, filename: str):
-        parameters = ["R", "T", "U", "f", "U_fixed", "U_target", "f_target", "E_glo", "var", "regularisation_results", "reg_mask"]
+        parameters = ["R", "T", "U", "f", "U_fixed", "U_target", "f_target", "E_glo", "var", "regularisation_results"]
         if filename.endswith("h5"):
             import h5py
             hf = h5py.File(filename, 'w')
@@ -1128,62 +1062,6 @@ class Solver:
         data["type"] = self.__class__.__name__
 
         np.savez(filename, **data)
-        
-    
-    def forces_to_excel(self, output_folder=None, r_max=50e-6):
-        import pandas as pd
-        # Evaluate Force statistics and save to excel file in outpoutfolder if given
-        # initialize result dictionary
-        results = {'r_max':[], 
-                   'Strain_Energy': [],
-                   'Force_sum_abs': [], 
-                   'Force_sum_abs_rmax': [], 
-                   'Contractility': [],
-                   'Contractility_rmax': [], 
-                   'Center_x': [], 'Center_y': [], 'Center_z': [],
-                   'Median_Deformation': [], 'Maximal_Deformation': [], '99_Percentile_Deformation': [],
-                   'Median_Force': [], 'Maximal_Force': [], '99_Percentile_Force': [],  
-                  }
-        # fill values
-        inner = np.linalg.norm(self.R, axis=1) < r_max
-        results["r_max"].append(r_max)   
-        results["Strain_Energy"].append(self.E_glo)
-        results["Force_sum_abs"].append(np.nansum(np.linalg.norm(self.f,axis=1)))             # Exclude the border here ???     
-        results["Force_sum_abs_rmax"].append(np.nansum(np.linalg.norm(self.f[inner],axis=1)))
-        results["Contractility"].append(M.getContractility(center_mode="Deformation", border=self.reg_mask))
-        results["Contractility_rmax"].append(M.getContractility(center_mode="Deformation", border=self.reg_mask,r_max=r_max))
-        results["Center_x"].append(M.getCenter(mode="Deformation")[0])
-        results["Center_y"].append(M.getCenter(mode="Deformation")[1])
-        results["Center_z"].append(M.getCenter(mode="Deformation")[2])
-        results["Median_Deformation"].append(np.nanmedian(np.linalg.norm(self.U_target,axis=1)))      # Exclude the border here ???   
-        results["Maximal_Deformation"].append(np.nanmax(np.linalg.norm(self.U_target,axis=1)))         # Exclude the border here ???   
-        results["99_Percentile_Deformation"].append(np.nanpercentile(np.linalg.norm(self.U_target,axis=1),99))    # Exclude the border here ???   
-        results["Median_Force"].append(np.nanmedian(np.linalg.norm(self.f,axis=1)))         # Exclude the border here ???   
-        results["Maximal_Force"].append(np.nanmax(np.linalg.norm(self.f,axis=1)))         # Exclude the border here ???   
-        results["99_Percentile_Force"].append(np.nanpercentile(np.linalg.norm(self.f,axis=1),99))    # Exclude the border here ???   
-     
-    # save result.xlsx
-    if output_folder:
-        df = pd.DataFrame.from_dict(results)
-        df.to_excel(out_size5+"//"+out_size5+".xlsx")
-   
-    return results    
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-
-        
 
     def load(self, filename: str):
         data = np.load(filename, allow_pickle=True)
@@ -1214,8 +1092,8 @@ class Solver:
         return point_cloud
 
     def plot(self, name="U", scale=None, vmin=None, vmax=None, cmap="turbo", export=None, camera_position=None, window_size=None, shape=None):
-        #if getattr(self, "point_cloud", None) is None:
-        #    self.point_cloud = self.vtk()
+        if getattr(self, "point_cloud", None) is None:
+            self.point_cloud = self.vtk()
 
         import pyvista as pv
         import matplotlib.pyplot as plt
@@ -1240,8 +1118,7 @@ class Solver:
             point_cloud = pv.PolyData(self.R)
             point_cloud.point_arrays[n] = getattr(self, n)
             point_cloud.point_arrays[n+"_mag"] = np.linalg.norm(getattr(self, n), axis=1)
-           
-                
+
             # generate the arrows
             arrows = point_cloud.glyph(orient=n, scale=n+"_mag", factor=s)
             print(n, s)
@@ -1253,16 +1130,12 @@ class Solver:
                     cmap = "jet"
             # add the mesh
             plotter.add_mesh(point_cloud, colormap=cmap, scalars=n+"_mag")
-            # colorrange if specified
+            plotter.add_mesh(arrows, colormap=cmap, name="arrows")
+            # optionally set the value range
             if vmin is not None and vmax is not None:
-                plotter.add_mesh(arrows, colormap=cmap, name="arrows",clim=[vmin, vmax])
                 plotter.update_scalar_bar_range([vmin, vmax])
-            else:
-                plotter.add_mesh(arrows, colormap=cmap, name="arrows")
-           
-
             plotter.show_grid()
-
+        plotter.show()
         plotter.link_views()
         if camera_position is not None:
             plotter.camera_position = camera_position
