@@ -196,13 +196,17 @@ class MainWindow(QtWidgets.QMainWindow):
         R = self.M.R
         minR = np.min(R, axis=0)
         maxR = np.max(R, axis=0)
-        border = (R[:, 0] < minR[0] + 0.5e-6) | (R[:, 0] > maxR[0] - 0.5e-6) | \
-                 (R[:, 1] < minR[1] + 0.5e-6) | (R[:, 1] > maxR[1] - 0.5e-6) | \
-                 (R[:, 2] < minR[2] + 0.5e-6) | (R[:, 2] > maxR[2] - 0.5e-6)
+        
+        if self.M.reg_mask is None: 
+            border = (R[:, 0] < minR[0] + 0.5e-6) | (R[:, 0] > maxR[0] - 0.5e-6) | \
+                     (R[:, 1] < minR[1] + 0.5e-6) | (R[:, 1] > maxR[1] - 0.5e-6) | \
+                     (R[:, 2] < minR[2] + 0.5e-6) | (R[:, 2] > maxR[2] - 0.5e-6)
+            self.M.reg_mask = ~border 
+                 
 
         self.point_cloud = pv.PolyData(self.M.R)
-        self.point_cloud.point_arrays["f"] = -self.M.f*~border[:, None]
-        self.point_cloud["f_mag"] = np.linalg.norm(self.M.f*~border[:, None], axis=1)
+        self.point_cloud.point_arrays["f"] = -self.M.f*self.M.reg_mask[:, None]
+        self.point_cloud["f_mag"] = np.linalg.norm(self.M.f*self.M.reg_mask[:, None], axis=1)
         self.point_cloud.point_arrays["U"] = self.M.U
         self.point_cloud["U_mag"] = np.linalg.norm(self.M.U, axis=1)
         self.point_cloud.point_arrays["U_target"] = self.M.U_target
@@ -257,8 +261,10 @@ class MainWindow(QtWidgets.QMainWindow):
                 arrows = self.point_cloud.glyph(orient="f", scale="f_mag", \
                                                 # Automatically scale maximal force to 15% of axis length
                                                 factor=0.15 * norm_stack_size / np.nanmax(
-                                                    np.linalg.norm(self.M.f, axis=1)))
+                                                    np.linalg.norm(self.M.f*self.M.reg_mask[:,None], axis=1)))
                 plotter.add_mesh(arrows, colormap='turbo', name="arrows")
+
+                
             elif name == "U_target":
                 arrows2 = self.point_cloud.glyph(orient="U_target", scale="U_target_mag", \
                                                  # Automatically scale maximal force to 10% of axis length
@@ -271,6 +277,12 @@ class MainWindow(QtWidgets.QMainWindow):
                                                  factor=0.1 * norm_stack_size / np.nanmax(
                                                      np.linalg.norm(self.M.U, axis=1)))
                 plotter.add_mesh(arrows3, colormap='turbo', name="arrows3")
+                
+                # plot center points if desired
+                # plotter.add_points(np.array([self.M.getCenter(mode="Deformation")]), color='w')
+                # plotter.add_points(np.array([self.M.getCenter(mode="Force")]), color='y')
+               
+                
             plotter.show_grid()
         print(names)
 
