@@ -100,6 +100,9 @@ class MainWindow(QtWidgets.QMainWindow):
             input.valueChanged.connect(self.replot)
             self.input_checks[name] = input
         layout_vert_plot.addStretch()
+        self.button_export = QtWidgets.QPushButton("save image")
+        layout_vert_plot.addWidget(self.button_export)
+        self.button_export.clicked.connect(self.saveScreenshot)
 
         # add the pyvista interactor object
         self.plotter_layout = QtWidgets.QHBoxLayout()
@@ -288,6 +291,17 @@ class MainWindow(QtWidgets.QMainWindow):
 
         plotter.link_views()
         plotter.show()
+
+    def saveScreenshot(self):
+        new_path = QtWidgets.QFileDialog.getSaveFileName(self, "Save Image", os.getcwd(), "Image Files (*.jpg, *.png)")
+        # if we got one, set it
+        if new_path:
+            if isinstance(new_path, tuple):
+                new_path = new_path[0]
+            else:
+                new_path = str(new_path)
+            imageio.imsave(new_path, self.plotter.image)
+            print("saved", new_path)
 
 
 if __name__ == '__main__':

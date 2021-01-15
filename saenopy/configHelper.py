@@ -97,6 +97,8 @@ def loadDefaults():
     CFG["REG_RELREC"] = "relrec.dat"  # remove
     CFG["REG_SIGMAZ"] = 1.0
 
+    CFG["SCATTEREDRFOUND"] = False
+
     # loadStacks
     CFG["DRIFTCORRECTION"] = 1
     CFG["STACKA"] = ""
@@ -112,6 +114,7 @@ def loadDefaults():
     CFG["SAVEALLIGNEDSTACK"] = 0
     CFG["DRIFT_STEP"] = 2.0
     CFG["DRIFT_RANGE"] = 30.0
+    CFG["INITIALGUESS"] = ""
 
     # extractDeformation
     CFG["UGUESS"] = "Uguess.dat"
