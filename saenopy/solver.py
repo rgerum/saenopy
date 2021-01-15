@@ -1089,7 +1089,7 @@ class Solver:
             
         return Rcms
     
-    def getContractility(self, center_mode="Deformation", r_max=None, border=None):  #self.reg_mask   
+    def getContractility(self, center_mode="Deformation", r_max=None, border=None):
         f = self.f
         R = self.R
 
@@ -1131,62 +1131,45 @@ class Solver:
         data["type"] = self.__class__.__name__
 
         np.savez(filename, **data)
-        
     
-    def forces_to_excel(self, output_folder=None, r_max=50e-6):
-        import pandas as pd
-        # Evaluate Force statistics and save to excel file in outpoutfolder if given
-        # initialize result dictionary
-        results = {'r_max':[], 
-                   'Strain_Energy': [],
-                   'Force_sum_abs': [], 
-                   'Force_sum_abs_rmax': [], 
-                   'Contractility': [],
-                   'Contractility_rmax': [], 
-                   'Center_x': [], 'Center_y': [], 'Center_z': [],
-                   'Median_Deformation': [], 'Maximal_Deformation': [], '99_Percentile_Deformation': [],
-                   'Median_Force': [], 'Maximal_Force': [], '99_Percentile_Force': [],  
-                  }
-        # fill values
-        inner = np.linalg.norm(self.R, axis=1) < r_max
-        results["r_max"].append(r_max)   
-        results["Strain_Energy"].append(self.E_glo)
-        results["Force_sum_abs"].append(np.nansum(np.linalg.norm(self.f,axis=1)))             # Exclude the border here ???     
-        results["Force_sum_abs_rmax"].append(np.nansum(np.linalg.norm(self.f[inner],axis=1)))
-        results["Contractility"].append(M.getContractility(center_mode="Deformation", border=self.reg_mask))
-        results["Contractility_rmax"].append(M.getContractility(center_mode="Deformation", border=self.reg_mask,r_max=r_max))
-        results["Center_x"].append(M.getCenter(mode="Deformation")[0])
-        results["Center_y"].append(M.getCenter(mode="Deformation")[1])
-        results["Center_z"].append(M.getCenter(mode="Deformation")[2])
-        results["Median_Deformation"].append(np.nanmedian(np.linalg.norm(self.U_target,axis=1)))      # Exclude the border here ???   
-        results["Maximal_Deformation"].append(np.nanmax(np.linalg.norm(self.U_target,axis=1)))         # Exclude the border here ???   
-        results["99_Percentile_Deformation"].append(np.nanpercentile(np.linalg.norm(self.U_target,axis=1),99))    # Exclude the border here ???   
-        results["Median_Force"].append(np.nanmedian(np.linalg.norm(self.f,axis=1)))         # Exclude the border here ???   
-        results["Maximal_Force"].append(np.nanmax(np.linalg.norm(self.f,axis=1)))         # Exclude the border here ???   
-        results["99_Percentile_Force"].append(np.nanpercentile(np.linalg.norm(self.f,axis=1),99))    # Exclude the border here ???   
+    # def forces_to_excel(self, output_folder=None, r_max=50e-6):
+    #     import pandas as pd
+    #     # Evaluate Force statistics and save to excel file in outpoutfolder if given
+    #     # initialize result dictionary
+    #     results = {'r_max':[], 
+    #                'Strain_Energy': [],
+    #                'Force_sum_abs': [], 
+    #                'Force_sum_abs_rmax': [], 
+    #                'Contractility': [],
+    #                'Contractility_rmax': [], 
+    #                'Center_x': [], 'Center_y': [], 'Center_z': [],
+    #                'Median_Deformation': [], 'Maximal_Deformation': [], '99_Percentile_Deformation': [],
+    #                'Median_Force': [], 'Maximal_Force': [], '99_Percentile_Force': [],  
+    #               }
+    #     # fill values
+    #     inner = np.linalg.norm(self.R, axis=1) < r_max
+    #     results["r_max"].append(r_max)   
+    #     results["Strain_Energy"].append(self.E_glo)
+    #     results["Force_sum_abs"].append(np.nansum(np.linalg.norm(self.f,axis=1)))             # Exclude the border here ???     
+    #     results["Force_sum_abs_rmax"].append(np.nansum(np.linalg.norm(self.f[inner],axis=1)))
+    #     results["Contractility"].append(M.getContractility(center_mode="Deformation", border=self.reg_mask))
+    #     results["Contractility_rmax"].append(M.getContractility(center_mode="Deformation", border=self.reg_mask,r_max=r_max))
+    #     results["Center_x"].append(M.getCenter(mode="Deformation")[0])
+    #     results["Center_y"].append(M.getCenter(mode="Deformation")[1])
+    #     results["Center_z"].append(M.getCenter(mode="Deformation")[2])
+    #     results["Median_Deformation"].append(np.nanmedian(np.linalg.norm(self.U_target,axis=1)))      # Exclude the border here ???   
+    #     results["Maximal_Deformation"].append(np.nanmax(np.linalg.norm(self.U_target,axis=1)))         # Exclude the border here ???   
+    #     results["99_Percentile_Deformation"].append(np.nanpercentile(np.linalg.norm(self.U_target,axis=1),99))    # Exclude the border here ???   
+    #     results["Median_Force"].append(np.nanmedian(np.linalg.norm(self.f,axis=1)))         # Exclude the border here ???   
+    #     results["Maximal_Force"].append(np.nanmax(np.linalg.norm(self.f,axis=1)))         # Exclude the border here ???   
+    #     results["99_Percentile_Force"].append(np.nanpercentile(np.linalg.norm(self.f,axis=1),99))    # Exclude the border here ???   
      
-    # save result.xlsx
-    if output_folder:
-        df = pd.DataFrame.from_dict(results)
-        df.to_excel(out_size5+"//"+out_size5+".xlsx")
+    # # save result.xlsx
+    # if output_folder:
+    #     df = pd.DataFrame.from_dict(results)
+    #     df.to_excel(out_size5+"//"+out_size5+".xlsx")
    
-    return results    
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-
-        
+    # return results    
 
     def load(self, filename: str):
         data = np.load(filename, allow_pickle=True)
