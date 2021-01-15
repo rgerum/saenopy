@@ -298,7 +298,7 @@ def fit_error(xy, xy0, w=None):
     return np.sqrt(np.average(difference[indices]/np.nanmax(y0[indices]), weights=w[indices]))
 
 
-def get_cost_function(func, data_shear1, params, MaterialClass, x_sample=100, global_weight=1):
+def get_cost_function(func, data_shear1, params, MaterialClass, x_sample=100):
     # find a reasonable range of shear values
     x0 = data_shear1[:, 0]
     dx = x0[1] - x0[0]
@@ -312,7 +312,7 @@ def get_cost_function(func, data_shear1, params, MaterialClass, x_sample=100, gl
     def cost(p):
         material = MaterialClass(*params(p))
         # print(material)
-        return fit_error(func(gamma1, material), data_shear1, weights1)*global_weight
+        return fit_error(func(gamma1, material), data_shear1, weights1)
 
     def plot(p):
         def plot_me():
@@ -330,17 +330,13 @@ def get_cost_function(func, data_shear1, params, MaterialClass, x_sample=100, gl
 def minimize(cost_data: list, parameter_start: Sequence, method='Nelder-Mead', maxfev:int = 1e4, MaterialClass=SemiAffineFiberMaterial, x_sample=100, **kwargs):
     costs = []
     plots = []
-    
-    for input_data in cost_data:
-        if len(input_data) == 3:
-            input_data.append(1)
 
-    for func, data, params, weight in cost_data:
+    for func, data, params in cost_data:
         if func == getStretchThinning:
             def func(x, material):
                 lambda_v = np.arange(0, 1.1, 0.01)
                 return getStretchThinning(x, lambda_v, material)
-        c, p = get_cost_function(func, data, params, x_sample=x_sample, MaterialClass=MaterialClass, global_weight=weight)
+        c, p = get_cost_function(func, data, params, x_sample=x_sample, MaterialClass=MaterialClass)
         costs.append(c)
         plots.append(p)
 
@@ -362,7 +358,7 @@ def minimize(cost_data: list, parameter_start: Sequence, method='Nelder-Mead', m
     def plot_all():
         subplot_index = 0
         subplot_dict = {}
-        for func, data, params, weight in cost_data:
+        for func, data, params in cost_data:
             if func not in subplot_dict:
                 subplot_index += 1
                 subplot_dict[func] = subplot_index
@@ -376,8 +372,10 @@ def minimize(cost_data: list, parameter_start: Sequence, method='Nelder-Mead', m
                 plt.xlabel("horizontal stretch")
                 plt.ylabel("vertical contraction")
 
-        for (func, data, params, weights), p in zip(cost_data, plots):
+        for (func, data, params), p in zip(cost_data, plots):
             plt.sca(subplot_dict[func])
             p(sol.x)()
 
     return sol.x, plot_all
+	
+	
