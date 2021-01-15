@@ -1060,10 +1060,13 @@ class Solver:
 
         return MeshViewer(self.R, L, self.f, self.U, f1, f2)
 
-    def getCenter(self, mode="Deformation"):
+    def getCenter(self, mode="Deformation", border=None):
         f = self.f
         R = self.R
         U = self.U  #_target
+        if self.reg_mask is not None:
+            f = self.f * self.reg_mask[:, None]
+        
         if mode == "Deformation":
             # B1 += self.R[c] * np.sum(f**2)
             B1 = np.einsum("ni,ni,nj->j", U, U, R)
