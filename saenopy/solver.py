@@ -1111,19 +1111,23 @@ class Solver:
         if self.reg_mask is not None:
             f = self.f * self.reg_mask[:, None]
         
-        # if r_max specified only use forces within this distance for contractility
-        if r_max:  
-            inner = np.linalg.norm(self.R, axis=1) < r_max
-            f = self.f[inner]
-            R = self.R[inner]  
             
         # get center of force field
         Rcms = self.getCenter(mode=center_mode)
+        RR = R - Rcms
+       
+        #if r_max specified only use forces within this distance to cell for contractility
+        if r_max:  
+            inner = np.linalg.norm(RR, axis=1) < r_max
+            f = self.f[inner]
+            RR = RR[inner]  
+            
+        
 
         #mag = np.linalg.norm(f, axis=1)
-        RR = R - Rcms
+        
         RRnorm = RR / np.linalg.norm(RR, axis=1)[:, None]
-        contractility = np.sum(np.einsum("ki,ki->k", RRnorm, f))
+        contractility = np.nansum(np.einsum("ki,ki->k", RRnorm, f))
         return contractility
     
     
@@ -1134,19 +1138,18 @@ class Solver:
          if self.reg_mask is not None:
              f = self.f * self.reg_mask[:, None]
         
-         # if r_max specified only use forces within this distance for contractility
-         if r_max:  
-             inner = np.linalg.norm(self.R, axis=1) < r_max
-             f = self.f[inner]
-             R = self.R[inner]  
-            
          # get center of force field
          Rcms = self.getCenter(mode=center_mode)
-  
-         #mag = np.linalg.norm(f, axis=1)
          RR = R - Rcms
+       
+         #if r_max specified only use forces within this distance to cell for contractility
+         if r_max:  
+            inner = np.linalg.norm(RR, axis=1) < r_max
+            f = self.f[inner]
+            RR = RR[inner]  
+        
          RRnorm = RR / np.linalg.norm(RR, axis=1)[:, None]
-         anti_contractility = np.sum(np.linalg.norm(np.cross(RRnorm, f), axis=1))
+         anti_contractility = np.nansum(np.linalg.norm(np.cross(RRnorm, f), axis=1))
          return anti_contractility
      
     def getCentricity(self):
