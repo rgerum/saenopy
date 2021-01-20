@@ -1191,6 +1191,7 @@ class Solver:
                     'RMS_Deformation_per_node': [],
                   }
         
+        
         # fill values
         inner = np.linalg.norm(self.R, axis=1) < r_max
         results["r_max"].append(r_max)   
@@ -1210,7 +1211,7 @@ class Solver:
         results["Median_Force"].append(np.nanmedian(np.linalg.norm(self.f[self.reg_mask],axis=1)))        
         results["Maximal_Force"].append(np.nanmax(np.linalg.norm(self.f[self.reg_mask],axis=1)))         
         results["99_Percentile_Force"].append(np.nanpercentile(np.linalg.norm(self.f[self.reg_mask],axis=1),99))  
-        rms = np.sqrt(np.mean((self.U-self.U_target)**2))        
+        rms = np.sqrt(np.nanmean((self.U-self.U_target)**2))  
         results["RMS_Deformation_per_node"].append( rms / self.R.shape[0] )    
         # save result.xlsx
         if output_folder:
