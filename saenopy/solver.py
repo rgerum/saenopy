@@ -1182,16 +1182,13 @@ class Solver:
                     'Force_sum_abs': [], 
                     'Force_sum_abs_rmax': [], 
                     'Contractility': [],
-                    'Contractility_rmax': [], 
-
+                    'Contractility_rmax': [],                     
                     'Force_perpendicular': [],
-                    'Centricity': [],
-                   
-                    
-                    
+                    'Centricity': [],  
                     'Center_x': [], 'Center_y': [], 'Center_z': [],
                     'Median_Deformation': [], 'Maximal_Deformation': [], '99_Percentile_Deformation': [],
-                    'Median_Force': [], 'Maximal_Force': [], '99_Percentile_Force': [],  
+                    'Median_Force': [], 'Maximal_Force': [], '99_Percentile_Force': [], 
+                    'RMS_Deformation_per_node': [],
                   }
         
         # fill values
@@ -1212,7 +1209,9 @@ class Solver:
         results["99_Percentile_Deformation"].append(np.nanpercentile(np.linalg.norm(self.U_target[self.reg_mask],axis=1),99))    
         results["Median_Force"].append(np.nanmedian(np.linalg.norm(self.f[self.reg_mask],axis=1)))        
         results["Maximal_Force"].append(np.nanmax(np.linalg.norm(self.f[self.reg_mask],axis=1)))         
-        results["99_Percentile_Force"].append(np.nanpercentile(np.linalg.norm(self.f[self.reg_mask],axis=1),99))      
+        results["99_Percentile_Force"].append(np.nanpercentile(np.linalg.norm(self.f[self.reg_mask],axis=1),99))  
+        rms = np.sqrt(np.mean((self.U-self.U_target)**2))        
+        results["RMS_Deformation_per_node"].append( rms / self.R.shape[0] )    
         # save result.xlsx
         if output_folder:
             df = pd.DataFrame.from_dict(results)
