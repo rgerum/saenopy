@@ -1110,8 +1110,7 @@ class Solver:
 
         if self.reg_mask is not None:
             f = self.f * self.reg_mask[:, None]
-        
-            
+                  
         # get center of force field
         Rcms = self.getCenter(mode=center_mode)
         RR = R - Rcms
@@ -1119,10 +1118,8 @@ class Solver:
         #if r_max specified only use forces within this distance to cell for contractility
         if r_max:  
             inner = np.linalg.norm(RR, axis=1) < r_max
-            f = self.f[inner]
+            f = f[inner]
             RR = RR[inner]  
-            
-        
 
         #mag = np.linalg.norm(f, axis=1)
         
@@ -1145,7 +1142,7 @@ class Solver:
          #if r_max specified only use forces within this distance to cell for contractility
          if r_max:  
             inner = np.linalg.norm(RR, axis=1) < r_max
-            f = self.f[inner]
+            f = f[inner]
             RR = RR[inner]  
         
          RRnorm = RR / np.linalg.norm(RR, axis=1)[:, None]
