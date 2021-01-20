@@ -797,101 +797,101 @@ class Solver:
 
         self.computeEpsilon()
 
-    def contractility(R, f):
-        B = np.einsum("ni,ni,nj->j", f, f, R) - np.einsum("kj,ki,ki->j", f, R, f)
+    # def contractility(R, f):
+    #     B = np.einsum("ni,ni,nj->j", f, f, R) - np.einsum("kj,ki,ki->j", f, R, f)
 
-        A = np.sum(np.einsum("ij,kl,kl->kij", np.eye(3), f, f) - np.einsum("ki,kj->kij", f, f), axis=0)
+    #     A = np.sum(np.einsum("ij,kl,kl->kij", np.eye(3), f, f) - np.einsum("ki,kj->kij", f, f), axis=0)
 
-        Rcms = np.linalg.inv(A) @ B
+    #     Rcms = np.linalg.inv(A) @ B
 
-        RR = R - Rcms
-        contractility = np.sum(np.einsum("ki,ki->k", RR, f) / np.linalg.norm(RR, axis=1))
-        return contractility
+    #     RR = R - Rcms
+    #     contractility = np.sum(np.einsum("ki,ki->k", RR, f) / np.linalg.norm(RR, axis=1))
+    #     return contractility
 
-    def computeForceMoments(self, rmax):
-        results = {}
+    # def computeForceMoments(self, rmax):
+    #     results = {}
 
-        inner = np.linalg.norm(self.R, axis=1) < rmax
-        f = self.f[inner]
-        R = self.R[inner]
+    #     inner = np.linalg.norm(self.R, axis=1) < rmax
+    #     f = self.f[inner]
+    #     R = self.R[inner]
 
-        fsum = np.sum(f, axis=0)
+    #     fsum = np.sum(f, axis=0)
 
-        # B1 += self.R[c] * np.sum(f**2)
-        B1 = np.einsum("ni,ni,nj->j", f, f, R)
-        # B2 += f * (self.R[c] @ f)
-        B2 = np.einsum("ki,ki,kj->j", f, R, f)
+    #     # B1 += self.R[c] * np.sum(f**2)
+    #     B1 = np.einsum("ni,ni,nj->j", f, f, R)
+    #     # B2 += f * (self.R[c] @ f)
+    #     B2 = np.einsum("ki,ki,kj->j", f, R, f)
 
-        # A += I * np.sum(f**2) - np.outer(f, f)
-        A = np.sum(np.einsum("ij,kl,kl->kij", np.eye(3), f, f) - np.einsum("ki,kj->kij", f, f), axis=0)
+    #     # A += I * np.sum(f**2) - np.outer(f, f)
+    #     A = np.sum(np.einsum("ij,kl,kl->kij", np.eye(3), f, f) - np.einsum("ki,kj->kij", f, f), axis=0)
 
-        B = B1 - B2
+    #     B = B1 - B2
 
-        Rcms = np.linalg.inv(A) @ B
+    #     Rcms = np.linalg.inv(A) @ B
 
-        results["FSUM_X"] = fsum[0]
-        results["FSUM_Y"] = fsum[1]
-        results["FSUM_Z"] = fsum[2]
-        results["FSUMABS"] = np.linalg.norm(fsum)
+    #     results["FSUM_X"] = fsum[0]
+    #     results["FSUM_Y"] = fsum[1]
+    #     results["FSUM_Z"] = fsum[2]
+    #     results["FSUMABS"] = np.linalg.norm(fsum)
 
-        results["CMS_X"] = Rcms[0]
-        results["CMS_Y"] = Rcms[1]
-        results["CMS_Z"] = Rcms[2]
+    #     results["CMS_X"] = Rcms[0]
+    #     results["CMS_Y"] = Rcms[1]
+    #     results["CMS_Z"] = Rcms[2]
 
-        RR = R - Rcms
-        contractility = np.sum(np.einsum("ki,ki->k", RR, f) / np.linalg.norm(RR, axis=1))
+    #     RR = R - Rcms
+    #     contractility = np.sum(np.einsum("ki,ki->k", RR, f) / np.linalg.norm(RR, axis=1))
 
-        results["CONTRACTILITY"] = contractility
+    #     results["CONTRACTILITY"] = contractility
 
-        vecs = buildBeams(150)
+    #     vecs = buildBeams(150)
 
-        eR = RR / np.linalg.norm(RR, axis=1)[:, None]
-        f = self.f[inner]
+    #     eR = RR / np.linalg.norm(RR, axis=1)[:, None]
+    #     f = self.f[inner]
 
-        # (eR @ vecs[b]) * (vecs[b] @ self.f_glo[c])
-        ff = np.sum(np.einsum("ni,bi->nb", eR, vecs) * np.einsum("bi,ni->nb", vecs, f), axis=0)
-        # (RR @ vecs[b]) * (vecs[b] @ self.f_glo[c])
-        mm = np.sum(np.einsum("ni,bi->nb", RR, vecs) * np.einsum("bi,ni->nb", vecs, f), axis=0)
+    #     # (eR @ vecs[b]) * (vecs[b] @ self.f_glo[c])
+    #     ff = np.sum(np.einsum("ni,bi->nb", eR, vecs) * np.einsum("bi,ni->nb", vecs, f), axis=0)
+    #     # (RR @ vecs[b]) * (vecs[b] @ self.f_glo[c])
+    #     mm = np.sum(np.einsum("ni,bi->nb", RR, vecs) * np.einsum("bi,ni->nb", vecs, f), axis=0)
 
-        bmax = np.argmax(mm)
-        fmax = ff[bmax]
-        mmax = mm[bmax]
+    #     bmax = np.argmax(mm)
+    #     fmax = ff[bmax]
+    #     mmax = mm[bmax]
 
-        bmin = np.argmin(mm)
-        fmin = ff[bmin]
-        mmin = mm[bmin]
+    #     bmin = np.argmin(mm)
+    #     fmin = ff[bmin]
+    #     mmin = mm[bmin]
 
-        vmid = np.cross(vecs[bmax], vecs[bmin])
-        vmid = vmid / np.linalg.norm(vmid)
+    #     vmid = np.cross(vecs[bmax], vecs[bmin])
+    #     vmid = vmid / np.linalg.norm(vmid)
 
-        # (eR @ vmid) * (vmid @ self.f_glo[c])
-        fmid = np.sum(np.einsum("ni,i->n", eR, vmid) * np.einsum("i,ni->n", vmid, f), axis=0)
-        # (RR @ vmid) * (vmid @ self.f_glo[c])
-        mmid = np.sum(np.einsum("ni,i->n", RR, vmid) * np.einsum("i,ni->n", vmid, f), axis=0)
+    #     # (eR @ vmid) * (vmid @ self.f_glo[c])
+    #     fmid = np.sum(np.einsum("ni,i->n", eR, vmid) * np.einsum("i,ni->n", vmid, f), axis=0)
+    #     # (RR @ vmid) * (vmid @ self.f_glo[c])
+    #     mmid = np.sum(np.einsum("ni,i->n", RR, vmid) * np.einsum("i,ni->n", vmid, f), axis=0)
 
-        results["FMAX"] = fmax
-        results["MMAX"] = mmax
-        results["VMAX_X"] = vecs[bmax][0]
-        results["VMAX_Y"] = vecs[bmax][1]
-        results["VMAX_Z"] = vecs[bmax][2]
+    #     results["FMAX"] = fmax
+    #     results["MMAX"] = mmax
+    #     results["VMAX_X"] = vecs[bmax][0]
+    #     results["VMAX_Y"] = vecs[bmax][1]
+    #     results["VMAX_Z"] = vecs[bmax][2]
 
-        results["FMID"] = fmid
-        results["MMID"] = mmid
-        results["VMID_X"] = vmid[0]
-        results["VMID_Y"] = vmid[1]
-        results["VMID_Z"] = vmid[2]
+    #     results["FMID"] = fmid
+    #     results["MMID"] = mmid
+    #     results["VMID_X"] = vmid[0]
+    #     results["VMID_Y"] = vmid[1]
+    #     results["VMID_Z"] = vmid[2]
 
-        results["FMIN"] = fmin
-        results["MMIN"] = mmin
-        results["VMIN_X"] = vecs[bmin][0]
-        results["VMIN_Y"] = vecs[bmin][1]
-        results["VMIN_Z"] = vecs[bmin][2]
+    #     results["FMIN"] = fmin
+    #     results["MMIN"] = mmin
+    #     results["VMIN_X"] = vecs[bmin][0]
+    #     results["VMIN_Y"] = vecs[bmin][1]
+    #     results["VMIN_Z"] = vecs[bmin][2]
 
-        results["E_GLO"] = self.E_glo
+    #     results["E_GLO"] = self.E_glo
 
-        results["POLARITY"] = fmax / contractility
+    #     results["POLARITY"] = fmax / contractility
 
-        return results
+    #     return results
 
     def storePrincipalStressAndStiffness(self, sbname, sbminname, epkname):
         return # TODO
@@ -1089,6 +1089,21 @@ class Solver:
             
         return Rcms
     
+    def getParrallelAndPerpendicularForces(self):
+        # Plot perpendicular forces only
+        f = self.M.f
+        R = self.M.R  
+        if self.M.reg_mask is not None:
+            f = self.M.f * self.M.reg_mask[:, None]                   
+        # get center of force field
+        Rcms = self.M.getCenter(mode="deformations")
+        RR = R - Rcms
+        RRnorm = RR/ np.linalg.norm(RR, axis=1)[:,None]
+        fnorm = f / np.linalg.norm(f, axis=1)[:,None]
+        f2 = np.sum(RRnorm * fnorm, axis=1)[:,None] * f
+        f3 = np.cross(RRnorm, f)
+        return f2, f3
+
     def getContractility(self, center_mode="Deformation", r_max=None):
         f = self.f
         R = self.R
@@ -1103,12 +1118,41 @@ class Solver:
             R = self.R[inner]  
             
         # get center of force field
-        Rcms = self.getCenter(mode = center_mode)
-        R -= Rcms
+        Rcms = self.getCenter(mode=center_mode)
+
         #mag = np.linalg.norm(f, axis=1)
         RR = R - Rcms
-        contractility = np.sum(np.einsum("ki,ki->k", RR, f) / np.linalg.norm(RR, axis=1))
+        RRnorm = RR / np.linalg.norm(RR, axis=1)
+        contractility = np.sum(np.einsum("ki,ki->k", RRnorm, f))
         return contractility
+    
+    
+    def getPerpendicularForces(self, center_mode="Deformation", r_max=None):
+         f = self.f
+         R = self.R
+
+         if self.reg_mask is not None:
+             f = self.f * self.reg_mask[:, None]
+        
+         # if r_max specified only use forces within this distance for contractility
+         if r_max:  
+             inner = np.linalg.norm(self.R, axis=1) < r_max
+             f = self.f[inner]
+             R = self.R[inner]  
+            
+         # get center of force field
+         Rcms = self.getCenter(mode=center_mode)
+  
+         #mag = np.linalg.norm(f, axis=1)
+         RR = R - Rcms
+         RRnorm = RR / np.linalg.norm(RR, axis=1)
+         anti_contractility = np.sum(np.linalg.norm(np.cross(RRnorm, f), axis=1))
+         return anti_contractility
+     
+    def getCentricity(self):
+         # ration between forces towards cell center and perpendicular forces
+         Centricity = self.getContractility(center_mode="Deformation") / self.getPerpendicularForces(center_mode="Deformation") 
+         return Centricity
 
     def save(self, filename: str):
         parameters = ["R", "T", "U", "f", "U_fixed", "U_target", "f_target", "E_glo", "var", "regularisation_results", "reg_mask"]
