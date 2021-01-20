@@ -1091,12 +1091,12 @@ class Solver:
     
     def getParrallelAndPerpendicularForces(self):
         # Plot perpendicular forces only
-        f = self.M.f
-        R = self.M.R  
-        if self.M.reg_mask is not None:
-            f = self.M.f * self.M.reg_mask[:, None]                   
+        f = self.f
+        R = self.R  
+        if self.reg_mask is not None:
+            f = self.f * self.reg_mask[:, None]                   
         # get center of force field
-        Rcms = self.M.getCenter(mode="deformations")
+        Rcms = self.getCenter(mode="deformations")
         RR = R - Rcms
         RRnorm = RR/ np.linalg.norm(RR, axis=1)[:,None]
         fnorm = f / np.linalg.norm(f, axis=1)[:,None]
@@ -1122,7 +1122,7 @@ class Solver:
 
         #mag = np.linalg.norm(f, axis=1)
         RR = R - Rcms
-        RRnorm = RR / np.linalg.norm(RR, axis=1)
+        RRnorm = RR / np.linalg.norm(RR, axis=1)[:, None]
         contractility = np.sum(np.einsum("ki,ki->k", RRnorm, f))
         return contractility
     
@@ -1145,7 +1145,7 @@ class Solver:
   
          #mag = np.linalg.norm(f, axis=1)
          RR = R - Rcms
-         RRnorm = RR / np.linalg.norm(RR, axis=1)
+         RRnorm = RR / np.linalg.norm(RR, axis=1)[:, None]
          anti_contractility = np.sum(np.linalg.norm(np.cross(RRnorm, f), axis=1))
          return anti_contractility
      
@@ -1183,6 +1183,12 @@ class Solver:
                     'Force_sum_abs_rmax': [], 
                     'Contractility': [],
                     'Contractility_rmax': [], 
+
+                    'Force_perpendicular': [],
+                    'Centricity': [],
+                   
+                    
+                    
                     'Center_x': [], 'Center_y': [], 'Center_z': [],
                     'Median_Deformation': [], 'Maximal_Deformation': [], '99_Percentile_Deformation': [],
                     'Median_Force': [], 'Maximal_Force': [], '99_Percentile_Force': [],  
@@ -1196,6 +1202,8 @@ class Solver:
         results["Force_sum_abs_rmax"].append(np.nansum(np.linalg.norm(self.f[self.reg_mask & inner],axis=1)))
         results["Contractility"].append(self.getContractility(center_mode="Deformation"))
         results["Contractility_rmax"].append(self.getContractility(center_mode="Deformation",r_max=r_max))
+        results["Force_perpendicular"].append(self.getPerpendicularForces(center_mode="Deformation"))
+        results["Centricity"].append(self.getCentricity())  
         results["Center_x"].append(self.getCenter(mode="Deformation")[0])
         results["Center_y"].append(self.getCenter(mode="Deformation")[1])
         results["Center_z"].append(self.getCenter(mode="Deformation")[2])
