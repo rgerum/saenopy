@@ -275,8 +275,8 @@ class MainWindow(QtWidgets.QMainWindow):
                                                      np.linalg.norm(self.M.U_target, axis=1)))
                 plotter.add_mesh(arrows2, colormap='turbo', name="arrows2")
             else:
-                if self.M.U_target is not None:
-                    arrows3 = self.point_cloud.glyph(orient=name, scale=name + "_mag", \
+                if self.M.U_target is not None:                         
+                    arrows3 = self.point_cloud.glyph(orient=name, scale= name + "_mag", \
                                                  # Automatically scale maximal force to 10% of axis length
                                                  factor=0.1 * norm_stack_size / np.nanmax(
                                                      np.linalg.norm(self.M.U_target, axis=1)))
