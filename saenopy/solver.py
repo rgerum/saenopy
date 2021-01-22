@@ -1060,7 +1060,7 @@ class Solver:
 
         return MeshViewer(self.R, L, self.f, self.U, f1, f2)
 
-    def getCenter(self, mode="Deformation", border=None):
+    def getCenter(self, mode="Force", border=None):
         f = self.f
         R = self.R
         U = self.U 
@@ -1104,7 +1104,7 @@ class Solver:
         f3 = np.cross(RRnorm, f)
         return f2, f3
 
-    def getContractility(self, center_mode="Deformation", r_max=None):
+    def getContractility(self, center_mode="Force", r_max=None):
         f = self.f
         R = self.R
 
@@ -1128,7 +1128,7 @@ class Solver:
         return contractility
     
     
-    def getPerpendicularForces(self, center_mode="Deformation", r_max=None):
+    def getPerpendicularForces(self, center_mode="Force", r_max=None):
          f = self.f
          R = self.R
 
@@ -1149,9 +1149,9 @@ class Solver:
          anti_contractility = np.nansum(np.linalg.norm(np.cross(RRnorm, f), axis=1))
          return anti_contractility
      
-    def getCentricity(self):
+    def getCentricity(self, center_mode = "Force"):
          # ration between forces towards cell center and perpendicular forces
-         Centricity = self.getContractility(center_mode="Deformation") / self.getPerpendicularForces(center_mode="Deformation") 
+         Centricity = self.getContractility(center_mode=center_mode) / self.getPerpendicularForces(center_mode=center_mode) 
          return Centricity
 
     def save(self, filename: str):
@@ -1173,7 +1173,7 @@ class Solver:
 
         np.savez(filename, **data)
     
-    def forces_to_excel(self, output_folder=None, name="results.xlsx", r_max=50e-6):
+    def forces_to_excel(self, output_folder=None, name="results.xlsx", r_max=50e-6, center_mode = "Force"):
         import pandas as pd
         # Evaluate Force statistics and save to excel file in outpoutfolder if given
         # initialize result dictionary
@@ -1198,13 +1198,13 @@ class Solver:
         results["Strain_Energy"].append(self.E_glo)
         results["Force_sum_abs"].append(np.nansum(np.linalg.norm(self.f[self.reg_mask],axis=1)))             
         results["Force_sum_abs_rmax"].append(np.nansum(np.linalg.norm(self.f[self.reg_mask & inner],axis=1)))
-        results["Contractility"].append(self.getContractility(center_mode="Deformation"))
-        results["Contractility_rmax"].append(self.getContractility(center_mode="Deformation",r_max=r_max))
-        results["Force_perpendicular"].append(self.getPerpendicularForces(center_mode="Deformation"))
+        results["Contractility"].append(self.getContractility(center_mode=center_mode))
+        results["Contractility_rmax"].append(self.getContractility(center_mode=center_mode,r_max=r_max))
+        results["Force_perpendicular"].append(self.getPerpendicularForces(center_mode=center_mode))
         results["Centricity"].append(self.getCentricity())  
-        results["Center_x"].append(self.getCenter(mode="Deformation")[0])
-        results["Center_y"].append(self.getCenter(mode="Deformation")[1])
-        results["Center_z"].append(self.getCenter(mode="Deformation")[2])
+        results["Center_x"].append(self.getCenter(mode=center_mode)[0])
+        results["Center_y"].append(self.getCenter(mode=center_mode)[1])
+        results["Center_z"].append(self.getCenter(mode=center_mode)[2])
         results["Median_Deformation"].append(np.nanmedian(np.linalg.norm(self.U_target[self.reg_mask],axis=1)))     
         results["Maximal_Deformation"].append(np.nanmax(np.linalg.norm(self.U_target[self.reg_mask],axis=1)))       
         results["99_Percentile_Deformation"].append(np.nanpercentile(np.linalg.norm(self.U_target[self.reg_mask],axis=1),99))    
