@@ -1060,14 +1060,14 @@ class Solver:
 
         return MeshViewer(self.R, L, self.f, self.U, f1, f2)
 
-    def getCenter(self, mode="Force", border=None):
+    def getCenter(self, mode="force", border=None):
         f = self.f
         R = self.R
         U = self.U 
         if self.reg_mask is not None:
             f = self.f * self.reg_mask[:, None]
         
-        if mode == "Deformation":
+        if mode.lower() == "deformation":
             # B1 += self.R[c] * np.sum(f**2)
             B1 = np.einsum("ni,ni,nj->j", U, U, R)
             # B2 += f * (self.R[c] @ f)
@@ -1096,7 +1096,7 @@ class Solver:
         if self.reg_mask is not None:
             f = self.f * self.reg_mask[:, None]                   
         # get center of force field
-        Rcms = self.getCenter(mode="deformations")
+        Rcms = self.getCenter(mode="force")
         RR = R - Rcms
         RRnorm = RR/ np.linalg.norm(RR, axis=1)[:,None]
         fnorm = f / np.linalg.norm(f, axis=1)[:,None]
@@ -1104,7 +1104,7 @@ class Solver:
         f3 = np.cross(RRnorm, f)
         return f2, f3
 
-    def getContractility(self, center_mode="Force", r_max=None):
+    def getContractility(self, center_mode="force", r_max=None):
         f = self.f
         R = self.R
 
@@ -1128,7 +1128,7 @@ class Solver:
         return contractility
     
     
-    def getPerpendicularForces(self, center_mode="Force", r_max=None):
+    def getPerpendicularForces(self, center_mode="force", r_max=None):
          f = self.f
          R = self.R
 
@@ -1149,7 +1149,7 @@ class Solver:
          anti_contractility = np.nansum(np.linalg.norm(np.cross(RRnorm, f), axis=1))
          return anti_contractility
      
-    def getCentricity(self, center_mode = "Force"):
+    def getCentricity(self, center_mode = "force"):
          # ration between forces towards cell center and perpendicular forces
          Centricity = self.getContractility(center_mode=center_mode) / self.getPerpendicularForces(center_mode=center_mode) 
          return Centricity
@@ -1173,7 +1173,7 @@ class Solver:
 
         np.savez(filename, **data)
     
-    def forces_to_excel(self, output_folder=None, name="results.xlsx", r_max=50e-6, center_mode = "Force"):
+    def forces_to_excel(self, output_folder=None, name="results.xlsx", r_max=50e-6, center_mode = "force"):
         import pandas as pd
         # Evaluate Force statistics and save to excel file in outpoutfolder if given
         # initialize result dictionary
@@ -1218,9 +1218,6 @@ class Solver:
             df = pd.DataFrame.from_dict(results)
             df.to_excel(os.path.join(output_folder,name))  
         return results    
-
-
-
 
 
 
