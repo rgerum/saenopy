@@ -1127,6 +1127,25 @@ class Solver:
         contractility = np.nansum(np.einsum("ki,ki->k", RRnorm, f))
         return contractility
     
+    def getContractilityDeformations(self, center_mode="deformation", r_max=None):
+           u = self.U_target
+           R = self.R
+
+           # get center of force field
+           Rcms = self.getCenter(mode=center_mode)
+           RR = R - Rcms
+          
+           #if r_max specified only use forces within this distance to cell for contractility
+           if r_max:  
+               inner = np.linalg.norm(RR, axis=1) < r_max
+               u = u[inner]
+               RR = RR[inner]  
+ 
+           RRnorm = RR / np.linalg.norm(RR, axis=1)[:, None]
+           # * -1 since deformations are opposed to forces 
+           contractility = -1 *  np.nansum(np.einsum("ki,ki->k", RRnorm, u))
+           return contractility
+    
     
     def getPerpendicularForces(self, center_mode="force", r_max=None):
          f = self.f
@@ -1149,10 +1168,34 @@ class Solver:
          anti_contractility = np.nansum(np.linalg.norm(np.cross(RRnorm, f), axis=1))
          return anti_contractility
      
+    def getPerpendicularDeformations(self, center_mode="deformation", r_max=None):
+         u = self.U_target
+         R = self.R
+
+         # get center of force field
+         Rcms = self.getCenter(mode=center_mode)
+         RR = R - Rcms
+       
+         #if r_max specified only use forces within this distance to cell for contractility
+         if r_max:  
+            inner = np.linalg.norm(RR, axis=1) < r_max
+            u = u[inner]
+            RR = RR[inner]  
+        
+         RRnorm = RR / np.linalg.norm(RR, axis=1)[:, None]
+         anti_contractility = np.nansum(np.linalg.norm(np.cross(RRnorm, u), axis=1))
+         return anti_contractility
+     
     def getCentricity(self, center_mode = "force"):
          # ration between forces towards cell center and perpendicular forces
          Centricity = self.getContractility(center_mode=center_mode) / self.getPerpendicularForces(center_mode=center_mode) 
          return Centricity
+     
+    def getCentricityDeformations(self, center_mode = "deformation"):
+         # ration between forces towards cell center and perpendicular forces
+         Centricity = self.getContractilityDeformations(center_mode=center_mode) / self.getPerpendicularDeformations(center_mode=center_mode) 
+         return Centricity
+
 
     def save(self, filename: str):
         parameters = ["R", "T", "U", "f", "U_fixed", "U_target", "f_target", "E_glo", "var", "regularisation_results", "reg_mask"]
@@ -1182,13 +1225,14 @@ class Solver:
                     'Force_sum_abs': [], 
                     'Force_sum_abs_rmax': [], 
                     'Contractility': [],
-                    'Contractility_rmax': [],                     
+                    'Contractility_rmax': [],     
                     'Force_perpendicular': [],
-                    'Centricity': [],  
+                    'Centricity': [], 
+                    'Centricity_deformations': [],
                     'Center_x': [], 'Center_y': [], 'Center_z': [],
                     'Median_Deformation': [], 'Maximal_Deformation': [], '99_Percentile_Deformation': [],
                     'Median_Force': [], 'Maximal_Force': [], '99_Percentile_Force': [], 
-                    'RMS_Deformation_per_node': [],
+                    'RMS_Deformation_per_node': [],  'Contractility_deformations': []
                   }
         
         
@@ -1202,6 +1246,8 @@ class Solver:
         results["Contractility_rmax"].append(self.getContractility(center_mode=center_mode,r_max=r_max))
         results["Force_perpendicular"].append(self.getPerpendicularForces(center_mode=center_mode))
         results["Centricity"].append(self.getCentricity())  
+        results["Centricity_deformations"].append(self.getCentricityDeformations())
+        results["Contractility_deformations"].append(self.getContractilityDeformations())    
         results["Center_x"].append(self.getCenter(mode=center_mode)[0])
         results["Center_y"].append(self.getCenter(mode=center_mode)[1])
         results["Center_z"].append(self.getCenter(mode=center_mode)[2])

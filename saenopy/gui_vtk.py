@@ -295,10 +295,9 @@ class MainWindow(QtWidgets.QMainWindow):
                     plotter.update_scalar_bar_range(np.nanpercentile(self.point_cloud["U_mag"], [50, 99.9]))
                 
                 
-                
                 # plot center points if desired
-                # plotter.add_points(np.array([self.M.getCenter(mode="Deformation")]), color='w')
-                # plotter.add_points(np.array([self.M.getCenter(mode="Force")]), color='r')
+                plotter.add_points(np.array([self.M.getCenter(mode="Deformation")]), color='w')
+                plotter.add_points(np.array([self.M.getCenter(mode="Force")]), color='r')
                
                 
             plotter.show_grid()
