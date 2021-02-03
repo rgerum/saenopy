@@ -296,8 +296,8 @@ class MainWindow(QtWidgets.QMainWindow):
                 
                 
                 # plot center points if desired
-                plotter.add_points(np.array([self.M.getCenter(mode="Deformation")]), color='w')
-                plotter.add_points(np.array([self.M.getCenter(mode="Force")]), color='r')
+                # plotter.add_points(np.array([self.M.getCenter(mode="Deformation")]), color='w')
+                # plotter.add_points(np.array([self.M.getCenter(mode="Force")]), color='r')
                
                 
             plotter.show_grid()
