@@ -1186,14 +1186,14 @@ class Solver:
          anti_contractility = np.nansum(np.linalg.norm(np.cross(RRnorm, u), axis=1))
          return anti_contractility
      
-    def getCentricity(self, center_mode = "force"):
+    def getCentricity(self, center_mode = "force", r_max=None):
          # ration between forces towards cell center and perpendicular forces
-         Centricity = self.getContractility(center_mode=center_mode) / self.getPerpendicularForces(center_mode=center_mode) 
+         Centricity = self.getContractility(center_mode=center_mode, r_max=r_max) / self.getPerpendicularForces(center_mode=center_mode, r_max=r_max) 
          return Centricity
      
-    def getCentricityDeformations(self, center_mode = "deformation"):
+    def getCentricityDeformations(self, center_mode = "deformation", r_max=None):
          # ration between forces towards cell center and perpendicular forces
-         Centricity = self.getContractilityDeformations(center_mode=center_mode) / self.getPerpendicularDeformations(center_mode=center_mode) 
+         Centricity = self.getContractilityDeformations(center_mode=center_mode, r_max=r_max) / self.getPerpendicularDeformations(center_mode=center_mode, r_max=r_max) 
          return Centricity
 
 
@@ -1216,19 +1216,21 @@ class Solver:
 
         np.savez(filename, **data)
     
-    def forces_to_excel(self, output_folder=None, name="results.xlsx", r_max=50e-6, center_mode = "force"):
+    def forces_to_excel(self, output_folder=None, name="results.xlsx", r_max=25e-6, center_mode = "force"):
         import pandas as pd
         # Evaluate Force statistics and save to excel file in outpoutfolder if given
         # initialize result dictionary
-        results = {'r_max':[], 
+        results = { 'r_max':[], 
+                    'center_mode':[], 
                     'Strain_Energy': [],
                     'Force_sum_abs': [], 
                     'Force_sum_abs_rmax': [], 
                     'Contractility': [],
                     'Contractility_rmax': [],     
                     'Force_perpendicular': [],
-                    'Centricity': [], 
+                    'Centricity_force': [], 
                     'Centricity_deformations': [],
+                    'Centricity_deformations_rmax': [],
                     'Center_x': [], 'Center_y': [], 'Center_z': [],
                     'Median_Deformation': [], 'Maximal_Deformation': [], '99_Percentile_Deformation': [],
                     'Median_Force': [], 'Maximal_Force': [], '99_Percentile_Force': [], 
@@ -1239,15 +1241,17 @@ class Solver:
         # fill values
         inner = np.linalg.norm(self.R, axis=1) < r_max
         results["r_max"].append(r_max)   
+        results["center_mode"].append(center_mode) 
         results["Strain_Energy"].append(self.E_glo)
         results["Force_sum_abs"].append(np.nansum(np.linalg.norm(self.f[self.reg_mask],axis=1)))             
         results["Force_sum_abs_rmax"].append(np.nansum(np.linalg.norm(self.f[self.reg_mask & inner],axis=1)))
         results["Contractility"].append(self.getContractility(center_mode=center_mode))
         results["Contractility_rmax"].append(self.getContractility(center_mode=center_mode,r_max=r_max))
         results["Force_perpendicular"].append(self.getPerpendicularForces(center_mode=center_mode))
-        results["Centricity"].append(self.getCentricity())  
-        results["Centricity_deformations"].append(self.getCentricityDeformations())
-        results["Contractility_deformations"].append(self.getContractilityDeformations())    
+        results["Centricity_force"].append(self.getCentricity(center_mode=center_mode))  
+        results["Centricity_deformations"].append(self.getCentricityDeformations(center_mode=center_mode))
+        results["Centricity_deformations_rmax"].append(self.getCentricityDeformations(r_max=r_max,center_mode=center_mode))        
+        results["Contractility_deformations"].append(self.getContractilityDeformations(center_mode=center_mode))    
         results["Center_x"].append(self.getCenter(mode=center_mode)[0])
         results["Center_y"].append(self.getCenter(mode=center_mode)[1])
         results["Center_z"].append(self.getCenter(mode=center_mode)[2])
