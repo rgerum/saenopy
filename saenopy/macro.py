@@ -129,7 +129,7 @@ def getShearRheometerStress(gamma: np.ndarray, material: Material, s: np.ndarray
 
     F = np.eye(3)
     F = np.tile(F, (gamma.shape[0], 1, 1))
-    F[:, 0, 1] = np.tan(gamma)
+    F[:, 0, 1] = gamma
 
     s_bar = F @ s.T
 
