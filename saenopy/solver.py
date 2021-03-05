@@ -1234,8 +1234,9 @@ class Solver:
                     'Center_x': [], 'Center_y': [], 'Center_z': [],
                     'Median_Deformation': [], 'Maximal_Deformation': [], '99_Percentile_Deformation': [],
                     'Median_Force': [], 'Maximal_Force': [], '99_Percentile_Force': [], 
-                    'RMS_Deformation_per_node': [],'RMS_Deformation': [], 'RMS_Deformation_percentage_99percentile': [],
-                    'RMS_Deformation_percentage': [],  'Contractility_deformations': []
+                    'RMS_Deformation_per_node': [],'RMS_Deformation': [], 'RMS_Deformation_normed': [],
+                    'RMS_deformation_normed_top1percent': [],  'Contractility_deformations': [], 
+                    'Iterations': [], 
                   }
         
         
@@ -1250,8 +1251,8 @@ class Solver:
         results["Contractility_rmax"].append(self.getContractility(center_mode=center_mode,r_max=r_max))
         results["Force_perpendicular"].append(self.getPerpendicularForces(center_mode=center_mode))
         results["Centricity_force"].append(self.getCentricity(center_mode=center_mode))  
-        results["Centricity_deformations"].append(self.getCentricityDeformations(center_mode="deformation"))
-        results["Centricity_deformations_rmax"].append(self.getCentricityDeformations(r_max=r_max,center_mode="deformation"))        
+        results["Centricity_deformations"].append(self.getCentricityDeformations(center_mode=center_mode))
+        results["Centricity_deformations_rmax"].append(self.getCentricityDeformations(r_max=r_max,center_mode=center_mode))        
         results["Contractility_deformations"].append(self.getContractilityDeformations(center_mode=center_mode))    
         results["Center_x"].append(self.getCenter(mode=center_mode)[0])
         results["Center_y"].append(self.getCenter(mode=center_mode)[1])
@@ -1269,12 +1270,15 @@ class Solver:
         results["RMS_Deformation_per_node"].append( rms / self.R.shape[0] ) 
         rms_percentage = np.sqrt(np.nanmean((self.U[self.reg_mask] -  self.U_target[self.reg_mask] ) **2)) / \
                   np.nanpercentile(np.linalg.norm(self.U_target[self.reg_mask],axis=1),99)                                                           
-        results["RMS_Deformation_percentage"].append( rms_percentage )  
+        results["RMS_Deformation_normed"].append( rms_percentage )  
         mask = (self.U_target[self.reg_mask] > np.nanpercentile(np.linalg.norm(self.U_target[self.reg_mask],axis=1),99))
         rms_percentage_99percentile = np.sqrt(np.nanmean((self.U[self.reg_mask][mask] -  self.U_target[self.reg_mask][mask] ) **2)) / \
                   np.nanmax(np.abs(self.U_target[self.reg_mask][mask] ))      
-        results["RMS_Deformation_percentage_99percentile"].append( rms_percentage_99percentile )  
- 
+        results["RMS_deformation_normed_top1percent"].append( rms_percentage_99percentile )  
+        # regularization steps
+        number_iterations = len(self.regularisation_results)
+        results["Iterations"].append(number_iterations)
+
         # save result.xlsx
         if output_folder:
             df = pd.DataFrame.from_dict(results)
