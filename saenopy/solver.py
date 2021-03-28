@@ -1103,7 +1103,46 @@ class Solver:
         f2 = np.sum(RRnorm * fnorm, axis=1)[:,None] * f
         f3 = np.cross(RRnorm, f)
         return f2, f3
-
+    
+    def force_ratio_inner_to_outer(self, width_outer = 14e-6):
+        """
+        Divides the Cubus in an outer and inner part, where the outer part
+        is defined as everything closer than width_outer (default ist 14 um) 
+        to the edge of the stack. 
+        
+        Then computes the ratio of the mean forces in the inner part divided by
+        the mean forces within the outer part.
+        
+        This ratio can be used to distinguish Drift from pulling cells. 
+        A pulling cell will have a high ratio (meaning higher forces in the inner part) 
+        whereas drift/rotation often shows high values at the edges (outer part).
+        
+        """
+       
+        f = self.f
+        R = self.R
+        # exclude counter forces
+        if self.reg_mask is not None:
+            f = self.f * self.reg_mask[:, None]  
+        # mask the data points in the outer layer (closer to the outer border than
+        # width_outer and for the inner shell the remaining inner volume
+        outer_layer =  (abs(R[:,0])> abs(R[:,0]).max()-width_outer)\
+                        & (abs(R[:,1])> abs(R[:,1]).max()-width_outer)\
+                        & (abs(R[:,2])> abs(R[:,2]).max()-width_outer) 
+    
+        # mask the regions
+        f_inner = f[~outer_layer]
+        f_outer = f[outer_layer]
+     
+        # compute the mean forces of each layer
+        mean_abs_f_inner = np.nanmean(np.linalg.norm(f_inner,axis=1))
+        mean_abs_f_outer = np.nanmean(np.linalg.norm(f_outer,axis=1))
+        #print (mean_abs_f_inner,mean_abs_f_outer)
+        ratio = mean_abs_f_inner / mean_abs_f_outer
+        print (ratio)
+        return ratio
+    
+    
     def getContractility(self, center_mode="force", r_max=None):
         f = self.f
         R = self.R
