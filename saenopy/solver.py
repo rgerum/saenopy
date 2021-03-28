@@ -1127,6 +1127,37 @@ class Solver:
         contractility = np.nansum(np.einsum("ki,ki->k", RRnorm, f))
         return contractility
     
+    
+    def max_defo_projection(self): 
+        # perform a maximal deformation z-projection to the deformation field
+        # input is the solver object, output ist projection in the 
+        # form [x,y,dx,dy] for a quiver plot
+           
+        # go through the z planes in the image and append x,y,dx,dy to a list
+        slide = []
+        for z in np.unique(self.R[:,2]):
+            mask = (self.R[:,2] == z)
+            x = (self.R[mask][:,0])
+            y = (self.R[mask][:,1]) 
+            dx = self.U_target[mask][:,0]
+            dy = self.U_target[mask][:,1]
+            slide.append ([x,y,dx,dy])
+        slide = np.array(slide)
+        # maximum deformation z projection of our deformatin fields
+        proj_dx, proj_dy = [],[]
+        for xycord in range(len(slide[0][0])) :   
+            # find at which z index we have the largest deformation
+            deformation_z = np.sqrt(slide[:,2,xycord]**2+slide[:,3,xycord]**2)
+            index_max = np.where(deformation_z==np.nanmax(deformation_z))[0][0] 
+            #append this value to list
+            proj_dx.append(slide[:,2,xycord][index_max])
+            proj_dy.append(slide[:,3,xycord][index_max])
+        # our final projection , just take xy indici from the first slide (since these are equal for all slices anyway..)    
+        projection =  [slide[0][0],slide[0][1],proj_dx,proj_dy]
+        return projection
+    
+    
+    
     def getContractilityDeformations(self, center_mode="deformation", r_max=None):
            u = self.U_target
            R = self.R
@@ -1195,7 +1226,7 @@ class Solver:
          # ration between forces towards cell center and perpendicular forces
          Centricity = self.getContractilityDeformations(center_mode=center_mode, r_max=r_max) / self.getPerpendicularDeformations(center_mode=center_mode, r_max=r_max) 
          return Centricity
-
+     
 
     def save(self, filename: str):
         parameters = ["R", "T", "U", "f", "U_fixed", "U_target", "f_target", "E_glo", "var", "regularisation_results", "reg_mask"]
