@@ -1128,7 +1128,7 @@ class Solver:
         return contractility
     
     
-    def max_defo_projection(self): 
+    def max_deformation_projection(self): 
         # perform a maximal deformation z-projection to the deformation field
         # input is the solver object, output ist projection in the 
         # form [x,y,dx,dy] for a quiver plot
