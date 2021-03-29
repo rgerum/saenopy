@@ -1104,19 +1104,19 @@ class Solver:
         f3 = np.cross(RRnorm, f)
         return f2, f3
     
-    def force_ratio_inner_to_outer(self, width_outer = 14e-6):
+def force_ratio_inner_to_outer(self, width_outer = 14e-6):
         """
         Divides the Cubus in an outer and inner part, where the outer part
         is defined as everything closer than width_outer (default ist 14 um) 
         to the edge of the stack. 
         
-        Then computes the ratio of the mean forces in the inner part divided by
-        the mean forces within the outer part.
+        Then computes the ratio of the mean forces in the outer part divided by
+        the mean forces within the inner part.
         
         This ratio can be used to distinguish Drift from pulling cells. 
-        A pulling cell will have a high ratio (meaning higher forces in the inner part) 
-        whereas drift/rotation often shows high values at the edges (outer part).
-        
+        A pulling cell will have a lower ratio (meaning higher forces in the inner part) 
+        whereas drift/rotation often shows high forces at the edges (outer part) and
+        therfore has a higher value.  
         """
        
         f = self.f
@@ -1138,9 +1138,10 @@ class Solver:
         mean_abs_f_inner = np.nanmean(np.linalg.norm(f_inner,axis=1))
         mean_abs_f_outer = np.nanmean(np.linalg.norm(f_outer,axis=1))
         #print (mean_abs_f_inner,mean_abs_f_outer)
-        ratio = mean_abs_f_inner / mean_abs_f_outer
+        ratio =  mean_abs_f_outer / mean_abs_f_inner
         print (ratio)
         return ratio
+        
     
     
     def getContractility(self, center_mode="force", r_max=None):
@@ -1165,6 +1166,107 @@ class Solver:
         RRnorm = RR / np.linalg.norm(RR, axis=1)[:, None]
         contractility = np.nansum(np.einsum("ki,ki->k", RRnorm, f))
         return contractility
+    
+        
+    def getContractilityUnbiasedEpicenter(self,  r_max=None):   
+        """
+        Computes a contractilty value, that uses an unbiased center approach.
+        Instsead of computing the center from all force vectors, which will bias the 
+        the location (as a result of optimization), here we split the image stack into +x,-x halfspaces
+        +y,-y halfspaces and +z,-z halfspaces around the intitially found center.
+        Then we compute the center of the force vectors within this halfsphere and
+        compute the contractility of the force components in the opposing halfspacce
+        onto this center (e.g. -x halfspace values uses the center from +x halfsphere).
+        We then add up the derived contractility values from -x and +x components (same for -+y and -+z) 
+        and  compute the final unbiased contractilty as mean value of all 3 dimension.
+         
+        returns the unbiased contractility value
+        """    
+        
+        ### first get the initial center of the whole force field withe 
+        ## the biased Center method
+        f = self.f
+        R = self.R
+        if self.reg_mask is not None:
+            f = self.f * self.reg_mask[:, None]       
+        # get center of complete force field and set as origin
+        Rcms_all = self.getCenter(mode="Force")
+        RR = R - Rcms_all
+        #if r_max specified only use forces within this distance to cell for contractility
+        if r_max:  
+            inner = np.linalg.norm(RR, axis=1) < r_max
+            f = f[inner]
+            RR = RR[inner]  
+        RRnorm = RR / np.linalg.norm(RR, axis=1)[:, None]
+        contractility = np.nansum(np.einsum("ki,ki->k", RRnorm, f))
+        print ("Contractility (Biased): "+str(contractility))
+        
+        
+        # UNBIASED EPICENTER
+        # create new solver object for subvolumes and mask only the forces in that area
+        subvolume_minus_x,subvolume_plus_x = Solver(),Solver()  
+        subvolume_minus_y,subvolume_plus_y =  Solver(),Solver()  
+        subvolume_minus_z,subvolume_plus_z =  Solver(),Solver() 
+        
+        ### now fill all empty solvers with identical data frrom original solver
+        subvolumes = [subvolume_minus_x,subvolume_plus_x,
+                      subvolume_minus_y,subvolume_plus_y,
+                      subvolume_minus_z,subvolume_plus_z]
+    
+        for sub in subvolumes:
+            sub.f = self.f.copy()
+            sub.R = self.R.copy()
+            sub.reg_mask = self.reg_mask.copy()
+        
+        ### select only the forces in the certain subvolumes
+        subvolume_minus_x.f[RR[:,0]>0] = 0       
+        subvolume_plus_x.f[RR[:,0]<0] =  0       
+        subvolume_minus_y.f[RR[:,1]>0] = 0        
+        subvolume_plus_y.f[RR[:,1]<0] = 0         
+        subvolume_minus_z.f[RR[:,2]>0] = 0        
+        subvolume_plus_z.f[RR[:,2]<0] = 0         
+        
+        ### get center of all individual subvolumes
+        center_subs = []
+        # do same getCenter calculation for each individual subvolume
+        for sub in subvolumes:
+            if sub.reg_mask is not None:
+                f_sub = sub.f * sub.reg_mask[:, None]         
+            # get center of complete force field and set as origin
+            center_subs.append(sub.getCenter(mode="Force"))
+        
+        #### switch the order to compare +x cube with -x center; same for all coordinated
+        center_subs_unbiased = [center_subs[1],center_subs[0],
+                                center_subs[3],center_subs[2],
+                                center_subs[5],center_subs[4]]
+    
+        
+        ### now compute contractility for all subvolumes with the unbiased center
+        subvalues = []
+        # do same Contractility calculation for each subvolume with theopposing center
+        for n,sub in enumerate(subvolumes):
+            if sub.reg_mask is not None:
+                f_sub = sub.f * sub.reg_mask[:, None]            
+            # get center of complete force field and set as origin
+            RR_sub = R - center_subs_unbiased[n]
+            #if r_max specified only use forces within this distance to cell for contractility
+            if r_max:  
+                inner = np.linalg.norm(RR_sub, axis=1) < r_max
+                f_sub = f_sub[inner]
+                RR_sub = RR_sub[inner]  
+            # contactility for each subvolume
+            RRnorm_sub = RR_sub / np.linalg.norm(RR_sub, axis=1)[:, None]
+            contractility = np.nansum(np.einsum("ki,ki->k", RRnorm_sub, f_sub ))   
+            subvalues.append(contractility)
+        ### now add up both x components, both y components and both z components    
+        Contractility_components = [subvalues[0]+subvalues[1],
+                                    subvalues[2]+subvalues[3],
+                                    subvalues[4]+subvalues[5]]
+        # print (Contractility_components)
+        # Mean Vaule of all three dimension as final unbiased Contractility
+        Contractility_unbiased_epicenter = np.nanmean(Contractility_components)
+        print ("Contractility (Unbiased): "+str(Contractility_unbiased_epicenter))
+        return Contractility_unbiased_epicenter
     
     
     def max_deformation_projection(self): 
@@ -1286,7 +1388,7 @@ class Solver:
 
         np.savez(filename, **data)
     
-    def forces_to_excel(self, output_folder=None, name="results.xlsx", r_max=25e-6, center_mode = "force"):
+    def forces_to_excel(self, output_folder=None, name="results.xlsx", r_max=25e-6, center_mode = "force", width_for_ratio_inner_outer = 14e-6):
         import pandas as pd
         # Evaluate Force statistics and save to excel file in outpoutfolder if given
         # initialize result dictionary
@@ -1296,6 +1398,8 @@ class Solver:
                     'Force_sum_abs': [], 
                     'Force_sum_abs_rmax': [], 
                     'Contractility': [],
+                    'Contractility_unbiased': [],
+                    'force_ratio_inner_to_outer': [],
                     'Contractility_rmax': [],     
                     'Force_perpendicular': [],
                     'Centricity_force': [], 
@@ -1318,6 +1422,8 @@ class Solver:
         results["Force_sum_abs"].append(np.nansum(np.linalg.norm(self.f[self.reg_mask],axis=1)))             
         results["Force_sum_abs_rmax"].append(np.nansum(np.linalg.norm(self.f[self.reg_mask & inner],axis=1)))
         results["Contractility"].append(self.getContractility(center_mode=center_mode))
+        results["Contractility_unbiased"].append(self.getContractilityUnbiasedEpicenter())
+        results["force_ratio_inner_to_outer"].append(self.force_ratio_inner_to_outer(width_outer = width_for_ratio_inner_outer))   
         results["Contractility_rmax"].append(self.getContractility(center_mode=center_mode,r_max=r_max))
         results["Force_perpendicular"].append(self.getPerpendicularForces(center_mode=center_mode))
         results["Centricity_force"].append(self.getCentricity(center_mode=center_mode))  
@@ -1418,7 +1524,7 @@ class Solver:
             arrows = point_cloud.glyph(orient=n, scale=n+"_mag", factor=s)
             print(n, s)
             # select the colormap, if "turbo" should be used but is not defined, use "jet" instead
-            if cmap is "turbo":
+            if cmap == "turbo":
                 try:
                     cmap = plt.get_cmap(cmap)
                 except ValueError:
