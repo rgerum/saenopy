@@ -1104,7 +1104,7 @@ class Solver:
         f3 = np.cross(RRnorm, f)
         return f2, f3
     
-def force_ratio_inner_to_outer(self, width_outer = 14e-6):
+    def force_ratio_inner_to_outer(self, width_outer = 14e-6):
         """
         Divides the Cubus in an outer and inner part, where the outer part
         is defined as everything closer than width_outer (default ist 14 um) 
@@ -1182,7 +1182,7 @@ def force_ratio_inner_to_outer(self, width_outer = 14e-6):
          
         returns the unbiased contractility value
         """    
-        
+       
         ### first get the initial center of the whole force field withe 
         ## the biased Center method
         f = self.f
@@ -1200,72 +1200,78 @@ def force_ratio_inner_to_outer(self, width_outer = 14e-6):
         RRnorm = RR / np.linalg.norm(RR, axis=1)[:, None]
         contractility = np.nansum(np.einsum("ki,ki->k", RRnorm, f))
         print ("Contractility (Biased): "+str(contractility))
+        try:       
+            # UNBIASED EPICENTER
+            # create new solver object for subvolumes and mask only the forces in that area
+            subvolume_minus_x,subvolume_plus_x = Solver(),Solver()  
+            subvolume_minus_y,subvolume_plus_y =  Solver(),Solver()  
+            subvolume_minus_z,subvolume_plus_z =  Solver(),Solver() 
+            
+            ### now fill all empty solvers with identical data frrom original solver
+            subvolumes = [subvolume_minus_x,subvolume_plus_x,
+                          subvolume_minus_y,subvolume_plus_y,
+                          subvolume_minus_z,subvolume_plus_z]
+        
+            for sub in subvolumes:
+                sub.f = self.f.copy()
+                sub.R = self.R.copy()
+                sub.reg_mask = self.reg_mask.copy()
+            
+            ### select only the forces in the certain subvolumes
+            subvolume_minus_x.f[RR[:,0]>0] = 0       
+            subvolume_plus_x.f[RR[:,0]<0] =  0       
+            subvolume_minus_y.f[RR[:,1]>0] = 0        
+            subvolume_plus_y.f[RR[:,1]<0] = 0         
+            subvolume_minus_z.f[RR[:,2]>0] = 0        
+            subvolume_plus_z.f[RR[:,2]<0] = 0         
+            
+            ### get center of all individual subvolumes
+            center_subs = []
+            # do same getCenter calculation for each individual subvolume
+            for sub in subvolumes:
+                if sub.reg_mask is not None:
+                    f_sub = sub.f * sub.reg_mask[:, None]         
+                # get center of complete force field and set as origin
+                center_subs.append(sub.getCenter(mode="Force"))
+            
+            #### switch the order to compare +x cube with -x center; same for all coordinated
+            center_subs_unbiased = [center_subs[1],center_subs[0],
+                                    center_subs[3],center_subs[2],
+                                    center_subs[5],center_subs[4]]
+        
+            
+            ### now compute contractility for all subvolumes with the unbiased center
+            subvalues = []
+            # do same Contractility calculation for each subvolume with theopposing center
+            for n,sub in enumerate(subvolumes):
+                if sub.reg_mask is not None:
+                    f_sub = sub.f * sub.reg_mask[:, None]            
+                # get center of complete force field and set as origin
+                RR_sub = R - center_subs_unbiased[n]
+                #if r_max specified only use forces within this distance to cell for contractility
+                if r_max:  
+                    inner = np.linalg.norm(RR_sub, axis=1) < r_max
+                    f_sub = f_sub[inner]
+                    RR_sub = RR_sub[inner]  
+                # contactility for each subvolume
+                RRnorm_sub = RR_sub / np.linalg.norm(RR_sub, axis=1)[:, None]
+                contractility = np.nansum(np.einsum("ki,ki->k", RRnorm_sub, f_sub ))   
+                subvalues.append(contractility)
+            ### now add up both x components, both y components and both z components    
+            Contractility_components = [subvalues[0]+subvalues[1],
+                                        subvalues[2]+subvalues[3],
+                                        subvalues[4]+subvalues[5]]
+            # print (Contractility_components)
+            # Mean Vaule of all three dimension as final unbiased Contractility
+            Contractility_unbiased_epicenter = np.nanmean(Contractility_components)
+            print ("Contractility (Unbiased): "+str(Contractility_unbiased_epicenter))
+        ## if not enough data points to compute the center in the subvolumes we
+        ## go back to the contractility of the whole stack
+        ## think of np.nan here... ?
+        except:
+            Contractility_unbiased_epicenter = contractility
         
         
-        # UNBIASED EPICENTER
-        # create new solver object for subvolumes and mask only the forces in that area
-        subvolume_minus_x,subvolume_plus_x = Solver(),Solver()  
-        subvolume_minus_y,subvolume_plus_y =  Solver(),Solver()  
-        subvolume_minus_z,subvolume_plus_z =  Solver(),Solver() 
-        
-        ### now fill all empty solvers with identical data frrom original solver
-        subvolumes = [subvolume_minus_x,subvolume_plus_x,
-                      subvolume_minus_y,subvolume_plus_y,
-                      subvolume_minus_z,subvolume_plus_z]
-    
-        for sub in subvolumes:
-            sub.f = self.f.copy()
-            sub.R = self.R.copy()
-            sub.reg_mask = self.reg_mask.copy()
-        
-        ### select only the forces in the certain subvolumes
-        subvolume_minus_x.f[RR[:,0]>0] = 0       
-        subvolume_plus_x.f[RR[:,0]<0] =  0       
-        subvolume_minus_y.f[RR[:,1]>0] = 0        
-        subvolume_plus_y.f[RR[:,1]<0] = 0         
-        subvolume_minus_z.f[RR[:,2]>0] = 0        
-        subvolume_plus_z.f[RR[:,2]<0] = 0         
-        
-        ### get center of all individual subvolumes
-        center_subs = []
-        # do same getCenter calculation for each individual subvolume
-        for sub in subvolumes:
-            if sub.reg_mask is not None:
-                f_sub = sub.f * sub.reg_mask[:, None]         
-            # get center of complete force field and set as origin
-            center_subs.append(sub.getCenter(mode="Force"))
-        
-        #### switch the order to compare +x cube with -x center; same for all coordinated
-        center_subs_unbiased = [center_subs[1],center_subs[0],
-                                center_subs[3],center_subs[2],
-                                center_subs[5],center_subs[4]]
-    
-        
-        ### now compute contractility for all subvolumes with the unbiased center
-        subvalues = []
-        # do same Contractility calculation for each subvolume with theopposing center
-        for n,sub in enumerate(subvolumes):
-            if sub.reg_mask is not None:
-                f_sub = sub.f * sub.reg_mask[:, None]            
-            # get center of complete force field and set as origin
-            RR_sub = R - center_subs_unbiased[n]
-            #if r_max specified only use forces within this distance to cell for contractility
-            if r_max:  
-                inner = np.linalg.norm(RR_sub, axis=1) < r_max
-                f_sub = f_sub[inner]
-                RR_sub = RR_sub[inner]  
-            # contactility for each subvolume
-            RRnorm_sub = RR_sub / np.linalg.norm(RR_sub, axis=1)[:, None]
-            contractility = np.nansum(np.einsum("ki,ki->k", RRnorm_sub, f_sub ))   
-            subvalues.append(contractility)
-        ### now add up both x components, both y components and both z components    
-        Contractility_components = [subvalues[0]+subvalues[1],
-                                    subvalues[2]+subvalues[3],
-                                    subvalues[4]+subvalues[5]]
-        # print (Contractility_components)
-        # Mean Vaule of all three dimension as final unbiased Contractility
-        Contractility_unbiased_epicenter = np.nanmean(Contractility_components)
-        print ("Contractility (Unbiased): "+str(Contractility_unbiased_epicenter))
         return Contractility_unbiased_epicenter
     
     
