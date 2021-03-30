@@ -1415,7 +1415,7 @@ class Solver:
                     'Median_Deformation': [], 'Maximal_Deformation': [], '99_Percentile_Deformation': [],
                     'Median_Force': [], 'Maximal_Force': [], '99_Percentile_Force': [], 
                     'RMS_Deformation_per_node': [],'RMS_Deformation': [], 'RMS_Deformation_normed': [],
-                    'RMS_deformation_normed_top1percent': [],  'Contractility_deformations': [], 
+                    'Contractility_deformations': [], 
                     'Iterations': [], 
                   }
         
@@ -1453,10 +1453,12 @@ class Solver:
         rms_percentage = np.sqrt(np.nanmean((self.U[self.reg_mask] -  self.U_target[self.reg_mask] ) **2)) / \
                   np.nanpercentile(np.linalg.norm(self.U_target[self.reg_mask],axis=1),99)                                                           
         results["RMS_Deformation_normed"].append( rms_percentage )  
-        mask = (self.U_target[self.reg_mask] > np.nanpercentile(np.linalg.norm(self.U_target[self.reg_mask],axis=1),99))
-        rms_percentage_99percentile = np.sqrt(np.nanmean((self.U[self.reg_mask][mask] -  self.U_target[self.reg_mask][mask] ) **2)) / \
-                  np.nanmax(np.abs(self.U_target[self.reg_mask][mask] ))      
-        results["RMS_deformation_normed_top1percent"].append( rms_percentage_99percentile )  
+        
+        # mask = (self.U_target[self.reg_mask] > np.nanpercentile(np.linalg.norm(self.U_target[self.reg_mask],axis=1),99))
+        # rms_percentage_99percentile = np.sqrt(np.nanmean((self.U[self.reg_mask][mask] -  self.U_target[self.reg_mask][mask] ) **2)) / \
+        #           np.nanmax(np.abs(self.U_target[self.reg_mask][mask] ))      
+        # results["RMS_deformation_normed_top1percent"].append( rms_percentage_99percentile )  
+        
         # regularization steps
         number_iterations = len(self.regularisation_results)
         results["Iterations"].append(number_iterations)
