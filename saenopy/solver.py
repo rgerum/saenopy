@@ -1104,7 +1104,7 @@ class Solver:
         f3 = np.cross(RRnorm, f)
         return f2, f3
     
-    def force_ratio_inner_to_outer(self, width_outer = 14e-6):
+    def force_ratio_outer_to_inner(self, width_outer = 14e-6):
         """
         Divides the Cubus in an outer and inner part, where the outer part
         is defined as everything closer than width_outer (default ist 14 um) 
@@ -1394,7 +1394,7 @@ class Solver:
 
         np.savez(filename, **data)
     
-    def forces_to_excel(self, output_folder=None, name="results.xlsx", r_max=25e-6, center_mode = "force", width_for_ratio_inner_outer = 14e-6):
+    def forces_to_excel(self, output_folder=None, name="results.xlsx", r_max=25e-6, center_mode = "force", width_for_ratio_outer_inner = 14e-6):
         import pandas as pd
         # Evaluate Force statistics and save to excel file in outpoutfolder if given
         # initialize result dictionary
@@ -1405,7 +1405,7 @@ class Solver:
                     'Force_sum_abs_rmax': [], 
                     'Contractility': [],
                     'Contractility_unbiased': [],
-                    'force_ratio_inner_to_outer': [],
+                    'force_ratio_outer_to_inner': [],
                     'Contractility_rmax': [],     
                     'Force_perpendicular': [],
                     'Centricity_force': [], 
@@ -1429,7 +1429,7 @@ class Solver:
         results["Force_sum_abs_rmax"].append(np.nansum(np.linalg.norm(self.f[self.reg_mask & inner],axis=1)))
         results["Contractility"].append(self.getContractility(center_mode=center_mode))
         results["Contractility_unbiased"].append(self.getContractilityUnbiasedEpicenter())
-        results["force_ratio_inner_to_outer"].append(self.force_ratio_inner_to_outer(width_outer = width_for_ratio_inner_outer))   
+        results["force_ratio_outer_to_inner"].append(self.force_ratio_outer_to_inner(width_outer = width_for_ratio_outer_inner))   
         results["Contractility_rmax"].append(self.getContractility(center_mode=center_mode,r_max=r_max))
         results["Force_perpendicular"].append(self.getPerpendicularForces(center_mode=center_mode))
         results["Centricity_force"].append(self.getCentricity(center_mode=center_mode))  
