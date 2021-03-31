@@ -1125,10 +1125,10 @@ class Solver:
         if self.reg_mask is not None:
             f = self.f * self.reg_mask[:, None]  
         # mask the data points in the outer layer (closer to the outer border than
-        # width_outer and for the inner shell the remaining inner volume
-        outer_layer =  (abs(R[:,0])> abs(R[:,0]).max()-width_outer)\
-                        & (abs(R[:,1])> abs(R[:,1]).max()-width_outer)\
-                        & (abs(R[:,2])> abs(R[:,2]).max()-width_outer) 
+        # width_outer and for the inner shell the remaining inner volume   
+        outer_layer = (((R[:,0])>(R[:,0].max()-width_outer)) | ((R[:,0]) < (R[:,0].min()+width_outer)))\
+            | (((R[:,1])>(R[:,1].max()-width_outer)) | ((R[:,1]) < (R[:,1].min()+width_outer)))\
+                | (((R[:,2])>(R[:,2].max()-width_outer)) | ((R[:,2]) < (R[:,2].min()+width_outer)))  
     
         # mask the regions
         f_inner = f[~outer_layer]
