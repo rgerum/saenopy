@@ -1104,7 +1104,7 @@ class Solver:
         f3 = np.cross(RRnorm, f)
         return f2, f3
     
-    def force_ratio_outer_to_inner(self, width_outer = 14e-6):
+    def force_ratio_outer_to_inner(self, width_outer = 5e-6):
         """
         Divides the Cubus in an outer and inner part, where the outer part
         is defined as everything closer than width_outer (default ist 14 um) 
