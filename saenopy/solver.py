@@ -1139,7 +1139,7 @@ class Solver:
         mean_abs_f_outer = np.nanmean(np.linalg.norm(f_outer,axis=1))
         #print (mean_abs_f_inner,mean_abs_f_outer)
         ratio =  mean_abs_f_outer / mean_abs_f_inner
-        print (ratio)
+        #print (ratio)
         return ratio
         
     
