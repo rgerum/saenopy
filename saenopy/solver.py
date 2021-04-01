@@ -1168,6 +1168,33 @@ class Solver:
         return contractility
     
         
+    def getContractilityIgnoreBorder(self, width_outer = 5e-6, center_mode="force" ):   
+        """
+        Computes the contractilty value while ignoring all force vectors that
+        are located within at the borders (outer shell with width_outer).
+        For Drift/Rotation we often find high forces here.
+        """  
+        f = self.f
+        R = self.R
+        # exclude counter forces
+        if self.reg_mask is not None:
+            f = self.f * self.reg_mask[:, None]  
+        # mask the data points in the outer layer (closer to the outer border than
+        # width_outer and for the inner shell the remaining inner volume   
+        outer_layer = (((R[:,0])>(R[:,0].max()-width_outer)) | ((R[:,0]) < (R[:,0].min()+width_outer)))\
+            | (((R[:,1])>(R[:,1].max()-width_outer)) | ((R[:,1]) < (R[:,1].min()+width_outer)))\
+                | (((R[:,2])>(R[:,2].max()-width_outer)) | ((R[:,2]) < (R[:,2].min()+width_outer)))  
+        # now ignore the forces in the border region
+        f[outer_layer] = np.nan
+        # get center of complete force field and set as origin
+        Rcms_all = self.getCenter(mode=center_mode)
+        RR = R - Rcms_all
+        
+        RRnorm = RR / np.linalg.norm(RR, axis=1)[:, None]
+        contractility = np.nansum(np.einsum("ki,ki->k", RRnorm, f))
+    
+        return contractility  
+    
     def getContractilityUnbiasedEpicenter(self,  r_max=None):   
         """
         Computes a contractilty value, that uses an unbiased center approach.
@@ -1394,7 +1421,7 @@ class Solver:
 
         np.savez(filename, **data)
     
-    def forces_to_excel(self, output_folder=None, name="results.xlsx", r_max=25e-6, center_mode = "force", width_for_ratio_outer_inner = 14e-6):
+    def forces_to_excel(self, output_folder=None, name="results.xlsx", r_max=25e-6, center_mode = "force", width_outer = 5e-6):
         import pandas as pd
         # Evaluate Force statistics and save to excel file in outpoutfolder if given
         # initialize result dictionary
@@ -1404,6 +1431,7 @@ class Solver:
                     'Force_sum_abs': [], 
                     'Force_sum_abs_rmax': [], 
                     'Contractility': [],
+                    'ContractilityIgnoreBorder': [],     
                     'Contractility_unbiased': [],
                     'force_ratio_outer_to_inner': [],
                     'Contractility_rmax': [],     
@@ -1428,8 +1456,9 @@ class Solver:
         results["Force_sum_abs"].append(np.nansum(np.linalg.norm(self.f[self.reg_mask],axis=1)))             
         results["Force_sum_abs_rmax"].append(np.nansum(np.linalg.norm(self.f[self.reg_mask & inner],axis=1)))
         results["Contractility"].append(self.getContractility(center_mode=center_mode))
+        results["ContractilityIgnoreBorder"].append(self.getContractilityIgnoreBorder(width_outer = width_outer, center_mode=center_mode))   
         results["Contractility_unbiased"].append(self.getContractilityUnbiasedEpicenter())
-        results["force_ratio_outer_to_inner"].append(self.force_ratio_outer_to_inner(width_outer = width_for_ratio_outer_inner))   
+        results["force_ratio_outer_to_inner"].append(self.force_ratio_outer_to_inner(width_outer = width_outer))   
         results["Contractility_rmax"].append(self.getContractility(center_mode=center_mode,r_max=r_max))
         results["Force_perpendicular"].append(self.getPerpendicularForces(center_mode=center_mode))
         results["Centricity_force"].append(self.getCentricity(center_mode=center_mode))  
