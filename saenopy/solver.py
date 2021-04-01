@@ -1226,7 +1226,7 @@ class Solver:
             RR = RR[inner]  
         RRnorm = RR / np.linalg.norm(RR, axis=1)[:, None]
         contractility = np.nansum(np.einsum("ki,ki->k", RRnorm, f))
-        print ("Contractility (Biased): "+str(contractility))
+        #print ("Contractility (Biased): "+str(contractility))
         try:       
             # UNBIASED EPICENTER
             # create new solver object for subvolumes and mask only the forces in that area
@@ -1291,7 +1291,7 @@ class Solver:
             # print (Contractility_components)
             # Mean Vaule of all three dimension as final unbiased Contractility
             Contractility_unbiased_epicenter = np.nanmean(Contractility_components)
-            print ("Contractility (Unbiased): "+str(Contractility_unbiased_epicenter))
+            #print ("Contractility (Unbiased): "+str(Contractility_unbiased_epicenter))
         ## if not enough data points to compute the center in the subvolumes we
         ## go back to the contractility of the whole stack
         ## think of np.nan here... ?
