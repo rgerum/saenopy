@@ -1149,12 +1149,15 @@ class Solver:
         Can be usefull to discard stacks with high drift in z-direction, for
         example due to fast stage movement & gel wobbling
         """
-        # sum up the absolute deformations component wise 
-        sumx = np.nansum(np.abs(self.U_target[:,0]))
-        sumy = np.nansum(np.abs(self.U_target[:,1]))
-        sumz = np.nansum(np.abs(self.U_target[:,2]))
-        # calculate the fraction of the z-component    
-        ratioz = sumz / (sumx+sumy+sumz)
+        try:
+            # sum up the absolute deformations component wise 
+            sumx = np.nansum(np.abs(self.U_target[:,0]))
+            sumy = np.nansum(np.abs(self.U_target[:,1]))
+            sumz = np.nansum(np.abs(self.U_target[:,2]))
+            # calculate the fraction of the z-component    
+            ratioz = sumz / (sumx+sumy+sumz)
+        except:
+            ratioz = np.nan
         return ratioz
     
     def getContractility(self, center_mode="force", r_max=None):
