@@ -1142,7 +1142,20 @@ class Solver:
         #print (ratio)
         return ratio
         
-    
+    def ratio_deformation_z_component(self):
+        """
+        Calculate the sum of the absolute deformations for each direction. 
+        Returns the fraction of the z-components. 
+        Can be usefull to discard stacks with high drift in z-direction, for
+        example due to fast stage movement & gel wobbling
+        """
+        # sum up the absolute deformations component wise 
+        sumx = np.nansum(np.abs(self.U_target[:,0]))
+        sumy = np.nansum(np.abs(self.U_target[:,1]))
+        sumz = np.nansum(np.abs(self.U_target[:,2]))
+        # calculate the fraction of the z-component    
+        ratioz = sumz / (sumx+sumy+sumz)
+        return ratioz
     
     def getContractility(self, center_mode="force", r_max=None):
         f = self.f
@@ -1434,6 +1447,7 @@ class Solver:
                     'ContractilityIgnoreBorder': [],     
                     'Contractility_unbiased': [],
                     'force_ratio_outer_to_inner': [],
+                    'ratio_deformation_z_component': [],                
                     'Contractility_rmax': [],     
                     'Force_perpendicular': [],
                     'Centricity_force': [], 
@@ -1460,6 +1474,7 @@ class Solver:
         results["ContractilityIgnoreBorder"].append(self.getContractilityIgnoreBorder(width_outer = width_outer, center_mode=center_mode))   
         results["Contractility_unbiased"].append(self.getContractilityUnbiasedEpicenter())
         results["force_ratio_outer_to_inner"].append(self.force_ratio_outer_to_inner(width_outer = width_outer))   
+        results["ratio_deformation_z_component"].append(self.ratio_deformation_z_component())   
         results["Contractility_rmax"].append(self.getContractility(center_mode=center_mode,r_max=r_max))
         results["Force_perpendicular"].append(self.getPerpendicularForces(center_mode=center_mode))
         results["Centricity_force"].append(self.getCentricity(center_mode=center_mode))  
