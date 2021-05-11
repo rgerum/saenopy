@@ -104,7 +104,7 @@ class QInputNumber(QInput):
     slider_dragged = False
 
     def __init__(self, layout=None, name=None, value=0, min=None, max=None, use_slider=False, float=True, decimals=2,
-                 unit=None, **kwargs):
+                 unit=None, step=None, **kwargs):
         # initialize the super widget
         QInput.__init__(self, layout, name, **kwargs)
 
@@ -146,6 +146,8 @@ class QInputNumber(QInput):
             self.spin_box.setMaximum(max)
         else:
             self.spin_box.setMaximum(+99999)
+        if step is not None:
+            self.spin_box.setSingleStep(step)
 
         self.setValue(value)
 
@@ -221,12 +223,24 @@ class QInputChoice(QInput):
         self.combobox = QtWidgets.QComboBox()
         self.layout().addWidget(self.combobox)
 
-        self.combobox.addItems(self.value_names)
+        if self.value_names is not None:
+            self.combobox.addItems(self.value_names)
 
         self.combobox.currentIndexChanged.connect(lambda: self._valueChangedEvent(self.value()))
 
         if value is not None:
             self.setValue(value)
+
+    def setValues(self, new_values, value_names=None):
+        self.value_names = value_names if value_names is not None else [str(v) for v in new_values]
+
+        if self.values is not None:
+            for i in range(len(self.values)):
+                self.combobox.removeItem(0)
+
+        self.values = new_values
+
+        self.combobox.addItems(self.value_names)
 
     def _doSetValue(self, value):
         if self.reference_by_index is True:
