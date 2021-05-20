@@ -26,6 +26,8 @@ import matplotlib as mpl
 import numpy as np
 from qtpy import QtCore, QtGui, QtWidgets
 
+current_layout = None
+
 
 class QInput(QtWidgets.QWidget):
     """
@@ -43,13 +45,16 @@ class QInput(QtWidgets.QWidget):
 
     last_emited_value = None
 
-    def __init__(self, layout=None, name=None, tooltip=None, stretch=False):
+    def __init__(self, layout=None, name=None, tooltip=None, stretch=False, settings=None, settings_key=None):
         # initialize the super widget
         super(QInput, self).__init__()
 
         # initialize the layout of this widget
         QtWidgets.QHBoxLayout(self)
         self.layout().setContentsMargins(0, 0, 0, 0)
+
+        if layout is None and current_layout is not None:
+            layout = current_layout
 
         # add me to a parent layout
         if layout is not None:
@@ -69,6 +74,9 @@ class QInput(QtWidgets.QWidget):
         if tooltip is not None:
             self.setToolTip(tooltip)
 
+        self.settings = settings
+        self.settings_key = settings_key
+
     def setLabel(self, text):
         # update the label
         self.label.setText(text)
@@ -86,6 +94,8 @@ class QInput(QtWidgets.QWidget):
 
     def setValue(self, value):
         self.no_signal = True
+        if self.settings is not None:
+            self.settings.setValue(self.settings_key, value)
         try:
             self._doSetValue(value)
         finally:
@@ -107,6 +117,9 @@ class QInputNumber(QInput):
                  unit=None, step=None, **kwargs):
         # initialize the super widget
         QInput.__init__(self, layout, name, **kwargs)
+
+        if self.settings is not None:
+            value = self.settings.value(self.settings_key, value)
 
         if float is False:
             self.decimals = 0
@@ -173,22 +186,46 @@ class QInputNumber(QInput):
 
 
 class QInputString(QInput):
+    error = None
 
-    def __init__(self, layout=None, name=None, value="", **kwargs):
+    def __init__(self, layout=None, name=None, value="", allow_none=True, type=str, **kwargs):
         # initialize the super widget
         QInput.__init__(self, layout, name, **kwargs)
+
+        if self.settings is not None:
+            value = self.settings.value(self.settings_key, value)
 
         self.line_edit = QtWidgets.QLineEdit()
         self.layout().addWidget(self.line_edit)
         self.line_edit.editingFinished.connect(lambda: self._valueChangedEvent(self.value()))
 
+        self.allow_none = allow_none
+        self.type = type
+
         self.setValue(value)
+
+        self.line_edit.textChanged.connect(self.emitValueChanged)
+
+    def emitValueChanged(self):
+        """ connected to the textChanged signal """
+        try:
+            value = self.value()
+            self.line_edit.setStyleSheet("")
+        except ValueError as err:
+            self.line_edit.setStyleSheet("background: #d56060")
 
     def _doSetValue(self, value):
         self.line_edit.setText(str(value))
 
     def value(self):
-        return self.line_edit.text()
+        text = self.line_edit.text()
+        if self.allow_none is True and text == "None":
+            return None
+        if self.type == int:
+            return int(text)
+        if self.type == float:
+            return float(text)
+        return text
 
 
 class QInputBool(QInput):
@@ -196,6 +233,10 @@ class QInputBool(QInput):
     def __init__(self, layout=None, name=None, value=False, **kwargs):
         # initialize the super widget
         QInput.__init__(self, layout, name, **kwargs)
+
+        if self.settings is not None:
+            print("bool", self.settings.value(self.settings_key, value))
+            value = self.settings.value(self.settings_key, value) == "true"
 
         self.checkbox = QtWidgets.QCheckBox()
         self.layout().addWidget(self.checkbox)
@@ -215,6 +256,9 @@ class QInputChoice(QInput):
     def __init__(self, layout=None, name=None, value=None, values=None, value_names=None, reference_by_index=False, **kwargs):
         # initialize the super widget
         QInput.__init__(self, layout, name, **kwargs)
+
+        if self.settings is not None:
+            value = self.settings.value(self.settings_key, value)
 
         self.reference_by_index = reference_by_index
         self.values = values
@@ -264,6 +308,9 @@ class QInputColor(QInput):
         # initialize the super widget
         QInput.__init__(self, layout, name, **kwargs)
 
+        if self.settings is not None:
+            value = self.settings.value(self.settings_key, value)
+
         self.button = QtWidgets.QPushButton()
         self.button.setMaximumWidth(40)
         self.layout().addWidget(self.button)
@@ -307,6 +354,9 @@ class QInputFilename(QInput):
     def __init__(self, layout=None, name=None, value=None, dialog_title="Choose File", file_type="All", filename_checker=None, existing=False, **kwargs):
         # initialize the super widget
         QInput.__init__(self, layout, name, **kwargs)
+
+        if self.settings is not None:
+            value = self.settings.value(self.settings_key, value)
 
         self.dialog_title = dialog_title
         self.file_type = file_type
@@ -356,6 +406,116 @@ class QInputFilename(QInput):
     def value(self):
         # return the color
         return self.line.text()
+
+
+class QInputFolder(QInput):
+    last_folder = None
+
+    def __init__(self, layout=None, name=None, value=None, dialog_title="Choose Folder", filename_checker=None, **kwargs):
+        # initialize the super widget
+        QInput.__init__(self, layout, name, **kwargs)
+
+        if self.settings is not None:
+            print("settings", self.settings.value(self.settings_key, value))
+            value = self.settings.value(self.settings_key, value)
+
+        self.dialog_title = dialog_title
+        self.filename_checker = filename_checker
+
+        self.line = QtWidgets.QLineEdit()
+        self.layout().addWidget(self.line)
+        self.line.setEnabled(False)
+
+        self.button = QtWidgets.QPushButton("choose folder")
+        self.layout().addWidget(self.button)
+        self.button.clicked.connect(self._openDialog)
+
+        # set the color
+        self.setValue(value)
+        if value is None:
+            self.last_folder = os.getcwd()
+
+    def _openDialog(self):
+        # choose an existing file
+        filename = QtWidgets.QFileDialog.getExistingDirectory(None, self.dialog_title, self.last_folder)
+
+        # get the string
+        if isinstance(filename, tuple):  # Qt5
+            filename = filename[0]
+        else:  # Qt4
+            filename = str(filename)
+
+        # optical check the filename
+        if self.filename_checker and filename:
+            filename = self.filename_checker(filename)
+
+        # set the filename
+        if filename:
+            self.setValue(filename)
+            self._emitSignal()
+
+    def _doSetValue(self, value):
+        self.last_folder = value
+        self.line.setText(value)
+
+    def value(self):
+        # return the color
+        return self.line.text()
+
+class QPushButton(QtWidgets.QPushButton):
+    def __init__(self, layout, name, connect=None):
+        super().__init__(name)
+        layout.addWidget(self)
+        if connect is not None:
+            self.clicked.connect(connect)
+
+
+class QVBoxLayout(QtWidgets.QVBoxLayout):
+    def __init__(self, parent):
+        if parent is None and current_layout is not None:
+            parent = current_layout
+        if isinstance(parent, QtWidgets.QWidget):
+            super().__init__(parent)
+        else:
+            super().__init__()
+            parent.addLayout(self)
+
+    def __enter__(self):
+        global current_layout
+        self.old_layout = current_layout
+        current_layout = self
+        print("set layout from", self.old_layout, "to", current_layout)
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        global current_layout
+        print("reset layout from", current_layout, "to", self.old_layout)
+        current_layout = self.old_layout
+
+
+
+class QHBoxLayout(QtWidgets.QHBoxLayout):
+    def __init__(self, parent):
+        if parent is None and current_layout is not None:
+            parent = current_layout
+        if isinstance(parent, QtWidgets.QWidget):
+            super().__init__(parent)
+        else:
+            super().__init__()
+            parent.addLayout(self)
+
+    def __enter__(self):
+        global current_layout
+        self.old_layout = current_layout
+        current_layout = self
+        print("set layout from", self.old_layout, "to", current_layout)
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        global current_layout
+        print("reset layout from", current_layout, "to", self.old_layout)
+        current_layout = self.old_layout
+
 
 
 def AddQSpinBox(layout, text, value=0, float=True, strech=False):
