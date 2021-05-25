@@ -52,6 +52,7 @@ class QHLine(QtWidgets.QFrame):
 class DeformationDetector(QtWidgets.QWidget):
     detection_finished = QtCore.Signal()
     detection_error = QtCore.Signal(str)
+    M = None
 
     def __init__(self, layout, stack_deformed, stack_relaxed):
         super().__init__()
@@ -65,10 +66,14 @@ class DeformationDetector(QtWidgets.QWidget):
 
         self.settings = QtCore.QSettings("Saenopy", "Seanopy")
 
-        self.input_overlap = QtShortCuts.QInputNumber(main_layout, "overlap", 0.6, step=0.1)
-        self.input_win = QtShortCuts.QInputNumber(main_layout, "window size", 30)
-        self.input_signoise = QtShortCuts.QInputNumber(main_layout, "signoise", 1.3, step=0.1)
-        self.input_driftcorrection = QtShortCuts.QInputBool(main_layout, "driftcorrection", True)
+        with QtShortCuts.QHBoxLayout(main_layout) as layout2:
+            self.input_overlap = QtShortCuts.QInputNumber(None, "overlap", 0.6, step=0.1, value_changed=self.valueChanged)
+            self.input_win = QtShortCuts.QInputNumber(None, "window size", 30, value_changed=self.valueChanged)
+        with QtShortCuts.QHBoxLayout(main_layout) as layout2:
+            self.input_signoise = QtShortCuts.QInputNumber(None, "signoise", 1.3, step=0.1)
+            self.input_driftcorrection = QtShortCuts.QInputBool(None, "driftcorrection", True)
+        self.label = QtWidgets.QLabel()
+        main_layout.addWidget(self.label)
         self.input_button = QtWidgets.QPushButton("detect deformations")
         main_layout.addWidget(self.input_button)
         self.input_button.clicked.connect(self.start_detect)
@@ -81,6 +86,16 @@ class DeformationDetector(QtWidgets.QWidget):
 
         self.detection_finished.connect(self.finished_detection)
         self.detection_error.connect(self.errored_detection)
+
+    def valueChanged(self):
+        voxel_size1 = self.stack_deformed.getVoxelSize()
+        voxel_size2 = self.stack_relaxed.getVoxelSize()
+        stack_deformed = self.stack_deformed.getStack()
+        stack_relaxed = self.stack_relaxed.getStack()
+
+        unit_size = self.input_overlap.value()*self.input_win.value()
+        stack_size = np.array(stack_deformed.shape)*voxel_size1 - self.input_win.value()
+        self.label.setText(f"Deformation grid with {unit_size}um elements. Total region is {stack_size}.")
 
     def start_detect(self):
         self.input_button.setEnabled(False)
@@ -176,8 +191,9 @@ class MeshCreator(QtWidgets.QWidget):
         self.settings = QtCore.QSettings("Saenopy", "Seanopy")
 
         self.input_element_size = QtShortCuts.QInputString(main_layout, "element_size", "7")
-        self.input_inner_region = QtShortCuts.QInputString(main_layout, "inner_region", "100")
-        self.input_thinning_factor = QtShortCuts.QInputNumber(main_layout, "thinning factor", 0.2, step=0.1)
+        with QtShortCuts.QHBoxLayout(main_layout) as layout2:
+            self.input_inner_region = QtShortCuts.QInputString(None, "inner_region", "100")
+            self.input_thinning_factor = QtShortCuts.QInputNumber(None, "thinning factor", 0.2, step=0.1)
         self.input_button = QtWidgets.QPushButton("interpolate mesh")
         main_layout.addWidget(self.input_button)
         self.input_button.clicked.connect(self.start_interpolation)
@@ -197,6 +213,8 @@ class MeshCreator(QtWidgets.QWidget):
         self.thread.start()
 
     def interpolation_thread(self):
+        if self.deformation_detector is None:
+            return
         M = self.deformation_detector.M
         points, cells = saenopy.multigridHelper.getScaledMesh(float(self.input_element_size.value())*1e-6,
                                       float(self.input_inner_region.value())*1e-6,
@@ -246,13 +264,24 @@ class Regularizer(QtWidgets.QWidget):
 
         self.settings = QtCore.QSettings("Saenopy", "Seanopy")
 
-        self.input_k = QtShortCuts.QInputString(main_layout, "k", "1645")
-        self.input_d0 = QtShortCuts.QInputString(main_layout, "d0", "0.0008")
-        self.input_lamda_s = QtShortCuts.QInputString(main_layout, "lamdba_s", "0.0075")
-        self.input_ds = QtShortCuts.QInputString(main_layout, "ds", "0.033")
-        self.input_alpha = QtShortCuts.QInputString(main_layout, "alpha", "9")
-        self.input_stepper = QtShortCuts.QInputString(main_layout, "stepper", "0.33")
-        self.input_imax = QtShortCuts.QInputNumber(main_layout, "i_max", 100, float=False)
+        self.material_parameters = QtWidgets.QGroupBox("Material Parameters")
+        main_layout.addWidget(self.material_parameters)
+        with QtShortCuts.QVBoxLayout(self.material_parameters) as layout:
+            with QtShortCuts.QHBoxLayout(None) as layout2:
+                self.input_k = QtShortCuts.QInputString(None, "k", "1645", type=float)
+                self.input_d0 = QtShortCuts.QInputString(None, "d0", "0.0008", type=float)
+            with QtShortCuts.QHBoxLayout(None) as layout2:
+                self.input_lamda_s = QtShortCuts.QInputString(None, "lamdba_s", "0.0075", type=float)
+                self.input_ds = QtShortCuts.QInputString(None, "ds", "0.033", type=float)
+
+        self.material_parameters = QtWidgets.QGroupBox("Regularisation Parameters")
+        main_layout.addWidget(self.material_parameters)
+        with QtShortCuts.QVBoxLayout(self.material_parameters) as layout:
+            self.input_alpha = QtShortCuts.QInputString(None, "alpha", "9", type=float)
+            with QtShortCuts.QHBoxLayout(None) as layout:
+                self.input_stepper = QtShortCuts.QInputString(None, "stepper", "0.33", type=float)
+                self.input_imax = QtShortCuts.QInputNumber(None, "i_max", 100, float=False)
+
         self.input_button = QtWidgets.QPushButton("calculate forces")
         main_layout.addWidget(self.input_button)
         self.input_button.clicked.connect(self.start_interpolation)
@@ -439,7 +468,6 @@ than the expected deformation. Default is 30um.</li>
 </ul>
                  """.strip())
 # TODO: check the error message for Out of Memory
-# TODO: add mesh size calculation based on the current values, stack size
 
         v_layout.addWidget(QHLine())
         h_layout = QtWidgets.QHBoxLayout()

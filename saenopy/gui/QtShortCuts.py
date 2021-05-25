@@ -45,7 +45,7 @@ class QInput(QtWidgets.QWidget):
 
     last_emited_value = None
 
-    def __init__(self, layout=None, name=None, tooltip=None, stretch=False, settings=None, settings_key=None):
+    def __init__(self, layout=None, name=None, tooltip=None, stretch=False, value_changed=None, settings=None, settings_key=None):
         # initialize the super widget
         super(QInput, self).__init__()
 
@@ -74,6 +74,8 @@ class QInput(QtWidgets.QWidget):
         if tooltip is not None:
             self.setToolTip(tooltip)
 
+        if value_changed is not None:
+            self.valueChanged.connect(value_changed)
         self.settings = settings
         self.settings_key = settings_key
 
@@ -235,7 +237,6 @@ class QInputBool(QInput):
         QInput.__init__(self, layout, name, **kwargs)
 
         if self.settings is not None:
-            print("bool", self.settings.value(self.settings_key, value))
             value = self.settings.value(self.settings_key, value) == "true"
 
         self.checkbox = QtWidgets.QCheckBox()
@@ -416,7 +417,6 @@ class QInputFolder(QInput):
         QInput.__init__(self, layout, name, **kwargs)
 
         if self.settings is not None:
-            print("settings", self.settings.value(self.settings_key, value))
             value = self.settings.value(self.settings_key, value)
 
         self.dialog_title = dialog_title
@@ -484,12 +484,10 @@ class QVBoxLayout(QtWidgets.QVBoxLayout):
         global current_layout
         self.old_layout = current_layout
         current_layout = self
-        print("set layout from", self.old_layout, "to", current_layout)
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         global current_layout
-        print("reset layout from", current_layout, "to", self.old_layout)
         current_layout = self.old_layout
 
 
@@ -508,12 +506,10 @@ class QHBoxLayout(QtWidgets.QHBoxLayout):
         global current_layout
         self.old_layout = current_layout
         current_layout = self
-        print("set layout from", self.old_layout, "to", current_layout)
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         global current_layout
-        print("reset layout from", current_layout, "to", self.old_layout)
         current_layout = self.old_layout
 
 

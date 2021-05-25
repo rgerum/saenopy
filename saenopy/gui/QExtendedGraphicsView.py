@@ -275,6 +275,9 @@ class QExtendedGraphicsView(QtWidgets.QGraphicsView):
         self.zoomEvent(self.scaler.transform().m11(), pos)
         self.fitted = 0
 
+    def setOriginScale(self, scale):
+        self.scaler.setTransform(QtGui.QTransform(scale, 0, 0, scale, 0, 0))
+
     def getOriginScale(self):
         return self.scaler.transform().m11()
 

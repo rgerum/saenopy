@@ -117,6 +117,8 @@ class StackSelectorTif(QtWidgets.QWidget):
         self.label = QtWidgets.QLabel()
         layout_voxel.addWidget(self.label)
 
+        self.stack_initialized = None
+
     def checkAcceptFilename(self, filename):
         return filename.endswith(".tif")
 
@@ -148,7 +150,7 @@ class StackSelectorTif(QtWidgets.QWidget):
             if col == "filename":
                 continue
             last_name = col
-            print(col, selected_prop[col], df[col].unique())
+
             prop = QtShortCuts.QInputChoice(self.property_layout, col, str(selected_prop[col]), [str(i) for i in df[col].unique()])
             prop.valueChanged.connect(self.propertiesChanged)
             prop.name = col
@@ -175,12 +177,11 @@ class StackSelectorTif(QtWidgets.QWidget):
                 continue
             else:
                 prop.setEnabled(True)
-            print(prop.name, prop.value())
             d = d[d[prop.name] == prop.value()]
 
         self.parent.setZCount(len(d))
         self.d = d
-        im = tifffile.imread(d.iloc[0].filename)
+        im = tifffile.imread(str(d.iloc[0].filename))
         if len(im.shape) == 3:
             im = im[:, :, 0]
         self.stack = np.zeros((im.shape[0], im.shape[1], len(d)), dtype=im.dtype)
@@ -198,15 +199,13 @@ class StackSelectorTif(QtWidgets.QWidget):
 
         for i in index:
             if self.stack_initialized[i] == False:
-                print(i)
-                im = tifffile.imread(self.d.iloc[i].filename)
+                im = tifffile.imread(str(self.d.iloc[i].filename))
                 if len(im.shape) == 3:
                     im = im[:, :, 0]
                 self.stack[:, :, i] = im
                 self.stack_initialized[i] = True
 
     def showImage(self):
-        print("showing Image", self.no_update)
         if self.no_update is True:
             return
 
