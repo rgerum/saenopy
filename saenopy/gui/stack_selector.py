@@ -364,6 +364,7 @@ class ModuleScaleBar(QtWidgets.QGroupBox):
 class StackSelector(QtWidgets.QWidget):
     active = None
     signal_zoom = QtCore.Signal(object, object)
+    stack_changed = QtCore.Signal()
 
     def __init__(self, layout, name, partner=None):
         super().__init__()

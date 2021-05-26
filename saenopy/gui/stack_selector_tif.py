@@ -192,6 +192,8 @@ class StackSelectorTif(QtWidgets.QWidget):
         self.showImage()
 
     def check_initialized(self, index):
+        if self.stack_initialized is False:
+            return False
         if isinstance(index, slice):
             index = range(index.start, index.stop)
         else:

@@ -3,6 +3,8 @@ import sys
 # Setting the Qt bindings for QtPy
 import os
 
+import pandas as pd
+
 os.environ["QT_API"] = "pyqt5"
 
 from qtpy import QtCore, QtWidgets, QtGui
@@ -44,6 +46,18 @@ sys._excepthook = sys.excepthook
 # Set the exception hook to our wrapping function
 sys.excepthook = lambda *args: sys._excepthook(*args)
 
+import ctypes
+
+def kill_thread(thread):
+    """
+    thread: a threading.Thread object
+    """
+    thread_id = thread.ident
+    res = ctypes.pythonapi.PyThreadState_SetAsyncExc(thread_id, ctypes.py_object(SystemExit))
+    if res > 1:
+        ctypes.pythonapi.PyThreadState_SetAsyncExc(thread_id, 0)
+        print('Exception raise failure')
+
 class QHLine(QtWidgets.QFrame):
     def __init__(self):
         super().__init__()
@@ -53,6 +67,8 @@ class QHLine(QtWidgets.QFrame):
 
 class LookUpTable(QtWidgets.QWidget):
     progress_signal = QtCore.Signal(int, int)
+    finished_signal = QtCore.Signal()
+    thread = None
 
     def __init__(self, layout, mesh_creator):
         super().__init__()
@@ -66,41 +82,51 @@ class LookUpTable(QtWidgets.QWidget):
 
         self.material_parameters = QtWidgets.QGroupBox("Material Parameters")
         main_layout.addWidget(self.material_parameters)
-        layout = QtWidgets.QVBoxLayout(self.material_parameters)
 
-        self.input_k = QtShortCuts.QInputString(layout, "k", "1449", type=float)
-        self.input_d0 = QtShortCuts.QInputString(layout, "d0", "0.00215", type=float)
-        self.input_lamda_s = QtShortCuts.QInputString(layout, "lamdba_s", "0.032", type=float)
-        self.input_ds = QtShortCuts.QInputString(layout, "ds", "0.055", type=float)
+        with QtShortCuts.QVBoxLayout(self.material_parameters) as layout:
+            with QtShortCuts.QHBoxLayout(None):
+                self.input_k = QtShortCuts.QInputString(None, "k", "1449", type=float)
+                self.input_d0 = QtShortCuts.QInputString(None, "d0", "0.00215", type=float)
+            with QtShortCuts.QHBoxLayout(None):
+                self.input_lamda_s = QtShortCuts.QInputString(None, "lamdba_s", "0.032", type=float)
+                self.input_ds = QtShortCuts.QInputString(None, "ds", "0.055", type=float)
 
         self.material_parameters = QtWidgets.QGroupBox("Pressure Range")
         main_layout.addWidget(self.material_parameters)
-        layout = QtWidgets.QVBoxLayout(self.material_parameters)
-
-        layout2 = QtWidgets.QHBoxLayout()
-        layout.addLayout(layout2)
-        self.start = QtShortCuts.QInputString(layout2, "min", "0.1", type=float)
-        self.end = QtShortCuts.QInputString(layout2, "max", "1000", type=float)
-        self.n = QtShortCuts.QInputString(layout2, "count", "150", type=int)
+        with QtShortCuts.QHBoxLayout(self.material_parameters):
+            self.start = QtShortCuts.QInputString(None, "min", "0.1", type=float)
+            self.end = QtShortCuts.QInputString(None, "max", "1000", type=float)
+            self.n = QtShortCuts.QInputString(None, "count", "150", type=int)
 
         self.material_parameters = QtWidgets.QGroupBox("Iteration Parameters")
         main_layout.addWidget(self.material_parameters)
-        layout = QtWidgets.QVBoxLayout(self.material_parameters)
-
-        layout2 = QtWidgets.QHBoxLayout()
-        layout.addLayout(layout2)
-        self.max_iter = QtShortCuts.QInputString(layout2, "max_iter", "600", type=int)
-        self.step = QtShortCuts.QInputString(layout2, "step", "0.0033", type=float)
+        with QtShortCuts.QHBoxLayout(self.material_parameters):
+            self.max_iter = QtShortCuts.QInputString(None, "max_iter", "600", type=int)
+            self.step = QtShortCuts.QInputString(None, "step", "0.0033", type=float)
 
         self.material_parameters = QtWidgets.QGroupBox("Run Parameters")
         main_layout.addWidget(self.material_parameters)
         layout = QtWidgets.QVBoxLayout(self.material_parameters)
 
-        self.n_cores = QtShortCuts.QInputString(layout, "n_cores", "3", type=int)
+        self.n_cores = QtShortCuts.QInputNumber(layout, "n_cores", 1, float=False)
         #layout=None, name=None, value=None, dialog_title="Choose File", file_type="All", filename_checker=None, existing=False, **kwargs):
         self.output = QtShortCuts.QInputFolder(layout, "Output Folder")
 
         main_layout.addStretch()
+
+        self.input_list = [
+            self.input_k,
+            self.input_d0,
+            self.input_lamda_s,
+            self.input_ds,
+            self.start,
+            self.end,
+            self.n,
+            self.max_iter,
+            self.step,
+            self.n_cores,
+            self.output,
+        ]
 
         url = "https://raw.githubusercontent.com/christophmark/jointforces/master/docs/data/spherical-inclusion.msh"
         self.localpath = "spherical-inclusion.msh"
@@ -120,10 +146,27 @@ class LookUpTable(QtWidgets.QWidget):
         main_layout.addWidget(self.progressbar)
 
         self.progress_signal.connect(self.progress_callback)
+        self.finished_signal.connect(self.finished)
 
     def run(self):
-        self.thread = threading.Thread(target=self.run_thread, daemon=True)
-        self.thread.start()
+        if self.thread is None:
+            self.thread = threading.Thread(target=self.run_thread, daemon=True)
+            self.thread.start()
+            self.button_run.setText("stop")
+            for widget in self.input_list:
+                widget.setDisabled(True)
+        else:
+            kill_thread(self.thread)
+            self.thread = None
+            self.button_run.setText("run")
+            for widget in self.input_list:
+                widget.setDisabled(False)
+
+    def finished(self):
+        self.thread = None
+        self.button_run.setText("run")
+        for widget in self.input_list:
+            widget.setDisabled(False)
 
     def progress_callback(self, i, n):
         self.progressbar.setRange(0, n)
@@ -157,7 +200,7 @@ class LookUpTable(QtWidgets.QWidget):
         #                                                        n=100)  # output folder for combining the individual simulations
         #get_displacement, get_pressure = jf.simulation.create_lookup_functions(lookup_table)
         #jf.simulation.save_lookup_functions(get_displacement, get_pressure, str(out_table))
-
+        self.finished_signal.emit()
 
 class LookUpTable2(QtWidgets.QWidget):
     progress_signal = QtCore.Signal(int, int)
@@ -219,6 +262,8 @@ class LookUpTable2(QtWidgets.QWidget):
 
 class Deformation(QtWidgets.QWidget):
     progress_signal = QtCore.Signal(int, int)
+    finished_signal = QtCore.Signal()
+    thread = None
 
     def __init__(self, layout, mesh_creator):
         super().__init__()
@@ -231,10 +276,10 @@ class Deformation(QtWidgets.QWidget):
 
         self.settings = QtCore.QSettings("Saenopy", "Seanopy")
 
-        self.material_parameters = QtWidgets.QGroupBox("Generate Material Lookup Table")
+        self.material_parameters = QtWidgets.QGroupBox("Measure Matrix Deformations")
         main_layout.addWidget(self.material_parameters)
         with QtShortCuts.QVBoxLayout(self.material_parameters) as layout:
-            self.input_folder = QtShortCuts.QInputFolder(layout, "Input Folder", settings=self.settings, settings_key="spheriod/deformation/input")
+            self.input_folder = QtShortCuts.QInputFolder(layout, "Raw Images (Folder)", settings=self.settings, settings_key="spheriod/deformation/input")
             self.window_size = QtShortCuts.QInputString(layout, "window size", "50", type=int, settings=self.settings, settings_key="spheriod/deformation/window_siye")
             with QtShortCuts.QHBoxLayout(layout):
                 self.wildcard = QtShortCuts.QInputString(None, "Wildcard", "*.tif", settings=self.settings, settings_key="spheriod/deformation/wildcard")
@@ -245,14 +290,14 @@ class Deformation(QtWidgets.QWidget):
                 self.thres_segmentation = QtShortCuts.QInputString(None, "thres_segmentation", 0.9, type=float, settings=self.settings, settings_key="spheriod/deformation/thres_segmentation")
                 self.continous_segmentation = QtShortCuts.QInputBool(None, "continous_segmentation", False, settings=self.settings, settings_key="spheriod/deformation/continous_segemntation")
 
-            self.output_folder = QtShortCuts.QInputFolder(layout, "Output Folder", settings=self.settings, settings_key="spheriod/deformation/output")
+            self.output_folder = QtShortCuts.QInputFolder(layout, "Result Folder", settings=self.settings, settings_key="spheriod/deformation/output")
 
-        self.material_parameters = QtWidgets.QGroupBox("Plot Parameters")
+        self.material_parameters = QtWidgets.QGroupBox("Plot Matrix Deformations")
         main_layout.addWidget(self.material_parameters)
         with QtShortCuts.QVBoxLayout(self.material_parameters) as layout:
             with QtShortCuts.QHBoxLayout(None):
                 self.plot = QtShortCuts.QInputBool(None, "plot", True, settings=self.settings, settings_key="spheriod/deformation/plot")
-                self.draw_mask = QtShortCuts.QInputBool(None, "draw mask", True, settings=self.settings, settings_key="spheriod/deformation/draw_mask")
+                #self.draw_mask = QtShortCuts.QInputBool(None, "draw mask", True, settings=self.settings, settings_key="spheriod/deformation/draw_mask")
 
             with QtShortCuts.QHBoxLayout(None):
                 self.color_norm = QtShortCuts.QInputString(None, "color norm", 75., type=float, settings=self.settings, settings_key="spheriod/deformation/color_norm")
@@ -263,6 +308,23 @@ class Deformation(QtWidgets.QWidget):
             self.dt_min = QtShortCuts.QInputString(None, "dt_min", None, allow_none=True, type=int, settings=self.settings, settings_key="spheriod/deformation/dt_min")
 
         self.button_run = QtShortCuts.QPushButton(main_layout, "run", self.run)
+
+        self.input_list = [
+            self.input_folder,
+            self.window_size,
+            self.wildcard,
+            self.n_max,
+            self.n_min,
+            self.thres_segmentation,
+            self.continous_segmentation,
+            self.output_folder,
+            self.plot,
+            self.color_norm,
+            self.cbar_um_scale,
+            self.quiver_scale,
+            self.dpi,
+            self.dt_min,
+        ]
 
         main_layout.addStretch()
 
@@ -283,35 +345,55 @@ class Deformation(QtWidgets.QWidget):
         main_layout.addWidget(self.progressbar)
 
         self.progress_signal.connect(self.progress_callback)
+        self.finished_signal.connect(self.finished)
 
     def run(self):
-        self.thread = threading.Thread(target=self.run_thread, daemon=True)
-        self.thread.start()
+        if self.thread is None:
+            self.thread = threading.Thread(target=self.run_thread, daemon=True)
+            self.thread.start()
+            self.button_run.setText("stop")
+            for widget in self.input_list:
+                widget.setDisabled(True)
+        else:
+            kill_thread(self.thread)
+            self.thread = None
+            self.button_run.setText("run")
+            for widget in self.input_list:
+                widget.setDisabled(False)
+
+    def finished(self):
+        self.thread = None
+        self.button_run.setText("run")
+        for widget in self.input_list:
+            widget.setDisabled(False)
 
     def progress_callback(self, i, n):
-        self.progressbar.setRange(0, n)
+        self.progressbar.setRange(0, n-1)
         self.progressbar.setValue(i)
-        # set the range for the slider
-        self.slider.setRange(1, i)
-        # it the slider was at the last value, move it to the new maximum
-        if self.slider.value() == i-1:
-            self.slider.setValue(i)
+        # when plotting show the slider
+        if self.plot.value() is True:
+            # set the range for the slider
+            self.slider.setRange(1, i)
+            # it the slider was at the last value, move it to the new maximum
+            if self.slider.value() == i-1:
+                self.slider.setValue(i)
 
     def slider_changed(self, i):
-        #im = plt.imread(fr"\\131.188.117.96\biophysDS2\dboehringer\Test_spheroid\data\20210416-165158_Mic5_rep{i:04d}_pos02_in-focus_modeBF_slice0_z0.tif")
-        im = imageio.imread(str(self.output_folder.value()) + '/plot' + str(i).zfill(6) + '.png')
-        self.pixmap.setPixmap(QtGui.QPixmap(array2qimage(im)))
-        self.label.setExtend(im.shape[1], im.shape[0])
+        if self.plot.value() is True:
+            #im = plt.imread(fr"\\131.188.117.96\biophysDS2\dboehringer\Test_spheroid\data\20210416-165158_Mic5_rep{i:04d}_pos02_in-focus_modeBF_slice0_z0.tif")
+            im = imageio.imread(str(self.output_folder.value()) + '/plot' + str(i).zfill(6) + '.png')
+            self.pixmap.setPixmap(QtGui.QPixmap(array2qimage(im)))
+            self.label.setExtend(im.shape[1], im.shape[0])
 
     def run_thread(self):
-        print("comjpute displacements")
+        print("compute displacements")
         jf.piv.compute_displacement_series(str(self.input_folder.value()),
                                            self.wildcard.value(),
                                            str(self.output_folder.value()),
                                            n_max=self.n_max.value(),
                                            n_min=self.n_min.value(),
                                            plot=self.plot.value(),
-                                           draw_mask=self.draw_mask.value(),
+                                           draw_mask=False,
                                            color_norm=self.color_norm.value(),
                                            cbar_um_scale=(self.cbar_um_scale.value()),
                                            quiver_scale=(self.quiver_scale.value()),
@@ -320,10 +402,82 @@ class Deformation(QtWidgets.QWidget):
                                            thres_segmentation=(self.thres_segmentation.value()),
                                            window_size=(self.window_size.value()),
                                            dt_min=(self.dt_min.value()),
-                                           cutoff=650, cmap="turbo",
+                                           cutoff=None, cmap="turbo",
                                            callback=lambda i, n: self.progress_signal.emit(i, n))
+        self.finished_signal.emit()
 
 
+
+class Force(QtWidgets.QWidget):
+    progress_signal = QtCore.Signal(int, int)
+
+    def __init__(self, layout, mesh_creator):
+        super().__init__()
+        layout.addWidget(self)
+
+        main_layout = QtWidgets.QVBoxLayout(self)
+
+        self.mesh_creator = mesh_creator
+
+        self.settings = QtCore.QSettings("Saenopy", "Seanopy")
+
+        self.material_parameters = QtWidgets.QGroupBox("Generate Forces")
+        main_layout.addWidget(self.material_parameters)
+        with QtShortCuts.QVBoxLayout(self.material_parameters) as layout:
+
+            self.output = QtShortCuts.QInputFolder(layout, "Result Folder")
+            self.lookup_table = QtShortCuts.QInputFilename(layout, "Lookup Table", 'lookup_example.pkl', file_type="Pickle Lookup Table (*.pkl)", existing=True)
+
+            self.pixel_size = QtShortCuts.QInputString(layout, "pixel_size", "1.29", type=float)
+
+            with QtShortCuts.QHBoxLayout(layout) as layout2:
+                self.x0 = QtShortCuts.QInputString(layout2, "r_min", "2", type=float)
+                self.x1 = QtShortCuts.QInputString(layout2, "r_max", "None", type=float, allow_none=True)
+
+            with QtShortCuts.QHBoxLayout(layout) as layout2:
+                layout2.addStretch()
+                self.button_run = QtShortCuts.QPushButton(layout2, "run", self.run)
+
+        self.material_parameters = QtWidgets.QGroupBox("Plot Forces")
+        main_layout.addWidget(self.material_parameters)
+        with QtShortCuts.QVBoxLayout(self.material_parameters) as layout:
+            self.type = QtShortCuts.QInputChoice(None, "type", "Pressure", ["Pressure", "Contractility"])
+            self.dt = QtShortCuts.QInputString(None, "dt", "2", type=float)
+            with QtShortCuts.QHBoxLayout(None) as layout2:
+                layout2.addStretch()
+                self.button_run = QtShortCuts.QPushButton(layout2, "plot", self.run2)
+
+        main_layout.addStretch()
+
+    def run(self):
+        jf.force.reconstruct(str(self.output.value()),  # PIV output folder
+                             str(self.lookup_table.value()),  # lookup table
+                             self.pixel_size.value(),  # pixel size (µm)
+                             None, r_min=self.x0.value(), r_max=self.x1.value())
+
+    def run2(self):
+        res = pd.read_excel(Path(self.output.value()) / "result.xlsx")
+
+        t = np.arange(len(res)) * self.dt.value() / 60
+        print("self.type.value()", self.type.value())
+        if self.type.value() == "Contractility":
+            mu = res['Mean Contractility (µN)']
+            std = res['St.dev. Contractility (µN)']
+        else:
+            mu = res['Mean Pressure (Pa)']
+            std = res['St.dev. Pressure (Pa)']
+
+        plt.figure(figsize=(6, 3))
+        plt.plot(t, mu, lw=2, c='C0')
+        plt.fill_between(t, mu - std, mu + std, facecolor='C0', lw=0, alpha=0.5)
+        plt.grid()
+        plt.xlabel('Time (h)')
+        if self.type.value() == "Contractility":
+            plt.ylabel('Contractility (µN)')
+        else:
+            plt.ylabel('Pressure (Pa)')
+        plt.tight_layout()
+        plt.show()
 
 class MainWindow(QtWidgets.QWidget):
 
@@ -374,6 +528,27 @@ the slider to make a <b>z-projection</b> over the selected z range.
          """.strip())
 #TODO make image loader also with wildcard
 
+        r"""
+        
+        E:\saenopy\saenopy\output_example\*\+.tif
+        
+        E:\saenopy\saenopy\input\20212031\david\well*_pos*_time+.tif
+        
+        E:\saenopy\saenopy\input\20212030\david\well*_pos*_time+.tif
+        D:\meine_auswertrung\output_analysis\20212030\david\
+        
+        E:\saenopy\saenopy\output_analysis\datum\david\well*_pos*_time+.tif
+        
+        
+        E:\saenopy\saenopy\output_example2\well*_pos*_time+.tif
+        
+        E:\saenopy\saenopy\output_example2\well1_pos1_time00\result.xls
+        E:\saenopy\saenopy\output_example2\well1_pos1_time00.tif
+        E:\saenopy\saenopy\output_example2\well1_pos1_time01.tif
+        E:\saenopy\saenopy\output_example2\well1_pos1_time02.tif
+        
+        
+        """
         v_layout.addWidget(QHLine())
         h_layout = QtWidgets.QHBoxLayout()
         v_layout.addLayout(h_layout)
@@ -452,6 +627,42 @@ than the expected deformation. Default is 30um.</li>
         </ul>
                          """.strip())
 #TODO add better description of the thining
+        v_layout.addWidget(QHLine())
+        h_layout = QtWidgets.QHBoxLayout()
+        v_layout.addLayout(h_layout)
+
+        h_layout.addStretch()
+        self.button_next = QtWidgets.QPushButton("next")
+        self.button_next.clicked.connect(self.next)
+        self.button_previous = QtWidgets.QPushButton("back")
+        self.button_previous.clicked.connect(self.previous)
+        h_layout.addWidget(self.button_previous)
+        h_layout.addWidget(self.button_next)
+
+        """ """
+        self.tab_stack = QtWidgets.QWidget()
+        self.tabs.addTab(self.tab_stack, "Force")
+        v_layout = QtWidgets.QVBoxLayout(self.tab_stack)
+        h_layout = QtWidgets.QHBoxLayout()
+        v_layout.addLayout(h_layout)
+
+        self.deformations = Force(h_layout, self)
+        self.description = QtWidgets.QTextEdit()
+        self.description.setDisabled(True)
+        h_layout.addWidget(self.description)
+        self.description.setText("""
+                <h1>Step 4: Force</h1>
+                Now we need to create a mesh and interpolate the displacements onto this mesh.<br/>
+                <br/>
+
+                <h2>Parameters</h2>
+                <ul>
+                <li><b>Element size</b>: spacing between nodes of the mesh in um.</li>
+                <li><b>Inner Region</b>: the spacing will be exactly the one given in element size in a centerl region of this size.</li>
+                <li><b>Thinning Factor</b>: how much to thin the elements outside the inner region. 1</li>
+                </ul>
+                                 """.strip())
+        # TODO add better description of the thining
         v_layout.addWidget(QHLine())
         h_layout = QtWidgets.QHBoxLayout()
         v_layout.addLayout(h_layout)
