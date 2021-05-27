@@ -598,18 +598,23 @@ using the XXXX function in the next step.
         self.description.setText("""
 <h1>Step 2: Material Lookup-Table</h1>
 
-From the individual simulations we now generate our material lookup-table. 
-Therefore, we select the <b>Input folder</b> with the indivudal simulations and define
- x0 and x1 and n (XXXXXXX todo) to interpolate between the simulations. Default is x0=1, x1=50 and n=100.
-<b>Generate</b> will then save the lookuptable as a *.pkl-file for further force analysis.<br/>
+From the individual simulations we  now generate our material lookup-table. <br/>
 <br/>
 
-The material lookup-table can be visualized by reading in the *.pkl-file and adjust the desired range
-of pressures (from <b>p0</b> to  <b>p1</b> Pascal) and distances (from <b>di</b> to <b>d2</b> in 
+Therefore, we load the <b>Input folder</b> where the indivudal simulations are stored.<b>Generate</b> will then create and save the material-lookuptable 
+as a *.pkl-file for further force analysis in the specified <b>Output Lookup Table</b> location.<br/>
+<br/>
+<i> If desired the interpolation of data points from the FE-simulations to different relative distances can be changed.  
+By default a grid with <b>n</b>=150 logarithmically spaced intervals is generated between a
+ distance of <b>x0</b>=1 effective spheroid radii to a distance of <b>x1</b>=50 effective spheroid radii away from the center.</i><br/>
+<br/>
+
+The material lookup-table can be visualized by reading in the *.pkl-file as <b>Input Lookup Table</b> and adjust the desired range
+of pressures (from <b>p0</b> to <b>p1</b> Pascal) and distances (from <b>d1</b> to <b>d2</b> in 
 effective spheroid radii). <br/>
 <br/>
 
-ToDo.. plot data into that by XXXX <br/>
+Add Data to plot ? ToDo <br/>
 <br/>
 
 Additionally, lookuptables for purely linear fiber material (assuming poission ratio of v=0.25) with 
