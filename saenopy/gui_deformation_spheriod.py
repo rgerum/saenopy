@@ -508,23 +508,49 @@ class MainWindow(QtWidgets.QWidget):
         self.description.setDisabled(True)
         h_layout.addWidget(self.description)
         self.description.setText("""
-<h1>Step 1: Lookup Table</h1>
-First we need to load the image data of the recorded stacks.<br/>
+
+<h1>Step 1: Material Simulations </h1><br/>
+
+To calculate the collective forces that spheroids and organoids excert on the surrounding
+matrix, we generate material lookup-tables that predict the contractilile pressure
+from the size of the matrix deformations as a function of the distance to the spheroid center as 
+described in Mark et al. (2020). <br/>
 <br/>
-Select the image stacks for the <b>deformed</b> and the <b>relaxed</b> state. In the deformed state the cell should pull on the 
-fibers and in the relaxed state there should be no cell or a non pulling cell (e.g. treated with CytoD).<br/>
+
+To generate a material lookup-table we model the nonlinear fiber material according to the
+ given material properties <b>k</b>, <b>d0</b>, <b>ds</b> and <b>lambda_s</b> 
+ (see  Saenopy documentation and material fitting for more information).<br/>
+ <i> Default values are taken from a collagen I (1.2mg/ml) hydrogel with K_0=1449, D_0=0.00215, D_S=0.055, lambda_s=0.032.</i><br/>
 <br/>
-Images can either be a single Leica file or a .tif file with a naming sceme that allows to find the other images of the 
-stack in the same folder.<br/>
+
+ The simulations then approximate the multicellular aggregate as a spherical inclusion that is
+ surrounded by the user-defined nonlinear material and excerts a contractile pressure on the matrix. We conduct a range of simulations   
+for n=<b>count</b> different pressures (default 150) that are spaced between a pressure of <b>min</b> Pa (default 600) 
+and <b>max</b> Pa (default 1000). <br/>
 <br/>
-You can select which image <b>channel</b> to use for evaluation.<br/>
+
+
+For the individual simulations the maximal allowed number of iteration before convergence 
+is limited by <b>max_iter</b> (default 600) and the stepwidth between iteration is given by <b>step</b> 
+(default is 0.0033). <br/>
 <br/>
-If you load a custom stack, you need to specifiy which dimension is the <b>z-component</b>.
-And you need to supply a <b>voxel size</b>.<br/>
+
+
+All simulations are stored in the <b>Output folder</b>, which should be empty 
+before starting the simulations. After the simulations are finished, the lookup-table 
+can be generated from the obtained files in the next step. <br/>
 <br/>
-<br/>
-<b>Hint</b>: you can optionally <b>export</b> the current z slices as images or as a gif. You can also right click and drag on 
-the slider to make a <b>z-projection</b> over the selected z range.
+
+
+<b>Hint</b>: This step can take several hours or even days. Depending on the used computer <b>n_cores</b>
+can be increased to speed up the calculations. Attention: If you overload the memory an error 
+will lead the simulations to crash. Therefore the default value is 1. The material simulations need 
+to be conducted only a single time for a certain material. Additionally, lookuptables for purely linear fiber material (assuming poission ratio of v=0.25) with 
+arbitrary Youngs modulus can be created without conducting simulations
+using the XXXX function in the next step.
+
+
+
          """.strip())
 #TODO make image loader also with wildcard
 
