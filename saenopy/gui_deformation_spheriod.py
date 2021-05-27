@@ -517,7 +517,7 @@ from the size of the matrix deformations as a function of the distance to the sp
 described in Mark et al. (2020). <br/>
 <br/>
 
-To generate a material lookup-table we model the nonlinear fiber material according to the
+To generate a material lookup-table, we model the nonlinear fiber material according to the
  given material properties <b>k</b>, <b>d0</b>, <b>ds</b> and <b>lambda_s</b> 
  (see  Saenopy documentation and material fitting for more information).<br/>
  <i> Default values are taken from a collagen I (1.2mg/ml) hydrogel with K_0=1449, D_0=0.00215, D_S=0.055, lambda_s=0.032.</i><br/>
@@ -596,23 +596,26 @@ using the XXXX function in the next step.
         self.description.setDisabled(True)
         h_layout.addWidget(self.description)
         self.description.setText("""
-<h1>Step 2: Deformation Detection</h1>
-Now we need to extract the deformations from the recorded image data.<br/>
-<br/>
-This part uses a 3D PIV (particle image velocimetry) algorithm to determine how much each voxel has shifted.
+<h1>Step 2: Material Lookup-Table</h1>
 
-<h2>Parameters</h2>
-<ul>
-<li><b>Overlap</b>: the fraction by wich two neighbouring windows overlap.
-Higher overlap increases the resolution (and calculation time). Default is 0.6.
-</li>
-<li><b>Window size</b>: 
-A cube of this size (um) will be shifted in space until the best match is found. 
-The window size should be bigger
-than the expected deformation. Default is 30um.</li>
-<li><b>Signoise</b>: above which signal to noice level to discatd deformations.</li>
-<li><b>Driftcorrection</b>: whether to perform drift correction or not.</li>
-</ul>
+From the individual simulations we now generate our material lookup-table. 
+Therefore, we select the <b>Input folder</b> with the indivudal simulations and define
+ x0 and x1 and n (XXXXXXX todo) to interpolate between the simulations. Default is x0=1, x1=50 and n=100.
+<b>Generate</b> will then save the lookuptable as a *.pkl-file for further force analysis.<br/>
+<br/>
+
+The material lookup-table can be visualized by reading in the *.pkl-file and adjust the desired range
+of pressures (from <b>p0</b> to  <b>p1</b> Pascal) and distances (from <b>di</b> to <b>d2</b> in 
+effective spheroid radii). <br/>
+<br/>
+
+ToDo.. plot data into that by XXXX <br/>
+<br/>
+
+Additionally, lookuptables for purely linear fiber material (assuming poission ratio of v=0.25) with 
+arbitrary Youngs modulus can be created without conducting simulations
+using the XXXX function.
+
                  """.strip())
 # TODO: check the error message for Out of Memory
 # TODO: add mesh size calculation based on the current values, stack size
@@ -641,8 +644,12 @@ than the expected deformation. Default is 30um.</li>
         self.description.setDisabled(True)
         h_layout.addWidget(self.description)
         self.description.setText("""
-        <h1>Step 3: Mesh Generation</h1>
-        Now we need to create a mesh and interpolate the displacements onto this mesh.<br/>
+        <h1>Step 3: Deformation Detection</h1>
+        Now we need to extract the deformations from the recorded image data. <br/>
+        <br/>
+        Therefore we use 2D PIV (particle image velocimetry) algorithm to determine the movement 
+        of beads that surround the spheroid in the equatorial plane.  
+        <br/>
         <br/>
 
         <h2>Parameters</h2>
