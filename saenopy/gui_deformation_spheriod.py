@@ -519,8 +519,8 @@ described in Mark et al. (2020). <br/>
 
 To generate a material lookup-table, we model the nonlinear fiber material according to the
  given material properties <b>k</b>, <b>d0</b>, <b>ds</b> and <b>lambda_s</b> 
- (see  Saenopy documentation and material fitting for more information).<br/>
- <i> Default values are taken from a collagen I (1.2mg/ml) hydrogel with K_0=1449, D_0=0.00215, D_S=0.055, lambda_s=0.032.</i><br/>
+ (see Saenopy documentation for more information).<br/>
+ <i> Default values are taken from a collagen I hydrogel (1.2mg/ml) with k=1449, d0=0.00215, ds=0.055, lambda_s=0.032.</i><br/>
 <br/>
 
  The simulations then approximate the multicellular aggregate as a spherical inclusion that is
