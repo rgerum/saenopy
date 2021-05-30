@@ -653,15 +653,20 @@ using the XXXX function.
         Now we need to extract the deformations from the recorded image data. <br/>
         <br/>
         Therefore we use 2D PIV (particle image velocimetry) algorithm to determine the movement 
-        of beads that surround the spheroid in the equatorial plane.  
-        <br/>
+        of beads that surround the spheroid in the equatorial plane. By exploitng spherical symetry this deformation 
+        is then simply compared to the 3D simulations by using our material lookup-table. <br/>
         <br/>
 
         <h2>Parameters</h2>
         <ul>
-        <li><b>Element size</b>: spacing between nodes of the mesh in um.</li>
-        <li><b>Inner Region</b>: the spacing will be exactly the one given in element size in a centerl region of this size.</li>
-        <li><b>Thinning Factor</b>: how much to thin the elements outside the inner region. 1</li>
+        <li><b>Raw Images</b>: Path to the folder containing the raw image data.</li>
+        <li><b>Wildcard</b>: Wildcard to selection elements within this folder (Example: Pos01_t*.tif; star will allow all timesteps). </li>
+        <li><b>n_min, n_max</b>: Set a minimum or maximum elemnet if first or last time steps from this selection should be ignored (default is None). 1</li>
+        <li><b>thres_segmentation</b>: Factor to change the threshold for spheroid segmentation (default is 0.9). 1</li>
+        <li><b>continous_segmentation</b>: If active, the segmentation is repeated for every timestep individually.
+        By default we use the segmentation of the first time step (less sensitive to fluctuations)  </li>
+        <li><b>thres_segmentation</b>: Factor to change the threshold for spheroid segmentation (default is 0.9). 1</li>
+        
         </ul>
                          """.strip())
 #TODO add better description of the thining
