@@ -68,8 +68,9 @@ class QInput(QtWidgets.QWidget):
                 layout.addWidget(self)
 
         # add a label to this layout
-        self.label = QtWidgets.QLabel(name)
-        self.layout().addWidget(self.label)
+        if name is not None and name != "":
+            self.label = QtWidgets.QLabel(name)
+            self.layout().addWidget(self.label)
 
         if tooltip is not None:
             self.setToolTip(tooltip)
@@ -111,7 +112,7 @@ class QInput(QtWidgets.QWidget):
         # dummy method to be overloaded by child classes
         pass
 
-
+cast_float = float
 class QInputNumber(QInput):
     slider_dragged = False
 
@@ -121,7 +122,7 @@ class QInputNumber(QInput):
         QInput.__init__(self, layout, name, **kwargs)
 
         if self.settings is not None:
-            value = self.settings.value(self.settings_key, value)
+            value = cast_float(self.settings.value(self.settings_key, value))
 
         if float is False:
             self.decimals = 0
@@ -190,7 +191,7 @@ class QInputNumber(QInput):
 class QInputString(QInput):
     error = None
 
-    def __init__(self, layout=None, name=None, value="", allow_none=True, type=str, **kwargs):
+    def __init__(self, layout=None, name=None, value="", allow_none=True, type=str, unit=None, **kwargs):
         # initialize the super widget
         QInput.__init__(self, layout, name, **kwargs)
 
@@ -200,6 +201,11 @@ class QInputString(QInput):
         self.line_edit = QtWidgets.QLineEdit()
         self.layout().addWidget(self.line_edit)
         self.line_edit.editingFinished.connect(lambda: self._valueChangedEvent(self.value()))
+        if type is int or type is float:
+            self.line_edit.setAlignment(QtCore.Qt.AlignRight)
+        if unit is not None:
+            self.label_unit = QtWidgets.QLabel(unit)
+            self.layout().addWidget(self.label_unit)
 
         self.allow_none = allow_none
         self.type = type
@@ -352,7 +358,7 @@ class QInputColor(QInput):
 class QInputFilename(QInput):
     last_folder = None
 
-    def __init__(self, layout=None, name=None, value=None, dialog_title="Choose File", file_type="All", filename_checker=None, existing=False, **kwargs):
+    def __init__(self, layout=None, name=None, value=None, dialog_title="Choose File", file_type="All", filename_checker=None, existing=False, allow_edit=False, **kwargs):
         # initialize the super widget
         QInput.__init__(self, layout, name, **kwargs)
 
@@ -366,7 +372,10 @@ class QInputFilename(QInput):
 
         self.line = QtWidgets.QLineEdit()
         self.layout().addWidget(self.line)
-        self.line.setEnabled(False)
+        if allow_edit is False:
+            self.line.setEnabled(False)
+        else:
+            self.line.editingFinished.connect(lambda: self.setValue(self.line.text()))
 
         self.button = QtWidgets.QPushButton("choose file")
         self.layout().addWidget(self.button)
@@ -401,6 +410,8 @@ class QInputFilename(QInput):
             self._emitSignal()
 
     def _doSetValue(self, value):
+        if value is None:
+            return
         self.last_folder = os.path.dirname(value)
         self.line.setText(value)
 
@@ -412,7 +423,7 @@ class QInputFilename(QInput):
 class QInputFolder(QInput):
     last_folder = None
 
-    def __init__(self, layout=None, name=None, value=None, dialog_title="Choose Folder", filename_checker=None, **kwargs):
+    def __init__(self, layout=None, name=None, value=None, dialog_title="Choose Folder", filename_checker=None, allow_edit=False, **kwargs):
         # initialize the super widget
         QInput.__init__(self, layout, name, **kwargs)
 
@@ -424,7 +435,10 @@ class QInputFolder(QInput):
 
         self.line = QtWidgets.QLineEdit()
         self.layout().addWidget(self.line)
-        self.line.setEnabled(False)
+        if allow_edit is False:
+            self.line.setEnabled(False)
+        else:
+            self.line.editingFinished.connect(lambda: self.setValue(self.line.text()))
 
         self.button = QtWidgets.QPushButton("choose folder")
         self.layout().addWidget(self.button)
@@ -465,13 +479,61 @@ class QInputFolder(QInput):
 class QPushButton(QtWidgets.QPushButton):
     def __init__(self, layout, name, connect=None):
         super().__init__(name)
+        if layout is None and current_layout is not None:
+            layout = current_layout
         layout.addWidget(self)
         if connect is not None:
             self.clicked.connect(connect)
 
+class QGroupBox(QtWidgets.QGroupBox):
+    def __init__(self, layout, name):
+        super().__init__(name)
+        if layout is None and current_layout is not None:
+            layout = current_layout
+        layout.addWidget(self)
+        self.layout = QVBoxLayout(self)
 
-class QVBoxLayout(QtWidgets.QVBoxLayout):
-    def __init__(self, parent):
+    def __enter__(self):
+        return self, self.layout.__enter__()
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.layout.__exit__(exc_type, exc_val, exc_tb)
+
+class QTabWidget(QtWidgets.QTabWidget):
+
+    def __init__(self, layout):
+        super().__init__()
+        if layout is None and current_layout is not None:
+            layout = current_layout
+        layout.addWidget(self)
+
+    def createTab(self, name):
+        tab_stack = QtWidgets.QWidget()
+        self.addTab(tab_stack, name)
+        v_layout = QVBoxLayout(tab_stack)
+        return v_layout
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        pass
+
+
+class EnterableLayout:
+    def __enter__(self):
+        global current_layout
+        self.old_layout = current_layout
+        current_layout = self.layout
+        return self.layout
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        global current_layout
+        current_layout = self.old_layout
+
+
+class QVBoxLayout(QtWidgets.QVBoxLayout, EnterableLayout):
+    def __init__(self, parent=None):
         if parent is None and current_layout is not None:
             parent = current_layout
         if isinstance(parent, QtWidgets.QWidget):
@@ -479,21 +541,11 @@ class QVBoxLayout(QtWidgets.QVBoxLayout):
         else:
             super().__init__()
             parent.addLayout(self)
-
-    def __enter__(self):
-        global current_layout
-        self.old_layout = current_layout
-        current_layout = self
-        return self
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        global current_layout
-        current_layout = self.old_layout
+        self.layout = self
 
 
-
-class QHBoxLayout(QtWidgets.QHBoxLayout):
-    def __init__(self, parent):
+class QHBoxLayout(QtWidgets.QHBoxLayout, EnterableLayout):
+    def __init__(self, parent=None):
         if parent is None and current_layout is not None:
             parent = current_layout
         if isinstance(parent, QtWidgets.QWidget):
@@ -501,16 +553,7 @@ class QHBoxLayout(QtWidgets.QHBoxLayout):
         else:
             super().__init__()
             parent.addLayout(self)
-
-    def __enter__(self):
-        global current_layout
-        self.old_layout = current_layout
-        current_layout = self
-        return self
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        global current_layout
-        current_layout = self.old_layout
+        self.layout = self
 
 
 
