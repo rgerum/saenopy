@@ -536,7 +536,7 @@ class Force(QtWidgets.QWidget):
 
         self.settings = QtCore.QSettings("Saenopy", "Seanopy")
 
-        with QtShortCuts.QGroupBox(main_layout, "Generate Forces") as layout:
+        with QtShortCuts.QGroupBox(main_layout, "Generate Forces") as (_, layout):
             self.output = QtShortCuts.QInputFolder(layout, "Result Folder")
             self.lookup_table = QtShortCuts.QInputFilename(layout, "Lookup Table", 'lookup_example.pkl', file_type="Pickle Lookup Table (*.pkl)", existing=True)
 
@@ -550,7 +550,7 @@ class Force(QtWidgets.QWidget):
                 layout2.addStretch()
                 self.button_run = QtShortCuts.QPushButton(layout2, "run", self.run)
 
-        with QtShortCuts.QGroupBox(main_layout, "Plot Forces") as layout:
+        with QtShortCuts.QGroupBox(main_layout, "Plot Forces") as (_, layout):
             self.type = QtShortCuts.QInputChoice(None, "type", "Pressure", ["Pressure", "Contractility"])
             self.dt = QtShortCuts.QInputString(None, "dt", "2", type=float)
             with QtShortCuts.QHBoxLayout() as layout2:
@@ -703,7 +703,9 @@ using the XXXX function.
         """ """
         with self.tabs.createTab("Deformation") as v_layout:
             with QtShortCuts.QHBoxLayout() as h_layout:
-                self.deformations = Deformation(h_layout, self)
+                #self.deformations = Deformation(h_layout, self)
+                self.deformations = BatchEvaluate(self)
+                h_layout.addWidget(self.deformations)
                 self.description = QtWidgets.QTextEdit()
                 self.description.setDisabled(True)
                 h_layout.addWidget(self.description)
@@ -738,7 +740,10 @@ using the XXXX function.
         with self.tabs.createTab("Force") as v_layout:
             with QtShortCuts.QHBoxLayout() as h_layout:
 
-                self.deformations = Force(h_layout, self)
+                #self.deformations = Force(h_layout, self)
+                self.deformations = PlottingWindow(self)
+                h_layout.addWidget(self.deformations)
+
                 self.description = QtWidgets.QTextEdit()
                 self.description.setDisabled(True)
                 h_layout.addWidget(self.description)
@@ -806,7 +811,7 @@ class QSlider(QtWidgets.QSlider):
         self.update()
 
 
-class MainWindow(QtWidgets.QWidget):
+class BatchEvaluate(QtWidgets.QWidget):
     progress_signal = QtCore.Signal(int, int, int, int)
     finished_signal = QtCore.Signal()
     thread = None
@@ -1273,7 +1278,7 @@ class ListWidget(QtWidgets.QListWidget):
         return item
 
 
-class MainWindow(QtWidgets.QWidget):
+class PlottingWindow(QtWidgets.QWidget):
     progress_signal = QtCore.Signal(int, int, int, int)
     finished_signal = QtCore.Signal()
     thread = None
