@@ -61,6 +61,8 @@ else:
     from matplotlib.backends.backend_qt5agg import FigureManager
     from matplotlib.backends.backend_qt5 import NavigationToolbar2QT as NavigationToolbar
 
+settings = QtCore.QSettings("Saenopy", "Seanopy")
+
 
 class MatplotlibWidget(Canvas):
 
@@ -72,6 +74,7 @@ class MatplotlibWidget(Canvas):
         self.axes = self.figure.add_subplot(111)
 
         Canvas.__init__(self, self.figure)
+        self.setStyleSheet("background-color:transparent;")
         self.setParent(parent)
 
         Canvas.setSizePolicy(self, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
@@ -92,6 +95,11 @@ class MatplotlibWidget(Canvas):
         """
         _pylab_helpers.Gcf.set_active(self.manager)
 
+    def setActive(self):
+        from matplotlib import _pylab_helpers
+        self.manager._cidgcf = self.figure
+        _pylab_helpers.Gcf.set_active(self.manager)
+
 def execute(func, *args, **kwargs):
     func(*args, **kwargs)
     import inspect
@@ -102,7 +110,7 @@ def execute(func, *args, **kwargs):
         if isinstance(value, str):
             code = code.replace(key, "'"+value+"'")
         else:
-            code = code.replace(key, value)
+            code = code.replace(key, str(value))
     code = code.replace("self.canvas.draw()", "plt.show()")
     return code
 
@@ -122,64 +130,143 @@ class QHLine(QtWidgets.QFrame):
         self.setFrameShape(QtWidgets.QFrame.HLine)
         self.setFrameShadow(QtWidgets.QFrame.Sunken)
 
-"""
+class QVLine(QtWidgets.QFrame):
+    def __init__(self):
+        super().__init__()
+        self.setFrameShape(QtWidgets.QFrame.VLine)
+        self.setFrameShadow(QtWidgets.QFrame.Sunken)
+
 class Spoiler(QtWidgets.QWidget):
-    def __int__(self, title, animationDuration, parent):
-        toggleButton = QtWidgets.QToolButton()
+    def __init__(self, parent=None, title='', animationDuration=300):
+        """
+        References:
+            # Adapted from c++ version
+            http://stackoverflow.com/questions/32476006/how-to-make-an-expandable-collapsable-section-widget-in-qt
+        """
+        super(Spoiler, self).__init__(parent=parent)
+
+        self.animationDuration = animationDuration
+        self.toggleAnimation = QtCore.QParallelAnimationGroup()
+        self.contentArea = QtWidgets.QScrollArea()
+        self.headerLine = QtWidgets.QFrame()
+        self.toggleButton = QtWidgets.QToolButton()
+        self.mainLayout = QtWidgets.QGridLayout()
+
+        toggleButton = self.toggleButton
         toggleButton.setStyleSheet("QToolButton { border: none; }")
         toggleButton.setToolButtonStyle(QtCore.Qt.ToolButtonTextBesideIcon)
-        toggleButton.setArrowType(QtCore.Qt.ArrowType.RightArrow)
-        toggleButton.setText(title)
+        toggleButton.setArrowType(QtCore.Qt.RightArrow)
+        toggleButton.setText(str(title))
         toggleButton.setCheckable(True)
         toggleButton.setChecked(False)
 
-        headerLine = QtWidgets.QFrame()
+        headerLine = self.headerLine
         headerLine.setFrameShape(QtWidgets.QFrame.HLine)
         headerLine.setFrameShadow(QtWidgets.QFrame.Sunken)
-        headerLine.setSizePolicy(QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Maximum)
-    
-        contentArea = QtWidgets.QScrollArea()
-        contentArea.setStyleSheet("QScrollArea { background-color: white; border: none; }")
-        contentArea.setSizePolicy(QtGui..QSizePolicy.Expanding, QtGui.QSizePolicy.Fixed)
-        # start out collapsed
-        contentArea.setMaximumHeight(0);
-        contentArea.setMinimumHeight(0);
-        #let the entire widget grow and shrink with its content
-        toggleAnimation.addAnimation(new QPropertyAnimation(this, "minimumHeight"));
-        toggleAnimation.addAnimation(new QPropertyAnimation(this, "maximumHeight"));
-        toggleAnimation.addAnimation(new QPropertyAnimation(&contentArea, "maximumHeight"));
-        // don't waste space
-        mainLayout.setVerticalSpacing(0);
-        mainLayout.setContentsMargins(0, 0, 0, 0);
-        int row = 0;
-        mainLayout.addWidget(&toggleButton, row, 0, 1, 1, Qt::AlignLeft);
-        mainLayout.addWidget(&headerLine, row++, 2, 1, 1);
-        mainLayout.addWidget(&contentArea, row, 0, 1, 3);
-        setLayout(&mainLayout);
-        QObject::connect(&toggleButton, &QToolButton::clicked, [this](const bool checked) {
-            toggleButton.setArrowType(checked ? Qt::ArrowType::DownArrow : Qt::ArrowType::RightArrow);
-            toggleAnimation.setDirection(checked ? QAbstractAnimation::Forward : QAbstractAnimation::Backward);
-            toggleAnimation.start();
-        });
-}
+        headerLine.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Maximum)
 
-void Spoiler::setContentLayout(QLayout & contentLayout) {
-    delete contentArea.layout();
-    contentArea.setLayout(&contentLayout);
-    const auto collapsedHeight = sizeHint().height() - contentArea.maximumHeight();
-    auto contentHeight = contentLayout.sizeHint().height();
-    for (int i = 0; i < toggleAnimation.animationCount() - 1; ++i) {
-        QPropertyAnimation * spoilerAnimation = static_cast<QPropertyAnimation *>(toggleAnimation.animationAt(i));
-        spoilerAnimation->setDuration(animationDuration);
-        spoilerAnimation->setStartValue(collapsedHeight);
-        spoilerAnimation->setEndValue(collapsedHeight + contentHeight);
-    }
-    QPropertyAnimation * contentAnimation = static_cast<QPropertyAnimation *>(toggleAnimation.animationAt(toggleAnimation.animationCount() - 1));
-    contentAnimation->setDuration(animationDuration);
-    contentAnimation->setStartValue(0);
-    contentAnimation->setEndValue(contentHeight);
-}
-"""
+        self.contentArea.setStyleSheet("QScrollArea { background-color: white; border: none; }")
+        self.contentArea.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Fixed)
+        # start out collapsed
+        self.contentArea.setMaximumHeight(0)
+        self.contentArea.setMinimumHeight(0)
+        # let the entire widget grow and shrink with its content
+        toggleAnimation = self.toggleAnimation
+        toggleAnimation.addAnimation(QtCore.QPropertyAnimation(self, b"minimumHeight"))
+        toggleAnimation.addAnimation(QtCore.QPropertyAnimation(self, b"maximumHeight"))
+        toggleAnimation.addAnimation(QtCore.QPropertyAnimation(self.contentArea, b"maximumHeight"))
+        # don't waste space
+        mainLayout = self.mainLayout
+        mainLayout.setVerticalSpacing(0)
+        mainLayout.setContentsMargins(0, 0, 0, 0)
+        row = 0
+        mainLayout.addWidget(self.toggleButton, row, 0, 1, 1, QtCore.Qt.AlignLeft)
+        mainLayout.addWidget(self.headerLine, row, 2, 1, 1)
+        row += 1
+        mainLayout.addWidget(self.contentArea, row, 0, 1, 3)
+        self.setLayout(self.mainLayout)
+
+        def start_animation(checked):
+            arrow_type = QtCore.Qt.DownArrow if checked else QtCore.Qt.RightArrow
+            direction = QtCore.QAbstractAnimation.Forward if checked else QtCore.QAbstractAnimation.Backward
+            toggleButton.setArrowType(arrow_type)
+            self.toggleAnimation.setDirection(direction)
+            self.toggleAnimation.start()
+
+        self.toggleButton.clicked.connect(start_animation)
+
+    def setContentLayout(self, contentLayout):
+        # Not sure if this is equivalent to self.contentArea.destroy()
+        self.contentArea.destroy()
+        self.contentArea.setLayout(contentLayout)
+        collapsedHeight = self.sizeHint().height() - self.contentArea.maximumHeight()
+        contentHeight = contentLayout.sizeHint().height()
+        for i in range(self.toggleAnimation.animationCount()-1):
+            spoilerAnimation = self.toggleAnimation.animationAt(i)
+            spoilerAnimation.setDuration(self.animationDuration)
+            spoilerAnimation.setStartValue(collapsedHeight)
+            spoilerAnimation.setEndValue(collapsedHeight + contentHeight)
+        contentAnimation = self.toggleAnimation.animationAt(self.toggleAnimation.animationCount() - 1)
+        contentAnimation.setDuration(self.animationDuration)
+        contentAnimation.setStartValue(0)
+        contentAnimation.setEndValue(contentHeight)
+
+
+class CheckAbleGroup(QtWidgets.QWidget, QtShortCuts.EnterableLayout):
+    main_layout = None
+    def __init__(self, parent=None, title='', animationDuration=300):
+        super().__init__(parent=parent)
+
+        self.headerLine = QtWidgets.QFrame()
+        self.checkbox = QtWidgets.QCheckBox()
+        self.toggleButton = QtWidgets.QToolButton()
+        self.mainLayout = QtWidgets.QGridLayout()
+
+        with QtShortCuts.QVBoxLayout(self) as self.main_layout:
+            self.main_layout.setContentsMargins(0, 0, 0, 0)
+            with QtShortCuts.QHBoxLayout() as layout:
+                layout.setContentsMargins(12, 0, 0, 0)
+                self.toggleButton = QtShortCuts.QInputBool(None, "", True)
+                self.label = QtWidgets.QPushButton(title).addToLayout()
+                self.label.setStyleSheet("QPushButton { border: none; }")
+                self.label.clicked.connect(self.toggle)
+
+                headerLine = QtWidgets.QFrame().addToLayout()
+                headerLine.setFrameShape(QtWidgets.QFrame.HLine)
+                headerLine.setFrameShadow(QtWidgets.QFrame.Sunken)
+                headerLine.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Maximum)
+            self.child_widget = QtWidgets.QWidget().addToLayout()
+        self.layout = self
+        self.value = self.toggleButton.value
+        self.setValue = self.toggleButton.setValue
+        self.valueChanged = self.toggleButton.valueChanged
+        self.toggleButton.valueChanged.connect(self.changedActive)
+
+    def paintEvent(self, ev: QtGui.QPaintEvent) -> None:
+        p = QtGui.QPainter(self)
+        p.setPen(QtGui.QPen(QtGui.QColor("gray")))
+        #p.setBrush(QtGui.QBrush(QtGui.QColor("gray")))
+        top = 5
+        p.drawRect(0, self.height()-1, self.width(), 0)
+        p.drawRect(0, top, 0, self.height())
+        p.drawRect(0, top, 7, 0)
+        p.drawRect(self.width()-1, top, 0, self.height())
+        super().paintEvent(ev)
+
+    def toggle(self):
+        self.setValue(not self.value())
+        self.changedActive()
+
+    def changedActive(self):
+        self.child_widget.setEnabled(self.value())
+
+    def addLayout(self, layout):
+        if self.main_layout is None:
+            self.setLayout(layout)
+        else:
+            self.child_widget.setLayout(layout)
+        return layout
+
 class LookUpTable(QtWidgets.QWidget):
     progress_signal = QtCore.Signal(int, int)
     finished_signal = QtCore.Signal()
@@ -324,46 +411,53 @@ class LookUpTable2(QtWidgets.QWidget):
         super().__init__()
         layout.addWidget(self)
 
-        main_layout = QtWidgets.QVBoxLayout(self)
 
         self.mesh_creator = mesh_creator
 
         self.settings = QtCore.QSettings("Saenopy", "Seanopy")
 
-        self.material_parameters = QtWidgets.QGroupBox("Generate Material Lookup Table")
-        main_layout.addWidget(self.material_parameters)
-        with QtShortCuts.QVBoxLayout(self.material_parameters) as layout:
+        with QtShortCuts.QVBoxLayout(self) as main_layout:
+            with QtShortCuts.QHBoxLayout() as hlayouy:
+                with QtShortCuts.QGroupBox(None, "Generate Material Lookup Table") as (_, layout):
 
-            self.output = QtShortCuts.QInputFolder(layout, "Input Folder")
+                    self.output = QtShortCuts.QInputFolder(layout, "Input Folder")
 
-            with QtShortCuts.QHBoxLayout(layout) as layout2:
-                self.x0 = QtShortCuts.QInputString(layout2, "x0", "1", type=float)
-                self.x1 = QtShortCuts.QInputString(layout2, "x1", "50", type=float)
-                self.n = QtShortCuts.QInputString(layout2, "n", "100", type=int)
+                    with QtShortCuts.QHBoxLayout(layout) as layout2:
+                        self.x0 = QtShortCuts.QInputString(layout2, "x0", "1", type=float)
+                        self.x1 = QtShortCuts.QInputString(layout2, "x1", "50", type=float)
+                        self.n = QtShortCuts.QInputString(layout2, "n", "100", type=int)
 
-            self.lookup_table = QtShortCuts.QInputFilename(layout, "Output Lookup Table", 'lookup_example.pkl', file_type="Pickle Lookup Table (*.pkl)")
+                    self.lookup_table = QtShortCuts.QInputFilename(layout, "Output Lookup Table", 'lookup_example.pkl', file_type="Pickle Lookup Table (*.pkl)")
 
-            with QtShortCuts.QHBoxLayout(layout) as layout2:
-                layout2.addStretch()
-                self.button_run = QtShortCuts.QPushButton(layout2, "generate", self.run)
+                    with QtShortCuts.QHBoxLayout(layout) as layout2:
+                        layout2.addStretch()
+                        self.button_run = QtShortCuts.QPushButton(layout2, "generate", self.run)
 
-        self.material_parameters = QtWidgets.QGroupBox("Plot Material Lookup Table")
-        main_layout.addWidget(self.material_parameters)
-        with QtShortCuts.QVBoxLayout(self.material_parameters) as layout:
+                with QtShortCuts.QGroupBox(None, "Generate Linear Material Lookup Table") as (_, layout):
+                    self.youngs = QtShortCuts.QInputString(None, "Young's Module", "250", type=float)
 
-            with QtShortCuts.QHBoxLayout(layout):
-                self.p0 = QtShortCuts.QInputString(None, "p0", "0", type=float)
-                self.p1 = QtShortCuts.QInputString(None, "p1", "10000", type=float)
-                self.d1 = QtShortCuts.QInputString(None, "d1", "2", type=float)
-                self.d2 = QtShortCuts.QInputString(None, "d2", "50", type=float)
+                    self.linear_output = QtShortCuts.QInputFilename(layout, "Output Lookup Table", 'lookup_example.pkl',
+                                                                   file_type="Pickle Lookup Table (*.pkl)")
 
-            self.lookup_table2 = QtShortCuts.QInputFilename(layout, "Input Lookup Table", 'lookup_example.pkl', file_type="Pickle Lookup Table (*.pkl)", existing=True)
+                    with QtShortCuts.QHBoxLayout(layout) as layout2:
+                        layout2.addStretch()
+                        self.button_run = QtShortCuts.QPushButton(layout2, "generate", self.run_linear)
 
-            with QtShortCuts.QHBoxLayout(layout) as layout2:
-                layout2.addStretch()
-                self.button_run = QtShortCuts.QPushButton(layout2, "plot", self.run2)
+            with QtShortCuts.QGroupBox(None, "Plot Material Lookup Table") as (_, layout):
 
-        main_layout.addStretch()
+                with QtShortCuts.QHBoxLayout(layout):
+                    self.p0 = QtShortCuts.QInputString(None, "p_min", "0", type=float)
+                    self.p1 = QtShortCuts.QInputString(None, "p_max", "1000", type=float)
+                    self.d1 = QtShortCuts.QInputString(None, "r_min", "2", type=float)
+                    self.d2 = QtShortCuts.QInputString(None, "r_max", "50", type=float)
+
+                self.lookup_table2 = QtShortCuts.QInputFilename(layout, "Input Lookup Table", 'lookup_example.pkl', file_type="Pickle Lookup Table (*.pkl)", existing=True)
+
+                with QtShortCuts.QHBoxLayout(layout) as layout2:
+                    layout2.addStretch()
+                    self.button_run = QtShortCuts.QPushButton(layout2, "plot", self.run2)
+
+            main_layout.addStretch()
 
     def run(self):
         lookup_table = jf.simulation.create_lookup_table_solver(str(self.output.value()), x0=int(self.x0.value()), x1=int(self.x1.value()),
@@ -374,6 +468,214 @@ class LookUpTable2(QtWidgets.QWidget):
     def run2(self):
         figure = jf.simulation.plot_lookup_table(str(self.lookup_table2.value()), pressure=[float(self.p0.value()), float(self.p1.value())], distance=[float(self.d1.value()), float(self.d2.value())])
 
+    def run_linear(self):
+        jf.simulation.linear_lookup_interpolator(emodulus=self.youngs.value(), output_newtable=str(self.linear_output.value()))
+        QtWidgets.QMessageBox.information(self, "Lookup complete", f"A lookuptable file for a Young's Modulus {self.youngs.value()} has been written to {self.linear_output.value()}.")
+
+################
+class LookupTableDialog(QtWidgets.QDialog):
+    def __init__(self, parent, state):
+        super().__init__(parent)
+        self.setWindowTitle("Select exiting Lookup Table")
+        with QtShortCuts.QVBoxLayout(self) as layout:
+            if state == "existing":
+                self.label = QtWidgets.QLabel("Select a path to the Lookup Table.").addToLayout()
+                self.inputText = QtShortCuts.QInputFilename(None, "Output Lookup Table", 'lookup_example.pkl', file_type="Pickle Lookup Table (*.pkl)", settings=settings, settings_key="batch/lookuptable_path", existing=True)
+                self.inputText.valueChanged.connect(self.path_changed)
+            elif state == "linear":
+                self.label = QtWidgets.QLabel("Select a path where to save the Lookup Table.").addToLayout()
+                self.inputText = QtShortCuts.QInputFilename(None, "Output Lookup Table", 'lookup_example.pkl',
+                                                            file_type="Pickle Lookup Table (*.pkl)", settings=settings,
+                                                            settings_key="batch/lookuptable_path", existing=False)
+                #self.inputText.valueChanged.connect(self.path_changed)
+                with QtShortCuts.QHBoxLayout(layout) as layout2:
+                    layout2.addStretch()
+                    self.youngs = QtShortCuts.QInputString(None, "Young's Module", "250", type=float)
+                    self.button_run = QtShortCuts.QPushButton(layout2, "generate", self.run_linear)
+
+            with QtShortCuts.QGroupBox(None, "Lookup Table Preview Plot"):
+                with QtShortCuts.QVBoxLayout():
+                    self.canvas = MatplotlibWidget(self).addToLayout()
+                    self.toolbar = NavigationToolbar(self.canvas, self).addToLayout()
+                    with QtShortCuts.QHBoxLayout(layout):
+                        self.p0 = QtShortCuts.QInputString(None, "p_min", "0", type=float)
+                        self.p1 = QtShortCuts.QInputString(None, "p_max", "1000", type=float)
+                        self.d1 = QtShortCuts.QInputString(None, "r_min", "2", type=float)
+                        self.d2 = QtShortCuts.QInputString(None, "r_max", "50", type=float)
+                        self.replot = QtShortCuts.QPushButton(None, "replot", self.path_changed)
+
+            with QtShortCuts.QHBoxLayout() as layout3:
+                layout3.addStretch()
+                self.button_addList = QtShortCuts.QPushButton(None, "cancel", self.reject)
+                self.button_addList = QtShortCuts.QPushButton(None, "ok", self.accept)
+        self.timer = QtCore.QTimer.singleShot(100, self.path_changed)
+
+    def run_linear(self):
+        jf.simulation.linear_lookup_interpolator(emodulus=self.youngs.value(), output_newtable=str(self.inputText.value()))
+        QtWidgets.QMessageBox.information(self, "Lookup complete", f"A lookuptable file for a Young's Modulus {self.youngs.value()} has been written to {self.inputText.value()}.")
+        self.path_changed()
+
+    def path_changed(self):
+        self.canvas.setActive()
+        plt.clf()
+        figure = jf.simulation.plot_lookup_table(str(self.inputText.value()),
+                                                 pressure=[float(self.p0.value()), float(self.p1.value())],
+                                                 distance=[float(self.d1.value()), float(self.d2.value())], figure=self.canvas.figure)
+        self.canvas.draw()
+
+
+class SelectLookup(QtWidgets.QDialog):
+    progress_signal = QtCore.Signal(int, int)
+
+    def loadExisting(self):
+        last_folder = settings.value("batch", "batch/lookuptable_path")
+        filename = QtWidgets.QFileDialog.getOpenFileName(None, "Open Lookup Table", last_folder, "Pickle Lookup Table (*.pkl)")
+        filename = filename[0] if isinstance(filename, tuple) else str(filename) if filename is not None else None
+
+        if filename == "" or filename == "":
+            return
+
+        self.result = filename
+        self.path_changed()
+        #self.accept()
+
+    def loadLinear(self):
+        class LookupTableDialog(QtWidgets.QDialog):
+            def __init__(self, parent):
+                super().__init__(parent)
+                self.setWindowTitle("Select exiting Lookup Table")
+                with QtShortCuts.QVBoxLayout(self):
+                    self.label = QtWidgets.QLabel("Select a path where to save the Lookup Table.").addToLayout()
+                    self.inputText = QtShortCuts.QInputFilename(None, "Output Lookup Table", 'lookup_example.pkl',
+                                                                file_type="Pickle Lookup Table (*.pkl)",
+                                                                settings=settings,
+                                                                settings_key="batch/lookuptable_path",
+                                                                existing=False)
+                    # self.inputText.valueChanged.connect(self.path_changed)
+                    with QtShortCuts.QHBoxLayout() as layout2:
+                        layout2.addStretch()
+                        self.youngs = QtShortCuts.QInputString(None, "Young's Module", "250", type=float)
+                        self.button_run = QtShortCuts.QPushButton(layout2, "generate", self.run_linear)
+
+            def run_linear(self):
+                jf.simulation.linear_lookup_interpolator(emodulus=self.youngs.value(),
+                                                         output_newtable=str(self.inputText.value()))
+                QtWidgets.QMessageBox.information(self, "Lookup complete",
+                                                  f"A lookuptable file for a Young's Modulus {self.youngs.value()} has been written to {self.inputText.value()}.")
+                self.accept()
+        dialog = LookupTableDialog(self)
+
+        if not dialog.exec():
+            return
+
+        self.result = dialog.inputText.value()
+        self.path_changed()
+
+    def path_changed(self):
+        try:
+            [w.setDisabled(False) for w in self.to_disabled]
+            self.canvas.setActive()
+            plt.clf()
+            figure = jf.simulation.plot_lookup_table(str(self.result),
+                                                     pressure=[float(self.p0.value()), float(self.p1.value())],
+                                                     distance=[float(self.d1.value()), float(self.d2.value())], figure=self.canvas.figure)
+            self.canvas.draw()
+        except:
+            [w.setDisabled(True) for w in self.to_disabled]
+
+    result = None
+    def __init__(self):
+        super().__init__()
+        self.setWindowTitle("Select Lookup Table")
+        with QtShortCuts.QVBoxLayout(self) as layout:
+            QtWidgets.QLabel("Choose").addToLayout()
+            with QtShortCuts.QHBoxLayout() as layout3:
+                self.button_addList = QtShortCuts.QPushButton(None, "Load existing\nLookup Table", self.loadExisting)
+                self.button_addList.setMinimumSize(100, 100)
+                QVLine().addToLayout()
+                self.button_addList = QtShortCuts.QPushButton(None, "Generate\nLookup Table", self.accept)
+                self.button_addList.setMinimumSize(100, 100)
+                self.button_addList = QtShortCuts.QPushButton(None, "Generate\nLinear Lookup Table", self.loadLinear)
+                self.button_addList.setMinimumSize(100, 100)
+            with QtShortCuts.QGroupBox(None, "Lookup Table Preview Plot") as (self.plot_preview, _):
+                with QtShortCuts.QVBoxLayout():
+                    self.canvas = MatplotlibWidget(self).addToLayout()
+                    self.toolbar = NavigationToolbar(self.canvas, self).addToLayout()
+                    with QtShortCuts.QHBoxLayout(layout):
+                        self.p0 = QtShortCuts.QInputString(None, "p_min", "0", type=float)
+                        self.p1 = QtShortCuts.QInputString(None, "p_max", "1000", type=float)
+                        self.d1 = QtShortCuts.QInputString(None, "r_min", "2", type=float)
+                        self.d2 = QtShortCuts.QInputString(None, "r_max", "50", type=float)
+                        self.replot = QtShortCuts.QPushButton(None, "replot", self.path_changed)
+
+            with QtShortCuts.QHBoxLayout() as layout3:
+                layout3.addStretch()
+                self.button_cancel = QtShortCuts.QPushButton(None, "cancel", self.reject)
+                self.button_ok = QtShortCuts.QPushButton(None, "ok", self.accept)
+
+        self.to_disabled = [self.canvas, self.toolbar, self.p0, self.p1, self.d1, self.d2, self.replot, self.button_ok]
+        [w.setDisabled(True) for w in self.to_disabled]
+        return
+        self.mesh_creator = mesh_creator
+
+        self.settings = QtCore.QSettings("Saenopy", "Seanopy")
+
+        with QtShortCuts.QVBoxLayout(self) as main_layout:
+            with QtShortCuts.QHBoxLayout() as hlayouy:
+                with QtShortCuts.QGroupBox(None, "Generate Material Lookup Table") as (_, layout):
+
+                    self.output = QtShortCuts.QInputFolder(layout, "Input Folder")
+
+                    with QtShortCuts.QHBoxLayout(layout) as layout2:
+                        self.x0 = QtShortCuts.QInputString(layout2, "x0", "1", type=float)
+                        self.x1 = QtShortCuts.QInputString(layout2, "x1", "50", type=float)
+                        self.n = QtShortCuts.QInputString(layout2, "n", "100", type=int)
+
+                    self.lookup_table = QtShortCuts.QInputFilename(layout, "Output Lookup Table", 'lookup_example.pkl', file_type="Pickle Lookup Table (*.pkl)")
+
+                    with QtShortCuts.QHBoxLayout(layout) as layout2:
+                        layout2.addStretch()
+                        self.button_run = QtShortCuts.QPushButton(layout2, "generate", self.run)
+
+                with QtShortCuts.QGroupBox(None, "Generate Linear Material Lookup Table") as (_, layout):
+                    self.youngs = QtShortCuts.QInputString(None, "Young's Module", "250", type=float)
+
+                    self.linear_output = QtShortCuts.QInputFilename(layout, "Output Lookup Table", 'lookup_example.pkl',
+                                                                   file_type="Pickle Lookup Table (*.pkl)")
+
+                    with QtShortCuts.QHBoxLayout(layout) as layout2:
+                        layout2.addStretch()
+                        self.button_run = QtShortCuts.QPushButton(layout2, "generate", self.run_linear)
+
+            with QtShortCuts.QGroupBox(None, "Plot Material Lookup Table") as (_, layout):
+
+                with QtShortCuts.QHBoxLayout(layout):
+                    self.p0 = QtShortCuts.QInputString(None, "p_min", "0", type=float)
+                    self.p1 = QtShortCuts.QInputString(None, "p_max", "1000", type=float)
+                    self.d1 = QtShortCuts.QInputString(None, "r_min", "2", type=float)
+                    self.d2 = QtShortCuts.QInputString(None, "r_max", "50", type=float)
+
+                self.lookup_table2 = QtShortCuts.QInputFilename(layout, "Input Lookup Table", 'lookup_example.pkl', file_type="Pickle Lookup Table (*.pkl)", existing=True)
+
+                with QtShortCuts.QHBoxLayout(layout) as layout2:
+                    layout2.addStretch()
+                    self.button_run = QtShortCuts.QPushButton(layout2, "plot", self.run2)
+
+            main_layout.addStretch()
+
+    def run(self):
+        lookup_table = jf.simulation.create_lookup_table_solver(str(self.output.value()), x0=int(self.x0.value()), x1=int(self.x1.value()),
+                                                                n=int(self.n.value()))  # output folder for combining the individual simulations
+        get_displacement, get_pressure = jf.simulation.create_lookup_functions(lookup_table)
+        jf.simulation.save_lookup_functions(get_displacement, get_pressure, str(self.lookup_table.value()))
+
+    def run2(self):
+        figure = jf.simulation.plot_lookup_table(str(self.lookup_table2.value()), pressure=[float(self.p0.value()), float(self.p1.value())], distance=[float(self.d1.value()), float(self.d2.value())])
+
+    def run_linear(self):
+        jf.simulation.linear_lookup_interpolator(emodulus=self.youngs.value(), output_newtable=str(self.linear_output.value()))
+        QtWidgets.QMessageBox.information(self, "Lookup complete", f"A lookuptable file for a Young's Modulus {self.youngs.value()} has been written to {self.linear_output.value()}.")
+
 
 class Deformation(QtWidgets.QWidget):
     progress_signal = QtCore.Signal(int, int)
@@ -382,7 +684,8 @@ class Deformation(QtWidgets.QWidget):
 
     def __init__(self, layout, mesh_creator):
         super().__init__()
-        layout.addWidget(self)
+        if layout is not None:
+            layout.addWidget(self)
 
         main_layout0 = QtShortCuts.QHBoxLayout(self)
         main_layout = QtShortCuts.QVBoxLayout(main_layout0)
@@ -589,6 +892,12 @@ class Force(QtWidgets.QWidget):
         plt.tight_layout()
         plt.show()
 
+
+class SelectOrGenerateLookupTable(QtWidgets.QWidget):
+    def __init__(self):
+        pass
+
+
 class MainWindow(QtWidgets.QWidget):
 
     def __init__(self, parent=None):
@@ -701,7 +1010,7 @@ using the XXXX function.
                     self.button_next = QtShortCuts.QPushButton(None, "next", self.next)
 
         """ """
-        with self.tabs.createTab("Deformation") as v_layout:
+        with self.tabs.createTab("Analyse Measurements") as v_layout:
             with QtShortCuts.QHBoxLayout() as h_layout:
                 #self.deformations = Deformation(h_layout, self)
                 self.deformations = BatchEvaluate(self)
@@ -855,109 +1164,124 @@ class BatchEvaluate(QtWidgets.QWidget):
         self.setWindowTitle("Saenopy Viewer")
 
         with QtShortCuts.QHBoxLayout(self) as main_layout:
-            with QtShortCuts.QVBoxLayout() as layout:
-                self.inputText = QtShortCuts.QInputFilename(None, "input_wildcard", settings=self.settings, settings_key="batch/wildcard", existing=True, allow_edit=True)
-                self.outputText = QtShortCuts.QInputFolder(None, "output", settings=self.settings, settings_key="batch/wildcard2", allow_edit=True)
-                with QtShortCuts.QHBoxLayout() as layout2:
-                    self.button_clear = QtShortCuts.QPushButton(None, "clear list", self.clear_files)
-                    self.button_addList = QtShortCuts.QPushButton(None, "add to list", self.show_files)
-                self.list = QtWidgets.QListWidget()
-                layout.addWidget(self.list)
-                self.list.itemSelectionChanged.connect(self.listSelected)
-                self.progress1 = QtWidgets.QProgressBar()
-                layout.addWidget(self.progress1)
+            with QtShortCuts.QSplitter() as lay:
+                with QtShortCuts.QVBoxLayout() as layout:
+                    self.list = ListWidget(layout, add_item_button="add measurements")
+                    self.list.addItemClicked.connect(self.show_files)
+                    self.list.itemSelectionChanged.connect(self.listSelected)
+                    self.progress1 = QtWidgets.QProgressBar()
+                    layout.addWidget(self.progress1)
 
-            with QtShortCuts.QVBoxLayout() as layout:
-                self.slider = QSlider()
-                self.slider.setRange(0, 0)
-                self.slider.valueChanged.connect(self.slider_changed)
-                self.slider.setOrientation(QtCore.Qt.Horizontal)
-                layout.addWidget(self.slider)
+                with QtShortCuts.QVBoxLayout() as layout:
+                    self.slider = QSlider().addToLayout()
+                    self.slider.setRange(0, 0)
+                    self.slider.valueChanged.connect(self.slider_changed)
+                    self.slider.setOrientation(QtCore.Qt.Horizontal)
+                    #layout.addWidget(self.slider)
 
-                self.label_text = QtWidgets.QLabel()
-                layout.addWidget(self.label_text)
+                    self.label_text = QtWidgets.QLabel()
+                    layout.addWidget(self.label_text)
 
-                self.label = QExtendedGraphicsView.QExtendedGraphicsView()
-                self.label.setMinimumWidth(300)
-                self.pixmap = QtWidgets.QGraphicsPixmapItem(self.label.origin)
-                self.contour = QtWidgets.QGraphicsPathItem(self.label.origin)
-                pen = QtGui.QPen(QtGui.QColor(255, 0, 0))
-                pen.setCosmetic(True)
-                self.contour.setPen(pen)
-                layout.addWidget(self.label)
+                    self.label = QExtendedGraphicsView.QExtendedGraphicsView().addToLayout()
+                    self.label.setMinimumWidth(300)
+                    self.pixmap = QtWidgets.QGraphicsPixmapItem(self.label.origin)
+                    self.contour = QtWidgets.QGraphicsPathItem(self.label.origin)
+                    pen = QtGui.QPen(QtGui.QColor(255, 0, 0))
+                    pen.setCosmetic(True)
+                    self.contour.setPen(pen)
 
-                self.label2 = QExtendedGraphicsView.QExtendedGraphicsView()
-                self.label2.setMinimumWidth(300)
-                self.pixmap2 = QtWidgets.QGraphicsPixmapItem(self.label2.origin)
-                layout.addWidget(self.label2)
+                    self.label2 = QExtendedGraphicsView.QExtendedGraphicsView().addToLayout()
+                    #self.label2.setMinimumWidth(300)
+                    self.pixmap2 = QtWidgets.QGraphicsPixmapItem(self.label2.origin)
 
-                self.label_text2 = QtWidgets.QLabel()
-                layout.addWidget(self.label_text2)
-                self.progress2 = QtWidgets.QProgressBar()
-                layout.addWidget(self.progress2)
+                    self.label_text2 = QtWidgets.QLabel().addToLayout()
+                    self.progress2 = QtWidgets.QProgressBar().addToLayout()
 
-            with QtShortCuts.QVBoxLayout() as layout:
-                with QtShortCuts.QVBoxLayout() as layout2:
-                    self.window_size = QtShortCuts.QInputString(layout2, "window size", "50", type=int,
-                                                                settings=self.settings,
-                                                                settings_key="spheriod/deformation/window_siye")
-                    layout2.addWidget(QHLine())
-                    with QtShortCuts.QHBoxLayout(None):
-                        self.n_min = QtShortCuts.QInputString(None, "n_min", "None", allow_none=True, type=int,
-                                                              settings=self.settings,
-                                                              settings_key="spheriod/deformation/n_min")
-                        self.n_max = QtShortCuts.QInputString(None, "n_max", "None", allow_none=True, type=int,
-                                                              settings=self.settings,
-                                                              settings_key="spheriod/deformation/n_max")
+                with QtShortCuts.QVBoxLayout() as layout:
+                    with CheckAbleGroup(self, "Detect Deformations").addToLayout() as self.deformation_data:
+                     with QtShortCuts.QVBoxLayout() as layout2:
 
-                    self.thres_segmentation = QtShortCuts.QInputNumber(None, "thres_segmentation", 0.9, float=True,
-                                                                       min=0.2, max=1.5, step=0.1,
-                                                                       use_slider=True,
-                                                                       settings=self.settings,
-                                                                       settings_key="spheriod/deformation/thres_segmentation2")
-                    self.thres_segmentation.valueChanged.connect(lambda: self.param_changed("thres_segmentation", True))
-                    self.continous_segmentation = QtShortCuts.QInputBool(None, "continous_segmentation", False,
-                                                                         settings=self.settings,
-                                                                         settings_key="spheriod/deformation/continous_segemntation")
-                    self.continous_segmentation.valueChanged.connect(lambda: self.param_changed("continous_segmentation", True))
-                    self.n_min.valueChanged.connect(lambda: self.param_changed("n_min"))
-                    self.n_max.valueChanged.connect(lambda: self.param_changed("n_max"))
-                layout.addWidget(QHLine())
-                with QtShortCuts.QVBoxLayout(None) as layout:
-                    with QtShortCuts.QHBoxLayout(None):
-                        self.plot = QtShortCuts.QInputBool(None, "plot", True, settings=self.settings,
-                                                           settings_key="spheriod/deformation/plot")
-                        # self.draw_mask = QtShortCuts.QInputBool(None, "draw mask", True, settings=self.settings, settings_key="spheriod/deformation/draw_mask")
+                        self.window_size = QtShortCuts.QInputString(layout2, "window size", "50", type=int,
+                                                                    settings=self.settings,
+                                                                    settings_key="spheriod/deformation/window_siye")
+                        QHLine().addToLayout()
+                        with QtShortCuts.QHBoxLayout(None):
+                            self.n_min = QtShortCuts.QInputString(None, "n_min", "None", allow_none=True, type=int,
+                                                                  settings=self.settings,
+                                                                  settings_key="spheriod/deformation/n_min")
+                            self.n_max = QtShortCuts.QInputString(None, "n_max", "None", allow_none=True, type=int,
+                                                                  settings=self.settings,
+                                                                  settings_key="spheriod/deformation/n_max")
 
-                    with QtShortCuts.QHBoxLayout(None):
-                        self.color_norm = QtShortCuts.QInputString(None, "color norm", 75., type=float,
+                        self.thres_segmentation = QtShortCuts.QInputNumber(None, "thres_segmentation", 0.9, float=True,
+                                                                           min=0.2, max=1.5, step=0.1,
+                                                                           use_slider=True,
+                                                                           settings=self.settings,
+                                                                           settings_key="spheriod/deformation/thres_segmentation2")
+                        self.thres_segmentation.valueChanged.connect(lambda: self.param_changed("thres_segmentation", True))
+                        self.continous_segmentation = QtShortCuts.QInputBool(None, "continous_segmentation", False,
+                                                                             settings=self.settings,
+                                                                             settings_key="spheriod/deformation/continous_segemntation")
+                        self.continous_segmentation.valueChanged.connect(lambda: self.param_changed("continous_segmentation", True))
+                        self.n_min.valueChanged.connect(lambda: self.param_changed("n_min"))
+                        self.n_max.valueChanged.connect(lambda: self.param_changed("n_max"))
+
+
+                    #QHLine().addToLayout()
+                    if 0:
+                        with QtShortCuts.QVBoxLayout() as layout:
+                            with QtShortCuts.QHBoxLayout():
+                                self.plot = QtShortCuts.QInputBool(None, "plot", True, settings=self.settings,
+                                                                   settings_key="spheriod/deformation/plot")
+                                # self.draw_mask = QtShortCuts.QInputBool(None, "draw mask", True, settings=self.settings, settings_key="spheriod/deformation/draw_mask")
+
+                            with QtShortCuts.QHBoxLayout():
+                                self.color_norm = QtShortCuts.QInputString(None, "color norm", 75., type=float,
+                                                                           settings=self.settings,
+                                                                           settings_key="spheriod/deformation/color_norm")
+                                self.cbar_um_scale = QtShortCuts.QInputString(None, "cbar_um_scale", None, allow_none=True,
+                                                                              type=int, settings=self.settings,
+                                                                              settings_key="spheriod/deformation/cbar_um_scale")
+                                self.quiver_scale = QtShortCuts.QInputString(None, "quiver_scale", 1, type=int,
+                                                                             settings=self.settings,
+                                                                             settings_key="spheriod/deformation/quiver_scale")
+
+                            self.dpi = QtShortCuts.QInputString(None, "dpi", 150, allow_none=True, type=int,
+                                                                settings=self.settings, settings_key="spheriod/deformation/dpi")
+                            self.dt_min = QtShortCuts.QInputString(None, "dt_min", None, allow_none=True, type=int,
                                                                    settings=self.settings,
-                                                                   settings_key="spheriod/deformation/color_norm")
-                        self.cbar_um_scale = QtShortCuts.QInputString(None, "cbar_um_scale", None, allow_none=True,
-                                                                      type=int, settings=self.settings,
-                                                                      settings_key="spheriod/deformation/cbar_um_scale")
-                        self.quiver_scale = QtShortCuts.QInputString(None, "quiver_scale", 1, type=int,
-                                                                     settings=self.settings,
-                                                                     settings_key="spheriod/deformation/quiver_scale")
+                                                                   settings_key="spheriod/deformation/dt_min")
 
-                    self.dpi = QtShortCuts.QInputString(None, "dpi", 150, allow_none=True, type=int,
-                                                        settings=self.settings, settings_key="spheriod/deformation/dpi")
-                    self.dt_min = QtShortCuts.QInputString(None, "dt_min", None, allow_none=True, type=int,
-                                                           settings=self.settings,
-                                                           settings_key="spheriod/deformation/dt_min")
-
-                layout.addStretch()
+                    with CheckAbleGroup(self, "Calculate Forces").addToLayout() as self.force_data:
+                        with QtShortCuts.QVBoxLayout():
+                            with QtShortCuts.QHBoxLayout():
+                                self.lookup_table = QtShortCuts.QInputString(None, "Lookup Table")
+                                self.lookup_table.line_edit.setDisabled(True)
+                                self.button_lookup = QtShortCuts.QPushButton(None, "choose file", self.choose_lookup)
+                            #self.output = QtShortCuts.QInputFolder(None, "Result Folder")
+                            #self.lookup_table = QtShortCuts.QInputFilename(None, "Lookup Table", 'lookup_example.pkl',
+                            #                                               file_type="Pickle Lookup Table (*.pkl)",
+                            #                                               existing=True)
 
 
-                self.button_run = QtShortCuts.QPushButton(None, "run", self.run)
+                            self.pixel_size = QtShortCuts.QInputString(None, "pixel_size", "1.29", type=float)
+
+                            with QtShortCuts.QHBoxLayout():
+                                self.x0 = QtShortCuts.QInputString(None, "r_min", "2", type=float)
+                                self.x1 = QtShortCuts.QInputString(None, "r_max", "None", type=float, allow_none=True)
+
+                    layout.addStretch()
+
+
+                    self.button_run = QtShortCuts.QPushButton(None, "run", self.run)
         self.images = []
         self.data = {}
 
         self.input_list = [
-            self.inputText,
-            self.outputText,
-            self.button_clear,
-            self.button_addList,
+            #self.inputText,
+            #self.outputText,
+            #self.button_clear,
+            #self.button_addList,
             self.continous_segmentation,
             self.thres_segmentation,
             self.n_min, self.n_max,
@@ -966,10 +1290,45 @@ class BatchEvaluate(QtWidgets.QWidget):
         self.progress_signal.connect(self.progress_callback)
         self.finished_signal.connect(self.finished)
 
+    def choose_lookup(self):
+
+        self.lookup_gui = SelectLookup()
+        self.lookup_gui.exec()
+
+        if self.lookup_gui.result is not None:
+            self.lookup_table.setValue(self.lookup_gui.result)
+
     def show_files(self):
+        settings = self.settings
+
+        class AddFilesDialog(QtWidgets.QDialog):
+            def __init__(self, parent):
+                super().__init__(parent)
+                self.setWindowTitle("Add Files")
+                with QtShortCuts.QVBoxLayout(self) as layout:
+                    self.label = QtWidgets.QLabel(
+                        "Select a path as an input wildcard. Use * to specify a placeholder. All paths that match the wildcard will be added.")
+                    layout.addWidget(self.label)
+
+                    self.inputText = QtShortCuts.QInputFilename(None, "", settings=settings,
+                                                                settings_key="batch/wildcard", existing=True,
+                                                                allow_edit=True)
+                    self.outputText = QtShortCuts.QInputFolder(None, "output", settings=settings,
+                                                               settings_key="batch/wildcard2", allow_edit=True)
+
+                    with QtShortCuts.QHBoxLayout() as layout3:
+                        # self.button_clear = QtShortCuts.QPushButton(None, "clear list", self.clear_files)
+                        layout3.addStretch()
+                        self.button_addList = QtShortCuts.QPushButton(None, "cancel", self.reject)
+                        self.button_addList = QtShortCuts.QPushButton(None, "ok", self.accept)
+
+        dialog = AddFilesDialog(self)
+        if not dialog.exec():
+            return
+
         import glob
         import re
-        text = os.path.normpath(self.inputText.value())
+        text = os.path.normpath(dialog.inputText.value())
         glob_string = text.replace("+", "*")
         print("globbing", glob_string)
         files = glob.glob(glob_string)
@@ -992,7 +1351,7 @@ class BatchEvaluate(QtWidgets.QWidget):
             reconstructed_file = re.sub(r'\\(.)', r'\1', reconstructed_file)
 
             if reconstructed_file not in data:
-                output = Path(self.outputText.value()) / os.path.relpath(file, output_base)
+                output = Path(dialog.outputText.value()) / os.path.relpath(file, output_base)
                 output = output.parent / output.stem
                 data[reconstructed_file] = dict(
                     images=[],
@@ -1210,7 +1569,7 @@ class ListWidget(QtWidgets.QListWidget):
     addItemClicked = QtCore.Signal()
 
     data = []
-    def __init__(self, layout, editable=False, add_item_button=False):
+    def __init__(self, layout, editable=False, add_item_button=False, color_picker=False):
         super().__init__()
         layout.addWidget(self)
         self.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
@@ -1220,9 +1579,16 @@ class ListWidget(QtWidgets.QListWidget):
         self.act_delete = QtWidgets.QAction(qta.icon("fa.trash"), "Delete", self)
         self.act_delete.triggered.connect(self.delete_item)
 
+        self.act_color = None
+        if color_picker is True:
+            self.act_color = QtWidgets.QAction(qta.icon("fa.paint-brush"), "Change Color", self)
+            self.act_color.triggered.connect(self.change_color)
+
+        self.setDragDropMode(QtWidgets.QAbstractItemView.InternalMove)
+
         self.flags = QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsUserCheckable
         if editable:
-            self.flags |= QtCore.Qt.ItemIsEditable
+            self.flags |= QtCore.Qt.ItemIsEditable | QtCore.Qt.ItemIsDragEnabled
 
         self.add_item_button = add_item_button
         self.addAddItem()
@@ -1230,6 +1596,17 @@ class ListWidget(QtWidgets.QListWidget):
         self.itemSelectionChanged = self.itemSelectionChanged2
 
         self.itemClicked.connect(self.item_clicked)
+        self.model().rowsMoved.connect(self.rowsMoved)
+
+    def rowsMoved(self, parent, start, end, dest, row):
+        if row == self.count():
+            if self.add_item is not None:
+                self.takeItem(self.count() - 2)
+            self.addAddItem()
+            return
+        if row > start:
+            row -= 1
+        self.data.insert(row, self.data.pop(start))
 
     def item_clicked(self, item):
         if item == self.add_item:
@@ -1255,13 +1632,29 @@ class ListWidget(QtWidgets.QListWidget):
         self.add_item.setFlags(QtCore.Qt.ItemIsEnabled)
 
     def list2_context_menu(self, position):
-        # context menu
-        menu = QtWidgets.QMenu()
-        menu.addAction(self.act_delete)
+        if self.currentItem() and self.currentItem() != self.add_item:
+            # context menu
+            menu = QtWidgets.QMenu()
 
-        # open menu at mouse click position
-        if menu:
-            menu.exec_(self.viewport().mapToGlobal(position))
+            if self.act_color is not None:
+                menu.addAction(self.act_color)
+
+            menu.addAction(self.act_delete)
+
+            # open menu at mouse click position
+            if menu:
+                menu.exec_(self.viewport().mapToGlobal(position))
+
+    def change_color(self):
+        import matplotlib as mpl
+        index = self.currentRow()
+
+        # get new color from color picker
+        color = QtWidgets.QColorDialog.getColor(QtGui.QColor(*mpl.colors.to_rgb(self.data[index][3])))
+        # if a color is set, apply it
+        if color.isValid():
+            self.data[index][3] = "#%02x%02x%02x" % color.getRgb()[:3]
+            self.item(index).setIcon(qta.icon("fa.circle", options=[dict(color=color)]))
 
     def delete_item(self):
         index = self.currentRow()
@@ -1272,8 +1665,8 @@ class ListWidget(QtWidgets.QListWidget):
         self.no_list_change = True
         self.data = data
         self.clear()
-        for d, checked, _ in data:
-            self.customAddItem(d, checked)
+        for d, checked, _, color in data:
+            self.customAddItem(d, checked, color)
 
         self.addAddItem()
         self.no_list_change = False
@@ -1289,18 +1682,20 @@ class ListWidget(QtWidgets.QListWidget):
             data[i][1] = item.checkState()
         self.itemChanged.emit()
 
-    def addData(self, d, checked, extra=None):
+    def addData(self, d, checked, extra=None, color=None):
         self.no_list_change = True
         if self.add_item is not None:
             self.takeItem(self.count()-1)
-        self.data.append([d, checked, extra])
-        item = self.customAddItem(d, checked)
+        self.data.append([d, checked, extra, color])
+        item = self.customAddItem(d, checked, color)
         self.addAddItem()
         self.no_list_change = False
         return item
 
-    def customAddItem(self, d, checked):
+    def customAddItem(self, d, checked, color):
         item = QtWidgets.QListWidgetItem(d, self)
+        if color is not None:
+            item.setIcon(qta.icon("fa.circle", options=[dict(color=color)]))
         item.setFlags(self.flags)
         item.setCheckState(QtCore.Qt.Checked if checked else QtCore.Qt.Unchecked)
         return item
@@ -1328,14 +1723,18 @@ class PlottingWindow(QtWidgets.QWidget):
         with QtShortCuts.QHBoxLayout(self) as main_layout:
             with QtShortCuts.QVBoxLayout() as layout:
                 with QtShortCuts.QGroupBox(None, "Groups") as (_, layout2):
-                    self.list = ListWidget(layout2, True, add_item_button="add group")
+                    layout2.setContentsMargins(0, 3, 0, 1)
+                    self.list = ListWidget(layout2, True, add_item_button="add group", color_picker=True)
+                    self.list.setStyleSheet("QListWidget{border: none}")
                     self.list.itemSelectionChanged.connect(self.listSelected)
                     self.list.itemChanged.connect(self.replot)
                     self.list.itemChanged.connect(self.update_group_name)
                     self.list.addItemClicked.connect(self.addGroup)
 
                 with QtShortCuts.QGroupBox(layout, "Group") as (self.box_group, layout2):
+                    layout2.setContentsMargins(0, 3, 0, 1)
                     self.list2 = ListWidget(layout2, add_item_button="add files")
+                    self.list2.setStyleSheet("QListWidget{border: none}")
                     self.list2.itemSelectionChanged.connect(self.run2)
                     self.list2.itemChanged.connect(self.replot)
                     self.list2.addItemClicked.connect(self.addFiles)
@@ -1376,8 +1775,9 @@ class PlottingWindow(QtWidgets.QWidget):
             self.box_group.setEnabled(False)
 
     def addGroup(self):
+        import matplotlib as mpl
         text = f"Group{1+len(self.data_folders)}"
-        item = self.list.addData(text, True, [])
+        item = self.list.addData(text, True, [], mpl.colors.to_hex(f"C{len(self.data_folders)}"))
         self.list.setCurrentItem(item)
         self.list.editItem(item)
 
@@ -1390,8 +1790,10 @@ class PlottingWindow(QtWidgets.QWidget):
                 with QtShortCuts.QVBoxLayout(self) as layout:
                     self.label = QtWidgets.QLabel("Select a path as an input wildcard. Use * to specify a placeholder. All paths that match the wildcard will be added.")
                     layout.addWidget(self.label)
-                    self.inputText = QtShortCuts.QInputFilename(None, None, file_type="Result files (result.xlsx)", settings=settings,
-                                                                settings_key="batch_eval/wildcard", existing=True, allow_edit=True)
+                    def checker(filename):
+                        return filename + "/**/result.xlsx"
+                    self.inputText = QtShortCuts.QInputFolder(None, None, settings=settings, filename_checker=checker,
+                                                                settings_key="batch_eval/wildcard", allow_edit=True)
                     with QtShortCuts.QHBoxLayout() as layout3:
                         # self.button_clear = QtShortCuts.QPushButton(None, "clear list", self.clear_files)
                         layout3.addStretch()
@@ -1403,7 +1805,7 @@ class PlottingWindow(QtWidgets.QWidget):
             return
 
         text = os.path.normpath(dialog.inputText.value())
-        files = glob.glob(text)
+        files = glob.glob(text, recursive=True)
 
         current_group = self.list2.data
         current_files = [d[0] for d in current_group]
@@ -1440,9 +1842,9 @@ class PlottingWindow(QtWidgets.QWidget):
 
     def getAllCurrentPandasData(self):
         results = []
-        for name, checked, files in self.data_folders:
+        for name, checked, files, color in self.data_folders:
             if checked != 0:
-                for name2, checked2, res in files:
+                for name2, checked2, res, color in files:
                     if checked2 != 0:
                         res["group"] = name
                         results.append(res)
@@ -1471,6 +1873,7 @@ class PlottingWindow(QtWidgets.QWidget):
             button.setChecked(False)
         self.button_run3.setChecked(True)
         self.current_plot_func = self.barplot
+        self.canvas.setActive()
         plt.cla()
         if self.type.value() == "Contractility":
             mu_name = 'Mean Contractility (µN)'
@@ -1488,11 +1891,16 @@ class PlottingWindow(QtWidgets.QWidget):
 
         code_data = [res, ["t", "group", mu_name, "filename"]]
 
-        def plot(res, mu_name, y_label):
+        color_dict = {d[0]: d[3] for d in self.data_folders}
+
+        def plot(res, mu_name, y_label, color_dict2):
+            # define the colors
+            color_dict = color_dict2
+
             # iterate over the groups
-            for name, data in res.groupby("group")[mu_name]:
+            for name, data in res.groupby("group", sort=False)[mu_name]:
                 # add the bar with the mean value and the standard error as errorbar
-                plt.bar(name, data.mean(), yerr=data.sem(), error_kw=dict(capsize=5))
+                plt.bar(name, data.mean(), yerr=data.sem(), error_kw=dict(capsize=5), color=color_dict[name])
                 # add the number of averaged points
                 plt.text(name, data.mean() + data.sem(), f"n={data.count()}", ha="center", va="bottom")
 
@@ -1505,7 +1913,7 @@ class PlottingWindow(QtWidgets.QWidget):
             # show the plot
             self.canvas.draw()
 
-        code = execute(plot, code_data[0][code_data[1]], mu_name=mu_name, y_label=y_label)
+        code = execute(plot, code_data[0][code_data[1]], mu_name=mu_name, y_label=y_label, color_dict2=color_dict)
 
         self.export_data = [code, code_data]
 
@@ -1523,6 +1931,7 @@ class PlottingWindow(QtWidgets.QWidget):
             std_name = 'St.dev. Pressure (Pa)'
             y_label = 'Pressure (Pa)'
 
+        self.canvas.setActive()
         plt.cla()
         res = self.getAllCurrentPandasData()
 
@@ -1533,16 +1942,20 @@ class PlottingWindow(QtWidgets.QWidget):
             comp_h = self.get_comparison_index() * self.dt.value() / 60
             plt.axvline(comp_h, color="k")
 
-        def plot(res, mu_name, y_label):
+        color_dict = {d[0]: d[3] for d in self.data_folders}
+
+        def plot(res, mu_name, y_label, color_dict2):
+            # define the colors
+            color_dict = color_dict2
+
             # iterate over the groups
-            for group_name, data in res.groupby("group"):
+            for group_name, data in res.groupby("group", sort=False):
                 # get the mean and sem
                 x = data.groupby("t")[mu_name].agg(["mean", "sem", "count"])
                 # plot the mean curve
-                p, = plt.plot(x.index, x["mean"], lw=2, label=f"{group_name} (n={int(x['count'].mean())})")
+                p, = plt.plot(x.index, x["mean"], color=color_dict[group_name], lw=2, label=f"{group_name} (n={int(x['count'].mean())})")
                 # add a shaded area for the standard error
-                plt.fill_between(x.index, x["mean"] - x["sem"], x["mean"] + x["sem"], facecolor=p.get_color(), lw=0,
-                                 alpha=0.5)
+                plt.fill_between(x.index, x["mean"] - x["sem"], x["mean"] + x["sem"], facecolor=p.get_color(), lw=0, alpha=0.5)
 
             # add a grid
             plt.grid(True)
@@ -1555,7 +1968,7 @@ class PlottingWindow(QtWidgets.QWidget):
             # show
             self.canvas.draw()
 
-        code = execute(plot, code_data[0][code_data[1]], mu_name=mu_name, y_label=y_label)
+        code = execute(plot, code_data[0][code_data[1]], mu_name=mu_name, y_label=y_label, color_dict2=color_dict)
 
         self.export_data = [code, code_data]
         return
@@ -1584,6 +1997,7 @@ class PlottingWindow(QtWidgets.QWidget):
 
         res["t"] = res.index * self.dt.value() / 60
 
+        self.canvas.setActive()
         plt.cla()
 
         def plot(res, mu_name, std_name, y_label, plot_color):
@@ -1605,7 +2019,7 @@ class PlottingWindow(QtWidgets.QWidget):
             # show the plot
             self.canvas.draw()
 
-        code = execute(plot, code_data[0][code_data[1]], mu_name=mu_name, std_name=std_name, y_label=y_label, plot_color=f"C{self.list.currentRow()}")
+        code = execute(plot, code_data[0][code_data[1]], mu_name=mu_name, std_name=std_name, y_label=y_label, plot_color=self.data_folders[self.list.currentRow()][3])
 
         self.export_data = [code, code_data]
 
