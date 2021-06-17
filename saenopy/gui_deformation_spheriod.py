@@ -613,15 +613,15 @@ class MainWindow(QtWidgets.QWidget):
                     self.description.setText("""
 <h1>Step 1: Material Simulations </h1><br/>
 
-To calculate the collective forces that spheroids and organoids excert on the surrounding
+To calculate the contracctile forces that multicellular aggregates excert on the surrounding
 matrix, we generate material lookup-tables that predict the contractilile pressure
 from the size of the matrix deformations as a function of the distance to the spheroid center as 
-described in Mark et al. (2020). <br/>
+described in Mark et al. (2020, <a href="https://elifesciences.org/articles/51912">click here for more details</a>). <br/>
 <br/>
 
 To generate a material lookup-table, we model the nonlinear fiber material according to the
  given material properties <b>k</b>, <b>d0</b>, <b>ds</b> and <b>lambda_s</b> 
- (see Saenopy documentation for more information).<br/>
+ (<a href="https://saenopy.readthedocs.io/en/latest/">click here for more details</a>).<br/>
  <i> Default values are taken from a collagen I hydrogel (1.2mg/ml) with k=1449, d0=0.00215, ds=0.055, lambda_s=0.032.</i><br/>
 <br/>
 
@@ -713,9 +713,9 @@ using the XXXX function.
                 <h1>Step 3: Deformation Detection</h1>
                 Now we need to extract the deformations from the recorded image data. <br/>
                 <br/>
-                Therefore we use 2D PIV (particle image velocimetry) algorithm to determine the movement 
+                Therefore we use the 2D OpenPIV (particle image velocimetry) algorithm to determine the movement 
                 of beads that surround the spheroid in the equatorial plane. By exploitng spherical symetry this deformation 
-                is then simply compared to the 3D simulations by using our material lookup-table. <br/>
+                can then simply compared to the 3D simulations by using our material lookup-table. <br/>
                 <br/>
                 
                 <h2>Parameters</h2>
@@ -729,6 +729,16 @@ using the XXXX function.
                 <li><b>thres_segmentation</b>: Factor to change the threshold for spheroid segmentation (default is 0.9). 1</li>
                 
                 </ul>
+                
+                 <h1>Step 4: Force Reconstruction</h1>
+                 .... this step will include bot deformation and force reconstruction ToDO....
+                 
+                 
+                
+                
+                
+                
+                
                                  """.strip())
             v_layout.addWidget(QHLine())
             with QtShortCuts.QHBoxLayout() as h_layout:
@@ -737,7 +747,7 @@ using the XXXX function.
                 self.button_next = QtShortCuts.QPushButton(None, "next", self.next)
 
         """ """
-        with self.tabs.createTab("Force") as v_layout:
+        with self.tabs.createTab("Data Analysis") as v_layout:
             with QtShortCuts.QHBoxLayout() as h_layout:
 
                 #self.deformations = Force(h_layout, self)
@@ -748,16 +758,34 @@ using the XXXX function.
                 self.description.setDisabled(True)
                 h_layout.addWidget(self.description)
                 self.description.setText("""
-                        <h1>Step 4: Force</h1>
-                        Now we need to create a mesh and interpolate the displacements onto this mesh.<br/>
+                        <h1>Step 5: Data Analysis</h1>
+                       
+                        In this step we can analyze our results. <br/>
+                        <br/>                    
+                        
+                        For each  <b>individually</b> spheroid/organoid the <b>force</b> or the <b>pressure</b> development 
+                        can be visualized over time. In addition, different spheroids or organoids
+                        can be merged in <b>groups</b> , for which then the
+                        mean value and standard error can be visualized groupwise. <br/>
                         <br/>
-        
-                        <h2>Parameters</h2>
-                        <ul>
-                        <li><b>Element size</b>: spacing between nodes of the mesh in um.</li>
-                        <li><b>Inner Region</b>: the spacing will be exactly the one given in element size in a centerl region of this size.</li>
-                        <li><b>Thinning Factor</b>: how much to thin the elements outside the inner region. 1</li>
-                        </ul>
+                            
+                        Different groups can be created and to each group individual experiments 
+                        are added by using a path-placeholder combination. In particular,                                            
+                        the "*" is used to scan across sub-direcctiories to find different "result.xlsx"-files.<br/>                  
+                        <i> Example: "C:/User/ExperimentA/well1/Pos*/result.xlsx" to read 
+                        in all positions in certain directory </i><br/>
+                        (TODO  autumatically search for result.xlsx )<br/>
+                        <br/>
+                        
+                        Finally, we need to specify the time between consecutive images in <b>dt</b>. 
+                        To display a bar chart for a particular time point, we select the desired
+                        time point using <b>Comparison time</b>.<br/>
+                        <br/>
+                        
+                        Export allows to store the data as CSV file or embedded within a python script 
+                        allowing to re-plot and adjust the figures later on. <br/>
+      
+                  
                                          """.strip())
                 # TODO add better description of the thining
             v_layout.addWidget(QHLine())
