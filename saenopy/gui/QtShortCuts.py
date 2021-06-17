@@ -28,6 +28,24 @@ from qtpy import QtCore, QtGui, QtWidgets
 
 current_layout = None
 
+def setCurrentLayout(layout):
+    global current_layout
+    current_layout = layout
+
+def currentLayout():
+    return current_layout
+
+def addToLayout(self, layout=None):
+    if layout is None and current_layout is not None:
+        layout = current_layout
+    layout.addWidget(self)
+    return self
+
+QtWidgets.QWidget.addToLayout = addToLayout
+def connect(self, target):
+    super().connect(target)
+    return self
+QtCore.Signal.connect = connect
 
 class QInput(QtWidgets.QWidget):
     """
@@ -536,7 +554,7 @@ class QVBoxLayout(QtWidgets.QVBoxLayout, EnterableLayout):
     def __init__(self, parent=None):
         if parent is None and current_layout is not None:
             parent = current_layout
-        if isinstance(parent, QtWidgets.QWidget):
+        if getattr(parent, "addLayout", None) is None:
             super().__init__(parent)
         else:
             super().__init__()
@@ -548,13 +566,28 @@ class QHBoxLayout(QtWidgets.QHBoxLayout, EnterableLayout):
     def __init__(self, parent=None):
         if parent is None and current_layout is not None:
             parent = current_layout
-        if isinstance(parent, QtWidgets.QWidget):
+        if getattr(parent, "addLayout", None) is None:#isinstance(parent, QtWidgets.QWidget):
             super().__init__(parent)
         else:
             super().__init__()
             parent.addLayout(self)
         self.layout = self
 
+
+class QSplitter(QtWidgets.QSplitter, EnterableLayout):
+    def __init__(self, *args):
+        super().__init__(*args)
+        if current_layout is not None:
+            current_layout.addWidget(self)
+        self.layout = self
+        self.widgets = []
+
+    def addLayout(self, layout):
+        widget = QtWidgets.QWidget()
+        self.widgets.append(widget)
+        self.addWidget(widget)
+        widget.setLayout(layout)
+        return layout
 
 
 def AddQSpinBox(layout, text, value=0, float=True, strech=False):
