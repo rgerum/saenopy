@@ -916,14 +916,12 @@ class MainWindow(QtWidgets.QWidget):
             with self.tabs.createTab("Simulations") as v_layout:
                 with QtShortCuts.QHBoxLayout() as h_layout:
                     self.stack_before = LookUpTable(h_layout, self)
-                    self.description = QtWidgets.QTextEdit()
-                    self.description.setDisabled(True)
-                    h_layout.addWidget(self.description)
+                    self.description = QtWidgets.QTextBrowser().addToLayout()
                     self.description.setText("""
 <h1>Step 1: Material Simulations </h1><br/>
 
-To calculate the contracctile forces that multicellular aggregates excert on the surrounding
-matrix, we generate material lookup-tables that predict the contractilile pressure
+To calculate the contractile forces that multicellular aggregates excert on the surrounding
+matrix, we generate material lookup-tables that predict the contractile pressure
 from the size of the matrix deformations as a function of the distance to the spheroid center as 
 described in Mark et al. (2020, <a href="https://elifesciences.org/articles/51912">click here for more details</a>). <br/>
 <br/>
@@ -957,9 +955,10 @@ can be generated from the obtained files in the next step. <br/>
 can be increased to speed up the calculations. Attention: If you overload the memory an error 
 will lead the simulations to crash. Therefore the default value is 1. The material simulations need 
 to be conducted only a single time for a certain material. Additionally, lookuptables for purely linear fiber material (assuming poission ratio of v=0.25) with 
-arbitrary Youngs modulus can be created without conducting simulations
+arbitrary Young's modulus can be created without conducting simulations
 using the XXXX function in the next step.
 """.strip())
+                self.description.setOpenExternalLinks(True)
 
                 v_layout.addWidget(QHLine())
                 with QtShortCuts.QHBoxLayout() as h_layout:
@@ -982,7 +981,7 @@ using the XXXX function in the next step.
 From the individual simulations we  now generate our material lookup-table. <br/>
 <br/>
 
-Therefore, we load the <b>Input folder</b> where the indivudal simulations are stored.<b>Generate</b> will then create and save the material-lookuptable 
+Therefore, we load the <b>Input folder</b> where the individual simulations are stored.<b>Generate</b> will then create and save the material-lookuptable 
 as a *.pkl-file for further force analysis in the specified <b>Output Lookup Table</b> location.<br/>
 <br/>
 <i> If desired the interpolation of data points from the FE-simulations to different relative distances can be changed.  
@@ -999,7 +998,7 @@ Add Data to plot ? ToDo <br/>
 <br/>
 
 Additionally, lookuptables for purely linear fiber material (assuming poission ratio of v=0.25) with 
-arbitrary Youngs modulus can be created without conducting simulations
+arbitrary Young's modulus can be created without conducting simulations
 using the XXXX function.
                  """.strip())
 
@@ -1023,7 +1022,7 @@ using the XXXX function.
                 Now we need to extract the deformations from the recorded image data. <br/>
                 <br/>
                 Therefore we use the 2D OpenPIV (particle image velocimetry) algorithm to determine the movement 
-                of beads that surround the spheroid in the equatorial plane. By exploitng spherical symetry this deformation 
+                of beads that surround the spheroid in the equatorial plane. By exploiting spherical symmetry this deformation 
                 can then simply compared to the 3D simulations by using our material lookup-table. <br/>
                 <br/>
                 
@@ -1031,7 +1030,7 @@ using the XXXX function.
                 <ul>
                 <li><b>Raw Images</b>: Path to the folder containing the raw image data.</li>
                 <li><b>Wildcard</b>: Wildcard to selection elements within this folder (Example: Pos01_t*.tif; star will allow all timesteps). </li>
-                <li><b>n_min, n_max</b>: Set a minimum or maximum elemnet if first or last time steps from this selection should be ignored (default is None). 1</li>
+                <li><b>n_min, n_max</b>: Set a minimum or maximum element if first or last time steps from this selection should be ignored (default is None). 1</li>
                 <li><b>thres_segmentation</b>: Factor to change the threshold for spheroid segmentation (default is 0.9). 1</li>
                 <li><b>continous_segmentation</b>: If active, the segmentation is repeated for every timestep individually.
                 By default we use the segmentation of the first time step (less sensitive to fluctuations)  </li>
@@ -1080,10 +1079,10 @@ using the XXXX function.
                             
                         Different groups can be created and to each group individual experiments 
                         are added by using a path-placeholder combination. In particular,                                            
-                        the "*" is used to scan across sub-direcctiories to find different "result.xlsx"-files.<br/>                  
+                        the "*" is used to scan across sub-directories to find different "result.xlsx"-files.<br/>                  
                         <i> Example: "C:/User/ExperimentA/well1/Pos*/result.xlsx" to read 
                         in all positions in certain directory </i><br/>
-                        (TODO  autumatically search for result.xlsx )<br/>
+                        (TODO  automatically search for result.xlsx )<br/>
                         <br/>
                         
                         Finally, we need to specify the time between consecutive images in <b>dt</b>. 
