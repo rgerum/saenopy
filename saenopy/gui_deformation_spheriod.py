@@ -267,54 +267,94 @@ class CheckAbleGroup(QtWidgets.QWidget, QtShortCuts.EnterableLayout):
             self.child_widget.setLayout(layout)
         return layout
 
-class LookUpTable(QtWidgets.QWidget):
+class LookUpTable(QtWidgets.QDialog):
     progress_signal = QtCore.Signal(int, int)
     finished_signal = QtCore.Signal()
     thread = None
 
-    def __init__(self, layout, mesh_creator):
+    def __init__(self):
         super().__init__()
-        layout.addWidget(self)
-
-        main_layout = QtWidgets.QVBoxLayout(self)
-
-        self.mesh_creator = mesh_creator
-
         self.settings = QtCore.QSettings("Saenopy", "Seanopy")
 
-        self.material_parameters = QtWidgets.QGroupBox("Material Parameters")
-        main_layout.addWidget(self.material_parameters)
+        with QtShortCuts.QHBoxLayout(self):
+            with QtShortCuts.QVBoxLayout() as main_layout:
+                with QtShortCuts.QGroupBox(None, "Material Parameters") as (self.material_parameters, layout):
+                    with QtShortCuts.QHBoxLayout():
+                        self.input_k = QtShortCuts.QInputString(None, "k", "1449", type=float)
+                        self.input_d0 = QtShortCuts.QInputString(None, "d0", "0.00215", type=float)
+                    with QtShortCuts.QHBoxLayout():
+                        self.input_lamda_s = QtShortCuts.QInputString(None, "lamdba_s", "0.032", type=float)
+                        self.input_ds = QtShortCuts.QInputString(None, "ds", "0.055", type=float)
 
-        with QtShortCuts.QVBoxLayout(self.material_parameters) as layout:
-            with QtShortCuts.QHBoxLayout(None):
-                self.input_k = QtShortCuts.QInputString(None, "k", "1449", type=float)
-                self.input_d0 = QtShortCuts.QInputString(None, "d0", "0.00215", type=float)
-            with QtShortCuts.QHBoxLayout(None):
-                self.input_lamda_s = QtShortCuts.QInputString(None, "lamdba_s", "0.032", type=float)
-                self.input_ds = QtShortCuts.QInputString(None, "ds", "0.055", type=float)
+                with QtShortCuts.QGroupBox(None, "Pressure Range") as (self.material_parameters, layout):
+                    with QtShortCuts.QHBoxLayout():
+                        self.start = QtShortCuts.QInputString(None, "min", "0.1", type=float)
+                        self.end = QtShortCuts.QInputString(None, "max", "1000", type=float)
+                        self.n = QtShortCuts.QInputString(None, "count", "150", type=int)
 
-        self.material_parameters = QtWidgets.QGroupBox("Pressure Range")
-        main_layout.addWidget(self.material_parameters)
-        with QtShortCuts.QHBoxLayout(self.material_parameters):
-            self.start = QtShortCuts.QInputString(None, "min", "0.1", type=float)
-            self.end = QtShortCuts.QInputString(None, "max", "1000", type=float)
-            self.n = QtShortCuts.QInputString(None, "count", "150", type=int)
+                with QtShortCuts.QGroupBox(None, "Iteration Parameters") as (self.material_parameters, layout):
+                    with QtShortCuts.QHBoxLayout():
+                        self.max_iter = QtShortCuts.QInputString(None, "max_iter", "600", type=int)
+                        self.step = QtShortCuts.QInputString(None, "step", "0.0033", type=float)
 
-        self.material_parameters = QtWidgets.QGroupBox("Iteration Parameters")
-        main_layout.addWidget(self.material_parameters)
-        with QtShortCuts.QHBoxLayout(self.material_parameters):
-            self.max_iter = QtShortCuts.QInputString(None, "max_iter", "600", type=int)
-            self.step = QtShortCuts.QInputString(None, "step", "0.0033", type=float)
+                with QtShortCuts.QGroupBox(None, "Run Parameters") as (self.material_parameters, layout):
+                    with QtShortCuts.QVBoxLayout():
+                        self.n_cores = QtShortCuts.QInputNumber(None, "n_cores", 1, float=False)
+                        #layout=None, name=None, value=None, dialog_title="Choose File", file_type="All", filename_checker=None, existing=False, **kwargs):
+                        self.output = QtShortCuts.QInputFolder(None, "Output Folder")
 
-        self.material_parameters = QtWidgets.QGroupBox("Run Parameters")
-        main_layout.addWidget(self.material_parameters)
-        layout = QtWidgets.QVBoxLayout(self.material_parameters)
+                main_layout.addStretch()
 
-        self.n_cores = QtShortCuts.QInputNumber(layout, "n_cores", 1, float=False)
-        #layout=None, name=None, value=None, dialog_title="Choose File", file_type="All", filename_checker=None, existing=False, **kwargs):
-        self.output = QtShortCuts.QInputFolder(layout, "Output Folder")
+                with QtShortCuts.QHBoxLayout() as layout2:
 
-        main_layout.addStretch()
+                    self.button_run = QtWidgets.QPushButton("run").addToLayout()
+                    self.button_run.clicked.connect(self.run)
+                    layout2.addStretch()
+                    layout2.addWidget(self.button_run)
+
+                self.progressbar = QtWidgets.QProgressBar().addToLayout()
+
+            self.description = QtWidgets.QTextBrowser().addToLayout()
+            self.description.setText("""
+            <h1>Material Simulations</h1><br/>
+
+            To calculate the contractile forces that multicellular aggregates excert on the surrounding
+            matrix, we generate material lookup-tables that predict the contractile pressure
+            from the size of the matrix deformations as a function of the distance to the spheroid center as 
+            described in Mark et al. (2020, <a href="https://elifesciences.org/articles/51912">click here for more details</a>). <br/>
+            <br/>
+
+            To generate a material lookup-table, we model the nonlinear fiber material according to the
+            given material properties <b>k</b>, <b>d0</b>, <b>ds</b> and <b>lambda_s</b> 
+            (<a href="https://saenopy.readthedocs.io/en/latest/">click here for more details</a>).<br/>
+            <i> Default values are taken from a collagen I hydrogel (1.2mg/ml) with k=1449, d0=0.00215, ds=0.055, lambda_s=0.032.</i><br/>
+            <br/>
+
+            The simulations then approximate the multicellular aggregate as a spherical inclusion that is
+            surrounded by the user-defined nonlinear material and excerts a contractile pressure on the matrix. We conduct a range of simulations   
+            for n=<b>count</b> different pressures (default 150) that are spaced between a pressure of <b>min</b> Pa (default 600) 
+            and <b>max</b> Pa (default 1000). <br/>
+            <br/>
+
+            For the individual simulations the maximal allowed number of iteration before convergence 
+            is limited by <b>max_iter</b> (default 600) and the stepwidth between iteration is given by <b>step</b> 
+            (default is 0.0033). <br/>
+            <br/>
+
+            All simulations are stored in the <b>Output folder</b>, which should be empty 
+            before starting the simulations. After the simulations are finished, the lookup-table 
+            can be generated from the obtained files in the next step. <br/>
+            <br/>
+
+
+            <b>Hint</b>: This step can take several hours or even days. Depending on the used computer <b>n_cores</b>
+            can be increased to speed up the calculations. Attention: If you overload the memory an error 
+            will lead the simulations to crash. Therefore the default value is 1. The material simulations need 
+            to be conducted only a single time for a certain material. Additionally, lookuptables for purely linear fiber material (assuming poission ratio of v=0.25) with 
+            arbitrary Young's modulus can be created without conducting simulations
+            using the XXXX function in the next step.
+            """)
+            self.description.setOpenExternalLinks(True)
 
         self.input_list = [
             self.input_k,
@@ -335,17 +375,6 @@ class LookUpTable(QtWidgets.QWidget):
         if not Path(self.localpath).exists():
             print("Downloading", url, "...")
             urllib.request.urlretrieve(str(url), self.localpath)
-
-        layout2 = QtWidgets.QHBoxLayout()
-        main_layout.addLayout(layout2)
-
-        self.button_run = QtWidgets.QPushButton("run")
-        self.button_run.clicked.connect(self.run)
-        layout2.addStretch()
-        layout2.addWidget(self.button_run)
-
-        self.progressbar = QtWidgets.QProgressBar()
-        main_layout.addWidget(self.progressbar)
 
         self.progress_signal.connect(self.progress_callback)
         self.finished_signal.connect(self.finished)
@@ -369,6 +398,8 @@ class LookUpTable(QtWidgets.QWidget):
         self.button_run.setText("run")
         for widget in self.input_list:
             widget.setDisabled(False)
+
+        self.accept()
 
     def progress_callback(self, i, n):
         self.progressbar.setRange(0, n)
@@ -404,125 +435,96 @@ class LookUpTable(QtWidgets.QWidget):
         #jf.simulation.save_lookup_functions(get_displacement, get_pressure, str(out_table))
         self.finished_signal.emit()
 
-class LookUpTable2(QtWidgets.QWidget):
-    progress_signal = QtCore.Signal(int, int)
-
-    def __init__(self, layout, mesh_creator):
-        super().__init__()
-        layout.addWidget(self)
-
-
-        self.mesh_creator = mesh_creator
-
-        self.settings = QtCore.QSettings("Saenopy", "Seanopy")
-
-        with QtShortCuts.QVBoxLayout(self) as main_layout:
-            with QtShortCuts.QHBoxLayout() as hlayouy:
-                with QtShortCuts.QGroupBox(None, "Generate Material Lookup Table") as (_, layout):
-
-                    self.output = QtShortCuts.QInputFolder(layout, "Input Folder")
-
-                    with QtShortCuts.QHBoxLayout(layout) as layout2:
-                        self.x0 = QtShortCuts.QInputString(layout2, "x0", "1", type=float)
-                        self.x1 = QtShortCuts.QInputString(layout2, "x1", "50", type=float)
-                        self.n = QtShortCuts.QInputString(layout2, "n", "100", type=int)
-
-                    self.lookup_table = QtShortCuts.QInputFilename(layout, "Output Lookup Table", 'lookup_example.pkl', file_type="Pickle Lookup Table (*.pkl)")
-
-                    with QtShortCuts.QHBoxLayout(layout) as layout2:
-                        layout2.addStretch()
-                        self.button_run = QtShortCuts.QPushButton(layout2, "generate", self.run)
-
-                with QtShortCuts.QGroupBox(None, "Generate Linear Material Lookup Table") as (_, layout):
-                    self.youngs = QtShortCuts.QInputString(None, "Young's Module", "250", type=float)
-
-                    self.linear_output = QtShortCuts.QInputFilename(layout, "Output Lookup Table", 'lookup_example.pkl',
-                                                                   file_type="Pickle Lookup Table (*.pkl)")
-
-                    with QtShortCuts.QHBoxLayout(layout) as layout2:
-                        layout2.addStretch()
-                        self.button_run = QtShortCuts.QPushButton(layout2, "generate", self.run_linear)
-
-            with QtShortCuts.QGroupBox(None, "Plot Material Lookup Table") as (_, layout):
-
-                with QtShortCuts.QHBoxLayout(layout):
-                    self.p0 = QtShortCuts.QInputString(None, "p_min", "0", type=float)
-                    self.p1 = QtShortCuts.QInputString(None, "p_max", "1000", type=float)
-                    self.d1 = QtShortCuts.QInputString(None, "r_min", "2", type=float)
-                    self.d2 = QtShortCuts.QInputString(None, "r_max", "50", type=float)
-
-                self.lookup_table2 = QtShortCuts.QInputFilename(layout, "Input Lookup Table", 'lookup_example.pkl', file_type="Pickle Lookup Table (*.pkl)", existing=True)
-
-                with QtShortCuts.QHBoxLayout(layout) as layout2:
-                    layout2.addStretch()
-                    self.button_run = QtShortCuts.QPushButton(layout2, "plot", self.run2)
-
-            main_layout.addStretch()
-
-    def run(self):
-        lookup_table = jf.simulation.create_lookup_table_solver(str(self.output.value()), x0=int(self.x0.value()), x1=int(self.x1.value()),
-                                                                n=int(self.n.value()))  # output folder for combining the individual simulations
-        get_displacement, get_pressure = jf.simulation.create_lookup_functions(lookup_table)
-        jf.simulation.save_lookup_functions(get_displacement, get_pressure, str(self.lookup_table.value()))
-
-    def run2(self):
-        figure = jf.simulation.plot_lookup_table(str(self.lookup_table2.value()), pressure=[float(self.p0.value()), float(self.p1.value())], distance=[float(self.d1.value()), float(self.d2.value())])
-
-    def run_linear(self):
-        jf.simulation.linear_lookup_interpolator(emodulus=self.youngs.value(), output_newtable=str(self.linear_output.value()))
-        QtWidgets.QMessageBox.information(self, "Lookup complete", f"A lookuptable file for a Young's Modulus {self.youngs.value()} has been written to {self.linear_output.value()}.")
-
 ################
-class LookupTableDialog(QtWidgets.QDialog):
-    def __init__(self, parent, state):
-        super().__init__(parent)
-        self.setWindowTitle("Select exiting Lookup Table")
-        with QtShortCuts.QVBoxLayout(self) as layout:
-            if state == "existing":
-                self.label = QtWidgets.QLabel("Select a path to the Lookup Table.").addToLayout()
-                self.inputText = QtShortCuts.QInputFilename(None, "Output Lookup Table", 'lookup_example.pkl', file_type="Pickle Lookup Table (*.pkl)", settings=settings, settings_key="batch/lookuptable_path", existing=True)
-                self.inputText.valueChanged.connect(self.path_changed)
-            elif state == "linear":
-                self.label = QtWidgets.QLabel("Select a path where to save the Lookup Table.").addToLayout()
-                self.inputText = QtShortCuts.QInputFilename(None, "Output Lookup Table", 'lookup_example.pkl',
-                                                            file_type="Pickle Lookup Table (*.pkl)", settings=settings,
-                                                            settings_key="batch/lookuptable_path", existing=False)
-                #self.inputText.valueChanged.connect(self.path_changed)
-                with QtShortCuts.QHBoxLayout(layout) as layout2:
-                    layout2.addStretch()
-                    self.youngs = QtShortCuts.QInputString(None, "Young's Module", "250", type=float)
-                    self.button_run = QtShortCuts.QPushButton(layout2, "generate", self.run_linear)
 
-            with QtShortCuts.QGroupBox(None, "Lookup Table Preview Plot"):
-                with QtShortCuts.QVBoxLayout():
-                    self.canvas = MatplotlibWidget(self).addToLayout()
-                    self.toolbar = NavigationToolbar(self.canvas, self).addToLayout()
-                    with QtShortCuts.QHBoxLayout(layout):
-                        self.p0 = QtShortCuts.QInputString(None, "p_min", "0", type=float)
-                        self.p1 = QtShortCuts.QInputString(None, "p_max", "1000", type=float)
-                        self.d1 = QtShortCuts.QInputString(None, "r_min", "2", type=float)
-                        self.d2 = QtShortCuts.QInputString(None, "r_max", "50", type=float)
-                        self.replot = QtShortCuts.QPushButton(None, "replot", self.path_changed)
 
-            with QtShortCuts.QHBoxLayout() as layout3:
-                layout3.addStretch()
-                self.button_addList = QtShortCuts.QPushButton(None, "cancel", self.reject)
-                self.button_addList = QtShortCuts.QPushButton(None, "ok", self.accept)
-        self.timer = QtCore.QTimer.singleShot(100, self.path_changed)
 
-    def run_linear(self):
-        jf.simulation.linear_lookup_interpolator(emodulus=self.youngs.value(), output_newtable=str(self.inputText.value()))
-        QtWidgets.QMessageBox.information(self, "Lookup complete", f"A lookuptable file for a Young's Modulus {self.youngs.value()} has been written to {self.inputText.value()}.")
+class LookupTableGenerator(QtWidgets.QDialog):
+    def loadExisting(self):
+        last_folder = settings.value("batch", "batch/simulations_path")
+        filename = QtWidgets.QFileDialog.getExistingDirectory(None, "Open Simulations Folder", last_folder)
+        filename = filename[0] if isinstance(filename, tuple) else str(filename) if filename is not None else None
+
+        if filename is None:
+            return
+
+        self.output.setValue(filename)
+
+    def generate(self):
+        dialog = LookUpTable()
+
+        if not dialog.exec():
+            return
+
+        self.result = dialog.output.value()
+        self.label_input.setText(self.result)
         self.path_changed()
 
-    def path_changed(self):
-        self.canvas.setActive()
-        plt.clf()
-        figure = jf.simulation.plot_lookup_table(str(self.inputText.value()),
-                                                 pressure=[float(self.p0.value()), float(self.p1.value())],
-                                                 distance=[float(self.d1.value()), float(self.d2.value())], figure=self.canvas.figure)
-        self.canvas.draw()
+    def __init__(self, parent):
+        super().__init__(parent)
+        self.setWindowTitle("Generate Material Lookup Table")
+        with QtShortCuts.QHBoxLayout(self):
+            with QtShortCuts.QGroupBox(None, "Generate Material Lookup Table") as (_, layout):
+                with QtShortCuts.QHBoxLayout() as layout3:
+                    self.button_addList = QtShortCuts.QPushButton(None, "Load existing\nSimulations",
+                                                                  self.loadExisting)
+                    self.button_addList.setMinimumSize(100, 100)
+                    QVLine().addToLayout()
+                    self.button_addList = QtShortCuts.QPushButton(None, "Generate New Simulations",
+                                                                  self.generate)
+                    self.button_addList.setMinimumSize(100, 100)
 
+                self.output = QtShortCuts.QInputString(layout, "Input Folder")
+                self.output.setDisabled(True)
+
+                with QtShortCuts.QHBoxLayout(layout) as layout2:
+                    self.x0 = QtShortCuts.QInputString(layout2, "x0", "1", type=float)
+                    self.x1 = QtShortCuts.QInputString(layout2, "x1", "50", type=float)
+                    self.n = QtShortCuts.QInputString(layout2, "n", "100", type=int)
+
+                self.lookup_table = QtShortCuts.QInputFilename(layout, "Output Lookup Table", 'lookup_example.pkl',
+                                                               file_type="Pickle Lookup Table (*.pkl)")
+
+                with QtShortCuts.QHBoxLayout(layout) as layout2:
+                    layout2.addStretch()
+                    self.button_run = QtShortCuts.QPushButton(layout2, "generate", self.run)
+
+            self.description = QtWidgets.QTextBrowser().addToLayout()
+            self.description.setText("""
+            <h1>Material Lookup-Table</h1>
+
+            From the individual simulations we now generate our material lookup-table. <br/>
+            <br/>
+
+            Therefore, we load the <b>Input folder</b> where the individual simulations are stored.<b>Generate</b> will then create and save the material-lookuptable 
+            as a *.pkl-file for further force analysis in the specified <b>Output Lookup Table</b> location.<br/>
+            <br/>
+            <i>If desired the interpolation of data points from the FE-simulations to different relative distances can be changed.  
+            By default a grid with <b>n</b>=150 logarithmically spaced intervals is generated between a
+            distance of <b>x0</b>=1 effective spheroid radii to a distance of <b>x1</b>=50 effective spheroid radii away from the center.</i><br/>
+            <br/>
+
+            The material lookup-table can be visualized by reading in the *.pkl-file as <b>Input Lookup Table</b> and adjust the desired range
+            of pressures (from <b>p0</b> to <b>p1</b> Pascal) and distances (from <b>d1</b> to <b>d2</b> in 
+            effective spheroid radii). <br/>
+            <br/>
+
+            Add Data to plot ? ToDo <br/>
+            <br/>
+
+            Additionally, lookuptables for purely linear fiber material (assuming poission ratio of v=0.25) with 
+            arbitrary Young's modulus can be created without conducting simulations
+            using the XXXX function.
+            """.strip())
+
+    def run(self):
+        lookup_table = jf.simulation.create_lookup_table_solver(str(self.output.value()),
+                                                                x0=self.x0.value(),
+                                                                x1=self.x1.value(),
+                                                                n=self.n.value())
+        get_displacement, get_pressure = jf.simulation.create_lookup_functions(lookup_table)
+        jf.simulation.save_lookup_functions(get_displacement, get_pressure, str(self.lookup_table.value()))
+        self.accept()
 
 class SelectLookup(QtWidgets.QDialog):
     progress_signal = QtCore.Signal(int, int)
@@ -536,8 +538,19 @@ class SelectLookup(QtWidgets.QDialog):
             return
 
         self.result = filename
+        self.label_input.setText(filename)
         self.path_changed()
         #self.accept()
+
+    def generateNewLookup(self):
+        dialog = LookupTableGenerator(self)
+
+        if not dialog.exec():
+            return
+
+        self.result = dialog.lookup_table.value()
+        self.label_input.setText(self.result)
+        self.path_changed()
 
     def loadLinear(self):
         class LookupTableDialog(QtWidgets.QDialog):
@@ -569,6 +582,7 @@ class SelectLookup(QtWidgets.QDialog):
             return
 
         self.result = dialog.inputText.value()
+        self.label_input.setText(self.result)
         self.path_changed()
 
     def path_changed(self):
@@ -593,10 +607,11 @@ class SelectLookup(QtWidgets.QDialog):
                 self.button_addList = QtShortCuts.QPushButton(None, "Load existing\nLookup Table", self.loadExisting)
                 self.button_addList.setMinimumSize(100, 100)
                 QVLine().addToLayout()
-                self.button_addList = QtShortCuts.QPushButton(None, "Generate\nLookup Table", self.accept)
+                self.button_addList = QtShortCuts.QPushButton(None, "Generate\nLookup Table", self.generateNewLookup)
                 self.button_addList.setMinimumSize(100, 100)
                 self.button_addList = QtShortCuts.QPushButton(None, "Generate\nLinear Lookup Table", self.loadLinear)
                 self.button_addList.setMinimumSize(100, 100)
+            self.label_input = QtWidgets.QLabel("").addToLayout()
             with QtShortCuts.QGroupBox(None, "Lookup Table Preview Plot") as (self.plot_preview, _):
                 with QtShortCuts.QVBoxLayout():
                     self.canvas = MatplotlibWidget(self).addToLayout()
@@ -913,194 +928,90 @@ class MainWindow(QtWidgets.QWidget):
         main_layout = QtWidgets.QHBoxLayout(self)
 
         with QtShortCuts.QTabWidget(main_layout) as self.tabs:
-            with self.tabs.createTab("Simulations") as v_layout:
-                with QtShortCuts.QHBoxLayout() as h_layout:
-                    self.stack_before = LookUpTable(h_layout, self)
-                    self.description = QtWidgets.QTextBrowser().addToLayout()
-                    self.description.setText("""
-<h1>Step 1: Material Simulations </h1><br/>
-
-To calculate the contractile forces that multicellular aggregates excert on the surrounding
-matrix, we generate material lookup-tables that predict the contractile pressure
-from the size of the matrix deformations as a function of the distance to the spheroid center as 
-described in Mark et al. (2020, <a href="https://elifesciences.org/articles/51912">click here for more details</a>). <br/>
-<br/>
-
-To generate a material lookup-table, we model the nonlinear fiber material according to the
- given material properties <b>k</b>, <b>d0</b>, <b>ds</b> and <b>lambda_s</b> 
- (<a href="https://saenopy.readthedocs.io/en/latest/">click here for more details</a>).<br/>
- <i> Default values are taken from a collagen I hydrogel (1.2mg/ml) with k=1449, d0=0.00215, ds=0.055, lambda_s=0.032.</i><br/>
-<br/>
-
- The simulations then approximate the multicellular aggregate as a spherical inclusion that is
- surrounded by the user-defined nonlinear material and excerts a contractile pressure on the matrix. We conduct a range of simulations   
-for n=<b>count</b> different pressures (default 150) that are spaced between a pressure of <b>min</b> Pa (default 600) 
-and <b>max</b> Pa (default 1000). <br/>
-<br/>
-
-
-For the individual simulations the maximal allowed number of iteration before convergence 
-is limited by <b>max_iter</b> (default 600) and the stepwidth between iteration is given by <b>step</b> 
-(default is 0.0033). <br/>
-<br/>
-
-
-All simulations are stored in the <b>Output folder</b>, which should be empty 
-before starting the simulations. After the simulations are finished, the lookup-table 
-can be generated from the obtained files in the next step. <br/>
-<br/>
-
-
-<b>Hint</b>: This step can take several hours or even days. Depending on the used computer <b>n_cores</b>
-can be increased to speed up the calculations. Attention: If you overload the memory an error 
-will lead the simulations to crash. Therefore the default value is 1. The material simulations need 
-to be conducted only a single time for a certain material. Additionally, lookuptables for purely linear fiber material (assuming poission ratio of v=0.25) with 
-arbitrary Young's modulus can be created without conducting simulations
-using the XXXX function in the next step.
-""".strip())
-                self.description.setOpenExternalLinks(True)
-
-                v_layout.addWidget(QHLine())
-                with QtShortCuts.QHBoxLayout() as h_layout:
-                    h_layout.addStretch()
-                    self.button_next = QtWidgets.QPushButton("next")
-                    self.button_next.clicked.connect(self.next)
-                    h_layout.addWidget(self.button_next)
 
             """ """
-            with self.tabs.createTab("Lookup Table") as v_layout:
+            with self.tabs.createTab("Analyse Measurements") as v_layout:
                 with QtShortCuts.QHBoxLayout() as h_layout:
-
-                    self.stack_before = LookUpTable2(h_layout, self)
+                    #self.deformations = Deformation(h_layout, self)
+                    self.deformations = BatchEvaluate(self)
+                    h_layout.addWidget(self.deformations)
                     self.description = QtWidgets.QTextEdit()
                     self.description.setDisabled(True)
                     h_layout.addWidget(self.description)
                     self.description.setText("""
-<h1>Step 2: Material Lookup-Table</h1>
-
-From the individual simulations we  now generate our material lookup-table. <br/>
-<br/>
-
-Therefore, we load the <b>Input folder</b> where the individual simulations are stored.<b>Generate</b> will then create and save the material-lookuptable 
-as a *.pkl-file for further force analysis in the specified <b>Output Lookup Table</b> location.<br/>
-<br/>
-<i> If desired the interpolation of data points from the FE-simulations to different relative distances can be changed.  
-By default a grid with <b>n</b>=150 logarithmically spaced intervals is generated between a
- distance of <b>x0</b>=1 effective spheroid radii to a distance of <b>x1</b>=50 effective spheroid radii away from the center.</i><br/>
-<br/>
-
-The material lookup-table can be visualized by reading in the *.pkl-file as <b>Input Lookup Table</b> and adjust the desired range
-of pressures (from <b>p0</b> to <b>p1</b> Pascal) and distances (from <b>d1</b> to <b>d2</b> in 
-effective spheroid radii). <br/>
-<br/>
-
-Add Data to plot ? ToDo <br/>
-<br/>
-
-Additionally, lookuptables for purely linear fiber material (assuming poission ratio of v=0.25) with 
-arbitrary Young's modulus can be created without conducting simulations
-using the XXXX function.
-                 """.strip())
-
+                    <h1>Deformation Detection</h1>
+                    Now we need to extract the deformations from the recorded image data. <br/>
+                    <br/>
+                    Therefore we use the 2D OpenPIV (particle image velocimetry) algorithm to determine the movement 
+                    of beads that surround the spheroid in the equatorial plane. By exploiting spherical symmetry this deformation 
+                    can then simply compared to the 3D simulations by using our material lookup-table. <br/>
+                    <br/>
+                    
+                    <h2>Parameters</h2>
+                    <ul>
+                    <li><b>Raw Images</b>: Path to the folder containing the raw image data.</li>
+                    <li><b>Wildcard</b>: Wildcard to selection elements within this folder (Example: Pos01_t*.tif; star will allow all timesteps). </li>
+                    <li><b>n_min, n_max</b>: Set a minimum or maximum element if first or last time steps from this selection should be ignored (default is None). 1</li>
+                    <li><b>thres_segmentation</b>: Factor to change the threshold for spheroid segmentation (default is 0.9). 1</li>
+                    <li><b>continous_segmentation</b>: If active, the segmentation is repeated for every timestep individually.
+                    By default we use the segmentation of the first time step (less sensitive to fluctuations)  </li>
+                    <li><b>thres_segmentation</b>: Factor to change the threshold for spheroid segmentation (default is 0.9). 1</li>
+                    
+                    </ul>
+                    
+                     <h1>Step 4: Force Reconstruction</h1>
+                     .... this step will include bot deformation and force reconstruction ToDO....                   
+                     """.strip())
                 v_layout.addWidget(QHLine())
                 with QtShortCuts.QHBoxLayout() as h_layout:
                     h_layout.addStretch()
                     self.button_previous = QtShortCuts.QPushButton(None, "back", self.previous)
                     self.button_next = QtShortCuts.QPushButton(None, "next", self.next)
 
-        """ """
-        with self.tabs.createTab("Analyse Measurements") as v_layout:
-            with QtShortCuts.QHBoxLayout() as h_layout:
-                #self.deformations = Deformation(h_layout, self)
-                self.deformations = BatchEvaluate(self)
-                h_layout.addWidget(self.deformations)
-                self.description = QtWidgets.QTextEdit()
-                self.description.setDisabled(True)
-                h_layout.addWidget(self.description)
-                self.description.setText("""
-                <h1>Step 3: Deformation Detection</h1>
-                Now we need to extract the deformations from the recorded image data. <br/>
-                <br/>
-                Therefore we use the 2D OpenPIV (particle image velocimetry) algorithm to determine the movement 
-                of beads that surround the spheroid in the equatorial plane. By exploiting spherical symmetry this deformation 
-                can then simply compared to the 3D simulations by using our material lookup-table. <br/>
-                <br/>
-                
-                <h2>Parameters</h2>
-                <ul>
-                <li><b>Raw Images</b>: Path to the folder containing the raw image data.</li>
-                <li><b>Wildcard</b>: Wildcard to selection elements within this folder (Example: Pos01_t*.tif; star will allow all timesteps). </li>
-                <li><b>n_min, n_max</b>: Set a minimum or maximum element if first or last time steps from this selection should be ignored (default is None). 1</li>
-                <li><b>thres_segmentation</b>: Factor to change the threshold for spheroid segmentation (default is 0.9). 1</li>
-                <li><b>continous_segmentation</b>: If active, the segmentation is repeated for every timestep individually.
-                By default we use the segmentation of the first time step (less sensitive to fluctuations)  </li>
-                <li><b>thres_segmentation</b>: Factor to change the threshold for spheroid segmentation (default is 0.9). 1</li>
-                
-                </ul>
-                
-                 <h1>Step 4: Force Reconstruction</h1>
-                 .... this step will include bot deformation and force reconstruction ToDO....
-                 
-                 
-                
-                
-                
-                
-                
-                                 """.strip())
-            v_layout.addWidget(QHLine())
-            with QtShortCuts.QHBoxLayout() as h_layout:
-                h_layout.addStretch()
-                self.button_previous = QtShortCuts.QPushButton(None, "back", self.previous)
-                self.button_next = QtShortCuts.QPushButton(None, "next", self.next)
+            """ """
+            with self.tabs.createTab("Data Analysis") as v_layout:
+                with QtShortCuts.QHBoxLayout() as h_layout:
 
-        """ """
-        with self.tabs.createTab("Data Analysis") as v_layout:
-            with QtShortCuts.QHBoxLayout() as h_layout:
+                    #self.deformations = Force(h_layout, self)
+                    self.deformations = PlottingWindow(self)
+                    h_layout.addWidget(self.deformations)
 
-                #self.deformations = Force(h_layout, self)
-                self.deformations = PlottingWindow(self)
-                h_layout.addWidget(self.deformations)
-
-                self.description = QtWidgets.QTextEdit()
-                self.description.setDisabled(True)
-                h_layout.addWidget(self.description)
-                self.description.setText("""
-                        <h1>Step 5: Data Analysis</h1>
-                       
-                        In this step we can analyze our results. <br/>
-                        <br/>                    
-                        
-                        For each  <b>individually</b> spheroid/organoid the <b>force</b> or the <b>pressure</b> development 
-                        can be visualized over time. In addition, different spheroids or organoids
-                        can be merged in <b>groups</b> , for which then the
-                        mean value and standard error can be visualized groupwise. <br/>
-                        <br/>
+                    self.description = QtWidgets.QTextEdit()
+                    self.description.setDisabled(True)
+                    h_layout.addWidget(self.description)
+                    self.description.setText("""
+                            <h1>Data Analysis</h1>
+                           
+                            In this step we can analyze our results. <br/>
+                            <br/>                    
                             
-                        Different groups can be created and to each group individual experiments 
-                        are added by using a path-placeholder combination. In particular,                                            
-                        the "*" is used to scan across sub-directories to find different "result.xlsx"-files.<br/>                  
-                        <i> Example: "C:/User/ExperimentA/well1/Pos*/result.xlsx" to read 
-                        in all positions in certain directory </i><br/>
-                        (TODO  automatically search for result.xlsx )<br/>
-                        <br/>
-                        
-                        Finally, we need to specify the time between consecutive images in <b>dt</b>. 
-                        To display a bar chart for a particular time point, we select the desired
-                        time point using <b>Comparison time</b>.<br/>
-                        <br/>
-                        
-                        Export allows to store the data as CSV file or embedded within a python script 
-                        allowing to re-plot and adjust the figures later on. <br/>
-      
-                  
-                                         """.strip())
-                # TODO add better description of the thining
-            v_layout.addWidget(QHLine())
-            with QtShortCuts.QHBoxLayout() as h_layout:
-                h_layout.addStretch()
-                self.button_previous = QtShortCuts.QPushButton(None, "back", self.previous)
-                self.button_next = QtShortCuts.QPushButton(None, "next", self.next)
+                            For each  <b>individually</b> spheroid/organoid the <b>force</b> or the <b>pressure</b> development 
+                            can be visualized over time. In addition, different spheroids or organoids
+                            can be merged in <b>groups</b> , for which then the
+                            mean value and standard error can be visualized groupwise. <br/>
+                            <br/>
+                                
+                            Different groups can be created and to each group individual experiments 
+                            are added by using a path-placeholder combination. In particular,                                            
+                            the "*" is used to scan across sub-directories to find different "result.xlsx"-files.<br/>                  
+                            <i> Example: "C:/User/ExperimentA/well1/Pos*/result.xlsx" to read 
+                            in all positions in certain directory </i><br/>
+                            (TODO  automatically search for result.xlsx )<br/>
+                            <br/>
+                            
+                            Finally, we need to specify the time between consecutive images in <b>dt</b>. 
+                            To display a bar chart for a particular time point, we select the desired
+                            time point using <b>Comparison time</b>.<br/>
+                            <br/>
+                            
+                            Export allows to store the data as CSV file or embedded within a python script 
+                            allowing to re-plot and adjust the figures later on. <br/>
+                            """)
+                v_layout.addWidget(QHLine())
+                with QtShortCuts.QHBoxLayout() as h_layout:
+                    h_layout.addStretch()
+                    self.button_previous = QtShortCuts.QPushButton(None, "back", self.previous)
+                    self.button_next = QtShortCuts.QPushButton(None, "next", self.next)
 
     def load(self):
         files = glob.glob(self.input_filename.value())
