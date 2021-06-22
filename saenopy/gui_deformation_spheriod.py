@@ -952,8 +952,8 @@ class MainWindow(QtWidgets.QWidget):
                     
                      <h1>Force Reconstruction</h1>
                      For all matrix deformation a pressure & force value can be assigned by the relative deformation and
-                     the relative distance to the center with regards to the used material lookup-table. The overall force & pressure
-                     values are the calculated from all matrix deformations within the specified distance between <b>r_min</b> and <b>r_max</b> away
+                     the relative distance to the center with regards to the used material lookup-table.The overall force is then 
+                     calculated from all matrix deformations that lie in the specified distance between <b>r_min</b> and <b>r_max</b> away
                      to the spheroid center (default is r_min=2 and r_max=None). <br/>
                     <br/>
                     
@@ -1017,7 +1017,7 @@ class MainWindow(QtWidgets.QWidget):
                             time point using <b>Comparison time</b>.<br/>
                             <br/>
                             
-                            Export allows to store the data as CSV file or embedded within a python script 
+                            Export allows to store the data as CSV file or an embedded table within a python script 
                             allowing to re-plot and adjust the figures later on. <br/>
                             """)
                 v_layout.addWidget(QHLine())
