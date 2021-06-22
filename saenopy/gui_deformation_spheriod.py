@@ -632,66 +632,6 @@ class SelectLookup(QtWidgets.QDialog):
 
         self.to_disabled = [self.canvas, self.toolbar, self.p0, self.p1, self.d1, self.d2, self.replot, self.button_ok]
         [w.setDisabled(True) for w in self.to_disabled]
-        return
-        self.mesh_creator = mesh_creator
-
-        self.settings = QtCore.QSettings("Saenopy", "Seanopy")
-
-        with QtShortCuts.QVBoxLayout(self) as main_layout:
-            with QtShortCuts.QHBoxLayout() as hlayouy:
-                with QtShortCuts.QGroupBox(None, "Generate Material Lookup Table") as (_, layout):
-
-                    self.output = QtShortCuts.QInputFolder(layout, "Input Folder")
-
-                    with QtShortCuts.QHBoxLayout(layout) as layout2:
-                        self.x0 = QtShortCuts.QInputString(layout2, "x0", "1", type=float)
-                        self.x1 = QtShortCuts.QInputString(layout2, "x1", "50", type=float)
-                        self.n = QtShortCuts.QInputString(layout2, "n", "100", type=int)
-
-                    self.lookup_table = QtShortCuts.QInputFilename(layout, "Output Lookup Table", 'lookup_example.pkl', file_type="Pickle Lookup Table (*.pkl)")
-
-                    with QtShortCuts.QHBoxLayout(layout) as layout2:
-                        layout2.addStretch()
-                        self.button_run = QtShortCuts.QPushButton(layout2, "generate", self.run)
-
-                with QtShortCuts.QGroupBox(None, "Generate Linear Material Lookup Table") as (_, layout):
-                    self.youngs = QtShortCuts.QInputString(None, "Young's Module", "250", type=float)
-
-                    self.linear_output = QtShortCuts.QInputFilename(layout, "Output Lookup Table", 'lookup_example.pkl',
-                                                                   file_type="Pickle Lookup Table (*.pkl)")
-
-                    with QtShortCuts.QHBoxLayout(layout) as layout2:
-                        layout2.addStretch()
-                        self.button_run = QtShortCuts.QPushButton(layout2, "generate", self.run_linear)
-
-            with QtShortCuts.QGroupBox(None, "Plot Material Lookup Table") as (_, layout):
-
-                with QtShortCuts.QHBoxLayout(layout):
-                    self.p0 = QtShortCuts.QInputString(None, "p_min", "0", type=float)
-                    self.p1 = QtShortCuts.QInputString(None, "p_max", "1000", type=float)
-                    self.d1 = QtShortCuts.QInputString(None, "r_min", "2", type=float)
-                    self.d2 = QtShortCuts.QInputString(None, "r_max", "50", type=float)
-
-                self.lookup_table2 = QtShortCuts.QInputFilename(layout, "Input Lookup Table", 'lookup_example.pkl', file_type="Pickle Lookup Table (*.pkl)", existing=True)
-
-                with QtShortCuts.QHBoxLayout(layout) as layout2:
-                    layout2.addStretch()
-                    self.button_run = QtShortCuts.QPushButton(layout2, "plot", self.run2)
-
-            main_layout.addStretch()
-
-    def run(self):
-        lookup_table = jf.simulation.create_lookup_table_solver(str(self.output.value()), x0=int(self.x0.value()), x1=int(self.x1.value()),
-                                                                n=int(self.n.value()))  # output folder for combining the individual simulations
-        get_displacement, get_pressure = jf.simulation.create_lookup_functions(lookup_table)
-        jf.simulation.save_lookup_functions(get_displacement, get_pressure, str(self.lookup_table.value()))
-
-    def run2(self):
-        figure = jf.simulation.plot_lookup_table(str(self.lookup_table2.value()), pressure=[float(self.p0.value()), float(self.p1.value())], distance=[float(self.d1.value()), float(self.d2.value())])
-
-    def run_linear(self):
-        jf.simulation.linear_lookup_interpolator(emodulus=self.youngs.value(), output_newtable=str(self.linear_output.value()))
-        QtWidgets.QMessageBox.information(self, "Lookup complete", f"A lookuptable file for a Young's Modulus {self.youngs.value()} has been written to {self.linear_output.value()}.")
 
 
 class Deformation(QtWidgets.QWidget):
@@ -1054,15 +994,16 @@ class QSlider(QtWidgets.QSlider):
                 if self.max < 0:
                     value = self.maximum()+self.max
                 self.drawRect(value, self.maximum(), "gray", 0.2)
-            self.drawRect(self.min, self.evaluated, "lightgreen", 0.3)
+            if self.evaluated is not None:
+                self.drawRect(self.min if self.min is not None else 0, self.evaluated, "lightgreen", 0.3)
         super().paintEvent(ev)
 
     def drawRect(self, start, end, color, border):
         p = QtGui.QPainter(self)
         p.setPen(QtGui.QPen(QtGui.QColor("transparent")))
         p.setBrush(QtGui.QBrush(QtGui.QColor(color)))
-        s = self.width() * (start - self.minimum()) / (self.maximum() - self.minimum())
-        e = self.width() * (end - self.minimum()) / (self.maximum() - self.minimum())
+        s = self.width() * (start - self.minimum()) / (self.maximum() - self.minimum() + 1e-5)
+        e = self.width() * (end - self.minimum()) / (self.maximum() - self.minimum() + 1e-5)
         p.drawRect(s, self.height()*border,
                    e-s, self.height()*(1-border*2))
 
@@ -1089,6 +1030,7 @@ class BatchEvaluate(QtWidgets.QWidget):
         with QtShortCuts.QHBoxLayout(self) as main_layout:
             with QtShortCuts.QSplitter() as lay:
                 with QtShortCuts.QVBoxLayout() as layout:
+                    layout.setContentsMargins(0, 0, 0, 0)
                     self.list = ListWidget(layout, add_item_button="add measurements")
                     self.list.addItemClicked.connect(self.show_files)
                     self.list.itemSelectionChanged.connect(self.listSelected)
@@ -1198,7 +1140,8 @@ class BatchEvaluate(QtWidgets.QWidget):
 
                     self.button_run = QtShortCuts.QPushButton(None, "run", self.run)
         self.images = []
-        self.data = {}
+        self.data = []
+        self.list.setData(self.data)
 
         self.input_list = [
             #self.inputText,
@@ -1288,10 +1231,13 @@ class BatchEvaluate(QtWidgets.QWidget):
             data[reconstructed_file]["images"].append(file)
             #if len(data[reconstructed_file]["images"]) > 4:
             #    data[reconstructed_file]["images"] = data[reconstructed_file]["images"][:4]
-        data.update(self.data)
-        self.data = data
-        self.list.clear()
-        self.list.addItems(list(data.keys()))
+        #data.update(self.data)
+        #self.data = data
+        #self.list.clear()
+        #self.list.addItems(list(data.keys()))
+        import matplotlib as mpl
+        for reconstructed_file, d in data.items():
+            self.list.addData(reconstructed_file, True, d, mpl.colors.to_hex(f"gray"))
 
     def clear_files(self):
         self.list.clear()
@@ -1299,7 +1245,7 @@ class BatchEvaluate(QtWidgets.QWidget):
 
     def listSelected(self):
         if len(self.list.selectedItems()):
-            data = self.data[self.list.selectedItems()[0].text()]
+            data = self.data[self.list.currentRow()][2]
             self.images = data["images"]
             self.last_image = None
             self.last_seg = None
@@ -1315,7 +1261,7 @@ class BatchEvaluate(QtWidgets.QWidget):
 
     def param_changed(self, name, update_image=False):
         if len(self.list.selectedItems()):
-            data = self.data[self.list.selectedItems()[0].text()]
+            data = self.data[self.list.currentRow()][2]
             data[name] = getattr(self, name).value()
             if update_image:
                 self.slider_changed(self.slider.value())
@@ -1363,7 +1309,7 @@ class BatchEvaluate(QtWidgets.QWidget):
         self.label.setExtend(im.shape[1], im.shape[0])
         self.label_text.setText(f"{i+1}/{len(self.images)} {self.images[i]}")
 
-        data = self.data[self.list.selectedItems()[0].text()]
+        data = self.data[self.list.currentRow()][2]
         try:
             im = imageio.imread(str(data["output"]) + '/plot' + str(i).zfill(6) + '.png')
         except FileNotFoundError:
@@ -1455,16 +1401,19 @@ class BatchEvaluate(QtWidgets.QWidget):
             print("compute displacements")
             n = self.list.count()
             for i in range(n):
-                data = self.data[self.list.item(i).text()]
+                if not self.data[i][1]:
+                    continue
+                data = self.data[i][2]
                 self.progress_signal.emit(i, n, 0, len(data["images"]))
-                folder, file = os.path.split(self.list.item(i).text())
+                folder, file = os.path.split(self.data[i][0])
 
                 continous_segmentation = data["continous_segmentation"] or self.continous_segmentation.value()
                 thres_segmentation = data["thres_segmentation"] or self.thres_segmentation.value()
                 n_min = data["n_min"]
                 n_max = data["n_max"]
 
-                jf.piv.compute_displacement_series(str(folder),
+                if self.deformation_data.value() is True:
+                    jf.piv.compute_displacement_series(str(folder),
                                                    str(file),
                                                    str(data["output"]),
                                                    n_max=n_max,
@@ -1481,6 +1430,13 @@ class BatchEvaluate(QtWidgets.QWidget):
                                                    #dt_min=(self.dt_min.value()),
                                                    cutoff=None, cmap="turbo",
                                                    callback=lambda ii, nn: self.progress_signal.emit(i, n, ii, nn))
+
+                if self.force_data.value() is True:
+                    jf.force.reconstruct(str(data["output"]),  # PIV output folder
+                                         str(self.lookup_table.value()),  # lookup table
+                                         self.pixel_size.value(),  # pixel size (µm)
+                                         None, r_min=self.x0.value(), r_max=self.x1.value())
+
                 self.progress_signal.emit(i+1, n, 0, len(data["images"]))
         finally:
             self.finished_signal.emit()
