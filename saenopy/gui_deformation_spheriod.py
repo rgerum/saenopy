@@ -350,9 +350,9 @@ class LookUpTable(QtWidgets.QDialog):
             <b>Hint</b>: This step can take several hours or even days. Depending on the used computer <b>n_cores</b>
             can be increased to speed up the calculations. Attention: If you overload the memory an error 
             will lead the simulations to crash. Therefore the default value is 1. The material simulations need 
-            to be conducted only a single time for a certain material. Additionally, lookuptables for purely linear fiber material (assuming poission ratio of v=0.25) with 
+            to be conducted only a single time for a certain material. Additionally, lookuptables for purely linear fiber material with 
             arbitrary Young's modulus can be created without conducting simulations
-            using the XXXX function in the next step.
+            in the next step.
             """)
             self.description.setOpenExternalLinks(True)
 
@@ -493,7 +493,7 @@ class LookupTableGenerator(QtWidgets.QDialog):
             self.description.setText("""
             <h1>Material Lookup-Table</h1>
 
-            From the individual simulations we now generate our material lookup-table. <br/>
+            From the individual simulations we generate our material lookup-table. <br/>
             <br/>
 
             Therefore, we load the <b>Input folder</b> where the individual simulations are stored.<b>Generate</b> will then create and save the material-lookuptable 
@@ -503,18 +503,20 @@ class LookupTableGenerator(QtWidgets.QDialog):
             By default a grid with <b>n</b>=150 logarithmically spaced intervals is generated between a
             distance of <b>x0</b>=1 effective spheroid radii to a distance of <b>x1</b>=50 effective spheroid radii away from the center.</i><br/>
             <br/>
+            Additionally, lookuptables for purely linear fiber material (assuming poission ratio of v=0.25) with 
+            arbitrary Young's modulus can be created by interpolation without conducting furhter simulations. 
+            using the XXXX function. <br/>
+            <br/>
 
             The material lookup-table can be visualized by reading in the *.pkl-file as <b>Input Lookup Table</b> and adjust the desired range
             of pressures (from <b>p0</b> to <b>p1</b> Pascal) and distances (from <b>d1</b> to <b>d2</b> in 
-            effective spheroid radii). <br/>
+            effective spheroid radii). Further, the measured deformation propagation from experiments can be added and
+            directly compared to the material lookup-table using XXXX.<br/>
             <br/>
 
-            Add Data to plot ? ToDo <br/>
-            <br/>
 
-            Additionally, lookuptables for purely linear fiber material (assuming poission ratio of v=0.25) with 
-            arbitrary Young's modulus can be created without conducting simulations
-            using the XXXX function.
+
+
             """.strip())
 
     def run(self):
@@ -946,21 +948,32 @@ class MainWindow(QtWidgets.QWidget):
                     of beads that surround the spheroid in the equatorial plane. By exploiting spherical symmetry this deformation 
                     can then simply compared to the 3D simulations by using our material lookup-table. <br/>
                     <br/>
+                                        
                     
+                     <h1>Force Reconstruction</h1>
+                     For all matrix deformation a pressure & force value can be assigned by the relative deformation and
+                     the relative distance to the center with regards to the used material lookup-table. The overall force & pressure
+                     values are the calculated from all matrix deformations within the specified distance between <b>r_min</b> and <b>r_max</b> away
+                     to the spheroid center (default is r_min=2 and r_max=None). <br/>
+                    <br/>
+                    
+                     Both steps can be executed individually or joint.<br/>
+                    <br/>
+                     
                     <h2>Parameters</h2>
                     <ul>
+                    <br/>Deformation<br/>
                     <li><b>Raw Images</b>: Path to the folder containing the raw image data.</li>
                     <li><b>Wildcard</b>: Wildcard to selection elements within this folder (Example: Pos01_t*.tif; star will allow all timesteps). </li>
-                    <li><b>n_min, n_max</b>: Set a minimum or maximum element if first or last time steps from this selection should be ignored (default is None). 1</li>
-                    <li><b>thres_segmentation</b>: Factor to change the threshold for spheroid segmentation (default is 0.9). 1</li>
+                    <li><b>n_min, n_max</b>: Set a minimum or maximum element if first or last time steps from this selection should be ignored (default is None). </li>
+                    <li><b>thres_segmentation</b>: Factor to change the threshold for spheroid segmentation (default is 0.9). </li>
                     <li><b>continous_segmentation</b>: If active, the segmentation is repeated for every timestep individually.
                     By default we use the segmentation of the first time step (less sensitive to fluctuations)  </li>
-                    <li><b>thres_segmentation</b>: Factor to change the threshold for spheroid segmentation (default is 0.9). 1</li>
-                    
+                    <li><b>thres_segmentation</b>: Factor to change the threshold for spheroid segmentation (default is 0.9).</li>
+                    <br/>Force<br/>
+                    <li><b>r_min, r_max</b>:Distance range (relativ radii towards center) in which deformations are included for the force caluclation/li>
                     </ul>
-                    
-                     <h1>Step 4: Force Reconstruction</h1>
-                     .... this step will include bot deformation and force reconstruction ToDO....                   
+                 
                      """.strip())
                 v_layout.addWidget(QHLine())
                 with QtShortCuts.QHBoxLayout() as h_layout:
