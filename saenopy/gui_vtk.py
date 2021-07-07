@@ -233,6 +233,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.M._prepare_temporary_quantities()
         self.point_cloud2["stiffness"] = self.M.getMaxTetStiffness()/6
 
+    
     point_cloud = None
     def replot(self):
         names = [name for name, input in self.input_checks.items() if input.value()]
@@ -251,21 +252,38 @@ class MainWindow(QtWidgets.QMainWindow):
             self.plotter_layout.addWidget(self.plotter.interactor)
 
         plotter = self.plotter
+        # color bar design properties
+        # Set a custom position and size
+        sargs = dict(position_x=0.05, position_y=0.95,
+                    title_font_size=13,
+                    label_font_size=11,
+                    n_labels=3,
+                    italic=True,  ##height=0.25, #vertical=True,
+                    fmt="%.1e",  
+                    font_family="arial")
+   
+    
         for i, name in enumerate(names):
             plotter.subplot(i//plotter.shape[1], i%plotter.shape[1])
             # scale plot with axis length later
             norm_stack_size = np.abs(np.max(self.M.R)-np.min(self.M.R))
+            
+
             if name == "stiffness":
                 if self.point_cloud2 is None:
                     self.calculateStiffness()
-                plotter.add_mesh(self.point_cloud2,  colormap="turbo", point_size=4., render_points_as_spheres=True)
-                plotter.update_scalar_bar_range(np.nanpercentile(self.point_cloud2["stiffness"], [50, 99.9]))
+                #clim =  np.nanpercentile(self.point_cloud2["stiffness"], [50, 99.9])   
+                plotter.add_mesh(self.point_cloud2,  colormap="turbo", point_size=4., render_points_as_spheres=True,
+                                 scalar_bar_args=sargs, stitle = "Stiffness [Pa]" )
+                plotter.update_scalar_bar_range( np.nanpercentile(self.point_cloud2["stiffness"], [50, 99.9]))
             elif name == "f":
                 arrows = self.point_cloud.glyph(orient="f", scale="f_mag", \
                                                 # Automatically scale maximal force to 15% of axis length
                                                 factor=0.15 * norm_stack_size / np.nanmax(
                                                     np.linalg.norm(self.M.f*self.M.reg_mask[:,None], axis=1)))
-                plotter.add_mesh(arrows, colormap='turbo', name="arrows")
+                plotter.add_mesh(arrows, colormap='turbo', name="arrows", 
+                                scalar_bar_args=sargs, stitle = "Force [N]",
+                               )
                 plotter.update_scalar_bar_range(np.nanpercentile(self.point_cloud["f_mag"], [50, 99.9]))
                 # plot center points if desired
                 # plotter.add_points(np.array([self.M.getCenter(mode="Deformation")]), color='w')
@@ -276,22 +294,29 @@ class MainWindow(QtWidgets.QMainWindow):
                                                  # Automatically scale maximal force to 10% of axis length
                                                  factor=0.1 * norm_stack_size / np.nanmax(
                                                      np.linalg.norm(self.M.U_target, axis=1)))
-                plotter.add_mesh(arrows2, colormap='turbo', name="arrows2")
+                plotter.add_mesh(arrows2, colormap='turbo', name="arrows2",stitle = "Deformations [m]",                            
+                                 scalar_bar_args=sargs)#
+                
                 plotter.update_scalar_bar_range(np.nanpercentile(self.point_cloud["U_target_mag"], [50, 99.9]))
+                
+                
+           
             else:
                 if self.M.U_target is not None:                         
                     arrows3 = self.point_cloud.glyph(orient=name, scale= name + "_mag", \
                                                  # Automatically scale maximal force to 10% of axis length
                                                  factor=0.1 * norm_stack_size / np.nanmax(
                                                      np.linalg.norm(self.M.U_target, axis=1)))
-                    plotter.add_mesh(arrows3, colormap='turbo', name="arrows3")
+                    plotter.add_mesh(arrows3, colormap='turbo', name="arrows3", stitle = "Rec. Deformations [m]",
+                                     scalar_bar_args=sargs)
                     plotter.update_scalar_bar_range(np.nanpercentile(self.point_cloud["U_target_mag"], [50, 99.9]))
                 else:
                     arrows3 = self.point_cloud.glyph(orient=name, scale=name + "_mag", \
                                                      # Automatically scale maximal force to 10% of axis length
                                                      factor=0.1 * norm_stack_size / np.nanmax(
                                                          np.linalg.norm(self.M.U, axis=1)))
-                    plotter.add_mesh(arrows3, colormap='turbo', name="arrows3")
+                    plotter.add_mesh(arrows3, colormap='turbo', name="arrows3", stitle = "Rec. Deformations [m]",
+                                     scalar_bar_args=sargs)
                     plotter.update_scalar_bar_range(np.nanpercentile(self.point_cloud["U_mag"], [50, 99.9]))
                 
                 
