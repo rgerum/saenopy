@@ -1543,14 +1543,14 @@ class Solver:
         point_cloud["U_target"] = self.U_target
         return point_cloud
 
-    def plot(self, name="U", scale=None, vmin=None, vmax=None, cmap="turbo", export=None, camera_position=None, window_size=None, shape=None):
+    def plot(self, name="U", scale=None, vmin=None, vmax=None, cmap="turbo", export=None, camera_position=None, window_size=None, shape=None, pyvista_theme = "document"):
         #if getattr(self, "point_cloud", None) is None:
         #    self.point_cloud = self.vtk()
 
         import pyvista as pv
         import matplotlib.pyplot as plt
         if export is not None:
-            pv.set_plot_theme("document")
+            pv.set_plot_theme(pyvista_theme)
         if isinstance(name, str):
             name = [name]
         if shape is None:
