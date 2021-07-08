@@ -1064,6 +1064,7 @@ class Solver:
         f = self.f
         R = self.R
         U = self.U 
+                     
         if self.reg_mask is not None:
             f = self.f * self.reg_mask[:, None]
         
@@ -1077,7 +1078,24 @@ class Solver:
             B = B1 - B2
             #print (U,R)
             Rcms = np.linalg.inv(A) @ B
-        else:   # calculate Force center if mode is not "Deformation"
+        
+        if mode.lower() == "deformation_target":      
+            # mode to calculate from PIV data directly 
+            U = self.U_target     
+            # remove nanas from 3D PIV here to be able to do the calculations
+            U[np.isnan(U)] = 0 
+ 
+            # B1 += self.R[c] * np.sum(f**2)
+            B1 = np.einsum("ni,ni,nj->j", U, U, R)
+            # B2 += f * (self.R[c] @ f)
+            B2 = np.einsum("ki,ki,kj->j", U, R, U)
+            # A += I * np.sum(f**2) - np.outer(f, f)
+            A = np.sum(np.einsum("ij,kl,kl->kij", np.eye(3), U, U) - np.einsum("ki,kj->kij", U, U), axis=0)
+            B = B1 - B2
+            #print (U,R)
+            Rcms = np.linalg.inv(A) @ B
+        
+        if mode.lower() == "force":    # calculate Force center 
             # B1 += self.R[c] * np.sum(f**2)
             B1 = np.einsum("ni,ni,nj->j", f, f, R)
             # B2 += f * (self.R[c] @ f)

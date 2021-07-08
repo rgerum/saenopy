@@ -286,7 +286,6 @@ class MainWindow(QtWidgets.QMainWindow):
                                )
                 plotter.update_scalar_bar_range(np.nanpercentile(self.point_cloud["f_mag"], [50, 99.9]))
                 # plot center points if desired
-                # plotter.add_points(np.array([self.M.getCenter(mode="Deformation")]), color='w')
                 # plotter.add_points(np.array([self.M.getCenter(mode="Force")]), color='r')   
                 
             elif name == "U_target":
@@ -296,11 +295,13 @@ class MainWindow(QtWidgets.QMainWindow):
                                                      np.linalg.norm(self.M.U_target, axis=1)))
                 plotter.add_mesh(arrows2, colormap='turbo', name="arrows2",stitle = "Deformations [m]",                            
                                  scalar_bar_args=sargs)#
+               
+                # plot center if desired
+                # plotter.add_points(np.array([self.M.getCenter(mode="deformation_target")]), color='w')
                 
                 plotter.update_scalar_bar_range(np.nanpercentile(self.point_cloud["U_target_mag"], [50, 99.9]))
                 
-                
-           
+
             else:
                 if self.M.U_target is not None:                         
                     arrows3 = self.point_cloud.glyph(orient=name, scale= name + "_mag", \
@@ -310,6 +311,7 @@ class MainWindow(QtWidgets.QMainWindow):
                     plotter.add_mesh(arrows3, colormap='turbo', name="arrows3", stitle = "Rec. Deformations [m]",
                                      scalar_bar_args=sargs)
                     plotter.update_scalar_bar_range(np.nanpercentile(self.point_cloud["U_target_mag"], [50, 99.9]))
+            
                 else:
                     arrows3 = self.point_cloud.glyph(orient=name, scale=name + "_mag", \
                                                      # Automatically scale maximal force to 10% of axis length
@@ -318,16 +320,13 @@ class MainWindow(QtWidgets.QMainWindow):
                     plotter.add_mesh(arrows3, colormap='turbo', name="arrows3", stitle = "Rec. Deformations [m]",
                                      scalar_bar_args=sargs)
                     plotter.update_scalar_bar_range(np.nanpercentile(self.point_cloud["U_mag"], [50, 99.9]))
-                
-                
+            
                 # plot center points if desired
                 # plotter.add_points(np.array([self.M.getCenter(mode="Deformation")]), color='w')
                 # plotter.add_points(np.array([self.M.getCenter(mode="Force")]), color='r')
-               
-                
+   
             plotter.show_grid()
         print(names)
-
         plotter.link_views()
         plotter.show()
 
