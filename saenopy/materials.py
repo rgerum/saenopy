@@ -222,6 +222,78 @@ class SemiAffineFiberMaterial(Material):
         ds = self.ds
         k = self.k
 
+        if self.d0 is None and self.ds is not None:
+            @njit(numba.core.types.containers.UniTuple(numba.float64[:, :], 3)(numba.float64[:, :]))
+            def get_all(s):
+                shape = s.shape
+                s = s.flatten()
+
+                stiff = np.zeros_like(s)
+                force = np.zeros_like(s)
+                energy = np.zeros_like(s)
+
+                dk = ds * k
+                sk = lambda_s * k
+                d2k = ds * dk
+
+                for i, x in enumerate(s):
+                    if x < lambda_s:
+                        stiff[i] = k
+                        force[i] = k * x
+                        energy[i] = 0.5 * k * x ** 2
+                    else:
+                        stiff[i] = k * np.exp((x - lambda_s) / ds)
+                        force[i] = k * lambda_s - ds * k + ds * k * np.exp((x - lambda_s) / ds)
+                        energy[i] = - 0.5 * lambda_s ** 2 * k + ds * k * lambda_s - d2k + d2k * np.exp(
+                            (x - lambda_s) / ds) - dk * x + sk * x
+
+                return energy.reshape(shape), force.reshape(shape), stiff.reshape(shape)
+
+            return get_all
+
+        if self.ds is None and self.lambda_s is None:
+            @njit(numba.core.types.containers.UniTuple(numba.float64[:, :], 3)(numba.float64[:, :]))
+            def get_all(s):
+                shape = s.shape
+                s = s.flatten()
+
+                stiff = np.zeros_like(s)
+                force = np.zeros_like(s)
+                energy = np.zeros_like(s)
+
+                for i, x in enumerate(s):
+                    stiff[i] = k
+                    force[i] = k * x
+                    energy[i] = 0.5 * k * x ** 2
+
+                return energy.reshape(shape), force.reshape(shape), stiff.reshape(shape)
+
+            return get_all
+
+        if self.lambda_s is None and self.d0 is not None:
+            @njit(numba.core.types.containers.UniTuple(numba.float64[:, :], 3)(numba.float64[:, :]))
+            def get_all(s):
+                shape = s.shape
+                s = s.flatten()
+
+                stiff = np.zeros_like(s)
+                force = np.zeros_like(s)
+                energy = np.zeros_like(s)
+
+                for i, x in enumerate(s):
+                    if x < 0:
+                        stiff[i] = k * np.exp(x / d0)
+                        force[i] = k * d0 * np.exp(x / d0) - d0 * k
+                        energy[i] = k * d0 ** 2 * np.exp(x / d0) - k * d0 * x - k * d0 ** 2
+                    else:
+                        stiff[i] = k
+                        force[i] = k * x
+                        energy[i] = 0.5 * k * x ** 2
+
+                return energy.reshape(shape), force.reshape(shape), stiff.reshape(shape)
+
+            return get_all
+
         @njit(numba.core.types.containers.UniTuple(numba.float64[:, :], 3)(numba.float64[:, :]))
         def get_all(s):
             shape = s.shape
