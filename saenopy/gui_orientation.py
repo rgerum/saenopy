@@ -12,14 +12,7 @@ from qtpy import QtCore, QtWidgets, QtGui
 
 import numpy as np
 
-import pyvista as pv
-import vtk
-from pyvistaqt import QtInteractor
-
-import saenopy
-import saenopy.multigridHelper
 from saenopy.gui import QtShortCuts, QExtendedGraphicsView
-from saenopy.gui.stack_selector import StackSelector
 import imageio
 from qimage2ndarray import array2qimage
 import matplotlib.pyplot as plt
@@ -28,9 +21,16 @@ import imageio
 import threading
 import glob
 import re
-import saenopy.getDeformations
-import saenopy.multigridHelper
-import saenopy.materials
+# import pyvista as pv
+# import vtk
+# from pyvistaqt import QtInteractor
+# import saenopy.getDeformations
+# import saenopy.multigridHelper
+# import saenopy.materials
+# import saenopy
+# import saenopy.multigridHelper
+# from saenopy.gui.stack_selector import StackSelector
+# import jointforces as jf
 
 if QtCore.qVersion() >= "5.":
     from matplotlib.backends.backend_qt5agg import (
@@ -39,7 +39,7 @@ else:
     from matplotlib.backends.backend_qt4agg import (
         FigureCanvas, NavigationToolbar2QT as NavigationToolbar)
 from matplotlib.figure import Figure
-import jointforces as jf
+
 import urllib
 from pathlib import Path
 
@@ -284,14 +284,14 @@ class MainWindow(QtWidgets.QWidget):
 
         self.setMinimumWidth(800)
         self.setMinimumHeight(400)
-        self.setWindowTitle("Saenopy Viewer")
+        self.setWindowTitle("CompactionAnalyzer")
 
         main_layout = QtWidgets.QHBoxLayout(self)
 
         with QtShortCuts.QTabWidget(main_layout) as self.tabs:
 
             """ """
-            with self.tabs.createTab("Analyse Measurements") as v_layout:
+            with self.tabs.createTab("Compaction") as v_layout:
                 with QtShortCuts.QHBoxLayout() as h_layout:
                     #self.deformations = Deformation(h_layout, self)
                     self.deformations = BatchEvaluate(self)
@@ -300,38 +300,32 @@ class MainWindow(QtWidgets.QWidget):
                     self.description.setDisabled(True)
                     h_layout.addWidget(self.description)
                     self.description.setText("""
-                    <h1>Deformation Detection</h1>
-                    Now we need to extract the deformations from the recorded image data. <br/>
-                    <br/>
-                    Therefore we use the 2D OpenPIV (particle image velocimetry) algorithm to determine the movement 
-                    of beads that surround the spheroid in the equatorial plane. By exploiting spherical symmetry this deformation 
-                    can then simply compared to the 3D simulations by using our material lookup-table. <br/>
-                    <br/>
-                                        
+                    <h1>Start Evaluation</h1>
                     
-                     <h1>Force Reconstruction</h1>
-                     For all matrix deformation a pressure & force value can be assigned by the relative deformation and
-                     the relative distance to the center with regards to the used material lookup-table.The overall force is then 
-                     calculated from all matrix deformations that lie in the specified distance between <b>r_min</b> and <b>r_max</b> away
-                     to the spheroid center (default is r_min=2 and r_max=None). <br/>
-                    <br/>
-                    
-                     Both steps can be executed individually or joint.<br/>
-                    <br/>
+                    As a measure of the contractile strength for cells/organoids in fibrous materials, we quantify the tissue 
+                    compaction by the re-orientation of the fiber structure towards the cell centre and 
+                    additionally by the increased intensity around the cell.<br/>
                      
                     <h2>Parameters</h2>
                     <ul>
-                    <br/>Deformation<br/>
-                    <li><b>Raw Images</b>: Path to the folder containing the raw image data.</li>
-                    <li><b>Wildcard</b>: Wildcard to selection elements within this folder (Example: Pos01_t*.tif; star will allow all timesteps). </li>
-                    <li><b>n_min, n_max</b>: Set a minimum or maximum element if first or last time steps from this selection should be ignored (default is None). </li>
-                    <li><b>thres_segmentation</b>: Factor to change the threshold for spheroid segmentation (default is 0.9). </li>
-                    <li><b>continous_segmentation</b>: If active, the segmentation is repeated for every timestep individually.
-                    By default we use the segmentation of the first time step (less sensitive to fluctuations)  </li>
-                    <li><b>thres_segmentation</b>: Factor to change the threshold for spheroid segmentation (default is 0.9).</li>
-                    <br/>Force<br/>
-                    <li><b>r_min, r_max</b>:Distance range (relativ radii towards center) in which deformations are included for the force caluclation/li>
+                    <li><b>Fiber Images, Cell Images</b>: Per cell we need to specify paths to an image of the fiber structure & an image of the cell outline. 
+                    Here the *-placeholder is useful to read in lists of fibre and cell images for batch analysis. </li>
+                    <li><b>output</b>: Output folder to store the results (substructure is created automatically).</li>
+                    <li><b>scale</b>: Image scale in µm per pixel. </li>
+                    <li><b>sigma_tensor</b>: Windowsize, in which individual structure elements are calculated. Should be in the range of the underlying structure and can be optimised per setup by performing a test-series. </li>
+                    <li><b>angle_sections</b>: Angle sections around the cell in degree, that can be used for polarity analysis. Default is 5.
+                    <li><b>shell_width</b>: Distance shells around the cell for analyzing Intensity & Orientation propagation over distance. Default is 5µm.
+                    <li><b>segmentation_thres</b>: Threshold for cell segemntation. Default is 1 (Otsu's threshold).</li>
+                    <li><b>seg_gauss1, seg_gauss2</b>: Set of two gauss filters applied before segmentation (bandpass filter, Default is 0.5 and 100). </li>
+                    <li><b>sigma_first_blur</b>: Initial slight gaussian blur on the fiber image, before structure analysis is conducted. Default is 0.5. </li>
+                    <li><b>edge</b>:  Pixelwidth at the edges that are left blank because no alignment can be calculated at the edges. Default is 40 px. </li>
+                    <li><b>Individual Segmentation</b>: If you select this check box, the specified segmentation value here (instead of the global value) will be applied to this individual cell within a batch analysis.</li>
                     </ul>
+                    
+                    
+                    
+                    
+                    
                  
                      """.strip())
                 v_layout.addWidget(QHLine())
@@ -354,10 +348,16 @@ class MainWindow(QtWidgets.QWidget):
                     self.description.setText("""
                             <h1>Data Analysis</h1>
                            
-                            In this step we can analyze our results. <br/>
+                            We quantify the tissue compaction (as a measure of the contractile strength) generated by cells
+                            or multicellular spheroids that are embedded in fiber materials.  <br/>
+                            
+                            For this we provide the two following approaches:
+                                - Evaluating the directionality of fibers towards the cell center
+                                - Evaluating the increased intensity around the cell.
+
                             <br/>                    
                             
-                            For each  <b>individually</b> spheroid/organoid the <b>force</b> or the <b>pressure</b> development 
+                            For each  <b>individually</b> cell/organoid the <b>force</b> or the <b>pressure</b> development 
                             can be visualized over time. In addition, different spheroids or organoids
                             can be merged in <b>groups</b> , for which then the
                             mean value and standard error can be visualized groupwise. <br/>
