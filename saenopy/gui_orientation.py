@@ -340,8 +340,10 @@ class MainWindow(QtWidgets.QWidget):
                             
                             For each  <b>individually</b> cell/organoid the <b>global orientation</b> or the
                             <b>normalized intensity</b> within the first distance shell can be inspected. 
-                            In addition, the propagation of <b>orientation</b> or <b>intensity
-                            over distance </b> can be viewed. Several cells/organoids
+                            In addition, the propagation of <b>orientation and intensity
+                            over distance </b> can be viewed.  <br/>
+                             <br/>
+                            Several cells/organoids
                             can be merged in <b>groups</b>, for which then the
                             mean value and standard error of these quantities can be visualized groupwise. <br/>
                             <br/>
@@ -351,7 +353,8 @@ class MainWindow(QtWidgets.QWidget):
                             the "*" is used to scan across sub-directories to find different "results_total.xlsx"-files.<br/>                  
                             <i> Example: "C:/User/ExperimentA/well1/Pos*/result.xlsx" to read 
                             in all positions in a certain directory </i><br/>
-                                                       
+                            <br/>     
+                            
                             Export stores the data as CSV file or an embedded table within a python script 
                             that allows to re-plot and adjust the figures later on. <br/>
                             """)
