@@ -289,6 +289,7 @@ class MainWindow(QtWidgets.QWidget):
                     h_layout.addWidget(self.deformations)
                     self.description = QtWidgets.QTextEdit()
                     self.description.setDisabled(True)
+                    self.description.setMaximumWidth(300)
                     h_layout.addWidget(self.description)
                     self.description.setText("""
                     <h1>Start Evaluation</h1>
@@ -422,35 +423,56 @@ class BatchEvaluate(QtWidgets.QWidget):
                     self.label_text2 = QtWidgets.QLabel().addToLayout()
                     self.progress2 = QtWidgets.QProgressBar().addToLayout()
 
-                with QtShortCuts.QVBoxLayout() as layout:
-
-                    self.scale = QtShortCuts.QInputString(None, "scale", "1.0", type=float, settings=settings, settings_key="orientation/scale")
+                frame = QtWidgets.QFrame().addToLayout()
+                frame.setMaximumWidth(300)
+                with QtShortCuts.QVBoxLayout(frame) as layout:
+                    with QtShortCuts.QHBoxLayout():
+                        self.scale = QtShortCuts.QInputString(None, "scale", "1.0", type=float, settings=settings, settings_key="orientation/scale")
+                        QtWidgets.QLabel("um/px").addToLayout()
                     with QtShortCuts.QHBoxLayout():
                         self.sigma_tensor = QtShortCuts.QInputString(None, "sigma_tensor", "7.0", type=float, settings=settings, settings_key="orientation/sigma_tensor")
                         self.sigma_tensor_type = QtShortCuts.QInputChoice(None, "", "um", ["um", "pixel"], settings=settings, settings_key="orientation/sigma_tensor_unit")
-                    self.edge = QtShortCuts.QInputString(None, "edge", "40", type=int, settings=settings, settings_key="orientation/edge")
-                    self.segmention_thres = QtShortCuts.QInputString(None, "segmention_thres", "1.0", type=float, settings=settings, settings_key="orientation/segmention_thres")
-                    self.segmention_thres.valueChanged.connect(self.listSelected)
-                    self.seg_gaus1 = QtShortCuts.QInputString(None, "seg_gaus1", "0.5", type=float, settings=settings, settings_key="orientation/seg_gaus1")
-                    self.seg_gaus1.valueChanged.connect(self.listSelected)
-                    self.seg_gaus2 = QtShortCuts.QInputString(None, "seg_gaus2", "100", type=float, settings=settings, settings_key="orientation/seg_gaus2")
-                    self.seg_gaus2.valueChanged.connect(self.listSelected)
-                    self.sigma_first_blur = QtShortCuts.QInputString(None, "sigma_first_blur", "0.5", type=float, settings=settings, settings_key="orientation/sigma_first_blur")
-                    self.angle_sections = QtShortCuts.QInputString(None, "angle_sections", "5", type=int, settings=settings, settings_key="orientation/angle_sections")
                     with QtShortCuts.QHBoxLayout():
-                        self.shell_width = QtShortCuts.QInputString(None, "shell_width", "5", type=float, settings=settings, settings_key="orientation/shell_width")
-                        self.shell_width_type = QtShortCuts.QInputChoice(None, "", "um", ["um", "pixel"],
-                                                                      settings=settings,
-                                                                      settings_key="orientation/shell_width_type")
+                        self.edge = QtShortCuts.QInputString(None, "edge", "40", type=int, settings=settings, settings_key="orientation/edge", tooltip="How many pixels to cut at the edge of the image.")
+                        QtWidgets.QLabel("px").addToLayout()
 
-                    with CheckAbleGroup(self, "individual segmentation").addToLayout() as self.individual_data:
-                     with QtShortCuts.QVBoxLayout() as layout2:
-                        self.segmention_thres_indi = QtShortCuts.QInputString(None, "segmention_thres", None, type=float, allow_none=True)
-                        self.segmention_thres_indi.valueChanged.connect(self.listSelected)
-                        self.seg_gaus1_indi = QtShortCuts.QInputString(None, "seg_gaus1", None, type=float, allow_none=True)
-                        self.seg_gaus1_indi.valueChanged.connect(self.listSelected)
-                        self.seg_gaus2_indi = QtShortCuts.QInputString(None, "seg_gaus2", None, type=float, allow_none=True)
-                        self.seg_gaus2_indi.valueChanged.connect(self.listSelected)
+                    with QtShortCuts.QHBoxLayout():
+                        self.sigma_first_blur = QtShortCuts.QInputString(None, "sigma_first_blur", "0.5", type=float, settings=settings, settings_key="orientation/sigma_first_blur")
+                        QtWidgets.QLabel("px").addToLayout()
+                    with QtShortCuts.QHBoxLayout():
+                        self.angle_sections = QtShortCuts.QInputString(None, "angle_sections", "5", type=int, settings=settings, settings_key="orientation/angle_sections")
+                        QtWidgets.QLabel("deg").addToLayout()
+
+                    with QtShortCuts.QHBoxLayout():
+                        self.shell_width = QtShortCuts.QInputString(None, "shell_width", "5", type=float,
+                                                                    settings=settings,
+                                                                    settings_key="orientation/shell_width")
+                        self.shell_width_type = QtShortCuts.QInputChoice(None, "", "um", ["um", "pixel"],
+                                                                         settings=settings,
+                                                                         settings_key="orientation/shell_width_type")
+
+                    with QtShortCuts.QGroupBox(None, "Segmentation Parameters"):
+                        self.segmention_thres = QtShortCuts.QInputString(None, "segmention_thresh", "1.0", type=float,
+                                                                         settings=settings,
+                                                                         settings_key="orientation/segmention_thres")
+                        self.segmention_thres.valueChanged.connect(self.listSelected)
+                        with QtShortCuts.QHBoxLayout():
+                            self.seg_gaus1 = QtShortCuts.QInputString(None, "seg_gauss1", "0.5", type=float, settings=settings,
+                                                                      settings_key="orientation/seg_gaus1")
+                            self.seg_gaus1.valueChanged.connect(self.listSelected)
+                            self.seg_gaus2 = QtShortCuts.QInputString(None, "seg_gauss2", "100", type=float, settings=settings,
+                                                                      settings_key="orientation/seg_gaus2")
+                            self.seg_gaus2.valueChanged.connect(self.listSelected)
+
+                        with CheckAbleGroup(self, "individual segmentation").addToLayout() as self.individual_data:
+                         with QtShortCuts.QVBoxLayout() as layout2:
+                            self.segmention_thres_indi = QtShortCuts.QInputString(None, "segmention_thresh", None, type=float, allow_none=True)
+                            self.segmention_thres_indi.valueChanged.connect(self.listSelected)
+                            with QtShortCuts.QHBoxLayout():
+                                self.seg_gaus1_indi = QtShortCuts.QInputString(None, "seg_gauss1", None, type=float, allow_none=True)
+                                self.seg_gaus1_indi.valueChanged.connect(self.listSelected)
+                                self.seg_gaus2_indi = QtShortCuts.QInputString(None, "seg_gauss2", None, type=float, allow_none=True)
+                                self.seg_gaus2_indi.valueChanged.connect(self.listSelected)
 
                     layout.addStretch()
 
@@ -474,22 +496,14 @@ class BatchEvaluate(QtWidgets.QWidget):
         self.finished_signal.connect(self.finished)
 
     def changedCheckBox(self):
-        print("changedCheckBox")
         for widget in [self.segmention_thres, self.seg_gaus1, self.seg_gaus2]:
             widget.setDisabled(self.individual_data.value())
         if not self.individual_data.value():
             for widget in [self.segmention_thres_indi, self.seg_gaus1_indi, self.seg_gaus2_indi]:
                 widget.setValue("None")
 
-    def choose_lookup(self):
-
-        self.lookup_gui = SelectLookup()
-        self.lookup_gui.exec()
-
-        if self.lookup_gui.result is not None:
-            self.lookup_table.setValue(self.lookup_gui.result)
-
     def show_files(self):
+        from CompactionAnalyzer.CompactionFunctions import generate_lists
 
         class AddFilesDialog(QtWidgets.QDialog):
             def __init__(self, parent):
@@ -500,20 +514,58 @@ class BatchEvaluate(QtWidgets.QWidget):
                         "Select two paths as an input wildcard. Use * to specify a placeholder. One should be for the fiber images and one for the cell images.")
                     layout.addWidget(self.label)
 
-                    self.fiberText = QtShortCuts.QInputFilename(None, "Fiber Images", file_type="Image (*.tif, *.png, *.jpg)", settings=settings,
-                                                                settings_key="batch/wildcard_fiber", existing=True,
-                                                                allow_edit=True)
-                    self.cellText = QtShortCuts.QInputFilename(None, "Cell Images", file_type="Image (*.tif, *.png, *.jpg)", settings=settings,
+                    self.cellText = QtShortCuts.QInputFilename(None, "Cell Images", file_type="Image (*.tif *.png *.jpg)", settings=settings,
                                                                 settings_key="batch/wildcard_cell", existing=True,
+                                                                allow_edit=True)
+                    self.fiberText = QtShortCuts.QInputFilename(None, "Fiber Images", file_type="Image (*.tif *.png *.jpg)", settings=settings,
+                                                                settings_key="batch/wildcard_fiber", existing=True,
                                                                 allow_edit=True)
                     self.outputText = QtShortCuts.QInputFolder(None, "output", settings=settings,
                                                                settings_key="batch/output_folder", allow_edit=True)
 
+                    def changed():
+                        fiber_list_string = os.path.normpath(self.fiberText.value())
+                        cell_list_string = os.path.normpath(self.cellText.value())
+                        output_folder = os.path.normpath(self.outputText.value())
+                        fiber_list, cell_list, out_list = generate_lists(fiber_list_string, cell_list_string,
+                                                                         output_main=output_folder)
+                        if self.fiberText.value() == "" or self.cellText.value() == "":
+                            self.label2.setText("")
+                            self.label2.setStyleSheet("QLabel { color : red; }")
+                            self.button_addList1.setDisabled(True)
+                        elif len(fiber_list) != len(cell_list):
+                            self.label2.setText(f"Warning: {len(fiber_list)} fiber images found and {len(cell_list)} cell images found. Numbers do not match.")
+                            self.label2.setStyleSheet("QLabel { color : red; }")
+                            self.button_addList1.setDisabled(True)
+                        else:
+                            if "*" not in fiber_list_string:
+                                if len(fiber_list) == 0:
+                                    self.label2.setText(f"'Fiber Images' not found")
+                                    self.label2.setStyleSheet("QLabel { color : red; }")
+                                    self.button_addList1.setDisabled(True)
+                                elif len(cell_list) == 0:
+                                    self.label2.setText(f"'Cell Images' not found")
+                                    self.label2.setStyleSheet("QLabel { color : red; }")
+                                    self.button_addList1.setDisabled(True)
+                                else:
+                                    self.label2.setText(f"No * found in 'Fiber Images', will only import a single image.")
+                                    self.label2.setStyleSheet("QLabel { color : orange; }")
+                                    self.button_addList1.setDisabled(False)
+                            else:
+                                self.label2.setText(
+                                    f"{len(fiber_list)} fiber images found and {len(cell_list)} cell images found.")
+                                self.label2.setStyleSheet("QLabel { color : green; }")
+                                self.button_addList1.setDisabled(False)
+                    self.fiberText.line.textChanged.connect(changed)
+                    self.cellText.line.textChanged.connect(changed)
+                    self.label2 = QtWidgets.QLabel().addToLayout()
+
                     with QtShortCuts.QHBoxLayout() as layout3:
                         # self.button_clear = QtShortCuts.QPushButton(None, "clear list", self.clear_files)
                         layout3.addStretch()
-                        self.button_addList = QtShortCuts.QPushButton(None, "cancel", self.reject)
-                        self.button_addList = QtShortCuts.QPushButton(None, "ok", self.accept)
+                        self.button_addList2 = QtShortCuts.QPushButton(None, "cancel", self.reject)
+                        self.button_addList1 = QtShortCuts.QPushButton(None, "ok", self.accept)
+                    changed()
 
         dialog = AddFilesDialog(self)
         if not dialog.exec():
@@ -525,7 +577,6 @@ class BatchEvaluate(QtWidgets.QWidget):
         cell_list_string = os.path.normpath(dialog.cellText.value())
         output_folder = os.path.normpath(dialog.outputText.value())
 
-        from CompactionAnalyzer.CompactionFunctions import generate_lists
         fiber_list, cell_list, out_list = generate_lists(fiber_list_string, cell_list_string, output_main=output_folder)
 
         import matplotlib as mpl
@@ -607,56 +658,6 @@ class BatchEvaluate(QtWidgets.QWidget):
             self.slider.min = self.n_min.value()
             self.slider.max = self.n_max.value()
             self.slider.update()
-
-    last_image = None
-    last_seg = None
-    def slider_changed(self, i):
-        if self.last_image is not None and self.last_image[0] == i:
-            i, im, im0 = self.last_image
-            print("cached")
-        else:
-            im = imageio.imread(self.images[i]).astype(np.float)
-            if self.continous_segmentation.value() is True:
-                im0 = im
-            else:
-                im0 = imageio.imread(self.images[0]).astype(np.float)
-            self.last_image = [i, im, im0]
-
-        if self.last_seg is not None and \
-                self.last_seg[1] == self.thres_segmentation.value() and \
-                self.continous_segmentation.value() is False:
-            pass
-            print("cached")
-        else:
-            print(self.last_seg, i, self.thres_segmentation.value())
-            seg0 = jf.piv.segment_spheroid(im0, True, self.thres_segmentation.value())
-            from skimage import measure
-            # Find contours at a constant value of 0.8
-            contours = measure.find_contours(seg0["mask"], 0.5)
-
-            path = QtGui.QPainterPath()
-            for c in contours:
-                path.moveTo(c[0][1], im.shape[0]-c[0][0])
-                for cc in c:
-                    path.lineTo(cc[1], im.shape[0]-cc[0])
-            self.contour.setPath(path)
-            self.last_seg = [i, self.thres_segmentation.value()]
-        im = im - im.min()
-        im = (im/im.max()*255).astype(np.uint8)
-
-        self.pixmap.setPixmap(QtGui.QPixmap(array2qimage(im)))
-        self.label.setExtend(im.shape[1], im.shape[0])
-        self.label_text.setText(f"{i+1}/{len(self.images)} {self.images[i]}")
-
-        data = self.data[self.list.currentRow()][2]
-        try:
-            im = imageio.imread(str(data["output"]) + '/plot' + str(i).zfill(6) + '.png')
-        except FileNotFoundError:
-            im = np.zeros(im.shape)
-        self.pixmap2.setPixmap(QtGui.QPixmap(array2qimage(im)))
-        self.label2.setExtend(im.shape[1], im.shape[0])
-
-        self.line_views()
 
     def line_views(self):
 
@@ -997,8 +998,10 @@ class PlottingWindow(QtWidgets.QWidget):
                     with QtShortCuts.QHBoxLayout() as layout3:
                         # self.button_clear = QtShortCuts.QPushButton(None, "clear list", self.clear_files)
                         layout3.addStretch()
-                        self.button_addList = QtShortCuts.QPushButton(None, "cancel", self.reject)
-                        self.button_addList = QtShortCuts.QPushButton(None, "ok", self.accept)
+                        self.button_addList0 = QtShortCuts.QPushButton(None, "cancel", self.reject)
+                        self.button_addList1 = QtShortCuts.QPushButton(None, "ok", self.accept)
+
+                    changed()
 
         dialog = AddFilesDialog(self)
         if not dialog.exec():
