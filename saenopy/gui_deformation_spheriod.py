@@ -949,7 +949,6 @@ class MainWindow(QtWidgets.QWidget):
                             the "*" is used to scan across sub-directories to find different "result.xlsx"-files.<br/>                  
                             <i> Example: "C:/User/ExperimentA/well1/Pos*/result.xlsx" to read 
                             in all positions in certain directory </i><br/>
-                            (TODO  automatically search for result.xlsx )<br/>
                             <br/>
                             
                             Finally, we need to specify the time between consecutive images in <b>dt</b>. 
