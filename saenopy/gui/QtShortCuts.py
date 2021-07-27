@@ -551,7 +551,7 @@ class EnterableLayout:
 
 
 class QVBoxLayout(QtWidgets.QVBoxLayout, EnterableLayout):
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, no_margins=False):
         if parent is None and current_layout is not None:
             parent = current_layout
         if getattr(parent, "addLayout", None) is None:
@@ -560,10 +560,12 @@ class QVBoxLayout(QtWidgets.QVBoxLayout, EnterableLayout):
             super().__init__()
             parent.addLayout(self)
         self.layout = self
+        if no_margins is True:
+            self.setContentsMargins(0, 0, 0, 0)
 
 
 class QHBoxLayout(QtWidgets.QHBoxLayout, EnterableLayout):
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, no_margins=False):
         if parent is None and current_layout is not None:
             parent = current_layout
         if getattr(parent, "addLayout", None) is None:#isinstance(parent, QtWidgets.QWidget):
@@ -572,6 +574,8 @@ class QHBoxLayout(QtWidgets.QHBoxLayout, EnterableLayout):
             super().__init__()
             parent.addLayout(self)
         self.layout = self
+        if no_margins is True:
+            self.setContentsMargins(0, 0, 0, 0)
 
 
 class QSplitter(QtWidgets.QSplitter, EnterableLayout):

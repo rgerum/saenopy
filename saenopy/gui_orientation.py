@@ -23,6 +23,43 @@ import glob
 import re
 
 
+
+def trace_function(func, data):
+    import time
+    last_time = 0
+    def trace_lines(frame, event, arg):
+        nonlocal t, last_time
+        if event != 'line':
+            return
+        co = frame.f_code
+        func_name = co.co_name
+        line_no = frame.f_lineno
+        current_time = time.time()
+        data.append([line_no, current_time-t])
+        print(f'{func_name} line {line_no} {current_time-t:.2f} {current_time-last_time:.3f}')
+        last_time = current_time
+
+    t = 0
+    def trace_calls(frame, event, arg):
+        nonlocal t, last_time
+        if event != 'call':
+            return None
+        co = frame.f_code
+        func_name = co.co_name
+        if func_name == 'write':
+            # Ignore write() calls from print statements
+            return None
+        if func_name in TRACE_INTO:
+            t = time.time()
+            last_time = t
+            # Trace into this function
+            return trace_lines
+        return None
+
+    TRACE_INTO = [func]
+
+    sys.settrace(trace_calls)
+
 if QtCore.qVersion() >= "5.":
     from matplotlib.backends.backend_qt5agg import (
         FigureCanvas, NavigationToolbar2QT as NavigationToolbar)
@@ -382,6 +419,7 @@ class MainWindow(QtWidgets.QWidget):
 
 class BatchEvaluate(QtWidgets.QWidget):
     progress_signal = QtCore.Signal(int, int, int, int)
+    measurement_evaluated_signal = QtCore.Signal(int, int)
     finished_signal = QtCore.Signal()
     thread = None
 
@@ -414,65 +452,66 @@ class BatchEvaluate(QtWidgets.QWidget):
                     self.contour.setPen(pen)
 
                     self.label2 = QExtendedGraphicsView.QExtendedGraphicsView().addToLayout()
-                    #self.label2.setMinimumWidth(300)
                     self.pixmap2 = QtWidgets.QGraphicsPixmapItem(self.label2.origin)
 
                     self.contour2 = QtWidgets.QGraphicsPathItem(self.label2.origin)
                     self.contour2.setPen(pen)
 
-                    self.label_text2 = QtWidgets.QLabel().addToLayout()
-                    self.progress2 = QtWidgets.QProgressBar().addToLayout()
+                    #self.label_text2 = QtWidgets.QLabel().addToLayout()
+                    #self.progress2 = QtWidgets.QProgressBar().addToLayout()
 
                 frame = QtWidgets.QFrame().addToLayout()
                 frame.setMaximumWidth(300)
                 with QtShortCuts.QVBoxLayout(frame) as layout:
-                    with QtShortCuts.QHBoxLayout():
-                        self.scale = QtShortCuts.QInputString(None, "scale", "1.0", type=float, settings=settings, settings_key="orientation/scale")
-                        QtWidgets.QLabel("um/px").addToLayout()
-                    with QtShortCuts.QHBoxLayout():
-                        self.sigma_tensor = QtShortCuts.QInputString(None, "sigma_tensor", "7.0", type=float, settings=settings, settings_key="orientation/sigma_tensor")
-                        self.sigma_tensor_type = QtShortCuts.QInputChoice(None, "", "um", ["um", "pixel"], settings=settings, settings_key="orientation/sigma_tensor_unit")
-                    with QtShortCuts.QHBoxLayout():
-                        self.edge = QtShortCuts.QInputString(None, "edge", "40", type=int, settings=settings, settings_key="orientation/edge", tooltip="How many pixels to cut at the edge of the image.")
-                        QtWidgets.QLabel("px").addToLayout()
-
-                    with QtShortCuts.QHBoxLayout():
-                        self.sigma_first_blur = QtShortCuts.QInputString(None, "sigma_first_blur", "0.5", type=float, settings=settings, settings_key="orientation/sigma_first_blur")
-                        QtWidgets.QLabel("px").addToLayout()
-                    with QtShortCuts.QHBoxLayout():
-                        self.angle_sections = QtShortCuts.QInputString(None, "angle_sections", "5", type=int, settings=settings, settings_key="orientation/angle_sections")
-                        QtWidgets.QLabel("deg").addToLayout()
-
-                    with QtShortCuts.QHBoxLayout():
-                        self.shell_width = QtShortCuts.QInputString(None, "shell_width", "5", type=float,
-                                                                    settings=settings,
-                                                                    settings_key="orientation/shell_width")
-                        self.shell_width_type = QtShortCuts.QInputChoice(None, "", "um", ["um", "pixel"],
-                                                                         settings=settings,
-                                                                         settings_key="orientation/shell_width_type")
-
-                    with QtShortCuts.QGroupBox(None, "Segmentation Parameters"):
-                        self.segmention_thres = QtShortCuts.QInputString(None, "segmention_thresh", "1.0", type=float,
-                                                                         settings=settings,
-                                                                         settings_key="orientation/segmention_thres")
-                        self.segmention_thres.valueChanged.connect(self.listSelected)
+                    frame2 = QtWidgets.QFrame().addToLayout()
+                    with QtShortCuts.QVBoxLayout(frame2, no_margins=True) as layout:
                         with QtShortCuts.QHBoxLayout():
-                            self.seg_gaus1 = QtShortCuts.QInputString(None, "seg_gauss1", "0.5", type=float, settings=settings,
-                                                                      settings_key="orientation/seg_gaus1")
-                            self.seg_gaus1.valueChanged.connect(self.listSelected)
-                            self.seg_gaus2 = QtShortCuts.QInputString(None, "seg_gauss2", "100", type=float, settings=settings,
-                                                                      settings_key="orientation/seg_gaus2")
-                            self.seg_gaus2.valueChanged.connect(self.listSelected)
+                            self.scale = QtShortCuts.QInputString(None, "scale", "1.0", type=float, settings=settings, settings_key="orientation/scale")
+                            QtWidgets.QLabel("um/px").addToLayout()
+                        with QtShortCuts.QHBoxLayout():
+                            self.sigma_tensor = QtShortCuts.QInputString(None, "sigma_tensor", "7.0", type=float, settings=settings, settings_key="orientation/sigma_tensor")
+                            self.sigma_tensor_type = QtShortCuts.QInputChoice(None, "", "um", ["um", "pixel"], settings=settings, settings_key="orientation/sigma_tensor_unit")
+                        with QtShortCuts.QHBoxLayout():
+                            self.edge = QtShortCuts.QInputString(None, "edge", "40", type=int, settings=settings, settings_key="orientation/edge", tooltip="How many pixels to cut at the edge of the image.")
+                            QtWidgets.QLabel("px").addToLayout()
 
-                        with CheckAbleGroup(self, "individual segmentation").addToLayout() as self.individual_data:
-                         with QtShortCuts.QVBoxLayout() as layout2:
-                            self.segmention_thres_indi = QtShortCuts.QInputString(None, "segmention_thresh", None, type=float, allow_none=True)
-                            self.segmention_thres_indi.valueChanged.connect(self.listSelected)
+                        with QtShortCuts.QHBoxLayout():
+                            self.sigma_first_blur = QtShortCuts.QInputString(None, "sigma_first_blur", "0.5", type=float, settings=settings, settings_key="orientation/sigma_first_blur")
+                            QtWidgets.QLabel("px").addToLayout()
+                        with QtShortCuts.QHBoxLayout():
+                            self.angle_sections = QtShortCuts.QInputString(None, "angle_sections", "5", type=int, settings=settings, settings_key="orientation/angle_sections")
+                            QtWidgets.QLabel("deg").addToLayout()
+
+                        with QtShortCuts.QHBoxLayout():
+                            self.shell_width = QtShortCuts.QInputString(None, "shell_width", "5", type=float,
+                                                                        settings=settings,
+                                                                        settings_key="orientation/shell_width")
+                            self.shell_width_type = QtShortCuts.QInputChoice(None, "", "um", ["um", "pixel"],
+                                                                             settings=settings,
+                                                                             settings_key="orientation/shell_width_type")
+
+                        with QtShortCuts.QGroupBox(None, "Segmentation Parameters"):
+                            self.segmention_thres = QtShortCuts.QInputString(None, "segmention_thresh", "1.0", type=float,
+                                                                             settings=settings,
+                                                                             settings_key="orientation/segmention_thres")
+                            self.segmention_thres.valueChanged.connect(self.listSelected)
                             with QtShortCuts.QHBoxLayout():
-                                self.seg_gaus1_indi = QtShortCuts.QInputString(None, "seg_gauss1", None, type=float, allow_none=True)
-                                self.seg_gaus1_indi.valueChanged.connect(self.listSelected)
-                                self.seg_gaus2_indi = QtShortCuts.QInputString(None, "seg_gauss2", None, type=float, allow_none=True)
-                                self.seg_gaus2_indi.valueChanged.connect(self.listSelected)
+                                self.seg_gaus1 = QtShortCuts.QInputString(None, "seg_gauss1", "0.5", type=float, settings=settings,
+                                                                          settings_key="orientation/seg_gaus1")
+                                self.seg_gaus1.valueChanged.connect(self.listSelected)
+                                self.seg_gaus2 = QtShortCuts.QInputString(None, "seg_gauss2", "100", type=float, settings=settings,
+                                                                          settings_key="orientation/seg_gaus2")
+                                self.seg_gaus2.valueChanged.connect(self.listSelected)
+
+                            with CheckAbleGroup(self, "individual segmentation").addToLayout() as self.individual_data:
+                             with QtShortCuts.QVBoxLayout() as layout2:
+                                self.segmention_thres_indi = QtShortCuts.QInputString(None, "segmention_thresh", None, type=float, allow_none=True)
+                                self.segmention_thres_indi.valueChanged.connect(self.listSelected)
+                                with QtShortCuts.QHBoxLayout():
+                                    self.seg_gaus1_indi = QtShortCuts.QInputString(None, "seg_gauss1", None, type=float, allow_none=True)
+                                    self.seg_gaus1_indi.valueChanged.connect(self.listSelected)
+                                    self.seg_gaus2_indi = QtShortCuts.QInputString(None, "seg_gauss2", None, type=float, allow_none=True)
+                                    self.seg_gaus2_indi.valueChanged.connect(self.listSelected)
 
                     layout.addStretch()
 
@@ -482,17 +521,13 @@ class BatchEvaluate(QtWidgets.QWidget):
         self.list.setData(self.data)
 
         self.input_list = [
-            #self.inputText,
-            #self.outputText,
-            #self.button_clear,
-            #self.button_addList,
+            frame2,
         ]
-
-
 
         self.individual_data.value_changed.connect(self.changedCheckBox)
 
         self.progress_signal.connect(self.progress_callback)
+        self.measurement_evaluated_signal.connect(self.measurement_evaluated)
         self.finished_signal.connect(self.finished)
 
     def changedCheckBox(self):
@@ -646,20 +681,10 @@ class BatchEvaluate(QtWidgets.QWidget):
 
             self.label_text.setText(data[2])
 
-            self.line_views()
+            self.link_views()
 
 
-    def param_changed(self, name, update_image=False):
-        if len(self.list.selectedItems()):
-            data = self.data[self.list.currentRow()][2]
-            data[name] = getattr(self, name).value()
-            if update_image:
-                self.slider_changed(self.slider.value())
-            self.slider.min = self.n_min.value()
-            self.slider.max = self.n_max.value()
-            self.slider.update()
-
-    def line_views(self):
+    def link_views(self):
 
         def changes1(*args):
             self.label2.setOriginScale(self.label.getOriginScale() * self.label.view_rect[0] / self.label2.view_rect[0])
@@ -717,60 +742,60 @@ class BatchEvaluate(QtWidgets.QWidget):
     def progress_callback(self, i, n, ii, nn):
         self.progress1.setRange(0, n)
         self.progress1.setValue(i)
-        self.progress2.setRange(0, nn-1)
-        self.progress2.setValue(ii)
-        for j in range(self.list.count()):
-            if j < i:
-                self.list.item(j).setIcon(qta.icon("fa.check", options=[dict(color="darkgreen")]))
-            else:
-                self.list.item(j).setIcon(qta.icon("fa.circle", options=[dict(color="white")]))
+        #self.progress2.setRange(0, nn-1)
+        #self.progress2.setValue(ii)
         self.list.setCurrentRow(i)
-        #self.slider.setEvaluated(ii)
-        #self.slider.setValue(ii)
-        return
-        # when plotting show the slider
-        if self.plot.value() is True:
-            # set the range for the slider
-            self.slider.setRange(1, i)
-            # it the slider was at the last value, move it to the new maximum
-            if self.slider.value() == i-1:
-                self.slider.setValue(i)
+
+    def measurement_evaluated(self, index, state):
+        if state == 1:
+            self.list.item(index).setIcon(qta.icon("fa.check", options=[dict(color="darkgreen")]))
+        elif state == -1:
+            self.list.item(index).setIcon(qta.icon("fa.times", options=[dict(color="red")]))
+        else:
+            self.list.item(index).setIcon(qta.icon("fa.circle", options=[dict(color="white")]))
 
     def run_thread(self):
         try:
             print("compute displacements")
-            n = self.list.count() - 1
+            n = len([1 for d in self.data if d[1]])
+            counter = 0
             self.progress_signal.emit(0, n, 0, 1)
             for i in range(n):
-                if not self.data[i][1]:
-                    continue
+                try:
+                    if not self.data[i][1]:
+                        continue
 
-                fiber, cell, output, attr = self.data[i][2]
+                    fiber, cell, output, attr = self.data[i][2]
 
+                    sigma_tensor = self.sigma_tensor.value()
+                    if self.sigma_tensor_type.value() == "um":
+                        sigma_tensor /= self.scale.value()
+                    shell_width = self.shell_width.value()
+                    if self.shell_width_type.value() == "um":
+                        shell_width /= self.scale.value()
 
-                sigma_tensor = self.sigma_tensor.value()
-                if self.sigma_tensor_type.value() == "um":
-                    sigma_tensor /= self.scale.value()
-                shell_width = self.shell_width.value()
-                if self.shell_width_type.value() == "um":
-                    shell_width /= self.scale.value()
+                    from CompactionAnalyzer.CompactionFunctions import StuctureAnalysisMain
+                    StuctureAnalysisMain(fiber_list=[fiber],
+                                         cell_list=[cell],
+                                         out_list=[output],
+                                         scale=self.scale.value(),
+                                         sigma_tensor=sigma_tensor,
+                                         edge=self.edge.value(),
+                                         segmention_thres=self.segmention_thres.value() if attr["segmention_thres"] is None else attr["segmention_thres"],
+                                         seg_gaus1=self.seg_gaus1.value() if attr["seg_gaus1"] is None else attr["seg_gaus1"],
+                                         seg_gaus2=self.seg_gaus2.value() if attr["seg_gaus2"] is None else attr["seg_gaus2"],
+                                         sigma_first_blur=self.sigma_first_blur.value(),
+                                         angle_sections=self.angle_sections.value(),
+                                         shell_width=shell_width,
+                                         )
 
-                from CompactionAnalyzer.CompactionFunctions import StuctureAnalysisMain
-                StuctureAnalysisMain(fiber_list=[fiber],
-                                     cell_list=[cell],
-                                     out_list=[output],
-                                     scale=self.scale.value(),
-                                     sigma_tensor=sigma_tensor,
-                                     edge=self.edge.value(),
-                                     segmention_thres=self.segmention_thres.value() if attr["segmention_thres"] is None else attr["segmention_thres"],
-                                     seg_gaus1=self.seg_gaus1.value() if attr["seg_gaus1"] is None else attr["seg_gaus1"],
-                                     seg_gaus2=self.seg_gaus2.value() if attr["seg_gaus2"] is None else attr["seg_gaus2"],
-                                     sigma_first_blur=self.sigma_first_blur.value(),
-                                     angle_sections=self.angle_sections.value(),
-                                     shell_width=shell_width,
-                                     )
-
-                self.progress_signal.emit(i+1, n, 0, 1)
+                    self.measurement_evaluated_signal.emit(i, 1)
+                except Exception as err:
+                    import traceback
+                    traceback.print_exc()
+                    self.measurement_evaluated_signal.emit(i, -1)
+                counter += 1
+                self.progress_signal.emit(counter, n, 0, 1)
         finally:
             self.finished_signal.emit()
 
@@ -1000,8 +1025,6 @@ class PlottingWindow(QtWidgets.QWidget):
                         layout3.addStretch()
                         self.button_addList0 = QtShortCuts.QPushButton(None, "cancel", self.reject)
                         self.button_addList1 = QtShortCuts.QPushButton(None, "ok", self.accept)
-
-                    changed()
 
         dialog = AddFilesDialog(self)
         if not dialog.exec():
