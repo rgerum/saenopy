@@ -21,16 +21,7 @@ import imageio
 import threading
 import glob
 import re
-# import pyvista as pv
-# import vtk
-# from pyvistaqt import QtInteractor
-# import saenopy.getDeformations
-# import saenopy.multigridHelper
-# import saenopy.materials
-# import saenopy
-# import saenopy.multigridHelper
-# from saenopy.gui.stack_selector import StackSelector
-# import jointforces as jf
+
 
 if QtCore.qVersion() >= "5.":
     from matplotlib.backends.backend_qt5agg import (
