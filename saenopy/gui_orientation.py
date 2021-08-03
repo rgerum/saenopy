@@ -471,6 +471,8 @@ class BatchEvaluate(QtWidgets.QWidget):
                         with QtShortCuts.QHBoxLayout():
                             self.sigma_tensor = QtShortCuts.QInputString(None, "sigma_tensor", "7.0", type=float, settings=settings, settings_key="orientation/sigma_tensor")
                             self.sigma_tensor_type = QtShortCuts.QInputChoice(None, "", "um", ["um", "pixel"], settings=settings, settings_key="orientation/sigma_tensor_unit")
+                            self.sigma_tensor_button = QtShortCuts.QPushButton(None, "detect", self.sigma_tensor_button_clicked)
+                            self.sigma_tensor_button.setDisabled(True)
                         with QtShortCuts.QHBoxLayout():
                             self.edge = QtShortCuts.QInputString(None, "edge", "40", type=int, settings=settings, settings_key="orientation/edge", tooltip="How many pixels to cut at the edge of the image.")
                             QtWidgets.QLabel("px").addToLayout()
@@ -529,6 +531,116 @@ class BatchEvaluate(QtWidgets.QWidget):
         self.progress_signal.connect(self.progress_callback)
         self.measurement_evaluated_signal.connect(self.measurement_evaluated)
         self.finished_signal.connect(self.finished)
+
+    def sigma_tensor_button_clicked(self):
+        parent = self
+        class SigmaRange(QtWidgets.QDialog):
+            def __init__(self, parent):
+                super().__init__(parent)
+                self.setWindowTitle("Determine Sigma Tensor")
+                with QtShortCuts.QVBoxLayout(self) as layout:
+                    self.output_folder = QtShortCuts.QInputFolder(None, "output folder", settings=settings, settings_key="orientation/sigma_tensor_range_output")
+                    self.label_scale = QtWidgets.QLabel(f"Scale is {parent.scale.value()} px/um").addToLayout(layout)
+                    with QtShortCuts.QHBoxLayout() as layout2:
+                        self.sigma_tensor_min = QtShortCuts.QInputString(None, "min", "1.0", type=float, settings=settings, settings_key="orientation/sigma_tensor_min")
+                        self.sigma_tensor_max = QtShortCuts.QInputString(None, "max", "15", type=float, settings=settings, settings_key="orientation/sigma_tensor_max")
+                        self.sigma_tensor_step = QtShortCuts.QInputString(None, "step", "1", type=float, settings=settings, settings_key="orientation/sigma_tensor_step")
+                        self.sigma_tensor_type = QtShortCuts.QInputChoice(None, "", "um", ["um", "pixel"], settings=settings, settings_key="orientation/sigma_tensor_unit")
+
+                    self.progresss = QtWidgets.QProgressBar().addToLayout(layout)
+
+                    self.canvas = MatplotlibWidget(self)
+                    layout.addWidget(self.canvas)
+                    layout.addWidget(NavigationToolbar(self.canvas, self))
+
+                    with QtShortCuts.QHBoxLayout() as layout3:
+                        # self.button_clear = QtShortCuts.QPushButton(None, "clear list", self.clear_files)
+                        layout3.addStretch()
+                        self.button_addList2 = QtShortCuts.QPushButton(None, "cancel", self.reject)
+                        self.button_addList1 = QtShortCuts.QPushButton(None, "run", self.run)
+
+            def run(self):
+                from natsort import natsorted
+                fiber, cell, output, attr = parent.data[parent.list.currentRow()][2]
+
+                output_folder = self.output_folder.value()
+
+                sigma_tensor_min = self.sigma_tensor_min.value()
+                sigma_tensor_max = self.sigma_tensor_max.value()
+                sigma_tensor_step = self.sigma_tensor_step.value()
+                if self.sigma_tensor_type.value() == "um":
+                    sigma_tensor_min /= parent.scale.value()
+                    sigma_tensor_max /= parent.scale.value()
+                    sigma_tensor_step /= parent.scale.value()
+                shell_width = parent.shell_width.value()
+                if parent.shell_width_type.value() == "um":
+                    shell_width /= parent.scale.value()
+
+                sigma_list = np.arange(sigma_tensor_min, sigma_tensor_max+sigma_tensor_step, sigma_tensor_step)
+                self.progresss.setRange(0, len(sigma_list))
+
+                from CompactionAnalyzer.CompactionFunctions import StuctureAnalysisMain, generate_lists
+                for index, sigma in enumerate(sigma_list):
+                    sigma = float(sigma)
+                    self.progresss.setValue(index)
+                    app.processEvents()
+                    # Create outputfolder
+                    output_sub = os.path.join(output_folder, rf"Sigma{str(sigma*parent.scale.value()).zfill(3)}")  # subpath to store results
+                    fiber_list, cell_list, out_list = generate_lists(fiber, cell,
+                                                                     output_main=output_sub)
+
+                    StuctureAnalysisMain(fiber_list=fiber_list,
+                                         cell_list=cell_list,
+                                         out_list=out_list,
+                                         scale=parent.scale.value(),
+                                         sigma_tensor=sigma,
+                                         edge=parent.edge.value(),
+                                         segmention_thres=parent.segmention_thres.value() if attr[
+                                                                                               "segmention_thres"] is None else
+                                         attr["segmention_thres"],
+                                         seg_gaus1=parent.seg_gaus1.value() if attr["seg_gaus1"] is None else attr[
+                                             "seg_gaus1"],
+                                         seg_gaus2=parent.seg_gaus2.value() if attr["seg_gaus2"] is None else attr[
+                                             "seg_gaus2"],
+                                         sigma_first_blur=parent.sigma_first_blur.value(),
+                                         angle_sections=parent.angle_sections.value(),
+                                         shell_width=shell_width,
+                                         regional_max_correction=True,
+                                         seg_iter=1,
+                                         SaveNumpy=False,
+                                         plotting=True,
+                                         dpi=100
+                                         )
+                    self.progresss.setValue(index+1)
+
+                    ### plot results
+                    # read in all creates result folder
+                    result_folders = natsorted(glob.glob(os.path.join(output_folder, "Sigma*", "*", "results_total.xlsx")))
+
+                    import yaml
+                    sigmas = []
+                    orientation = []
+                    for folder in result_folders:
+                        with (Path(folder).parent / "parameters.yml").open() as fp:
+                            parameters = yaml.load(fp, Loader=yaml.SafeLoader)["Parameters"]
+                            sigmas.append(parameters["sigma_tensor"][0] * parameters["scale"][0])
+                        orientation.append(pd.read_excel(folder)["Orientation (weighted by intensity and coherency)"])
+
+                    self.canvas.setActive()
+                    plt.cla()
+                    plt.axis("auto")
+
+                    plt.plot(sigmas, orientation, "o-")
+                    plt.ylabel("Orientation", fontsize=12)
+                    plt.xlabel("Windowsize (μm)", fontsize=12)
+                    plt.grid()
+                    plt.tight_layout()
+                    plt.savefig(os.path.join(output_folder, "Results.png"), dpi=500)
+                    self.canvas.draw()
+
+        dialog = SigmaRange(self)
+        if not dialog.exec():
+            return
 
     def changedCheckBox(self):
         for widget in [self.segmention_thres, self.seg_gaus1, self.seg_gaus2]:
@@ -593,7 +705,8 @@ class BatchEvaluate(QtWidgets.QWidget):
                                 self.button_addList1.setDisabled(False)
                     self.fiberText.line.textChanged.connect(changed)
                     self.cellText.line.textChanged.connect(changed)
-                    self.label2 = QtWidgets.QLabel().addToLayout()
+                    self.label2 = QtWidgets.QLabel()#.addToLayout()
+                    layout.addWidget(self.label2)
 
                     with QtShortCuts.QHBoxLayout() as layout3:
                         # self.button_clear = QtShortCuts.QPushButton(None, "clear list", self.clear_files)
@@ -634,6 +747,7 @@ class BatchEvaluate(QtWidgets.QWidget):
             return QtGui.QPixmap(array2qimage(im_cell))
 
         if len(self.list.selectedItems()):
+            self.sigma_tensor_button.setDisabled(False)
             data = self.data[self.list.currentRow()][2]
             attr = data[3]
             if self.last_cell == self.list.currentRow():
