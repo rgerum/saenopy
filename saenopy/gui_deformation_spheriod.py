@@ -558,8 +558,9 @@ class SelectLookup(QtWidgets.QDialog):
         class LookupTableDialog(QtWidgets.QDialog):
             def __init__(self, parent):
                 super().__init__(parent)
-                self.setWindowTitle("Select exiting Lookup Table")
+                self.setWindowTitle("Generate a Linear Material Lookup Table")
                 with QtShortCuts.QVBoxLayout(self):
+                    self.label = QtWidgets.QLabel("Interpolate a pre-calculated lookup table to a new Young's Modulus.<br>Note that the poisson ratio for the fiber material model is always 0.25 for the linear case.").addToLayout()
                     self.label = QtWidgets.QLabel("Select a path where to save the Lookup Table.").addToLayout()
                     self.inputText = QtShortCuts.QInputFilename(None, "Output Lookup Table", 'lookup_example.pkl',
                                                                 file_type="Pickle Lookup Table (*.pkl)",
@@ -569,7 +570,7 @@ class SelectLookup(QtWidgets.QDialog):
                     # self.inputText.valueChanged.connect(self.path_changed)
                     with QtShortCuts.QHBoxLayout() as layout2:
                         layout2.addStretch()
-                        self.youngs = QtShortCuts.QInputString(None, "Young's Module", "250", type=float)
+                        self.youngs = QtShortCuts.QInputString(None, "Young's Modulus", "250", type=float)
                         self.button_run = QtShortCuts.QPushButton(layout2, "generate", self.run_linear)
 
             def run_linear(self):
@@ -880,6 +881,7 @@ class MainWindow(QtWidgets.QWidget):
                     self.description = QtWidgets.QTextEdit()
                     self.description.setDisabled(True)
                     h_layout.addWidget(self.description)
+                    self.description.setMaximumWidth(300)
                     self.description.setText("""
                     <h1>Deformation Detection</h1>
                     Now we need to extract the deformations from the recorded image data. <br/>
@@ -1061,7 +1063,9 @@ class BatchEvaluate(QtWidgets.QWidget):
                     self.label_text2 = QtWidgets.QLabel().addToLayout()
                     self.progress2 = QtWidgets.QProgressBar().addToLayout()
 
-                with QtShortCuts.QVBoxLayout() as layout:
+                frame = QtWidgets.QFrame().addToLayout()
+                frame.setMaximumWidth(300)
+                with QtShortCuts.QVBoxLayout(frame) as layout:
                     with CheckAbleGroup(self, "Detect Deformations").addToLayout() as self.deformation_data:
                      with QtShortCuts.QVBoxLayout() as layout2:
 
@@ -1079,7 +1083,7 @@ class BatchEvaluate(QtWidgets.QWidget):
 
                         self.thres_segmentation = QtShortCuts.QInputNumber(None, "thres_segmentation", 0.9, float=True,
                                                                            min=0.2, max=1.5, step=0.1,
-                                                                           use_slider=True,
+                                                                           use_slider=False,
                                                                            settings=self.settings,
                                                                            settings_key="spheriod/deformation/thres_segmentation2")
                         self.thres_segmentation.valueChanged.connect(lambda: self.param_changed("thres_segmentation", True))
@@ -1092,29 +1096,31 @@ class BatchEvaluate(QtWidgets.QWidget):
 
 
                     #QHLine().addToLayout()
-                    if 0:
-                        with QtShortCuts.QVBoxLayout() as layout:
-                            with QtShortCuts.QHBoxLayout():
-                                self.plot = QtShortCuts.QInputBool(None, "plot", True, settings=self.settings,
-                                                                   settings_key="spheriod/deformation/plot")
-                                # self.draw_mask = QtShortCuts.QInputBool(None, "draw mask", True, settings=self.settings, settings_key="spheriod/deformation/draw_mask")
-
-                            with QtShortCuts.QHBoxLayout():
+                    if 1:
+                        with CheckAbleGroup(self, "Plot").addToLayout() as self.plot_data:
+                         with QtShortCuts.QVBoxLayout() as layout2:
+                            with QtShortCuts.QHBoxLayout() as layout2:
                                 self.color_norm = QtShortCuts.QInputString(None, "color norm", 75., type=float,
                                                                            settings=self.settings,
                                                                            settings_key="spheriod/deformation/color_norm")
-                                self.cbar_um_scale = QtShortCuts.QInputString(None, "cbar_um_scale", None, allow_none=True,
+                                QtWidgets.QLabel("µm").addToLayout()
+                            with QtShortCuts.QHBoxLayout() as layout2:
+                                self.cbar_um_scale = QtShortCuts.QInputString(None, "scale", None, allow_none=True,
                                                                               type=int, settings=self.settings,
                                                                               settings_key="spheriod/deformation/cbar_um_scale")
+                                QtWidgets.QLabel("µm/px").addToLayout()
                                 self.quiver_scale = QtShortCuts.QInputString(None, "quiver_scale", 1, type=int,
                                                                              settings=self.settings,
                                                                              settings_key="spheriod/deformation/quiver_scale")
+                                QtWidgets.QLabel("a.u.").addToLayout()
 
-                            self.dpi = QtShortCuts.QInputString(None, "dpi", 150, allow_none=True, type=int,
-                                                                settings=self.settings, settings_key="spheriod/deformation/dpi")
-                            self.dt_min = QtShortCuts.QInputString(None, "dt_min", None, allow_none=True, type=int,
-                                                                   settings=self.settings,
-                                                                   settings_key="spheriod/deformation/dt_min")
+                            with QtShortCuts.QHBoxLayout() as layout2:
+                                self.dpi = QtShortCuts.QInputString(None, "dpi", 150, allow_none=True, type=int,
+                                                                    settings=self.settings, settings_key="spheriod/deformation/dpi")
+                                self.dt_min = QtShortCuts.QInputString(None, "dt", None, allow_none=True, type=int,
+                                                                       settings=self.settings,
+                                                                       settings_key="spheriod/deformation/dt_min")
+                                QtWidgets.QLabel("min").addToLayout()
 
                     with CheckAbleGroup(self, "Calculate Forces").addToLayout() as self.force_data:
                         with QtShortCuts.QVBoxLayout():
@@ -1147,9 +1153,9 @@ class BatchEvaluate(QtWidgets.QWidget):
             #self.outputText,
             #self.button_clear,
             #self.button_addList,
-            self.continous_segmentation,
-            self.thres_segmentation,
-            self.n_min, self.n_max,
+            self.force_data,
+            self.deformation_data,
+            self.plot_data,
         ]
 
         self.progress_signal.connect(self.progress_callback)
@@ -1172,20 +1178,83 @@ class BatchEvaluate(QtWidgets.QWidget):
                 self.setWindowTitle("Add Files")
                 with QtShortCuts.QVBoxLayout(self) as layout:
                     self.label = QtWidgets.QLabel(
-                        "Select a path as an input wildcard. Use * to specify a placeholder. All paths that match the wildcard will be added.")
+                        "Select a path as an input wildcard.<br/>Use a <b>: placeholder</b> to specify <b>different timestamps</b> of a measurement.<br/>Optionally use a <b>* placeholder</b> to specify <b>different measurements</b> to load.")
                     layout.addWidget(self.label)
 
-                    self.inputText = QtShortCuts.QInputFilename(None, "", settings=settings,
+                    self.inputText = QtShortCuts.QInputFilename(None, "input", file_type="Image (*.tif *.png *.jpg)", settings=settings,
                                                                 settings_key="batch/wildcard", existing=True,
                                                                 allow_edit=True)
                     self.outputText = QtShortCuts.QInputFolder(None, "output", settings=settings,
                                                                settings_key="batch/wildcard2", allow_edit=True)
 
+
+                    def changed():
+                        import glob, re
+                        text = os.path.normpath(self.inputText.value())
+
+                        glob_string = text.replace(":", "*")
+                        files = glob.glob(glob_string)
+
+                        regex_string = re.escape(text).replace("\*", "(.*)").replace("\:", ".*")
+
+                        data = {}
+                        for file in files:
+                            file = os.path.normpath(file)
+                            print(file, regex_string)
+                            match = re.match(regex_string, file).groups()
+                            reconstructed_file = regex_string
+                            for element in match:
+                                reconstructed_file = reconstructed_file.replace("(.*)", element, 1)
+                            reconstructed_file = reconstructed_file.replace(".*", "*")
+                            reconstructed_file = re.sub(r'\\(.)', r'\1', reconstructed_file)
+
+                            if reconstructed_file not in data:
+                                data[reconstructed_file] = 0
+                            data[reconstructed_file] += 1
+
+                        counts = [v for v in data.values()]
+                        if len(counts):
+                            min_count = np.min(counts)
+                            max_count = np.max(counts)
+                        else:
+                            min_count = 0
+                            max_count = 0
+
+                        if text == "":
+                            self.label2.setText("")
+                            self.label2.setStyleSheet("QLabel { color : red; }")
+                            self.button_addList1.setDisabled(True)
+                        elif max_count == 0:
+                            self.label2.setText("No images found.")
+                            self.label2.setStyleSheet("QLabel { color : red; }")
+                            self.button_addList1.setDisabled(True)
+                        elif max_count == 1:
+                            self.label2.setText(f"Found {len(counts)} measurements with {max_count} images.<br>Maybe check the wildcard placeholder. Did you forget the : placeholder?")
+                            self.label2.setStyleSheet("QLabel { color : orange; }")
+                            self.button_addList1.setDisabled(True)
+                        elif min_count == max_count:
+                            self.label2.setText(
+                                f"Found {len(counts)} measurements with each {min_count} images.")
+                            self.label2.setStyleSheet("QLabel { color : green; }")
+                            self.button_addList1.setDisabled(False)
+                        else:
+                            self.label2.setText(
+                                f"Found {len(counts)} measurements with {counts} images.")
+                            self.label2.setStyleSheet("QLabel { color : green; }")
+                            self.button_addList1.setDisabled(False)
+
+
+                    self.inputText.line.textChanged.connect(changed)
+
+                    self.label2 = QtWidgets.QLabel()#.addToLayout()
+                    layout.addWidget(self.label2)
+
                     with QtShortCuts.QHBoxLayout() as layout3:
                         # self.button_clear = QtShortCuts.QPushButton(None, "clear list", self.clear_files)
                         layout3.addStretch()
-                        self.button_addList = QtShortCuts.QPushButton(None, "cancel", self.reject)
-                        self.button_addList = QtShortCuts.QPushButton(None, "ok", self.accept)
+                        self.button_addList2 = QtShortCuts.QPushButton(None, "cancel", self.reject)
+                        self.button_addList1 = QtShortCuts.QPushButton(None, "ok", self.accept)
+                    changed()
 
         dialog = AddFilesDialog(self)
         if not dialog.exec():
@@ -1194,7 +1263,7 @@ class BatchEvaluate(QtWidgets.QWidget):
         import glob
         import re
         text = os.path.normpath(dialog.inputText.value())
-        glob_string = text.replace("+", "*")
+        glob_string = text.replace(":", "*")
         print("globbing", glob_string)
         files = glob.glob(glob_string)
 
@@ -1202,7 +1271,7 @@ class BatchEvaluate(QtWidgets.QWidget):
         while "*" in str(output_base):
             output_base = Path(output_base).parent
 
-        regex_string = re.escape(text).replace("\*", "(.*)").replace("\+", ".*")
+        regex_string = re.escape(text).replace("\*", "(.*)").replace("\:", ".*")
 
         data = {}
         for file in files:
@@ -1300,7 +1369,7 @@ class BatchEvaluate(QtWidgets.QWidget):
                 for cc in c:
                     path.lineTo(cc[1], im.shape[0]-cc[0])
             self.contour.setPath(path)
-            self.last_seg = [i, self.thres_segmentation.value()]
+            self.last_seg = [i, self.thres_segmentation.value(), seg0]
         im = im - im.min()
         im = (im/im.max()*255).astype(np.uint8)
 
@@ -1309,7 +1378,17 @@ class BatchEvaluate(QtWidgets.QWidget):
         self.label_text.setText(f"{i+1}/{len(self.images)} {self.images[i]}")
 
         data = self.data[self.list.currentRow()][2]
+
+        #from jointforces.piv import save_displacement_plot
+        #import io
+        #buf = io.BytesIO()
+        #import time
+        #t = time.time()
+        #dis_sum = np.load(str(data["output"]) + '/def' + str(i).zfill(6) + '.npy', allow_pickle=True).item()
+        #print("loadtime", time.time()-t)
+
         try:
+            #im = imageio.imread(buf)
             im = imageio.imread(str(data["output"]) + '/plot' + str(i).zfill(6) + '.png')
         except FileNotFoundError:
             im = np.zeros(im.shape)
@@ -1398,7 +1477,7 @@ class BatchEvaluate(QtWidgets.QWidget):
     def run_thread(self):
         try:
             print("compute displacements")
-            n = self.list.count()
+            n = self.list.count() - 1
             for i in range(n):
                 if not self.data[i][1]:
                     continue
@@ -1417,18 +1496,35 @@ class BatchEvaluate(QtWidgets.QWidget):
                                                    str(data["output"]),
                                                    n_max=n_max,
                                                    n_min=n_min,
+                                                   plot=self.plot_data.value(),
                                                    #plot=self.plot.value(),
                                                    draw_mask=False,
-                                                   #color_norm=self.color_norm.value(),
-                                                   #cbar_um_scale=(self.cbar_um_scale.value()),
-                                                   #quiver_scale=(self.quiver_scale.value()),
-                                                   #dpi=(self.dpi.value()),
+                                                   color_norm=self.color_norm.value(),
+                                                   cbar_um_scale=(self.cbar_um_scale.value()),
+                                                   quiver_scale=(self.quiver_scale.value()),
+                                                   dpi=(self.dpi.value()),
                                                    continous_segmentation=continous_segmentation,
                                                    thres_segmentation=thres_segmentation,
                                                    window_size=(self.window_size.value()),
-                                                   #dt_min=(self.dt_min.value()),
+                                                   dt_min=(self.dt_min.value()),
                                                    cutoff=None, cmap="turbo",
                                                    callback=lambda ii, nn: self.progress_signal.emit(i, n, ii, nn))
+
+                elif self.plot_data.value() is True:
+                    images = data["images"]
+                    for ii in range(0, len(images)):
+                        im = imageio.imread(images[i]).astype(np.float)
+                        if ii == 0 or self.continous_segmentation.value() is True:
+                            seg0 = jf.piv.segment_spheroid(im, True, self.thres_segmentation.value())
+                        if ii > 0:
+                            print("self.dt_min.value()*ii if self.dt_min.value() is not None else None", self.dt_min.value()*ii if self.dt_min.value() is not None else None)
+                            from jointforces.piv import save_displacement_plot
+                            dis_sum = np.load(str(data["output"]) + '/def' + str(ii).zfill(6) + '.npy', allow_pickle=True).item()
+                            save_displacement_plot(str(data["output"]) + '/plot' + str(ii).zfill(6) + '.png', im,
+                                                   seg0, dis_sum,
+                                                       quiver_scale=(self.quiver_scale.value()),
+                                                   color_norm=self.color_norm.value(), cbar_um_scale=(self.cbar_um_scale.value()), dpi=(self.dpi.value()), t=self.dt_min.value()*ii if self.dt_min.value() is not None else None)
+                        self.progress_signal.emit(i, n, ii, len(images))
 
                 if self.force_data.value() is True:
                     jf.force.reconstruct(str(data["output"]),  # PIV output folder
