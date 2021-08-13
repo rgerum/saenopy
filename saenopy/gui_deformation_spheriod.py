@@ -1178,7 +1178,7 @@ class BatchEvaluate(QtWidgets.QWidget):
                 self.setWindowTitle("Add Files")
                 with QtShortCuts.QVBoxLayout(self) as layout:
                     self.label = QtWidgets.QLabel(
-                        "Select a path as an input wildcard.<br/>Use a <b>: placeholder</b> to specify <b>different timestamps</b> of a measurement.<br/>Optionally use a <b>* placeholder</b> to specify <b>different measurements</b> to load.")
+                        "Select a path as an input wildcard.<br/>Use a <b>? placeholder</b> to specify <b>different timestamps</b> of a measurement.<br/>Optionally use a <b>* placeholder</b> to specify <b>different measurements</b> to load.")
                     layout.addWidget(self.label)
 
                     self.inputText = QtShortCuts.QInputFilename(None, "input", file_type="Image (*.tif *.png *.jpg)", settings=settings,
@@ -1192,10 +1192,10 @@ class BatchEvaluate(QtWidgets.QWidget):
                         import glob, re
                         text = os.path.normpath(self.inputText.value())
 
-                        glob_string = text.replace(":", "*")
+                        glob_string = text.replace("?", "*")
                         files = glob.glob(glob_string)
-
-                        regex_string = re.escape(text).replace("\*", "(.*)").replace("\:", ".*")
+                                              
+                        regex_string = re.escape(text).replace("\*", "(.*)").replace("\?", ".*")
 
                         data = {}
                         for file in files:
@@ -1263,7 +1263,7 @@ class BatchEvaluate(QtWidgets.QWidget):
         import glob
         import re
         text = os.path.normpath(dialog.inputText.value())
-        glob_string = text.replace(":", "*")
+        glob_string = text.replace("?", "*")
         print("globbing", glob_string)
         files = glob.glob(glob_string)
 
@@ -1271,7 +1271,7 @@ class BatchEvaluate(QtWidgets.QWidget):
         while "*" in str(output_base):
             output_base = Path(output_base).parent
 
-        regex_string = re.escape(text).replace("\*", "(.*)").replace("\:", ".*")
+        regex_string = re.escape(text).replace("\*", "(.*)").replace("\?", ".*")
 
         data = {}
         for file in files:
