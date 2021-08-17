@@ -389,7 +389,7 @@ class MainWindow(QtWidgets.QWidget):
                             Different groups can be created and to each group individual experiments 
                             are added by using a path-placeholder combination. In particular,                                            
                             the "*" is used to scan across sub-directories to find different "results_total.xlsx"-files.<br/>                  
-                            <i> Example: "C:/User/ExperimentA/well1/Pos*/result.xlsx" to read 
+                            <i> Example: "C:/User/ExperimentA/well1/Pos*/results_total.xlsx" to read 
                             in all positions in a certain directory </i><br/>
                             <br/>     
                             
