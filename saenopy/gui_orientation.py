@@ -348,6 +348,7 @@ class MainWindow(QtWidgets.QWidget):
                     <li><b>seg_gauss1, seg_gauss2</b>: Set of two gauss filters applied before segmentation (bandpass filter, Default is 0.5 and 100). </li>
                     <li><b>sigma_first_blur</b>: Initial slight gaussian blur on the fiber image, before structure analysis is conducted. Default is 0.5. </li>
                     <li><b>edge</b>:  Pixelwidth at the edges that are left blank because no alignment can be calculated at the edges. Default is 40 px. </li>
+                    <li><b>max_dist</b>:   Specify (optionally) a maximal distance around the cell center for analysis (in px). Default is None. </li>
                     <li><b>Individual Segmentation</b>: If you select this check box, the specified segmentation value here (instead of the global value) will be applied to this individual cell within a batch analysis.</li>
                     </ul>
 
@@ -476,6 +477,8 @@ class BatchEvaluate(QtWidgets.QWidget):
                         with QtShortCuts.QHBoxLayout():
                             self.edge = QtShortCuts.QInputString(None, "edge", "40", type=int, settings=settings, settings_key="orientation/edge", tooltip="How many pixels to cut at the edge of the image.")
                             QtWidgets.QLabel("px").addToLayout()
+                            self.max_dist = QtShortCuts.QInputString(None, "max_dist", "None", type=int, settings=settings, settings_key="orientation/max_dist", tooltip="Optional: specify the maximal distance around the cell center")
+                            QtWidgets.QLabel("px").addToLayout()
 
                         with QtShortCuts.QHBoxLayout():
                             self.sigma_first_blur = QtShortCuts.QInputString(None, "sigma_first_blur", "0.5", type=float, settings=settings, settings_key="orientation/sigma_first_blur")
@@ -589,12 +592,15 @@ class BatchEvaluate(QtWidgets.QWidget):
                     fiber_list, cell_list, out_list = generate_lists(fiber, cell,
                                                                      output_main=output_sub)
 
+
+  
                     StuctureAnalysisMain(fiber_list=fiber_list,
                                          cell_list=cell_list,
                                          out_list=out_list,
                                          scale=parent.scale.value(),
                                          sigma_tensor=sigma,
                                          edge=parent.edge.value(),
+                                         max_dist=parent.max_dist.value(),
                                          segmention_thres=parent.segmention_thres.value() if attr[
                                                                                                "segmention_thres"] is None else
                                          attr["segmention_thres"],
@@ -895,6 +901,7 @@ class BatchEvaluate(QtWidgets.QWidget):
                                          scale=self.scale.value(),
                                          sigma_tensor=sigma_tensor,
                                          edge=self.edge.value(),
+                                         max_dist=self.max_dist.value(),
                                          segmention_thres=self.segmention_thres.value() if attr["segmention_thres"] is None else attr["segmention_thres"],
                                          seg_gaus1=self.seg_gaus1.value() if attr["seg_gaus1"] is None else attr["seg_gaus1"],
                                          seg_gaus2=self.seg_gaus2.value() if attr["seg_gaus2"] is None else attr["seg_gaus2"],
