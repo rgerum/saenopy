@@ -595,7 +595,8 @@ class SelectLookup(QtWidgets.QDialog):
             plt.clf()
             figure = jf.simulation.plot_lookup_table(str(self.result),
                                                      pressure=[float(self.p0.value()), float(self.p1.value())],
-                                                     distance=[float(self.d1.value()), float(self.d2.value())], figure=self.canvas.figure)
+                                                     distance=[float(self.d1.value()), float(self.d2.value())],
+                                                     figure=self.canvas.figure, show=False)
             self.canvas.draw()
         except Exception as err:
             [w.setDisabled(True) for w in self.to_disabled]
