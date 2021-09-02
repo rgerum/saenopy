@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 import time
 
 
@@ -124,6 +125,35 @@ def makeBoxmeshTets(nx, ny=None, nz=None, grain=1):
                     T.append([i1, i8, i3, i6])
 
     return np.array(T, dtype=np.int64)
+
+
+def getFaces(T):
+    return np.sort(np.array(T[:, [[0,1,2], [0,1,3], [0,2,3], [1,2,3]]]).reshape(-1, 3), axis=1)
+
+def getFaceCounts(faces):
+    face_counts = pd.Series([str(s)[1:-1] for s in np.sort(faces, axis=1)]).value_counts()
+    face_counts.index = [tuple(int(i) for i in s.split(" ") if i != "") for s in face_counts.index]
+    return face_counts
+
+def getFaces(T):
+    faces = []
+    faces_of_T = []
+    for tet in T:
+        t1, t2, t3, t4 = tet
+        tet_faces = [{t1, t2, t3}, {t1, t2, t4}, {t1, t3, t4}, {t2, t3, t4}]
+        face_indices = []
+        for face in tet_faces:
+            i = 0
+            for i in range(len(faces)):
+                if faces[i] == face:
+                    break
+            else:
+                faces.append(face)
+                face_indices.append(len(faces) - 1)
+                continue
+            face_indices.append(i)
+        faces_of_T.append(face_indices)
+    return np.array(faces), np.array(faces_of_T)
 
 
 def getScaling(voxel_in, size_in, size_out, center, a):
@@ -525,4 +555,8 @@ def getBorder(R):
              (R[:, 1] < minR[1] + width) | (R[:, 1] > maxR[1] - width) | \
              (R[:, 2] < minR[2] + width) | (R[:, 2] > maxR[2] - width)
     return border
-                
+
+def getBoxMeshSurface(T):
+    node_uses = pd.Series(T.ravel()).value_counts().sort_index()
+    surface = node_uses != 20
+    return surface
