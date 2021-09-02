@@ -536,7 +536,7 @@ class SelectLookup(QtWidgets.QDialog):
         filename = QtWidgets.QFileDialog.getOpenFileName(None, "Open Lookup Table", last_folder, "Pickle Lookup Table (*.pkl)")
         filename = filename[0] if isinstance(filename, tuple) else str(filename) if filename is not None else None
 
-        if filename == "" or filename == "":
+        if filename == "":
             return
 
         self.result = filename
@@ -597,8 +597,9 @@ class SelectLookup(QtWidgets.QDialog):
                                                      pressure=[float(self.p0.value()), float(self.p1.value())],
                                                      distance=[float(self.d1.value()), float(self.d2.value())], figure=self.canvas.figure)
             self.canvas.draw()
-        except:
+        except Exception as err:
             [w.setDisabled(True) for w in self.to_disabled]
+            raise
 
     result = None
     def __init__(self):
@@ -1015,6 +1016,7 @@ class QSlider(QtWidgets.QSlider):
 
 class BatchEvaluate(QtWidgets.QWidget):
     progress_signal = QtCore.Signal(int, int, int, int)
+    measurement_evaluated_signal = QtCore.Signal(int, int)
     finished_signal = QtCore.Signal()
     thread = None
 
@@ -1094,7 +1096,20 @@ class BatchEvaluate(QtWidgets.QWidget):
                         self.n_min.valueChanged.connect(lambda: self.param_changed("n_min"))
                         self.n_max.valueChanged.connect(lambda: self.param_changed("n_max"))
 
-
+                        """
+                        with CheckAbleGroup(self, "individual segmentation").addToLayout() as self.individual_data:
+                            with QtShortCuts.QVBoxLayout() as layout2:
+                                self.segmention_thres_indi = QtShortCuts.QInputString(None, "segmention_thresh", None,
+                                                                                      type=float, allow_none=True)
+                                self.segmention_thres_indi.valueChanged.connect(self.listSelected)
+                                with QtShortCuts.QHBoxLayout():
+                                    self.seg_gaus1_indi = QtShortCuts.QInputString(None, "seg_gauss1", None, type=float,
+                                                                                   allow_none=True)
+                                    self.seg_gaus1_indi.valueChanged.connect(self.listSelected)
+                                    self.seg_gaus2_indi = QtShortCuts.QInputString(None, "seg_gauss2", None, type=float,
+                                                                                   allow_none=True)
+                                    self.seg_gaus2_indi.valueChanged.connect(self.listSelected)
+                        """
                     #QHLine().addToLayout()
                     if 1:
                         with CheckAbleGroup(self, "Plot").addToLayout() as self.plot_data:
@@ -1142,7 +1157,6 @@ class BatchEvaluate(QtWidgets.QWidget):
 
                     layout.addStretch()
 
-
                     self.button_run = QtShortCuts.QPushButton(None, "run", self.run)
         self.images = []
         self.data = []
@@ -1159,6 +1173,7 @@ class BatchEvaluate(QtWidgets.QWidget):
         ]
 
         self.progress_signal.connect(self.progress_callback)
+        self.measurement_evaluated_signal.connect(self.measurement_evaluated)
         self.finished_signal.connect(self.finished)
 
     def choose_lookup(self):
@@ -1479,63 +1494,74 @@ class BatchEvaluate(QtWidgets.QWidget):
             print("compute displacements")
             n = self.list.count() - 1
             for i in range(n):
-                if not self.data[i][1]:
-                    continue
-                data = self.data[i][2]
-                self.progress_signal.emit(i, n, 0, len(data["images"]))
-                folder, file = os.path.split(self.data[i][0])
+                try:
+                    if not self.data[i][1]:
+                        continue
+                    data = self.data[i][2]
+                    self.progress_signal.emit(i, n, 0, len(data["images"]))
+                    folder, file = os.path.split(self.data[i][0])
 
-                continous_segmentation = data["continous_segmentation"] or self.continous_segmentation.value()
-                thres_segmentation = data["thres_segmentation"] or self.thres_segmentation.value()
-                n_min = data["n_min"]
-                n_max = data["n_max"]
+                    continous_segmentation = data["continous_segmentation"] or self.continous_segmentation.value()
+                    thres_segmentation = data["thres_segmentation"] or self.thres_segmentation.value()
+                    n_min = data["n_min"]
+                    n_max = data["n_max"]
 
-                if self.deformation_data.value() is True:
-                    jf.piv.compute_displacement_series(str(folder),
-                                                   str(file),
-                                                   str(data["output"]),
-                                                   n_max=n_max,
-                                                   n_min=n_min,
-                                                   plot=self.plot_data.value(),
-                                                   #plot=self.plot.value(),
-                                                   draw_mask=False,
-                                                   color_norm=self.color_norm.value(),
-                                                   cbar_um_scale=(self.cbar_um_scale.value()),
-                                                   quiver_scale=(self.quiver_scale.value()),
-                                                   dpi=(self.dpi.value()),
-                                                   continous_segmentation=continous_segmentation,
-                                                   thres_segmentation=thres_segmentation,
-                                                   window_size=(self.window_size.value()),
-                                                   dt_min=(self.dt_min.value()),
-                                                   cutoff=None, cmap="turbo",
-                                                   callback=lambda ii, nn: self.progress_signal.emit(i, n, ii, nn))
-
-                elif self.plot_data.value() is True:
-                    images = data["images"]
-                    for ii in range(0, len(images)):
-                        im = imageio.imread(images[i]).astype(np.float)
-                        if ii == 0 or self.continous_segmentation.value() is True:
-                            seg0 = jf.piv.segment_spheroid(im, True, self.thres_segmentation.value())
-                        if ii > 0:
-                            print("self.dt_min.value()*ii if self.dt_min.value() is not None else None", self.dt_min.value()*ii if self.dt_min.value() is not None else None)
-                            from jointforces.piv import save_displacement_plot
-                            dis_sum = np.load(str(data["output"]) + '/def' + str(ii).zfill(6) + '.npy', allow_pickle=True).item()
-                            save_displacement_plot(str(data["output"]) + '/plot' + str(ii).zfill(6) + '.png', im,
-                                                   seg0, dis_sum,
+                    if self.deformation_data.value() is True:
+                        jf.piv.compute_displacement_series(str(folder),
+                                                       str(file),
+                                                       str(data["output"]),
+                                                       n_max=n_max,
+                                                       n_min=n_min,
+                                                       plot=self.plot_data.value(),
+                                                       #plot=self.plot.value(),
+                                                       draw_mask=False,
+                                                       color_norm=self.color_norm.value(),
+                                                       cbar_um_scale=(self.cbar_um_scale.value()),
                                                        quiver_scale=(self.quiver_scale.value()),
-                                                   color_norm=self.color_norm.value(), cbar_um_scale=(self.cbar_um_scale.value()), dpi=(self.dpi.value()), t=self.dt_min.value()*ii if self.dt_min.value() is not None else None)
-                        self.progress_signal.emit(i, n, ii, len(images))
+                                                       dpi=(self.dpi.value()),
+                                                       continous_segmentation=continous_segmentation,
+                                                       thres_segmentation=thres_segmentation,
+                                                       window_size=(self.window_size.value()),
+                                                       dt_min=(self.dt_min.value()),
+                                                       cutoff=None, cmap="turbo",
+                                                       callback=lambda ii, nn: self.progress_signal.emit(i, n, ii, nn))
 
-                if self.force_data.value() is True:
-                    jf.force.reconstruct(str(data["output"]),  # PIV output folder
-                                         str(self.lookup_table.value()),  # lookup table
-                                         self.pixel_size.value(),  # pixel size (µm)
-                                         None, r_min=self.x0.value(), r_max=self.x1.value())
+                    elif self.plot_data.value() is True:
+                        images = data["images"]
+                        for ii in range(0, len(images)):
+                            im = imageio.imread(images[i]).astype(np.float)
+                            if ii == 0 or self.continous_segmentation.value() is True:
+                                seg0 = jf.piv.segment_spheroid(im, True, self.thres_segmentation.value())
+                            if ii > 0:
+                                print("self.dt_min.value()*ii if self.dt_min.value() is not None else None", self.dt_min.value()*ii if self.dt_min.value() is not None else None)
+                                from jointforces.piv import save_displacement_plot
+                                dis_sum = np.load(str(data["output"]) + '/def' + str(ii).zfill(6) + '.npy', allow_pickle=True).item()
+                                save_displacement_plot(str(data["output"]) + '/plot' + str(ii).zfill(6) + '.png', im,
+                                                       seg0, dis_sum,
+                                                           quiver_scale=(self.quiver_scale.value()),
+                                                       color_norm=self.color_norm.value(), cbar_um_scale=(self.cbar_um_scale.value()), dpi=(self.dpi.value()), t=self.dt_min.value()*ii if self.dt_min.value() is not None else None)
+                            self.progress_signal.emit(i, n, ii, len(images))
 
+                    if self.force_data.value() is True:
+                        jf.force.reconstruct(str(data["output"]),  # PIV output folder
+                                             str(self.lookup_table.value()),  # lookup table
+                                             self.pixel_size.value(),  # pixel size (µm)
+                                             None, r_min=self.x0.value(), r_max=self.x1.value())
+                except Exception as err:
+                    import traceback
+                    traceback.print_exc()
+                    self.measurement_evaluated_signal.emit(i, -1)
                 self.progress_signal.emit(i+1, n, 0, len(data["images"]))
         finally:
             self.finished_signal.emit()
 
+    def measurement_evaluated(self, index, state):
+        if state == 1:
+            self.list.item(index).setIcon(qta.icon("fa.check", options=[dict(color="darkgreen")]))
+        elif state == -1:
+            self.list.item(index).setIcon(qta.icon("fa.times", options=[dict(color="red")]))
+        else:
+            self.list.item(index).setIcon(qta.icon("fa.circle", options=[dict(color="white")]))
 
 class ListWidget(QtWidgets.QListWidget):
     itemSelectionChanged2 = QtCore.Signal()
