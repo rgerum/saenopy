@@ -3,7 +3,7 @@ import pandas as pd
 import time
 
 
-def createMesh(count=None, element_width=None, box_width=None):
+def createMesh(count=None, element_width=None, box_width=None, tesselation_mode="5"):
     if isinstance(box_width, (int, float)):
         box_width = [box_width, box_width, box_width]
 
@@ -21,20 +21,21 @@ def createMesh(count=None, element_width=None, box_width=None):
         count = [int(np.round(box_width[i] / element_width[i])) for i in range(3)]
 
     # R, T = createBoxMesh(*[np.linspace(-box_width[i]/2, box_width[i]/2, count[i]) for i in range(3)])
-    R, T = createBoxMesh(np.linspace(0, box_width[0], count[0]),
-                         np.linspace(-box_width[1] / 2, box_width[1] / 2, count[1]),
-                         np.linspace(-box_width[2] / 2, box_width[2] / 2, count[2])
+    R, T = createBoxMesh(np.linspace(0, box_width[0], count[0]+1),
+                         np.linspace(-box_width[1] / 2, box_width[1] / 2, count[1]+1),
+                         np.linspace(-box_width[2] / 2, box_width[2] / 2, count[2]+1),
+                         tesselation_mode=tesselation_mode,
                          )
     return R, T
 
 
-def createSolverBoxMesh(count=None, element_width=None, box_width=None, material=None):
+def createSolverBoxMesh(count=None, element_width=None, box_width=None, material=None, tesselation_mode="5"):
     from saenopy import Solver
     M = Solver()
     if material is not None:
         M.setMaterialModel(material)
 
-    R, T = createMesh(count, element_width, box_width)
+    R, T = createMesh(count, element_width, box_width, tesselation_mode=tesselation_mode)
 
     M.setNodes(R)
     M.setTetrahedra(T)
@@ -42,7 +43,7 @@ def createSolverBoxMesh(count=None, element_width=None, box_width=None, material
     return M
 
 
-def createBoxMesh(x, y=None, z=None):
+def createBoxMesh(x, y=None, z=None, tesselation_mode="5"):
     if y is None:
         y = x
     if z is None:
@@ -50,11 +51,11 @@ def createBoxMesh(x, y=None, z=None):
     mesh = np.array(np.meshgrid(x, y, z, indexing="ij")).reshape(3, -1).T
     R = np.zeros(mesh.shape)
     R[:, :] = mesh
-    T = makeBoxmeshTets(len(x), len(y), len(z))
+    T = makeBoxmeshTets(len(x), len(y), len(z), tesselation_mode=tesselation_mode)
     return R, T
 
 
-def makeBoxmeshCoords(dx, nx, rin, mulout):
+def makeBoxmeshCoords(dx, nx, rin, mulout, tesselation_mode="5"):
     ny = nx
     nz = nx
     dy = dx
@@ -89,7 +90,7 @@ def makeBoxmeshCoords(dx, nx, rin, mulout):
 from numba import njit
 
 @njit()
-def makeBoxmeshTets(nx, ny=None, nz=None, grain=1):
+def makeBoxmeshTets(nx, ny=None, nz=None, grain=1, tesselation_mode="5"):
     if ny is None:
         ny = nx
     if nz is None:
@@ -105,24 +106,54 @@ def makeBoxmeshTets(nx, ny=None, nz=None, grain=1):
                 i = index_of(x, y, z)
 
                 if x > 0 and y > 0 and z > 0:
-                    i1 = index_of(x-0, y-0, z-0)
-                    i2 = index_of(x-0, y-1, z-0)#(x - 0) + nx * (y - grain) + nx * ny * (z - 0)
-                    i3 = index_of(x-1, y-1, z-0)#(x - grain) + nx * (y - grain) + nx * ny * (z - 0)
-                    i4 = index_of(x-1, y-0, z-0)#(x - grain) + nx * (y - 0) + nx * ny * (z - 0)
-                    i5 = index_of(x-0, y-0, z-1)#(x - 0) + nx * (y - 0) + nx * ny * (z - grain)
-                    i6 = index_of(x-1, y-0, z-1)#(x - grain) + nx * (y - 0) + nx * ny * (z - grain)
-                    i7 = index_of(x-1, y-1, z-1)#(x - grain) + nx * (y - grain) + nx * ny * (z - grain)
-                    i8 = index_of(x-0, y-1, z-1)#(x - 0) + nx * (y - grain) + nx * ny * (z - grain)
+                    if tesselation_mode == "5" or tesselation_mode == "5_old":
+                        if tesselation_mode == "5":
+                            fx = [0, 1] if x % 2 else [1, 0]
+                            fy = [0, 1] if y % 2 else [1, 0]
+                            fz = [0, 1] if z % 2 else [1, 0]
+                        else:
+                            fx = [0, 1]
+                            fy = [0, 1]
+                            fz = [0, 1]
+                        i1 = index_of(x-fx[0], y-fy[0], z-fz[0])
+                        i2 = index_of(x-fx[0], y-fy[1], z-fz[0])#(x - 0) + nx * (y - grain) + nx * ny * (z - 0)
+                        i3 = index_of(x-fx[1], y-fy[1], z-fz[0])#(x - grain) + nx * (y - grain) + nx * ny * (z - 0)
+                        i4 = index_of(x-fx[1], y-fy[0], z-fz[0])#(x - grain) + nx * (y - 0) + nx * ny * (z - 0)
+                        i5 = index_of(x-fx[0], y-fy[0], z-fz[1])#(x - 0) + nx * (y - 0) + nx * ny * (z - grain)
+                        i6 = index_of(x-fx[1], y-fy[0], z-fz[1])#(x - grain) + nx * (y - 0) + nx * ny * (z - grain)
+                        i7 = index_of(x-fx[1], y-fy[1], z-fz[1])#(x - grain) + nx * (y - grain) + nx * ny * (z - grain)
+                        i8 = index_of(x-fx[0], y-fy[1], z-fz[1])#(x - 0) + nx * (y - grain) + nx * ny * (z - grain)
 
-                    T.append([i1, i2, i3, i8])
+                        T.append([i1, i2, i3, i8])
 
-                    T.append([i1, i3, i4, i6])
+                        T.append([i1, i3, i4, i6])
 
-                    T.append([i1, i5, i8, i6])
+                        T.append([i1, i5, i8, i6])
 
-                    T.append([i3, i6, i8, i7])
+                        T.append([i3, i6, i8, i7])
 
-                    T.append([i1, i8, i3, i6])
+                        T.append([i1, i8, i3, i6])
+                    elif tesselation_mode == "6":
+                        i2 = index_of(x - 0, y - 0, z - 0)
+                        i3 = index_of(x - 0, y - 1, z - 0)
+                        i4 = index_of(x - 1, y - 1, z - 0)
+                        i1 = index_of(x - 1, y - 0, z - 0)
+
+                        i7 = index_of(x - 0, y - 0, z - 1)
+                        i6 = index_of(x - 1, y - 0, z - 1)
+                        i5 = index_of(x - 1, y - 1, z - 1)
+                        i8 = index_of(x - 0, y - 1, z - 1)
+
+
+                        T.append([i6, i3, i2, i1])
+                        T.append([i6, i3, i1, i4])
+                        T.append([i6, i3, i4, i5])
+                        T.append([i6, i3, i5, i8])
+                        T.append([i6, i3, i8, i7])
+                        T.append([i6, i3, i7, i2])
+                    else:
+                        raise ValueError("Wrong Tesselation mode")
+
 
     return np.array(T, dtype=np.int64)
 
@@ -173,7 +204,7 @@ def getScaling(voxel_in, size_in, size_out, center, a):
                                                                                                np.inf) ** 2 + center
     return y
 
-def getScaledMesh(voxel_in, size_in, size_out, center, a):
+def getScaledMesh(voxel_in, size_in, size_out, center, a, tesselation_mode="5"):
     if isinstance(size_out, (int, float)):
         size_out = [size_out]*3
     x = getScaling(voxel_in, size_in, size_out[0], center[0], a)
@@ -181,7 +212,7 @@ def getScaledMesh(voxel_in, size_in, size_out, center, a):
     z = getScaling(voxel_in, size_in, size_out[2], center[1], a)
 
 
-    R, T = createBoxMesh(x, y, z)
+    R, T = createBoxMesh(x, y, z, tesselation_mode=tesselation_mode)
     return R, T
 
 def getTetrahedraFromHexahedra(hexs):
@@ -329,7 +360,7 @@ def getTetrahedraFromHexahedra(hexs):
     return np.array(T)
 
 
-def getTetrahedraVolumnes(T, R):
+def getTetrahedraVolumnes(R, T):
     # define the helper matrix chi
     Chi = np.zeros((4, 3))
     Chi[0, :] = [-1, -1, -1]
@@ -560,3 +591,27 @@ def getBoxMeshSurface(T):
     node_uses = pd.Series(T.ravel()).value_counts().sort_index()
     surface = node_uses != 20
     return surface
+
+
+def plotMesh(R, T, ax=None):
+    if ax is None:
+        from mpl_toolkits import mplot3d
+        import matplotlib.pyplot as plt
+        ax = plt.axes(projection='3d')
+    ax.plot(R[:, 0], R[:, 1], R[:, 2], "o")
+    for t in T:
+        p = R[t].copy()
+        center = np.mean(p, axis=0)[None, :]
+        p = (p-center)*0.95+center
+        color = None
+        for line in [[0, 1], [0, 2], [0, 3], [1, 2], [2, 3], [1, 3]]:
+            P = p[line]
+            l, = ax.plot(P[:, 0], P[:, 1], P[:, 2], "-", color=color)
+            color = l.get_color()
+
+    for i, r in enumerate(R):
+        ax.text(r[0], r[1], r[2], i)
+
+    ax.set_xlim(0, 2)
+    ax.set_ylim(-1, 1)
+    ax.set_zlim(-1, 1)
