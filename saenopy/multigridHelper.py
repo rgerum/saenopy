@@ -578,10 +578,10 @@ def getStress(M, lambd, stepper=0.066, rel_conv_crit=0.01, verbose=False, callba
     print("strain", lambd, "stress", stress, "duration", time.time() - t)
     return stress
 
-def getBorder(R):
+def getBorder(R, width=0.5e-6):
     minR = np.min(R, axis=0)
     maxR = np.max(R, axis=0)
-    width = 0.5e-6
+
     border = (R[:, 0] < minR[0] + width) | (R[:, 0] > maxR[0] - width) | \
              (R[:, 1] < minR[1] + width) | (R[:, 1] > maxR[1] - width) | \
              (R[:, 2] < minR[2] + width) | (R[:, 2] > maxR[2] - width)
@@ -612,6 +612,22 @@ def plotMesh(R, T, ax=None):
     for i, r in enumerate(R):
         ax.text(r[0], r[1], r[2], i)
 
-    ax.set_xlim(0, 2)
-    ax.set_ylim(-1, 1)
-    ax.set_zlim(-1, 1)
+    minR = np.min(R, axis=0)
+    maxR = np.max(R, axis=0)
+    width = maxR-minR
+    max_width = np.max(width)
+    center = (maxR-minR)/2+minR
+
+    ax.set_xlim(center[0]-max_width/2, center[0]+max_width/2)
+    ax.set_ylim(center[1]-max_width/2, center[1]+max_width/2)
+    ax.set_zlim(center[2]-max_width/2, center[2]+max_width/2)
+
+def removeNodes(R, T, remove_indices):
+    """ removes the nodes with the provided indices from the mesh """
+    R2 = R[~remove_indices].copy()
+    indices_keep = np.arange(0, len(R))[~remove_indices]
+    new_indices = np.zeros(len(R))*np.nan
+    new_indices[indices_keep] = np.arange(0, len(R2))
+    T2 = new_indices[T]
+    T2 = T2[~np.isnan(np.sum(T2,axis=1))].astype(np.int)
+    return R2, T2
