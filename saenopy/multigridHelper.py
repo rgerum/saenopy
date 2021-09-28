@@ -204,7 +204,7 @@ def getScaling(voxel_in, size_in, size_out, center, a):
     if np.isnan(nminus):
         nminus = (size_out + center) / voxel_in
 
-    n = np.arange(-np.floor(nminus), np.floor(nplus))
+    n = np.arange(-np.floor(nminus), np.floor(nplus)+1)
     y = voxel_in * n + voxel_in * a * np.clip(n - n0, 0, np.inf) ** 2 - voxel_in * a * np.clip(-n - n0, 0,
                                                                                                np.inf) ** 2 + center
     return y
