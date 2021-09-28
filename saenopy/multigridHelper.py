@@ -167,8 +167,17 @@ def getFaceCounts(faces):
     return face_counts
 
 def getNodesWithOneFace(T):
-    face_counts = getFaceCounts(getFaces(T))
-    return np.unique(np.array([i for i in face_counts[face_counts == 1].index]).ravel())
+    # get the faces of the tetrahedrons
+    faces = np.sort(np.array(T[:, [[0, 1, 2], [0, 1, 3], [0, 2, 3], [1, 2, 3]]]).reshape(-1, 3), axis=1)
+    # encode the faces as integers
+    maxi = np.max(faces) + 1
+    face_index = faces[:, 0] * maxi ** 2 + faces[:, 1] * maxi ** 1 + faces[:, 2]
+    # count how often each face is present
+    face_counts = pd.Series(face_index).value_counts()
+    # filter only faces that occur once
+    single_faces = face_counts[face_counts == 1].index
+    # get the nodes that belong to these faces
+    return np.unique(np.array([single_faces % maxi, (single_faces // maxi) % maxi, (single_faces // maxi ** 2) % maxi]))
 
 
 def getFaces_old(T):
