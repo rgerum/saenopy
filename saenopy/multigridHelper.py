@@ -166,7 +166,12 @@ def getFaceCounts(faces):
     face_counts.index = [tuple(int(i) for i in s.split(" ") if i != "") for s in face_counts.index]
     return face_counts
 
-def getFaces(T):
+def getNodesWithOneFace(T):
+    face_counts = getFaceCounts(getFaces(T))
+    return np.unique(np.array([i for i in face_counts[face_counts == 1].index]).ravel())
+
+
+def getFaces_old(T):
     faces = []
     faces_of_T = []
     for tet in T:
