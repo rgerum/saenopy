@@ -3,7 +3,7 @@ import pandas as pd
 import time
 
 
-def createMesh(count=None, element_width=None, box_width=None, tesselation_mode="5"):
+def createMesh(count=None, element_width=None, box_width=None, tesselation_mode="6"):
     if isinstance(box_width, (int, float)):
         box_width = [box_width, box_width, box_width]
 
@@ -29,7 +29,7 @@ def createMesh(count=None, element_width=None, box_width=None, tesselation_mode=
     return R, T
 
 
-def createSolverBoxMesh(count=None, element_width=None, box_width=None, material=None, tesselation_mode="5"):
+def createSolverBoxMesh(count=None, element_width=None, box_width=None, material=None, tesselation_mode="6"):
     from saenopy import Solver
     M = Solver()
     if material is not None:
@@ -43,7 +43,7 @@ def createSolverBoxMesh(count=None, element_width=None, box_width=None, material
     return M
 
 
-def createBoxMesh(x, y=None, z=None, tesselation_mode="5"):
+def createBoxMesh(x, y=None, z=None, tesselation_mode="6"):
     if y is None:
         y = x
     if z is None:
@@ -55,7 +55,7 @@ def createBoxMesh(x, y=None, z=None, tesselation_mode="5"):
     return R, T
 
 
-def makeBoxmeshCoords(dx, nx, rin, mulout, tesselation_mode="5"):
+def makeBoxmeshCoords(dx, nx, rin, mulout, tesselation_mode="6"):
     ny = nx
     nz = nx
     dy = dx
@@ -90,7 +90,7 @@ def makeBoxmeshCoords(dx, nx, rin, mulout, tesselation_mode="5"):
 from numba import njit
 
 @njit()
-def makeBoxmeshTets(nx, ny=None, nz=None, grain=1, tesselation_mode="5"):
+def makeBoxmeshTets(nx, ny=None, nz=None, grain=1, tesselation_mode="6"):
     if ny is None:
         ny = nx
     if nz is None:
@@ -218,7 +218,7 @@ def getScaling(voxel_in, size_in, size_out, center, a):
                                                                                                np.inf) ** 2 + center
     return y
 
-def getScaledMesh(voxel_in, size_in, size_out, center, a, tesselation_mode="5"):
+def getScaledMesh(voxel_in, size_in, size_out, center, a, tesselation_mode="6"):
     if isinstance(size_out, (int, float)):
         size_out = [size_out]*3
     x = getScaling(voxel_in, size_in, size_out[0], center[0], a)
