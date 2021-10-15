@@ -2,6 +2,7 @@ import numpy as np
 from .buildBeams import buildBeams
 from .materials import Material
 from typing import Sequence
+from scipy.interpolate import interp1d
 
 
 def getQuadrature(N: int, xmin: float, xmax: float) -> (np.ndarray, np.ndarray):
@@ -312,7 +313,11 @@ def get_cost_function(func, data_shear1, params, MaterialClass, x_sample=100):
     def cost(p):
         material = MaterialClass(*params(p))
         # print(material)
-        return fit_error(func(gamma1, material), data_shear1, weights1)
+        offset = 0
+        for pp in p:
+            if pp < 0 :
+                offset += -pp
+        return fit_error(func(gamma1, material), data_shear1, weights1)+offset
 
     def plot(p):
         def plot_me():
@@ -327,7 +332,7 @@ def get_cost_function(func, data_shear1, params, MaterialClass, x_sample=100):
     return cost, plot
 
 
-def minimize(cost_data: list, parameter_start: Sequence, method='Nelder-Mead', maxfev:int = 1e4, MaterialClass=SemiAffineFiberMaterial, x_sample=100, **kwargs):
+def minimize_old(cost_data: list, parameter_start: Sequence, method='Nelder-Mead', maxfev:int = 1e4, MaterialClass=SemiAffineFiberMaterial, x_sample=100, **kwargs):
     costs = []
     plots = []
 
@@ -340,7 +345,7 @@ def minimize(cost_data: list, parameter_start: Sequence, method='Nelder-Mead', m
         costs.append(c)
         plots.append(p)
 
-    from tqdm.notebook import tqdm
+    from tqdm import tqdm
     pbar = tqdm(total=maxfev)
 
     # define the cost function
@@ -377,5 +382,134 @@ def minimize(cost_data: list, parameter_start: Sequence, method='Nelder-Mead', m
             p(sol.x)()
 
     return sol.x, plot_all
-	
-	
+
+
+def getMaping(p, func, indices):
+    m = func(p)
+    mapping = []
+    for i in range(len(p)):
+        pp = p.copy()
+        pp[i] = pp[i]+1
+        mm = func(pp)
+        for i in indices:
+            if mm[i] != m[i]:
+                mapping.append(True)
+                break
+        else:
+            mapping.append(False)
+    return mapping
+
+
+def minimize(cost_data: list, parameter_start: Sequence, method='Nelder-Mead', maxfev:int = 1e4, MaterialClass=SemiAffineFiberMaterial, x_sample=100, **kwargs):
+    parameter_start = np.array(parameter_start)
+
+    costs_shear = []
+    mapping_shear = np.array([False] * len(parameter_start))
+    plots_shear = []
+    costs_stretch = []
+    mapping_stretch = np.array([False] * len(parameter_start))
+    plots_stretch = []
+
+    for func, data, params in cost_data:
+        if func == getStretchThinning:
+            mapping_stretch |= getMaping(parameter_start, params, [1])
+
+            def getCost(func, data, params):
+                stretchx = data[:, 0]
+                stretchy = data[:, 1]
+
+                lambda_h = np.arange(1 - 0.05, 1 + 0.07, 0.01)
+                #lambda_h = np.linspace(np.min(stretchx), np.max(stretchx), x_sample)
+                lambda_v = np.arange(0, 1.1, 0.001)
+
+                def cost(p):
+                    nonlocal parameter_start
+                    parameter_start = parameter_start.copy()
+                    parameter_start[mapping_stretch] = p
+                    p = params(parameter_start)
+                    material1 = MaterialClass(*p)
+                    x, y = getStretchThinning(lambda_h, lambda_v, material1)
+                    stretchy2 = interp1d(x, y, fill_value=np.nan, bounds_error=False)(stretchx)
+                    cost = np.nansum((stretchy2 - stretchy) ** 2)
+                    return cost
+
+                def plot_me():
+                    material = MaterialClass(*params(parameter_start))
+                    plt.plot(stretchx, stretchy, "o", label="data")
+
+                    x, y = getStretchThinning(lambda_h, lambda_v, material)
+                    plt.plot(x, y, "r-", lw=3, label="model")
+                return cost, plot_me
+            cost, plot = getCost(func, data, params)
+            costs_stretch.append(cost)
+            plots_stretch.append(plot)
+
+        if func == getShearRheometerStress:
+            mapping_shear |= getMaping(parameter_start, params, [0, 2, 3])
+
+            def getCost(func, data, params):
+                shearx = data[:, 0]
+                sheary = data[:, 1]
+
+                x0 = shearx
+                dx = x0[1] - x0[0]
+                weights = np.diff(np.log(x0), append=np.log(
+                    x0[-1] + dx)) ** 2  # needs to be improved (based on spacing of data points in logarithmic space)
+                gamma = np.linspace(np.min(x0), np.max(x0), x_sample)
+
+                def cost(p):
+                    nonlocal parameter_start
+                    parameter_start = parameter_start.copy()
+                    parameter_start[mapping_shear] = p
+                    p = params(parameter_start)
+                    material1 = MaterialClass(*p)
+                    x, y = getShearRheometerStress(gamma, material1)
+                    stretchy2 = interp1d(x, y, fill_value=np.nan, bounds_error=False)(shearx)
+                    cost = np.nansum((np.log(stretchy2) - np.log(sheary)) ** 2 * weights)
+                    return cost
+
+                def plot_me():
+                    material = MaterialClass(*params(parameter_start))
+                    plt.loglog(shearx, sheary, "o", label="data")
+
+                    x, y = getShearRheometerStress(gamma, material)
+                    plt.loglog(x, y, "r-", lw=3, label="model")
+
+                return cost, plot_me
+
+            cost, plot = getCost(func, data, params)
+            costs_shear.append(cost)
+            plots_shear.append(plot)
+
+    for i in range(5):
+        for mapping, costs in [[mapping_shear, costs_shear], [mapping_stretch, costs_stretch]]:
+            if len(costs) == 0:
+                continue
+            # define the cost function
+            def cost(p):
+                return sum([c(p) for c in costs])
+
+            # minimize the cost with reasonable start parameters
+            from scipy.optimize import minimize
+            sol = minimize(cost, parameter_start[mapping], method=method, options={'maxfev': maxfev}, **kwargs)
+            parameter_start[mapping] = sol["x"]
+
+        if len(costs_shear) == 0 or len(costs_stretch) == 0:
+            break
+
+    def plot_all():
+        subplot_count = (len(plots_stretch) > 0) + (len(plots_shear) > 0)
+        if len(plots_shear):
+            plt.subplot(1, subplot_count, 1)
+            for plot in plots_shear:
+                plot()
+            plt.xlabel("strain")
+            plt.ylabel("stress")
+        if len(plots_stretch):
+            plt.subplot(1, subplot_count, 1+(len(plots_stretch)>0))
+            for plot in plots_stretch:
+                plot()
+            plt.xlabel("horizontal stretch")
+            plt.ylabel("vertical contraction")
+
+    return parameter_start, plot_all
