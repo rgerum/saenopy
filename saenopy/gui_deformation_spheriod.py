@@ -212,7 +212,9 @@ class Spoiler(QtWidgets.QWidget):
         contentAnimation.setEndValue(contentHeight)
 
 
+
 class CheckAbleGroup(QtWidgets.QWidget, QtShortCuts.EnterableLayout):
+    value_changed = QtCore.Signal(bool)
     main_layout = None
     def __init__(self, parent=None, title='', animationDuration=300):
         super().__init__(parent=parent)
@@ -238,7 +240,7 @@ class CheckAbleGroup(QtWidgets.QWidget, QtShortCuts.EnterableLayout):
             self.child_widget = QtWidgets.QWidget().addToLayout()
         self.layout = self
         self.value = self.toggleButton.value
-        self.setValue = self.toggleButton.setValue
+        #self.setValue = self.toggleButton.setValue
         self.valueChanged = self.toggleButton.valueChanged
         self.toggleButton.valueChanged.connect(self.changedActive)
 
@@ -257,7 +259,12 @@ class CheckAbleGroup(QtWidgets.QWidget, QtShortCuts.EnterableLayout):
         self.setValue(not self.value())
         self.changedActive()
 
+    def setValue(self, value):
+        self.toggleButton.setValue(value)
+        self.changedActive()
+
     def changedActive(self):
+        self.value_changed.emit(self.value())
         self.child_widget.setEnabled(self.value())
 
     def addLayout(self, layout):
@@ -315,6 +322,7 @@ class LookUpTable(QtWidgets.QDialog):
                 self.progressbar = QtWidgets.QProgressBar().addToLayout()
 
             self.description = QtWidgets.QTextBrowser().addToLayout()
+            self.description.setStyleSheet("QTextEdit { background: #f0f0f0}")
             self.description.setText("""
             <h1>Material Simulations</h1><br/>
 
@@ -490,6 +498,7 @@ class LookupTableGenerator(QtWidgets.QDialog):
                     self.button_run = QtShortCuts.QPushButton(layout2, "generate", self.run)
 
             self.description = QtWidgets.QTextBrowser().addToLayout()
+            self.description.setStyleSheet("QTextEdit { background: #f0f0f0}")
             self.description.setText("""
             <h1>Material Lookup-Table</h1>
 
@@ -881,7 +890,8 @@ class MainWindow(QtWidgets.QWidget):
                     self.deformations = BatchEvaluate(self)
                     h_layout.addWidget(self.deformations)
                     self.description = QtWidgets.QTextEdit()
-                    self.description.setDisabled(True)
+                    self.description.setReadOnly(True)
+                    self.description.setStyleSheet("QTextEdit { background: #f0f0f0}")
                     h_layout.addWidget(self.description)
                     self.description.setMaximumWidth(300)
                     self.description.setText("""
@@ -934,7 +944,8 @@ class MainWindow(QtWidgets.QWidget):
                     h_layout.addWidget(self.deformations)
 
                     self.description = QtWidgets.QTextEdit()
-                    self.description.setDisabled(True)
+                    self.description.setReadOnly(True)
+                    self.description.setStyleSheet("QTextEdit { background: #f0f0f0}")
                     h_layout.addWidget(self.description)
                     self.description.setText("""
                             <h1>Data Analysis</h1>
@@ -1007,8 +1018,8 @@ class QSlider(QtWidgets.QSlider):
         p.setBrush(QtGui.QBrush(QtGui.QColor(color)))
         s = self.width() * (start - self.minimum()) / (self.maximum() - self.minimum() + 1e-5)
         e = self.width() * (end - self.minimum()) / (self.maximum() - self.minimum() + 1e-5)
-        p.drawRect(s, self.height()*border,
-                   e-s, self.height()*(1-border*2))
+        p.drawRect(int(s), int(self.height()*border),
+                   int(e-s), int(self.height()*(1-border*2)))
 
     def setEvaluated(self, value):
         self.evaluated = value
@@ -1084,7 +1095,7 @@ class BatchEvaluate(QtWidgets.QWidget):
                                                                   settings=self.settings,
                                                                   settings_key="spheriod/deformation/n_max")
 
-                        self.thres_segmentation = QtShortCuts.QInputNumber(None, "thres_segmentation", 0.9, float=True,
+                        self.thres_segmentation = QtShortCuts.QInputNumber(None, "segmentation threshold", 0.9, float=True,
                                                                            min=0.2, max=1.5, step=0.1,
                                                                            use_slider=False,
                                                                            settings=self.settings,
@@ -1097,20 +1108,15 @@ class BatchEvaluate(QtWidgets.QWidget):
                         self.n_min.valueChanged.connect(lambda: self.param_changed("n_min"))
                         self.n_max.valueChanged.connect(lambda: self.param_changed("n_max"))
 
-                        """
+
                         with CheckAbleGroup(self, "individual segmentation").addToLayout() as self.individual_data:
                             with QtShortCuts.QVBoxLayout() as layout2:
-                                self.segmention_thres_indi = QtShortCuts.QInputString(None, "segmention_thresh", None,
+                                self.segmention_thres_indi = QtShortCuts.QInputString(None, "segmention threshold", None,
                                                                                       type=float, allow_none=True)
                                 self.segmention_thres_indi.valueChanged.connect(self.listSelected)
-                                with QtShortCuts.QHBoxLayout():
-                                    self.seg_gaus1_indi = QtShortCuts.QInputString(None, "seg_gauss1", None, type=float,
-                                                                                   allow_none=True)
-                                    self.seg_gaus1_indi.valueChanged.connect(self.listSelected)
-                                    self.seg_gaus2_indi = QtShortCuts.QInputString(None, "seg_gauss2", None, type=float,
-                                                                                   allow_none=True)
-                                    self.seg_gaus2_indi.valueChanged.connect(self.listSelected)
-                        """
+
+                        self.individual_data.value_changed.connect(self.changedCheckBox)
+
                     #QHLine().addToLayout()
                     if 1:
                         with CheckAbleGroup(self, "Plot").addToLayout() as self.plot_data:
@@ -1176,6 +1182,14 @@ class BatchEvaluate(QtWidgets.QWidget):
         self.progress_signal.connect(self.progress_callback)
         self.measurement_evaluated_signal.connect(self.measurement_evaluated)
         self.finished_signal.connect(self.finished)
+
+
+    def changedCheckBox(self):
+        for widget in [self.thres_segmentation]:
+            widget.setDisabled(self.individual_data.value())
+        if not self.individual_data.value():
+            for widget in [self.segmention_thres_indi]:
+                widget.setValue("None")
 
     def choose_lookup(self):
 
@@ -1327,15 +1341,32 @@ class BatchEvaluate(QtWidgets.QWidget):
         self.list.clear()
         self.data = {}
 
+    last_cell = None
     def listSelected(self):
         if len(self.list.selectedItems()):
             data = self.data[self.list.currentRow()][2]
+
+            attr = data#[3]
+            if self.last_cell == self.list.currentRow():
+                attr["thres_segmentation"] = self.segmention_thres_indi.value()
+                #attr["seg_gaus1"] = self.seg_gaus1_indi.value()
+                #attr["seg_gaus2"] = self.seg_gaus2_indi.value()
+            else:
+                self.segmention_thres_indi.setValue(attr["thres_segmentation"])
+                #self.seg_gaus1_indi.setValue(attr["seg_gaus1"])
+                #self.seg_gaus2_indi.setValue(attr["seg_gaus2"])
+                print("->", [attr[v] is None for v in ["thres_segmentation"]])
+                if np.all([attr[v] is None for v in ["thres_segmentation"]]):
+                    self.individual_data.setValue(False)
+                else:
+                    self.individual_data.setValue(True)
+            self.last_cell = self.list.currentRow()
             self.images = data["images"]
             self.last_image = None
             self.last_seg = None
-            for name in ["thres_segmentation", "continous_segmentation", "n_min", "n_max"]:
-                if data[name] is not None:
-                    getattr(self, name).setValue(data[name])
+            #for name in ["thres_segmentation", "continous_segmentation", "n_min", "n_max"]:
+            #    if data[name] is not None:
+            #        getattr(self, name).setValue(data[name])
             self.slider.setRange(0, len(self.images)-1)
             self.slider_changed(self.slider.value())
             self.label_text2.setText(str(data["output"]))
@@ -1356,25 +1387,29 @@ class BatchEvaluate(QtWidgets.QWidget):
     last_image = None
     last_seg = None
     def slider_changed(self, i):
+        data = self.data[self.list.currentRow()][2]
+
+        thres_segmentation = self.thres_segmentation.value() if data["thres_segmentation"] is None else data["thres_segmentation"]
+
         if self.last_image is not None and self.last_image[0] == i:
             i, im, im0 = self.last_image
             print("cached")
         else:
-            im = imageio.imread(self.images[i]).astype(np.float)
+            im = imageio.imread(self.images[i]).astype(float)
             if self.continous_segmentation.value() is True:
                 im0 = im
             else:
-                im0 = imageio.imread(self.images[0]).astype(np.float)
+                im0 = imageio.imread(self.images[0]).astype(float)
             self.last_image = [i, im, im0]
 
         if self.last_seg is not None and \
-                self.last_seg[1] == self.thres_segmentation.value() and \
+                self.last_seg[1] == thres_segmentation and \
                 self.continous_segmentation.value() is False:
             pass
             print("cached")
         else:
-            print(self.last_seg, i, self.thres_segmentation.value())
-            seg0 = jf.piv.segment_spheroid(im0, True, self.thres_segmentation.value())
+            print(self.last_seg, i, thres_segmentation)
+            seg0 = jf.piv.segment_spheroid(im0, True, thres_segmentation)
             from skimage import measure
             # Find contours at a constant value of 0.8
             contours = measure.find_contours(seg0["mask"], 0.5)
@@ -1385,7 +1420,7 @@ class BatchEvaluate(QtWidgets.QWidget):
                 for cc in c:
                     path.lineTo(cc[1], im.shape[0]-cc[0])
             self.contour.setPath(path)
-            self.last_seg = [i, self.thres_segmentation.value(), seg0]
+            self.last_seg = [i, thres_segmentation, seg0]
         im = im - im.min()
         im = (im/im.max()*255).astype(np.uint8)
 
@@ -1393,7 +1428,7 @@ class BatchEvaluate(QtWidgets.QWidget):
         self.label.setExtend(im.shape[1], im.shape[0])
         self.label_text.setText(f"{i+1}/{len(self.images)} {self.images[i]}")
 
-        data = self.data[self.list.currentRow()][2]
+
 
         #from jointforces.piv import save_displacement_plot
         #import io
@@ -1445,6 +1480,11 @@ class BatchEvaluate(QtWidgets.QWidget):
         changes2()
 
     def run(self):
+        if self.lookup_table.value() == '' and self.force_data.value() is True:
+            QtWidgets.QMessageBox.critical(self, 'Error - Saenopy',
+                                           'No lookup table for force reconstruction specified. Either provide one or disable force calculation.',
+                                           QtWidgets.QMessageBox.Ok)
+            return
         if self.thread is None:
             self.thread = threading.Thread(target=self.run_thread, daemon=True)
             self.thread.start()
@@ -1502,10 +1542,10 @@ class BatchEvaluate(QtWidgets.QWidget):
                     self.progress_signal.emit(i, n, 0, len(data["images"]))
                     folder, file = os.path.split(self.data[i][0])
 
-                    continous_segmentation = data["continous_segmentation"] or self.continous_segmentation.value()
+                    continous_segmentation = self.continous_segmentation.value()
                     thres_segmentation = data["thres_segmentation"] or self.thres_segmentation.value()
-                    n_min = data["n_min"]
-                    n_max = data["n_max"]
+                    n_min = self.n_min.value()
+                    n_max = self.n_max.value()
 
                     if self.deformation_data.value() is True:
                         jf.piv.compute_displacement_series(str(folder),
