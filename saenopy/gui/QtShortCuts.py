@@ -407,10 +407,16 @@ class QInputFilename(QInput):
     def _openDialog(self):
         # open an new files
         if not self.existing:
-            filename = QtWidgets.QFileDialog.getSaveFileName(None, self.dialog_title, self.last_folder, self.file_type)
+            if "PYCHARM_HOSTED" in os.environ:
+                filename = QtWidgets.QFileDialog.getSaveFileName(None, self.dialog_title, self.last_folder, self.file_type, options=QtWidgets.QFileDialog.DontUseNativeDialog)
+            else:
+                filename = QtWidgets.QFileDialog.getSaveFileName(None, self.dialog_title, self.last_folder, self.file_type)
         # or choose an existing file
         else:
-            filename = QtWidgets.QFileDialog.getOpenFileName(None, self.dialog_title, self.last_folder, self.file_type)
+            if "PYCHARM_HOSTED" in os.environ:
+                filename = QtWidgets.QFileDialog.getOpenFileName(None, self.dialog_title, self.last_folder, self.file_type, options=QtWidgets.QFileDialog.DontUseNativeDialog)
+            else:
+                filename = QtWidgets.QFileDialog.getOpenFileName(None, self.dialog_title, self.last_folder, self.file_type)
 
         # get the string
         if isinstance(filename, tuple):  # Qt5
