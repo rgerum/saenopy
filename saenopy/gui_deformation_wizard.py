@@ -52,6 +52,7 @@ class QHLine(QtWidgets.QFrame):
 class DeformationDetector(QtWidgets.QWidget):
     detection_finished = QtCore.Signal()
     detection_error = QtCore.Signal(str)
+    mesh_size_changed = QtCore.Signal(float, float, float)
     M = None
 
     def __init__(self, layout, stack_deformed, stack_relaxed):
@@ -68,7 +69,7 @@ class DeformationDetector(QtWidgets.QWidget):
 
         with QtShortCuts.QHBoxLayout(main_layout) as layout2:
             self.input_overlap = QtShortCuts.QInputNumber(None, "overlap", 0.6, step=0.1, value_changed=self.valueChanged)
-            self.input_win = QtShortCuts.QInputNumber(None, "window size", 30, value_changed=self.valueChanged)
+            self.input_win = QtShortCuts.QInputNumber(None, "window size", 30, value_changed=self.valueChanged, unit="μm")
         with QtShortCuts.QHBoxLayout(main_layout) as layout2:
             self.input_signoise = QtShortCuts.QInputNumber(None, "signoise", 1.3, step=0.1)
             self.input_driftcorrection = QtShortCuts.QInputBool(None, "driftcorrection", True)
@@ -95,7 +96,8 @@ class DeformationDetector(QtWidgets.QWidget):
 
         unit_size = self.input_overlap.value()*self.input_win.value()
         stack_size = np.array(stack_deformed.shape)*voxel_size1 - self.input_win.value()
-        self.label.setText(f"Deformation grid with {unit_size}um elements. Total region is {stack_size}.")
+        self.label.setText(f"Deformation grid with {unit_size}μm elements. Total region is {stack_size}.")
+        self.mesh_size_changed.emit(stack_size)
 
     def start_detect(self):
         self.input_button.setEnabled(False)
@@ -128,9 +130,9 @@ class DeformationDetector(QtWidgets.QWidget):
             voxel_size1 = self.stack_deformed.getVoxelSize()
             voxel_size2 = self.stack_relaxed.getVoxelSize()
             if voxel_size1 is None:
-                return self.detection_error.emit("The no stack for the deformed state selected.")
+                return self.detection_error.emit("No stack for the deformed state has been  selected.")
             if voxel_size2 is None:
-                return self.detection_error.emit("The no stack for the relaxed state selected.")
+                return self.detection_error.emit("No stack for the relaxed state has been selected.")
             if np.any(np.array(voxel_size1) != np.array(voxel_size2)):
                 return self.detection_error.emit("The two stacks do not have the same voxel size.")
             if 1:
@@ -179,6 +181,8 @@ class DeformationDetector(QtWidgets.QWidget):
 class MeshCreator(QtWidgets.QWidget):
     detection_finished = QtCore.Signal()
 
+    mesh_size = [200, 200, 200]
+
     def __init__(self, layout, deformation_detector):
         super().__init__()
         if layout is not None:
@@ -190,10 +194,31 @@ class MeshCreator(QtWidgets.QWidget):
 
         self.settings = QtCore.QSettings("Saenopy", "Seanopy")
 
-        self.input_element_size = QtShortCuts.QInputString(main_layout, "element_size", "7")
+        self.input_element_size = QtShortCuts.QInputNumber(main_layout, "element_size", 7, unit="μm")
         with QtShortCuts.QHBoxLayout(main_layout) as layout2:
-            self.input_inner_region = QtShortCuts.QInputString(None, "inner_region", "100")
+            self.input_inner_region = QtShortCuts.QInputNumber(None, "inner_region", 100, unit="μm")
             self.input_thinning_factor = QtShortCuts.QInputNumber(None, "thinning factor", 0.2, step=0.1)
+        with QtShortCuts.QHBoxLayout(main_layout) as layout2:
+            def changed_same_as():
+                self.input_mesh_size_x.setDisabled(self.input_mesh_size_same.value())
+                self.input_mesh_size_y.setDisabled(self.input_mesh_size_same.value())
+                self.input_mesh_size_z.setDisabled(self.input_mesh_size_same.value())
+                deformation_detector_mesh_size_changed(*self.mesh_size)
+            def deformation_detector_mesh_size_changed(x, y, z):
+                self.mesh_size = [x, y, z]
+                if self.input_mesh_size_same.value():
+                    self.input_mesh_size_x.setValue(x)
+                    self.input_mesh_size_y.setValue(y)
+                    self.input_mesh_size_z.setValue(z)
+            self.input_mesh_size_same = QtShortCuts.QInputBool(None, "same as stack", True)
+            self.input_mesh_size_same.valueChanged.connect(changed_same_as)
+            self.input_mesh_size_x = QtShortCuts.QInputNumber(None, "mesh size x", 200, step=1)
+            self.input_mesh_size_y = QtShortCuts.QInputNumber(None, "y", 200, step=1)
+            self.input_mesh_size_z = QtShortCuts.QInputNumber(None, "z", 200, step=1)
+            self.input_mesh_size_label = QtWidgets.QLabel("μm").addToLayout()
+
+            self.deformation_detector.mesh_size_changed.connect(deformation_detector_mesh_size_changed)
+            changed_same_as()
         self.input_button = QtWidgets.QPushButton("interpolate mesh")
         main_layout.addWidget(self.input_button)
         self.input_button.clicked.connect(self.start_interpolation)
@@ -215,7 +240,7 @@ class MeshCreator(QtWidgets.QWidget):
     def interpolation_thread(self):
         if self.deformation_detector is None:
             return
-        M = self.deformation_detector.M
+        M = self.deformation_detector.M1
         points, cells = saenopy.multigridHelper.getScaledMesh(float(self.input_element_size.value())*1e-6,
                                       float(self.input_inner_region.value())*1e-6,
                                       (np.max(M.R, axis=0) - np.min(M.R, axis=0)) / 2,
@@ -460,9 +485,9 @@ This part uses a 3D PIV (particle image velocimetry) algorithm to determine how 
 Higher overlap increases the resolution (and calculation time). Default is 0.6.
 </li>
 <li><b>Window size</b>: 
-A cube of this size (um) will be shifted in space until the best match is found. 
+A cube of this size (μm) will be shifted in space until the best match is found. 
 The window size should be bigger
-than the expected deformation. Default is 30um.</li>
+than the expected deformation. Default is 30μm.</li>
 <li><b>Signoise</b>: above which signal to noice level to discatd deformations.</li>
 <li><b>Driftcorrection</b>: whether to perform drift correction or not.</li>
 </ul>
@@ -499,7 +524,7 @@ than the expected deformation. Default is 30um.</li>
 
         <h2>Parameters</h2>
         <ul>
-        <li><b>Element size</b>: spacing between nodes of the mesh in um.</li>
+        <li><b>Element size</b>: spacing between nodes of the mesh in μm.</li>
         <li><b>Inner Region</b>: the spacing will be exactly the one given in element size in a centerl region of this size.</li>
         <li><b>Thinning Factor</b>: how much to thin the elements outside the inner region. 1</li>
         </ul>
