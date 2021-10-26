@@ -449,6 +449,7 @@ class StackSelector(QtWidgets.QWidget):
         self.view.setExtend(im.shape[1], im.shape[0])
 
     def file_changed(self, filename):
+        print("file_changed", filename)
         for selector_instance in self.selectors:
             selector_instance.setVisible(False)
 
@@ -538,3 +539,6 @@ class StackSelector(QtWidgets.QWidget):
         if self.active is None:
             return None
         return self.active.getVoxelSize()
+
+    def getStackParameters(self):
+        return []

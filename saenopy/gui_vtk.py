@@ -228,7 +228,13 @@ class MainWindow(QtWidgets.QMainWindow):
     def calculateStiffness(self):
         self.point_cloud2 = pv.PolyData(np.mean(self.M.R[self.M.T], axis=1))
         from saenopy.materials import SemiAffineFiberMaterial
-        self.M.setMaterialModel(SemiAffineFiberMaterial(1645, 0.0008, 0.0075, 0.033), generate_lookup=False)
+        #self.M.setMaterialModel(SemiAffineFiberMaterial(1645, 0.0008, 0.0075, 0.033), generate_lookup=False)
+        if self.M.material_parameters is not None:
+            print("loading material")
+            self.M.setMaterialModel(SemiAffineFiberMaterial(*self.M.material_parameters[1:]), generate_lookup=False)
+        else:
+            print("Warning using default material parameters")
+            self.M.setMaterialModel(SemiAffineFiberMaterial(1645, 0.0008, 0.0075, 0.033), generate_lookup=False)
         self.M._check_relax_ready()
         self.M._prepare_temporary_quantities()
         self.point_cloud2["stiffness"] = self.M.getMaxTetStiffness()/6

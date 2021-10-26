@@ -120,18 +120,18 @@ class StackSelectorTif(QtWidgets.QWidget):
         self.stack_initialized = None
 
     def checkAcceptFilename(self, filename):
-        return filename.endswith(".tif")
+        return filename.endswith(".tif") or filename.endswith(".png") or filename.endswith(".jpg") or filename.endswith(".jpeg")
 
     def setImage(self, filename):
         # get the list of similar filenames
         filename = Path(filename)
         filenames = list(filename.parent.glob(re.sub("\d+", "*", filename.name)))
 
-        selected_prop = {key: value for key, value in re.findall(r"_([^_\d]*)(\d+)", filename.name)}
+        selected_prop = {key: value for _, key, value in re.findall(r"(_|^)([^_\d]*)(\d+)", filename.name)}
 
         properties = []
         for file in filenames:
-            prop = {key:value for key, value in re.findall(r"_([^_\d]*)(\d+)", file.name)}
+            prop = {key:value for _, key, value in re.findall(r"(_|^)([^_\d]*)(\d+)", file.name)}
             prop["filename"] = file
             properties.append(prop)
         df = pd.DataFrame(properties)
@@ -181,7 +181,10 @@ class StackSelectorTif(QtWidgets.QWidget):
 
         self.parent.setZCount(len(d))
         self.d = d
-        im = tifffile.imread(str(d.iloc[0].filename))
+        if str(d.iloc[0].filename).endswith(".tif"):
+            im = tifffile.imread(str(d.iloc[0].filename))
+        else:
+            im = imageio.imread(str(d.iloc[0].filename))
         if len(im.shape) == 3:
             im = im[:, :, 0]
         self.stack = np.zeros((im.shape[0], im.shape[1], len(d)), dtype=im.dtype)
@@ -201,7 +204,10 @@ class StackSelectorTif(QtWidgets.QWidget):
 
         for i in index:
             if self.stack_initialized[i] == False:
-                im = tifffile.imread(str(self.d.iloc[i].filename))
+                if str(self.d.iloc[i].filename).endswith(".tif"):
+                    im = tifffile.imread(str(self.d.iloc[i].filename))
+                else:
+                    im = imageio.imread(str(self.d.iloc[i].filename))
                 if len(im.shape) == 3:
                     im = im[:, :, 0]
                 self.stack[:, :, i] = im
