@@ -48,8 +48,18 @@ class Solver:
     N_b = 0  # the number of beams
 
     material_model = None  # the function specifying the material model
+    material_parameters = None
 
     verbose = False
+
+    preprocessing = None
+    '''
+    preprocessing = [
+        "load_stack": ["1_*.tif", "2_*.tif", voxel_sixe],
+        "3D_piv": [overlap, windowsize, signoise, drifcorrection],
+        "iterpolate_mesh": [],
+    ]
+    '''
 
     def setNodes(self, data: np.ndarray):
         """
@@ -513,6 +523,8 @@ class Solver:
         if self.verbose:
             print("| time for relaxation was", finish - start)
 
+        self.boundary_results = relrec
+
         return relrec
 
     def _solve_CG(self, stepper: float):
@@ -676,6 +688,15 @@ class Solver:
         callback : callable, optional
             A function to call after each iteration (e.g. for a live plot of the convergence)
         """
+        self.regularisation_parameters = {
+            "stepper": stepper,
+            "solver_precision": solver_precision,
+            "i_max": i_max,
+            "rel_conv_crit": rel_conv_crit,
+            "alpha": alpha,
+            "method": method,
+        }
+
         # set the verbosity level
         self.verbose = verbose
 
@@ -1437,7 +1458,7 @@ class Solver:
      
 
     def save(self, filename: str):
-        parameters = ["R", "T", "U", "f", "U_fixed", "U_target", "f_target", "E_glo", "var", "regularisation_results", "reg_mask"]
+        parameters = ["R", "T", "U", "f", "U_fixed", "U_target", "f_target", "E_glo", "var", "regularisation_results", "reg_mask", "regularisation_parameters"]
         if filename.endswith("h5"):
             import h5py
             hf = h5py.File(filename, 'w')
@@ -1452,6 +1473,7 @@ class Solver:
             if getattr(self, param, None) is not None:
                 data[param] = getattr(self, param)
         data["type"] = self.__class__.__name__
+        data["material_parameters"] = self.material_model.serialize()
 
         np.savez(filename, **data)
     

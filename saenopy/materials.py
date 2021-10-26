@@ -109,6 +109,8 @@ class SemiAffineFiberMaterial(Material):
         The parameter specifying how strong the strain stiffening is. If omitted the material shows no strain
         stiffening.
     """
+    def serialize(self):
+        return ["SemiAffineFiberMaterial", self.k, self.d0, self.lambda_s, self.ds]
 
     def __init__(self, k, d0=None, lambda_s=None, ds=None):
         # parameters
