@@ -365,6 +365,7 @@ class StackSelector(QtWidgets.QWidget):
     active = None
     signal_zoom = QtCore.Signal(object, object)
     stack_changed = QtCore.Signal()
+    glob_string_changed = QtCore.Signal(str, object)
 
     def __init__(self, layout, name, partner=None):
         super().__init__()

@@ -95,6 +95,8 @@ class StackSelectorTif(QtWidgets.QWidget):
 
 class StackSelectorTif(QtWidgets.QWidget):
     no_update = False
+    stack = None
+
     def __init__(self, parent):
         super().__init__()
         self.parent = parent
@@ -127,6 +129,8 @@ class StackSelectorTif(QtWidgets.QWidget):
         filename = Path(filename)
         filenames = list(filename.parent.glob(re.sub("\d+", "*", filename.name)))
 
+        self.format_template = str(filename)
+
         selected_prop = {key: value for _, key, value in re.findall(r"(_|^)([^_\d]*)(\d+)", filename.name)}
 
         properties = []
@@ -138,6 +142,10 @@ class StackSelectorTif(QtWidgets.QWidget):
         for col in df.columns:
             if len(df[col].unique()) == 1:
                 df.drop(col, inplace=True, axis=1)
+
+        for key, value in selected_prop.items():
+            if key in df.columns:
+                self.format_template = self.format_template.replace(key+value, key+"{"+key+"}")
 
         for prop in self.property_selectors:
             prop.setParent(None)
@@ -171,6 +179,7 @@ class StackSelectorTif(QtWidgets.QWidget):
     def propertiesChanged(self):
         z_prop_name = self.z_prop.value()
         d = self.df
+        selected_props_dict = {z_prop_name: "*"}
         for prop in self.property_selectors:
             if prop.name == z_prop_name:
                 prop.setEnabled(False)
@@ -178,6 +187,10 @@ class StackSelectorTif(QtWidgets.QWidget):
             else:
                 prop.setEnabled(True)
             d = d[d[prop.name] == prop.value()]
+            selected_props_dict[prop.name] = str(prop.value())
+
+        self.target_glob = self.format_template.format(**selected_props_dict)
+        self.parent.glob_string_changed.emit('getstack', self.target_glob)
 
         self.parent.setZCount(len(d))
         self.d = d
@@ -203,7 +216,7 @@ class StackSelectorTif(QtWidgets.QWidget):
             index = [index]
 
         for i in index:
-            if self.stack_initialized[i] == False:
+            if self.stack_initialized is not None and self.stack_initialized[i] == False:
                 if str(self.d.iloc[i].filename).endswith(".tif"):
                     im = tifffile.imread(str(self.d.iloc[i].filename))
                 else:
@@ -214,7 +227,7 @@ class StackSelectorTif(QtWidgets.QWidget):
                 self.stack_initialized[i] = True
 
     def showImage(self):
-        if self.no_update is True:
+        if self.no_update is True or self.stack is None:
             return
 
         #d = d[d[z_prop_name] == self.parent.getZ()]
@@ -234,3 +247,4 @@ class StackSelectorTif(QtWidgets.QWidget):
 
     def getStack(self):
         return self.stack
+
