@@ -646,221 +646,6 @@ class SelectLookup(QtWidgets.QDialog):
         [w.setDisabled(True) for w in self.to_disabled]
 
 
-class Deformation(QtWidgets.QWidget):
-    progress_signal = QtCore.Signal(int, int)
-    finished_signal = QtCore.Signal()
-    thread = None
-
-    def __init__(self, layout, mesh_creator):
-        super().__init__()
-        if layout is not None:
-            layout.addWidget(self)
-
-        main_layout0 = QtShortCuts.QHBoxLayout(self)
-        main_layout = QtShortCuts.QVBoxLayout(main_layout0)
-
-        self.mesh_creator = mesh_creator
-
-        self.settings = QtCore.QSettings("Saenopy", "Seanopy")
-
-        self.material_parameters = QtWidgets.QGroupBox("Measure Matrix Deformations")
-        main_layout.addWidget(self.material_parameters)
-        with QtShortCuts.QVBoxLayout(self.material_parameters) as layout:
-            self.input_folder = QtShortCuts.QInputFolder(layout, "Raw Images (Folder)", settings=self.settings, settings_key="spheriod/deformation/input")
-            self.window_size = QtShortCuts.QInputString(layout, "window size", "50", type=int, settings=self.settings, settings_key="spheriod/deformation/window_siye")
-            with QtShortCuts.QHBoxLayout(layout):
-                self.wildcard = QtShortCuts.QInputString(None, "Wildcard", "*.tif", settings=self.settings, settings_key="spheriod/deformation/wildcard")
-                self.n_min = QtShortCuts.QInputString(None, "n_min", "None", allow_none=True, type=int, settings=self.settings, settings_key="spheriod/deformation/n_min")
-                self.n_max = QtShortCuts.QInputString(None, "n_max", "None", allow_none=True, type=int, settings=self.settings, settings_key="spheriod/deformation/n_max")
-
-            with QtShortCuts.QHBoxLayout(layout):
-                self.thres_segmentation = QtShortCuts.QInputString(None, "thres_segmentation", 0.9, type=float, settings=self.settings, settings_key="spheriod/deformation/thres_segmentation")
-                self.continous_segmentation = QtShortCuts.QInputBool(None, "continous_segmentation", False, settings=self.settings, settings_key="spheriod/deformation/continous_segemntation")
-
-            self.output_folder = QtShortCuts.QInputFolder(layout, "Result Folder", settings=self.settings, settings_key="spheriod/deformation/output")
-
-        self.material_parameters = QtWidgets.QGroupBox("Plot Matrix Deformations")
-        main_layout.addWidget(self.material_parameters)
-        with QtShortCuts.QVBoxLayout(self.material_parameters) as layout:
-            with QtShortCuts.QHBoxLayout(None):
-                self.plot = QtShortCuts.QInputBool(None, "plot", True, settings=self.settings, settings_key="spheriod/deformation/plot")
-                #self.draw_mask = QtShortCuts.QInputBool(None, "draw mask", True, settings=self.settings, settings_key="spheriod/deformation/draw_mask")
-
-            with QtShortCuts.QHBoxLayout(None):
-                self.color_norm = QtShortCuts.QInputString(None, "color norm", 75., type=float, settings=self.settings, settings_key="spheriod/deformation/color_norm")
-                self.cbar_um_scale = QtShortCuts.QInputString(None, "cbar_um_scale", None, allow_none=True, type=int, settings=self.settings, settings_key="spheriod/deformation/cbar_um_scale")
-                self.quiver_scale = QtShortCuts.QInputString(None, "quiver_scale", 1, type=int, settings=self.settings, settings_key="spheriod/deformation/quiver_scale")
-
-            self.dpi = QtShortCuts.QInputString(None, "dpi", 150, allow_none=True, type=int, settings=self.settings, settings_key="spheriod/deformation/dpi")
-            self.dt_min = QtShortCuts.QInputString(None, "dt_min", None, allow_none=True, type=int, settings=self.settings, settings_key="spheriod/deformation/dt_min")
-
-        self.button_run = QtShortCuts.QPushButton(main_layout, "run", self.run)
-
-        self.input_list = [
-            self.input_folder,
-            self.window_size,
-            self.wildcard,
-            self.n_max,
-            self.n_min,
-            self.thres_segmentation,
-            self.continous_segmentation,
-            self.output_folder,
-            self.plot,
-            self.color_norm,
-            self.cbar_um_scale,
-            self.quiver_scale,
-            self.dpi,
-            self.dt_min,
-        ]
-
-        main_layout.addStretch()
-
-        main_layout = QtShortCuts.QVBoxLayout(main_layout0)
-
-        self.slider = QtWidgets.QSlider()
-        self.slider.setRange(0, 0)
-        self.slider.valueChanged.connect(self.slider_changed)
-        self.slider.setOrientation(QtCore.Qt.Horizontal)
-        main_layout.addWidget(self.slider)
-
-        self.label = QExtendedGraphicsView.QExtendedGraphicsView()
-        self.label.setMinimumWidth(300)
-        self.pixmap = QtWidgets.QGraphicsPixmapItem(self.label.origin)
-        main_layout.addWidget(self.label)
-
-        self.progressbar = QtWidgets.QProgressBar()
-        main_layout.addWidget(self.progressbar)
-
-        self.progress_signal.connect(self.progress_callback)
-        self.finished_signal.connect(self.finished)
-
-    def run(self):
-        if self.thread is None:
-            self.thread = threading.Thread(target=self.run_thread, daemon=True)
-            self.thread.start()
-            self.button_run.setText("stop")
-            for widget in self.input_list:
-                widget.setDisabled(True)
-        else:
-            kill_thread(self.thread)
-            self.thread = None
-            self.button_run.setText("run")
-            for widget in self.input_list:
-                widget.setDisabled(False)
-
-    def finished(self):
-        self.thread = None
-        self.button_run.setText("run")
-        for widget in self.input_list:
-            widget.setDisabled(False)
-
-    def progress_callback(self, i, n):
-        self.progressbar.setRange(0, n-1)
-        self.progressbar.setValue(i)
-        # when plotting show the slider
-        if self.plot.value() is True:
-            # set the range for the slider
-            self.slider.setRange(1, i)
-            # it the slider was at the last value, move it to the new maximum
-            if self.slider.value() == i-1:
-                self.slider.setValue(i)
-
-    def slider_changed(self, i):
-        if self.plot.value() is True:
-            #im = plt.imread(fr"\\131.188.117.96\biophysDS2\dboehringer\Test_spheroid\data\20210416-165158_Mic5_rep{i:04d}_pos02_in-focus_modeBF_slice0_z0.tif")
-            im = imageio.imread(str(self.output_folder.value()) + '/plot' + str(i).zfill(6) + '.png')
-            self.pixmap.setPixmap(QtGui.QPixmap(array2qimage(im)))
-            self.label.setExtend(im.shape[1], im.shape[0])
-
-    def run_thread(self):
-        print("compute displacements")
-        jf.piv.compute_displacement_series(str(self.input_folder.value()),
-                                           self.wildcard.value(),
-                                           str(self.output_folder.value()),
-                                           n_max=self.n_max.value(),
-                                           n_min=self.n_min.value(),
-                                           plot=self.plot.value(),
-                                           draw_mask=False,
-                                           color_norm=self.color_norm.value(),
-                                           cbar_um_scale=(self.cbar_um_scale.value()),
-                                           quiver_scale=(self.quiver_scale.value()),
-                                           dpi=(self.dpi.value()),
-                                           continous_segmentation=self.continous_segmentation.value(),
-                                           thres_segmentation=(self.thres_segmentation.value()),
-                                           window_size=(self.window_size.value()),
-                                           dt_min=(self.dt_min.value()),
-                                           cutoff=None, cmap="turbo",
-                                           callback=lambda i, n: self.progress_signal.emit(i, n))
-        self.finished_signal.emit()
-
-
-
-class Force(QtWidgets.QWidget):
-    progress_signal = QtCore.Signal(int, int)
-
-    def __init__(self, layout, mesh_creator):
-        super().__init__()
-        layout.addWidget(self)
-
-        main_layout = QtWidgets.QVBoxLayout(self)
-
-        self.mesh_creator = mesh_creator
-
-        self.settings = QtCore.QSettings("Saenopy", "Seanopy")
-
-        with QtShortCuts.QGroupBox(main_layout, "Generate Forces") as (_, layout):
-            self.output = QtShortCuts.QInputFolder(layout, "Result Folder")
-            self.lookup_table = QtShortCuts.QInputFilename(layout, "Lookup Table", 'lookup_example.pkl', file_type="Pickle Lookup Table (*.pkl)", existing=True)
-
-            self.pixel_size = QtShortCuts.QInputString(layout, "pixel_size", "1.29", type=float)
-
-            with QtShortCuts.QHBoxLayout(layout) as layout2:
-                self.x0 = QtShortCuts.QInputString(layout2, "r_min", "2", type=float)
-                self.x1 = QtShortCuts.QInputString(layout2, "r_max", "None", type=float, allow_none=True)
-
-            with QtShortCuts.QHBoxLayout(layout) as layout2:
-                layout2.addStretch()
-                self.button_run = QtShortCuts.QPushButton(layout2, "run", self.run)
-
-        with QtShortCuts.QGroupBox(main_layout, "Plot Forces") as (_, layout):
-            self.type = QtShortCuts.QInputChoice(None, "type", "Pressure", ["Pressure", "Contractility"])
-            self.dt = QtShortCuts.QInputString(None, "dt", "2", type=float)
-            with QtShortCuts.QHBoxLayout() as layout2:
-                layout2.addStretch()
-                self.button_run = QtShortCuts.QPushButton(layout2, "plot", self.run2)
-
-        main_layout.addStretch()
-
-    def run(self):
-        jf.force.reconstruct(str(self.output.value()),  # PIV output folder
-                             str(self.lookup_table.value()),  # lookup table
-                             self.pixel_size.value(),  # pixel size (µm)
-                             None, r_min=self.x0.value(), r_max=self.x1.value())
-
-    def run2(self):
-        res = pd.read_excel(Path(self.output.value()) / "result.xlsx")
-
-        t = np.arange(len(res)) * self.dt.value() / 60
-        print("self.type.value()", self.type.value())
-        if self.type.value() == "Contractility":
-            mu = res['Mean Contractility (µN)']
-            std = res['St.dev. Contractility (µN)']
-        else:
-            mu = res['Mean Pressure (Pa)']
-            std = res['St.dev. Pressure (Pa)']
-
-        plt.figure(figsize=(6, 3))
-        plt.plot(t, mu, lw=2, c='C0')
-        plt.fill_between(t, mu - std, mu + std, facecolor='C0', lw=0, alpha=0.5)
-        plt.grid()
-        plt.xlabel('Time (h)')
-        if self.type.value() == "Contractility":
-            plt.ylabel('Contractility (µN)')
-        else:
-            plt.ylabel('Pressure (Pa)')
-        plt.tight_layout()
-        plt.show()
-
 
 class SelectOrGenerateLookupTable(QtWidgets.QWidget):
     def __init__(self):
@@ -1082,17 +867,18 @@ class BatchEvaluate(QtWidgets.QWidget):
                 with QtShortCuts.QVBoxLayout(frame) as layout:
                     with CheckAbleGroup(self, "Detect Deformations").addToLayout() as self.deformation_data:
                      with QtShortCuts.QVBoxLayout() as layout2:
-
-                        self.window_size = QtShortCuts.QInputString(layout2, "window size", "50", type=int,
+                        self.window_size = QtShortCuts.QInputNumber(layout2, "window size", 50,
+                                                                    float=False, name_post='px',
                                                                     settings=self.settings,
-                                                                    settings_key="spheriod/deformation/window_siye")
+                                                                    settings_key="spheriod/deformation/window_size")
+
                         QHLine().addToLayout()
                         with QtShortCuts.QHBoxLayout(None):
                             self.n_min = QtShortCuts.QInputString(None, "n_min", "None", allow_none=True, type=int,
                                                                   settings=self.settings,
                                                                   settings_key="spheriod/deformation/n_min")
                             self.n_max = QtShortCuts.QInputString(None, "n_max", "None", allow_none=True, type=int,
-                                                                  settings=self.settings,
+                                                                  settings=self.settings, name_post='frames',
                                                                   settings_key="spheriod/deformation/n_max")
 
                         self.thres_segmentation = QtShortCuts.QInputNumber(None, "segmentation threshold", 0.9, float=True,
@@ -1123,26 +909,23 @@ class BatchEvaluate(QtWidgets.QWidget):
                          with QtShortCuts.QVBoxLayout() as layout2:
                             with QtShortCuts.QHBoxLayout() as layout2:
                                 self.color_norm = QtShortCuts.QInputString(None, "color norm", 75., type=float,
-                                                                           settings=self.settings,
+                                                                           settings=self.settings, name_post='µm',
                                                                            settings_key="spheriod/deformation/color_norm")
-                                QtWidgets.QLabel("µm").addToLayout()
-                            with QtShortCuts.QHBoxLayout() as layout2:
-                                self.cbar_um_scale = QtShortCuts.QInputString(None, "scale", None, allow_none=True,
-                                                                              type=int, settings=self.settings,
+
+                                self.cbar_um_scale = QtShortCuts.QInputString(None, "pixel_size", None, allow_none=True,
+                                                                              type=float, settings=self.settings, name_post='µm/px',
                                                                               settings_key="spheriod/deformation/cbar_um_scale")
-                                QtWidgets.QLabel("µm/px").addToLayout()
-                                self.quiver_scale = QtShortCuts.QInputString(None, "quiver_scale", 1, type=int,
-                                                                             settings=self.settings,
+                            with QtShortCuts.QHBoxLayout() as layout2:
+                                self.quiver_scale = QtShortCuts.QInputString(None, "quiver_scale", 1, type=float,
+                                                                             settings=self.settings, name_post='a.u.',
                                                                              settings_key="spheriod/deformation/quiver_scale")
-                                QtWidgets.QLabel("a.u.").addToLayout()
 
                             with QtShortCuts.QHBoxLayout() as layout2:
                                 self.dpi = QtShortCuts.QInputString(None, "dpi", 150, allow_none=True, type=int,
                                                                     settings=self.settings, settings_key="spheriod/deformation/dpi")
-                                self.dt_min = QtShortCuts.QInputString(None, "dt", None, allow_none=True, type=int,
-                                                                       settings=self.settings,
+                                self.dt_min = QtShortCuts.QInputString(None, "dt", None, allow_none=True, type=float,
+                                                                       settings=self.settings, name_post='min',
                                                                        settings_key="spheriod/deformation/dt_min")
-                                QtWidgets.QLabel("min").addToLayout()
 
                     with CheckAbleGroup(self, "Calculate Forces").addToLayout() as self.force_data:
                         with QtShortCuts.QVBoxLayout():
@@ -1156,11 +939,11 @@ class BatchEvaluate(QtWidgets.QWidget):
                             #                                               existing=True)
 
 
-                            self.pixel_size = QtShortCuts.QInputString(None, "pixel_size", "1.29", type=float)
+                            self.pixel_size = QtShortCuts.QInputString(None, "pixel_size", "1.29", name_post='µm/px', type=float)
 
                             with QtShortCuts.QHBoxLayout():
                                 self.x0 = QtShortCuts.QInputString(None, "r_min", "2", type=float)
-                                self.x1 = QtShortCuts.QInputString(None, "r_max", "None", type=float, allow_none=True)
+                                self.x1 = QtShortCuts.QInputString(None, "r_max", "None", type=float, name_post='spheriod radii', allow_none=True)
 
                     layout.addStretch()
 

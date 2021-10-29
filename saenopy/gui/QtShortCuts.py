@@ -135,7 +135,7 @@ class QInputNumber(QInput):
     slider_dragged = False
 
     def __init__(self, layout=None, name=None, value=0, min=None, max=None, use_slider=False, float=True, decimals=2,
-                 unit=None, step=None, **kwargs):
+                 unit=None, step=None, name_post=None, **kwargs):
         # initialize the super widget
         QInput.__init__(self, layout, name, **kwargs)
 
@@ -183,6 +183,10 @@ class QInputNumber(QInput):
         if step is not None:
             self.spin_box.setSingleStep(step)
 
+        if name_post is not None:
+            self.label2 = QtWidgets.QLabel(name_post)
+            self.layout().addWidget(self.label2)
+
         self.setValue(value)
 
     def _setSliderDragged(self, value):
@@ -209,7 +213,7 @@ class QInputNumber(QInput):
 class QInputString(QInput):
     error = None
 
-    def __init__(self, layout=None, name=None, value="", allow_none=True, type=str, unit=None, **kwargs):
+    def __init__(self, layout=None, name=None, value="", allow_none=True, type=str, unit=None, name_post=None, **kwargs):
         # initialize the super widget
         QInput.__init__(self, layout, name, **kwargs)
 
@@ -227,6 +231,10 @@ class QInputString(QInput):
 
         self.allow_none = allow_none
         self.type = type
+
+        if name_post is not None:
+            self.label2 = QtWidgets.QLabel(name_post)
+            self.layout().addWidget(self.label2)
 
         self.setValue(value)
 
