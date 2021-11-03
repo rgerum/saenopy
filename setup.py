@@ -33,6 +33,7 @@ setup(name='saenopy',
           'qimage2ndarray',
           'pyvista',
           'pyvistaqt',
+          'imagecodecs',
       ],
       extras_require={
         'compilation':  ["numba"],

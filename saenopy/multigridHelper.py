@@ -202,11 +202,18 @@ def getFaces_old(T):
 
 
 def getScaling(voxel_in, size_in, size_out, center, a):
+    old_settings = np.seterr(all='ignore')  # seterr to known value
+
+    np.seterr(all='ignore')
+
+
     n0 = size_in / voxel_in
     nplus = (voxel_in * (2 * a * n0 - 1) + np.sqrt(
         voxel_in * (-4 * a * voxel_in * n0 + 4 * a * (size_out - center) + voxel_in))) / (2 * a * voxel_in)
     nminus = (voxel_in * (2 * a * n0 - 1) + np.sqrt(
         voxel_in * (-4 * a * voxel_in * n0 + 4 * a * (size_out + center) + voxel_in))) / (2 * a * voxel_in)
+
+    np.seterr(**old_settings)
 
     if np.isnan(nplus):
         nplus = (size_out - center) / voxel_in

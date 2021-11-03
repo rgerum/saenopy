@@ -134,7 +134,7 @@ class DeformationDetector(QtWidgets.QWidget):
 
             self.detection_finished.emit()
         except Exception as err:
-            print(err, file=sys.stderr)
+            traceback.print_exc()
             self.detection_error.emit(str(err))
 
     def finished_detection(self):

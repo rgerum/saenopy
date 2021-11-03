@@ -14,12 +14,31 @@ from openpiv.validation import sig2noise_val
 from openpiv.filters import replace_outliers
 from openpiv.lib import replace_nans
 from skimage import io
+import natsort
 from scipy import interpolate
+from saenopy.loadHelpers import Saveable
 
+
+def getDisplacementsFromStacks2(stack_deformed, stack_relaxed, win_um, fac_overlap, signoise_filter, drift_correction):
+    voxel_size1 = stack_deformed.voxel_size
+    voxel_size2 = stack_relaxed.voxel_size
+
+    np.testing.assert_equal(voxel_size1, voxel_size2, f"The two stacks do not have the same voxel size. {voxel_size1}, {voxel_size2}")
+
+    np.testing.assert_equal(stack_deformed.shape, stack_relaxed.shape, f"The two stacks do not have the same voxel count. {stack_deformed.shape}, {stack_relaxed.shape}")
+
+    stack_deformed = np.array(stack_deformed)
+    stack_relaxed = np.array(stack_relaxed)
+    return getDisplacementsFromStacks(stack_deformed, stack_relaxed, voxel_size1,
+                                        win_um=win_um,
+                                        fac_overlap=fac_overlap,
+                                        signoise_filter=signoise_filter,
+                                        drift_correction=drift_correction,
+                                        return_mesh=True)
 
 # Full 3D Deformation analysis
 def getDisplacementsFromStacks(stack_deformed, stack_relaxed, voxel_size, win_um=12, fac_overlap=0.6,
-                               signoise_filter=1.3, drift_correction=True):
+                               signoise_filter=1.3, drift_correction=True, return_mesh=False):
     from saenopy.multigridHelper import createBoxMesh
     from saenopy import Solver
 
@@ -65,6 +84,12 @@ def getDisplacementsFromStacks(stack_deformed, stack_relaxed, voxel_size, win_um
     # bring deformations in right order (switch from OpenPIV conversion ot saenopy conversion)
     # - convert to meters for saenopy conversion
     U = np.vstack([v.ravel() * 1e-6, -u.ravel() * 1e-6, w.ravel() * 1e-6]).T
+
+    if return_mesh is True:
+        from saenopy.solver import Mesh
+        M = Mesh(R, T)
+        M.setNodeVar("U_measured", U)
+        return M
     M = Solver()
     # provide the node data
     M.setNodes(R)
@@ -87,6 +112,41 @@ def getStack(filename):
         stack[:, :, i] = io.imread(im, as_gray=True)
     return stack
 
+class Stack(Saveable):
+    __save_parameters__ = ['filename', 'voxel_size', 'shape']
+    images: list = None
+    input: str = ""
+    _shape = None
+    voxel_size: tuple = None
+
+    def __init__(self, filename, voxel_size, shape=None):
+        if shape is not None:
+            self._shape = shape
+        if isinstance(filename, str):
+            self.filename = filename
+            self.images = natsort.natsorted(glob.glob(filename))
+        else:
+            self.images = list(filename)
+        self.voxel_size = voxel_size
+
+    @property
+    def shape(self) -> tuple:
+        if self._shape is None:
+            im = io.imread(self.images[0])
+            self._shape = tuple(list(im.shape[:2]) + [len(self.images)])
+        return self._shape
+
+    def __getitem__(self, index) -> np.ndarray:
+        try:
+            im = io.imread(self.images[index[2]])
+        except (IndexError, IOError):
+            im = np.zeros(self.shape[:2])
+        if len(im.shape) == 3:
+            im = im[:, :, 0]
+        return im[index[0], index[1]]
+
+    def __array__(self) -> np.ndarray:
+        return getStack(self.images)
 
 def center_field(U, R):
     # find center of deformation field analog to force field in Saeno/Saenopy for deformation field

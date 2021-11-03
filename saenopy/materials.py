@@ -1,6 +1,8 @@
 import numpy as np
 from numba import njit
 import numba
+from saenopy.loadHelpers import Saveable
+
 
 def saveEpsilon(epsilon, fname, CFG):
     """
@@ -90,7 +92,7 @@ class Material:
         return self.__class__.__name__+"("+", ".join(key+"="+str(value) for key, value in self.parameters.items())+")"
 
 
-class SemiAffineFiberMaterial(Material):
+class SemiAffineFiberMaterial(Material, Saveable):
     """
     This class defines the default material of saenopy. The fibers show buckling (i.e. decaying stiffness) for
     -1 < lambda < 0, a linear stiffness response for small strains 0 < lambda < lambda_s, and strain stiffening for
@@ -109,6 +111,12 @@ class SemiAffineFiberMaterial(Material):
         The parameter specifying how strong the strain stiffening is. If omitted the material shows no strain
         stiffening.
     """
+    __save_parameters__ = ["k", "d0", "lambda_s", "ds"]
+    k: float = None
+    d0: float = None
+    lambda_s: float = None
+    ds: float = None
+
     def serialize(self):
         return ["SemiAffineFiberMaterial", self.k, self.d0, self.lambda_s, self.ds]
 

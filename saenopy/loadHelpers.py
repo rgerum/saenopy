@@ -1,8 +1,52 @@
 import os
 import numpy as np
+import typing
 
 from .multigridHelper import makeBoxmeshCoords, makeBoxmeshTets, setActiveFields
 
+
+class Saveable:
+    __save_parameters__ = []
+
+    def __init__(self, **kwargs):
+        for name in kwargs:
+            if name in self.__save_parameters__:
+                setattr(self, name, kwargs[name])
+
+    def to_dict(self):
+        data = {}
+        for param in self.__save_parameters__:
+            attribute = getattr(self, param, None)
+            if attribute is not None:
+                if getattr(attribute, "to_dict", None) is not None:
+                    data[param] = getattr(attribute, "to_dict")()
+                else:
+                    data[param] = attribute
+        return data
+
+    def save(self, filename: str):
+        data = self.to_dict()
+
+        np.savez(filename, **data)
+
+    @classmethod
+    def from_dict(cls, dict):
+        types = typing.get_type_hints(cls)
+        data = {}
+        for name in dict:
+            if isinstance(dict[name], np.ndarray) and len(dict[name].shape) == 0:
+                data[name] = dict[name][()]
+            else:
+                data[name] = dict[name]
+            if name in types and getattr(types[name], "from_dict", None) is not None:
+                data[name] = types[name].from_dict(data[name])
+
+        return cls(**data)
+
+    @classmethod
+    def load(cls, filename):
+        data = np.load(filename, allow_pickle=True)
+        return cls.from_dict(data)
 
 def load(filename, *args, **kwargs):
     file2 = filename[:-4] + ".npy"

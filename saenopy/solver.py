@@ -12,9 +12,80 @@ from .multigridHelper import getLinesTetrahedra, getLinesTetrahedra2
 from .buildBeams import buildBeams
 from .materials import Material, SemiAffineFiberMaterial
 from .conjugateGradient import cg
+from saenopy.loadHelpers import Saveable
 
 
-class Solver:
+class Mesh(Saveable):
+    __save_parameters__ = ['R', 'T', 'node_vars']
+    R = None  # the 3D positions of the vertices, dimension: N_c x 3
+    T = None  # the tetrahedra' 4 corner vertices (defined by index), dimensions: N_T x 4
+
+    node_vars = None
+
+    def __init__(self, R=None, T=None, node_vars=None):
+        if R is not None:
+            self.setNodes(R)
+        if T is not None:
+            self.setTetrahedra(T)
+        self.node_vars = {}
+        if node_vars is not None:
+            for name, data in node_vars.items():
+                self.setNodeVar(name, data)
+
+    def setNodes(self, data: np.ndarray):
+        """
+        Provide mesh coordinates.
+
+        Parameters
+        ----------
+        data : ndarray
+            The coordinates of the vertices. Dimensions Nx3
+        """
+        # check the input
+        data = np.asarray(data)
+        assert len(data.shape) == 2, "Mesh node data needs to be Nx3."
+        assert data.shape[1] == 3, "Mesh vertices need to have 3 spacial coordinate."
+
+        # store the loaded node coordinates
+        self.R = data.astype(np.float64)
+
+
+    def setTetrahedra(self, data: np.ndarray):
+        """
+        Provide mesh connectivity. Nodes have to be connected by tetrahedra. Each tetraherdon consts of the indices of
+        the 4 vertices which it connects.
+
+        Parameters
+        ----------
+        data : ndarray
+            The node indices of the 4 corners. Dimensions Nx4
+        """
+        # check the input
+        data = np.asarray(data)
+        assert len(data.shape) == 2, "Mesh tetrahedra needs to be Nx4."
+        assert data.shape[1] == 4, "Mesh tetrahedra need to have 4 corners."
+        assert 0 <= data.min(), "Mesh tetrahedron node indices are not allowed to be negative."
+        assert data.max() < self.R.shape[0], "Mesh tetrahedron node indices cannot be bigger than the number of vertices."
+
+        # store the tetrahedron data (needs to be int indices)
+        self.T = data.astype(np.int)
+
+    def setNodeVar(self, name, data):
+        data = np.asarray(data)
+        assert len(data.shape) == 1 or len(data.shape) == 2, "Node var needs to be scalar or vectorial"
+        if len(data.shape) == 2:
+            assert data.shape[1] == 3, "Vectrial node var needs to have 3 dimensionts"
+        assert data.shape[0] == self.R.shape[0], "Node var has to have the same number of nodes than the mesh"
+        self.node_vars[name] = data
+
+    def getNodeVar(self, name):
+        return self.node_vars[name]
+
+
+class Solver(Saveable):
+    __save_parameters__ = ["R", "T", "U", "f", "U_fixed", "U_target", "f_target", "E_glo", "var", "regularisation_results",
+                      "reg_mask", "regularisation_parameters", "material_model"]
+
     R = None  # the 3D positions of the vertices, dimension: N_c x 3
     T = None  # the tetrahedra' 4 corner vertices (defined by index), dimensions: N_T x 4
     E = None  # the energy stored in each tetrahedron, dimensions: N_T
@@ -47,7 +118,7 @@ class Solver:
     s = None  # the beams, dimensions N_b x 3
     N_b = 0  # the number of beams
 
-    material_model = None  # the function specifying the material model
+    material_model: SemiAffineFiberMaterial = None  # the function specifying the material model
     material_parameters = None
 
     verbose = False
@@ -606,6 +677,12 @@ class Solver:
 
             index = (Fvalues > (k * Fmedian)) & self.var
             self.localweight[index] = k * Fmedian / Fvalues[index]
+
+        if method == "L1":
+            if Fmedian > 0:
+                self.localweight[:] = 1 / Fvalues[:]
+            else:
+                self.localweight *= 1.0
 
         index = self.localweight < 1e-10
         self.localweight[index & self.var] = 1e-10
@@ -1455,25 +1532,9 @@ class Solver:
          # ration between forces towards cell center and perpendicular forces
          Centricity = self.getContractilityDeformations(center_mode=center_mode, r_max=r_max) / self.getPerpendicularDeformations(center_mode=center_mode, r_max=r_max) 
          return Centricity
-     
 
     def save(self, filename: str):
-        parameters = ["R", "T", "U", "f", "U_fixed", "U_target", "f_target", "E_glo", "var", "regularisation_results", "reg_mask", "regularisation_parameters"]
-        if filename.endswith("h5"):
-            import h5py
-            hf = h5py.File(filename, 'w')
-            for param in parameters:
-                if getattr(self, param, None) is not None:
-                    hf.create_dataset(param, data=getattr(self, param))
-            hf.create_dataset("type", data=self.__class__.__name__)
-            hf.close()
-            return
-        data = {}
-        for param in parameters:
-            if getattr(self, param, None) is not None:
-                data[param] = getattr(self, param)
-        data["type"] = self.__class__.__name__
-        data["material_parameters"] = self.material_model.serialize()
+        data = to_dict()
 
         np.savez(filename, **data)
     
