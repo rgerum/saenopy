@@ -83,7 +83,7 @@ class Mesh(Saveable):
 
 
 class Solver(Saveable):
-    __save_parameters__ = ["R", "T", "U", "f", "U_fixed", "U_target", "f_target", "E_glo", "var", "regularisation_results",
+    __save_parameters__ = ["R", "T", "U", "f", "U_fixed", "U_target", "U_target_mask", "f_target", "E_glo", "var", "regularisation_results",
                       "reg_mask", "regularisation_parameters", "material_model"]
 
     R = None  # the 3D positions of the vertices, dimension: N_c x 3
@@ -639,8 +639,8 @@ class Solver(Saveable):
         self.U_target_mask = np.any(~np.isnan(displacement), axis=1)
         # regularisation mask
         if reg_mask is not None:
-            assert reg_mask.shape == (self.N_c,)
-            assert reg_mask.dtype == bool
+            assert reg_mask.shape == (self.N_c,), f"reg_mask should have the shape {(self.N_c,)} but has {reg_mask.shape}."
+            assert reg_mask.dtype == bool, f"reg_mask should have the type bool but has {reg_mask.dtype}."
             self.reg_mask = reg_mask
         else:
             self.reg_mask = np.ones_like(displacement[:, 0]).astype(np.bool)

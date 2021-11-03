@@ -354,6 +354,40 @@ class QExtendedGraphicsView(QtWidgets.QGraphicsView):
         event.setAccepted(False)
         return
 
+    def link(self, other):
+        view1 = self
+        view2 = other
+        def changes1(*args):
+            view2.setOriginScale(
+                view1.getOriginScale() * view1.view_rect[0] / view2.view_rect[0])
+            start_x, start_y, end_x, end_y = view1.GetExtend()
+            center_x, center_y = start_x + (end_x - start_x) / 2, start_y + (end_y - start_y) / 2
+            center_x = center_x / view1.view_rect[0] * view2.view_rect[0]
+            center_y = center_y / view1.view_rect[1] * view2.view_rect[1]
+            view2.centerOn(center_x, center_y)
+
+        def zoomEvent(scale, pos):
+            changes1()
+
+        view1.zoomEvent = zoomEvent
+        view1.panEvent = changes1
+
+        def changes2(*args):
+            view1.setOriginScale(
+                view2.getOriginScale() * view2.view_rect[0] / view1.view_rect[0])
+            start_x, start_y, end_x, end_y = view2.GetExtend()
+            center_x, center_y = start_x + (end_x - start_x) / 2, start_y + (end_y - start_y) / 2
+            center_x = center_x / view2.view_rect[0] * view1.view_rect[0]
+            center_y = center_y / view2.view_rect[1] * view1.view_rect[1]
+            view1.centerOn(center_x, center_y)
+
+        def zoomEvent(scale, pos):
+            changes2()
+
+        view2.zoomEvent = zoomEvent
+        view2.panEvent = changes2
+        changes2()
+
 
 if __name__ == '__main__':
     app = QtWidgets.QApplication(sys.argv)

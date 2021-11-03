@@ -29,12 +29,15 @@ def getDisplacementsFromStacks2(stack_deformed, stack_relaxed, win_um, fac_overl
 
     stack_deformed = np.array(stack_deformed)
     stack_relaxed = np.array(stack_relaxed)
-    return getDisplacementsFromStacks(stack_deformed, stack_relaxed, voxel_size1,
+    M = getDisplacementsFromStacks(stack_deformed, stack_relaxed, voxel_size1,
                                         win_um=win_um,
                                         fac_overlap=fac_overlap,
                                         signoise_filter=signoise_filter,
                                         drift_correction=drift_correction,
                                         return_mesh=True)
+    # center
+    M.R = (M.R - np.min(M.R, axis=0)) - (np.max(M.R, axis=0) - np.min(M.R, axis=0)) / 2
+    return M
 
 # Full 3D Deformation analysis
 def getDisplacementsFromStacks(stack_deformed, stack_relaxed, voxel_size, win_um=12, fac_overlap=0.6,
@@ -128,6 +131,9 @@ class Stack(Saveable):
         else:
             self.images = list(filename)
         self.voxel_size = voxel_size
+
+    def description(self):
+        return f"shape {self.shape}px\nsize {np.array(self.shape)*np.array(self.voxel_size)}μm\nvoxel size {self.voxel_size}μm\n{self.filename}"
 
     @property
     def shape(self) -> tuple:

@@ -2,7 +2,7 @@ import sys
 
 # Setting the Qt bindings for QtPy
 import os
-
+import qtawesome as qta
 os.environ["QT_API"] = "pyqt5"
 
 from qtpy import QtCore, QtWidgets, QtGui
@@ -17,7 +17,7 @@ import saenopy
 import saenopy.multigridHelper
 from saenopy.gui import QtShortCuts, QExtendedGraphicsView
 from saenopy.gui.stack_selector import StackSelector
-from saenopy.gui.gui_classes import Spoiler, CheckAbleGroup, QHLine, QVLine, MatplotlibWidget, execute, kill_thread, ListWidget
+from saenopy.gui.gui_classes import Spoiler, CheckAbleGroup, QHLine, QVLine, MatplotlibWidget, NavigationToolbar, execute, kill_thread, ListWidget
 import imageio
 from qimage2ndarray import array2qimage
 import matplotlib.pyplot as plt
@@ -42,30 +42,58 @@ sys._excepthook = sys.excepthook
 sys.excepthook = lambda *args: sys._excepthook(*args)
 
 
+
+def showVectorField(plotter, obj, name, show_nan=True, show_all_points=False, factor=5):
+    try:
+        field = getattr(obj, name)
+    except AttributeError:
+        field = obj.getNodeVar(name)
+    nan_values = np.isnan(field[:, 0])
+
+    point_cloud = pv.PolyData(obj.R)
+    point_cloud.point_arrays[name] = field
+    point_cloud.point_arrays[name + "_mag"] = np.linalg.norm(field, axis=1)
+    point_cloud.point_arrays[name + "_mag2"] = point_cloud.point_arrays[name + "_mag"].copy()
+    point_cloud.point_arrays[name + "_mag2"][nan_values] = 0
+    if show_all_points:
+        plotter.add_mesh(point_cloud, colormap="turbo", scalars=name + "_mag2")
+    elif show_nan:
+        R = obj.R[nan_values]
+        if R.shape[0]:
+            point_cloud2 = pv.PolyData(R)
+            point_cloud2.point_arrays["nan"] = obj.R[nan_values, 0] * np.nan
+            plotter.add_mesh(point_cloud2, colormap="turbo", scalars="nan", show_scalar_bar=False)
+
+    # generate the arrows
+    arrows = point_cloud.glyph(orient=name, scale=name + "_mag2", factor=factor)
+    plotter.add_mesh(arrows, colormap="turbo", name="arrows")
+
+    plotter.update_scalar_bar_range([0, np.nanpercentile(point_cloud[name + "_mag2"], 99.9)])
+
+    plotter.show_grid()
+    plotter.show()
+
+
 class Result(Saveable):
     __save_parameters__ = ['output', 'stack_deformed', 'stack_relaxed', 'piv_parameter', 'mesh_piv',
-                           'iterpolate_parameter', 'solve_parameter', 'solver']
+                           'interpolate_parameter', 'solve_parameter', 'solver']
+    output: str = None
+
     stack_deformed: Stack = None
     stack_relaxed: Stack = None
-    output: str = None
-    solver = None
+
     piv_parameter: dict = None
     mesh_piv: saenopy.solver.Mesh = None
 
-    iterpolate_parameter: dict = None
+    interpolate_parameter: dict = None
     solve_parameter: dict = None
     solver: saenopy.solver.Solver = None
 
-    def __init__(self, output, stack_deformed, stack_relaxed, piv_parameter=None, **kwargs):
+    def __init__(self, output, stack_deformed, stack_relaxed, **kwargs):
         self.output = output
 
         self.stack_deformed = stack_deformed
         self.stack_relaxed = stack_relaxed
-
-        if piv_parameter is not None:
-            self.piv_parameter = piv_parameter
-        else:
-            self.piv_parameter = {}
 
         super().__init__(**kwargs)
 
@@ -125,20 +153,123 @@ class QProgressBar(QtWidgets.QProgressBar):
             self.signal_progress.emit(i+1)
 
 
-class StackDisplay(QtWidgets.QWidget):
-    def __init__(self, parent, layout):
+class PipelineModule(QtWidgets.QWidget):
+    processing_finished = QtCore.Signal()
+    processing_error = QtCore.Signal(str)
+    result: Result = None
+    tab: QtWidgets.QTabWidget = None
+
+    def __init__(self, parent: "BatchEvaluate", layout):
         super().__init__()
         if layout is not None:
             layout.addWidget(self)
         self.parent = parent
+        self.settings = self.parent.settings
 
-        self.parent.result_changed.connect(self.setResult)
+        self.processing_finished.connect(self.finished_process)
+        self.processing_error.connect(self.errored_process)
+
+        self.parent.result_changed.connect(self.resultChanged)
+        self.parent.set_current_result.connect(self.setResult)
+
+    def setParameterMapping(self, params_name: str, parameter_dict: dict):
+        self.params_name = params_name
+        self.parameter_dict = parameter_dict
+        for name, widget in self.parameter_dict.items():
+            widget.valueChanged.connect(lambda x, name=name: self.setParameter(name, x))
+
         self.setResult(None)
+
+    def check_available(self, result: Result) -> bool:
+        return False
+
+    def resultChanged(self, result: Result):
+        """ called when the contents of result changed. Only update view if its the currently displayed one. """
+        if result is self.result:
+            self.setResult(result)
+
+    def setResult(self, result: Result):
+        """ set a new active result object """
+        self.result = result
+        # check if the results instance can be evaluated currently with this module
+        if self.check_available(result) is False:
+            # if not disable all the widgets
+            for name, widget in self.parameter_dict.items():
+                widget.setDisabled(True)
+        else:
+            # if the results instance does not have the parameter dictionary yet, create it
+            if getattr(result, self.params_name) is None:
+                setattr(result, self.params_name, {})
+            # iterate over the parameters
+            for name, widget in self.parameter_dict.items():
+                # enable them
+                widget.setDisabled(False)
+                # set the widgets to the value if the value exits
+                params = getattr(result, self.params_name)
+                if name in params:
+                    widget.setValue(params[name])
+                else:
+                    params[name] = widget.value()
+            for name in list(params.keys()):
+                if name not in self.parameter_dict:
+                    del params[name]
+            self.valueChanged()
+        self.update_display()
+
+    def update_display(self):
+        pass
+
+    def setParameter(self, name: str, value):
+        if self.result is not None:
+            getattr(self.result, self.params_name)[name] = value
+
+    def valueChanged(self):
+        pass
+
+    def start_process(self):
+        self.input_button.setEnabled(False)
+        self.progressbar.setRange(0, 0)
+        self.thread = threading.Thread(target=self.process_thread, args=(self.result,))
+        self.thread.start()
+
+    def process_thread(self, result: Result):
+        params = getattr(result, self.params_name)
+        try:
+            self.process(result, params)
+            result.save()
+            self.parent.result_changed.emit(result)
+            self.processing_finished.emit()
+        except Exception as err:
+            import traceback
+            traceback.print_exc()
+            self.processing_error.emit(str(err))
+
+    def process(self, result: Result, params: dict):
+        pass
+
+    def finished_process(self):
+        self.input_button.setEnabled(True)
+        self.progressbar.setRange(0, 1)
+
+    def errored_process(self, text: str):
+        QtWidgets.QMessageBox.critical(self, "Deformation Detector", text)
+        self.input_button.setEnabled(True)
+        self.progressbar.setRange(0, 1)
+
+
+class StackDisplay(PipelineModule):
+    def __init__(self, parent: "BatchEvaluate", layout):
+        super().__init__(parent, layout)
 
         with self.parent.tabs.createTab("Stacks") as self.tab:
             with QtShortCuts.QHBoxLayout() as layout:
                 with QtShortCuts.QVBoxLayout() as layout:
-                    self.label1 = QtWidgets.QLabel("deformed").addToLayout()
+                    with QtShortCuts.QHBoxLayout() as layout:
+                        self.label1 = QtWidgets.QLabel("deformed").addToLayout()
+                        layout.addStretch()
+                        self.button = QtWidgets.QPushButton(qta.icon("fa5s.undo"), "").addToLayout()
+                        self.button.setToolTip("reset view")
+                        self.button.clicked.connect(lambda x: (self.view1.fitInView(), self.view2.fitInView()))
                     self.view1 = QExtendedGraphicsView.QExtendedGraphicsView().addToLayout()
                     self.view1.setMinimumWidth(300)
                     self.pixmap1 = QtWidgets.QGraphicsPixmapItem(self.view1.origin)
@@ -149,21 +280,24 @@ class StackDisplay(QtWidgets.QWidget):
                     self.pixmap2 = QtWidgets.QGraphicsPixmapItem(self.view2.origin)
                 self.z_slider = QtWidgets.QSlider(QtCore.Qt.Vertical).addToLayout()
                 self.z_slider.valueChanged.connect(self.z_slider_value_changed)
+                self.z_slider.setToolTip("set z position")
 
-        self.link_views()
+        self.view1.link(self.view2)
 
-    def setResult(self, result: Result):
-        self.result = result
+        self.setParameterMapping(None, {})
+
+    def update_display(self):
         if self.result is not None:
             self.parent.tabs.setTabEnabled(0, True)
-            self.z_slider.setRange(0, result.stack_deformed.shape[2] - 1)
-            self.z_slider.setValue(result.stack_deformed.shape[2] // 2)
+            self.view1.setToolTip(f"deformed stack\n{self.result.stack_deformed.description()}")
+            self.view2.setToolTip(f"relaxed stack\n{self.result.stack_relaxed.description()}")
+            self.z_slider.setRange(0, self.result.stack_deformed.shape[2] - 1)
+            self.z_slider.setValue(self.result.stack_deformed.shape[2] // 2)
         else:
             self.parent.tabs.setTabEnabled(0, False)
 
     def z_slider_value_changed(self):
         if self.result is not None:
-            print(self.z_slider.value(), self.result.stack_deformed.shape)
             im = self.result.stack_deformed[:, :, self.z_slider.value()]
             self.pixmap1.setPixmap(QtGui.QPixmap(array2qimage(im)))
             self.view1.setExtend(im.shape[1], im.shape[0])
@@ -171,50 +305,13 @@ class StackDisplay(QtWidgets.QWidget):
             im = self.result.stack_relaxed[:, :, self.z_slider.value()]
             self.pixmap2.setPixmap(QtGui.QPixmap(array2qimage(im)))
             self.view2.setExtend(im.shape[1], im.shape[0])
+            self.z_slider.setToolTip(f"set z position\ncurrent position {self.z_slider.value()}")
 
-    def link_views(self):
-        def changes1(*args):
-            self.view2.setOriginScale(self.view1.getOriginScale() * self.view1.view_rect[0] / self.view2.view_rect[0])
-            start_x, start_y, end_x, end_y = self.view1.GetExtend()
-            center_x, center_y = start_x + (end_x - start_x) / 2, start_y + (end_y - start_y) / 2
-            center_x = center_x / self.view1.view_rect[0] * self.view2.view_rect[0]
-            center_y = center_y / self.view1.view_rect[1] * self.view2.view_rect[1]
-            self.view2.centerOn(center_x, center_y)
 
-        def zoomEvent(scale, pos):
-            changes1()
+class DeformationDetector(PipelineModule):
 
-        self.view1.zoomEvent = zoomEvent
-        self.view1.panEvent = changes1
-
-        def changes2(*args):
-            self.view1.setOriginScale(self.view2.getOriginScale() * self.view2.view_rect[0] / self.view1.view_rect[0])
-            start_x, start_y, end_x, end_y = self.view2.GetExtend()
-            center_x, center_y = start_x + (end_x - start_x) / 2, start_y + (end_y - start_y) / 2
-            center_x = center_x / self.view2.view_rect[0] * self.view1.view_rect[0]
-            center_y = center_y / self.view2.view_rect[1] * self.view1.view_rect[1]
-            self.view1.centerOn(center_x, center_y)
-
-        def zoomEvent(scale, pos):
-            changes2()
-
-        self.view2.zoomEvent = zoomEvent
-        self.view2.panEvent = changes2
-        changes2()
-
-class DeformationDetector(QtWidgets.QWidget):
-    detection_finished = QtCore.Signal()
-    detection_error = QtCore.Signal(str)
-    #mesh_size_changed = QtCore.Signal(float, float, float)
-    result = None
-
-    def __init__(self, parent, layout):
-        super().__init__()
-        if layout is not None:
-            layout.addWidget(self)
-        self.parent = parent
-
-        self.settings = QtCore.QSettings("Saenopy", "Seanopy")
+    def __init__(self, parent: "BatchEvaluate", layout):
+        super().__init__(parent, layout)
 
         with QtShortCuts.QVBoxLayout(self) as layout:
             with QtShortCuts.QHBoxLayout():
@@ -224,18 +321,9 @@ class DeformationDetector(QtWidgets.QWidget):
                 self.input_signoise = QtShortCuts.QInputNumber(None, "signoise", 1.3, step=0.1)
                 self.input_driftcorrection = QtShortCuts.QInputBool(None, "driftcorrection", True)
             self.label = QtWidgets.QLabel().addToLayout()
-            self.input_button = QtShortCuts.QPushButton(None, "detect deformations", self.start_detect)
+            self.input_button = QtShortCuts.QPushButton(None, "detect deformations", self.start_process)
 
             self.progressbar = QProgressBar(layout).addToLayout()
-
-        self.parameter_dict = {
-            "win_um": self.input_win,
-            "fac_overlap": self.input_overlap,
-            "signoise_filter": self.input_signoise,
-            "drift_correction": self.input_driftcorrection,
-        }
-        for name, widget in self.parameter_dict.items():
-            widget.valueChanged.connect(lambda x, name=name: self.setParameter(name, x))
 
         with self.parent.tabs.createTab("Deformations") as self.tab:
             with QtShortCuts.QHBoxLayout() as layout:
@@ -243,119 +331,52 @@ class DeformationDetector(QtWidgets.QWidget):
                 self.plotter.set_background("black")
                 layout.addWidget(self.plotter.interactor)
 
-        self.detection_finished.connect(self.finished_detection)
-        self.detection_error.connect(self.errored_detection)
+        self.setParameterMapping("piv_parameter", {
+            "win_um": self.input_win,
+            "fac_overlap": self.input_overlap,
+            "signoise_filter": self.input_signoise,
+            "drift_correction": self.input_driftcorrection,
+        })
 
-        self.parent.result_changed.connect(self.setResult)
-        self.setResult(None)
+    def check_available(self, result: Result):
+        return result is not None and result.stack_deformed is not None and result.stack_relaxed is not None
 
-    def setResult(self, result: Result):
-        self.result = result
-        if self.result is None or self.result.stack_deformed is None or self.result.stack_relaxed is None:
-            for name, widget in self.parameter_dict.items():
-                widget.setDisabled(True)
-            self.label.setText("")
-        else:
-            for name, widget in self.parameter_dict.items():
-                widget.setDisabled(False)
-                if name in result.piv_parameter:
-                    widget.setValue(result.piv_parameter[name])
-                else:
-                    result.piv_parameter[name] = widget.value()
-            self.valueChanged()
-        self.update_plot()
-
-    def update_plot(self):
+    def update_display(self):
         if self.result is not None and self.result.mesh_piv is not None:
             self.parent.tabs.setTabEnabled(1, True)
-            mesh = self.result.mesh_piv
-            self.point_cloud = pv.PolyData(mesh.R)
-            self.point_cloud.point_arrays["U_measured"] = mesh.getNodeVar("U_measured")
-            self.point_cloud["U_measured_mag"] = np.linalg.norm(mesh.getNodeVar("U_measured"), axis=1)
-            arrows = self.point_cloud.glyph(orient="U_measured", scale="U_measured_mag", factor=5)
-            self.plotter.add_mesh(arrows, colormap='turbo', name="arrows")
-            self.plotter.update_scalar_bar_range(np.nanpercentile(self.point_cloud["U_measured_mag"], [1, 99.9]))
-            self.plotter.show_grid()
-            self.plotter.show()
+            showVectorField(self.plotter, self.result.mesh_piv, "U_measured")
         else:
             self.parent.tabs.setTabEnabled(1, False)
 
-    def setParameter(self, name, value):
-        if self.result is not None:
-            self.result.piv_parameter[name] = value
-
     def valueChanged(self):
-        voxel_size1 = self.result.stack_deformed.voxel_size
-        voxel_size2 = self.result.stack_relaxed.voxel_size
-        stack_deformed = self.result.stack_deformed
-        stack_relaxed = self.result.stack_relaxed
+        if self.check_available(self.result):
+            voxel_size1 = self.result.stack_deformed.voxel_size
+            voxel_size2 = self.result.stack_relaxed.voxel_size
+            stack_deformed = self.result.stack_deformed
+            stack_relaxed = self.result.stack_relaxed
 
-        unit_size = (1-self.input_overlap.value())*self.input_win.value()
-        stack_size = np.array(stack_deformed.shape)*voxel_size1 - self.input_win.value()
-        self.label.setText(f"Deformation grid with {unit_size:.1f}μm elements. Total region is {stack_size}.")
-        #self.mesh_size_changed.emit(stack_size)
+            unit_size = (1-self.input_overlap.value())*self.input_win.value()
+            stack_size = np.array(stack_deformed.shape)*voxel_size1 - self.input_win.value()
+            self.label.setText(f"Deformation grid with {unit_size:.1f}μm elements. Total region is {stack_size}.")
+        else:
+            self.label.setText("")
 
-    def start_detect(self):
-        self.input_button.setEnabled(False)
-        self.progressbar.setRange(0, 0)
-        self.thread = threading.Thread(target=self.detection_thread)
-        self.thread.start()
-
-    def detection_thread(self):
-        try:
-            import tqdm
-            t = tqdm.tqdm
-            n = tqdm.tqdm.__new__
-            if 0:
-                def new(cls, iter):
-                    print("new", cls, iter)
-                    instance = n(cls, iter)
-                    init = instance.__init__
-                    def init_new(iter, *args):
-                        print("do init")
-                        print(iter, args)
-                        init(self.progressbar.iterator(iter))
-                    instance.__init__ = init_new
-                    #print("instace", instance)
-                    return instance
-                tqdm.tqdm.__new__ = new# lambda cls, iter: n(cls, self.progressbar.iterator(iter))
-            tqdm.tqdm.__new__ = lambda cls, iter: self.progressbar.iterator(iter)
-            #for i in tqdm.tqdm(range(10)):
-            #    import time
-            #    time.sleep(0.1)
-
-            self.result.mesh_piv = saenopy.getDeformations.getDisplacementsFromStacks2(self.result.stack_deformed, self.result.stack_relaxed,
-                                                                                       **self.result.piv_parameter)
-            self.result.save()
-            self.parent.result_changed.emit(self.result)
-            self.detection_finished.emit()
-        except IndexError as err:
-            print(err, file=sys.stderr)
-            self.detection_error.emit(str(err))
-
-    def finished_detection(self):
-        self.input_button.setEnabled(True)
-        self.progressbar.setRange(0, 1)
-
-    def errored_detection(self, text):
-        QtWidgets.QMessageBox.critical(self, "Deformation Detector", text)
-        self.input_button.setEnabled(True)
-        self.progressbar.setRange(0, 1)
+    def process(self, result: Result, params: dict):
+        import tqdm
+        t = tqdm.tqdm
+        n = tqdm.tqdm.__new__
+        tqdm.tqdm.__new__ = lambda cls, iter: self.progressbar.iterator(iter)
+        result.mesh_piv = saenopy.getDeformations.getDisplacementsFromStacks2(result.stack_deformed, result.stack_relaxed,
+                                   params["win_um"], params["fac_overlap"], params["signoise_filter"],
+                                   params["drift_correction"])
 
 
-class MeshCreator(QtWidgets.QWidget):
-    detection_finished = QtCore.Signal()
-    result = None
 
+class MeshCreator(PipelineModule):
     mesh_size = [200, 200, 200]
 
-    def __init__(self, parent, layout):
-        super().__init__()
-        if layout is not None:
-            layout.addWidget(self)
-        self.parent = parent
-
-        self.settings = QtCore.QSettings("Saenopy", "Seanopy")
+    def __init__(self, parent: "BatchEvaluate", layout):
+        super().__init__(parent, layout)
 
         with QtShortCuts.QVBoxLayout(self) as layout:
             with QtShortCuts.QHBoxLayout():
@@ -365,31 +386,17 @@ class MeshCreator(QtWidgets.QWidget):
                 self.input_thinning_factor = QtShortCuts.QInputNumber(None, "thinning factor", 0.2, step=0.1)
             with QtShortCuts.QHBoxLayout() as layout2:
 
-                self.input_mesh_size_same = QtShortCuts.QInputBool(None, "same as stack", True)
-                self.input_mesh_size_same.valueChanged.connect(self.changed_same_as)
+                self.input_mesh_size_same = QtShortCuts.QInputBool(None, "same as stack", True, value_changed=self.valueChanged)
                 self.input_mesh_size_x = QtShortCuts.QInputNumber(None, "mesh size x", 200, step=1)
                 self.input_mesh_size_y = QtShortCuts.QInputNumber(None, "y", 200, step=1)
                 self.input_mesh_size_z = QtShortCuts.QInputNumber(None, "z", 200, step=1)
                 self.input_mesh_size_label = QtWidgets.QLabel("μm").addToLayout()
+                self.valueChanged()
 
-                #self.deformation_detector.mesh_size_changed.connect(deformation_detector_mesh_size_changed)
-                self.changed_same_as()
             self.input_button = QtWidgets.QPushButton("interpolate mesh").addToLayout()
-            self.input_button.clicked.connect(self.start_interpolation)
+            self.input_button.clicked.connect(self.start_process)
 
             self.progressbar = QProgressBar(layout).addToLayout()
-
-        self.parameter_dict = {
-            "element_size": self.input_element_size,
-            "inner_region": self.input_inner_region,
-            "thinning_factor": self.input_thinning_factor,
-            "mesh_size_same": self.input_mesh_size_same,
-            "mesh_size_x": self.input_mesh_size_x,
-            "mesh_size_y": self.input_mesh_size_y,
-            "mesh_size_z": self.input_mesh_size_z,
-        }
-        for name, widget in self.parameter_dict.items():
-            widget.valueChanged.connect(lambda x, name=name: self.setParameter(name, x))
 
         with self.parent.tabs.createTab("Mesh") as self.tab:
             with QtShortCuts.QHBoxLayout() as layout:
@@ -397,16 +404,17 @@ class MeshCreator(QtWidgets.QWidget):
                 self.plotter.set_background("black")
                 layout.addWidget(self.plotter.interactor)
 
-        self.detection_finished.connect(self.finished_detection)
+        self.setParameterMapping("interpolate_parameter", {
+            "element_size": self.input_element_size,
+            "inner_region": self.input_inner_region,
+            "thinning_factor": self.input_thinning_factor,
+            "mesh_size_same": self.input_mesh_size_same,
+            "mesh_size_x": self.input_mesh_size_x,
+            "mesh_size_y": self.input_mesh_size_y,
+            "mesh_size_z": self.input_mesh_size_z,
+        })
 
-        self.parent.result_changed.connect(self.setResult)
-        self.setResult(None)
-
-    def setParameter(self, name, value):
-        if self.result is not None:
-            self.result.solve_parameter[name] = value
-
-    def changed_same_as(self):
+    def valueChanged(self):
         self.input_mesh_size_x.setDisabled(self.input_mesh_size_same.value())
         self.input_mesh_size_y.setDisabled(self.input_mesh_size_same.value())
         self.input_mesh_size_z.setDisabled(self.input_mesh_size_same.value())
@@ -415,64 +423,31 @@ class MeshCreator(QtWidgets.QWidget):
     def deformation_detector_mesh_size_changed(self):
         if self.input_mesh_size_same.value():
             if self.result is not None and self.result.mesh_piv is not None:
-                x, y, z = self.result.mesh_piv.R.max(axis=0) - self.result.mesh_piv.R.min(axis=0)
-                self.input_mesh_size_x.setValue(x*1e6)
-                self.setParameter("mesh_size_x", x*1e6)
-                self.input_mesh_size_y.setValue(y*1e6)
-                self.setParameter("mesh_size_y", y*1e6)
-                self.input_mesh_size_z.setValue(z*1e6)
-                self.setParameter("mesh_size_z", z*1e6)
+                x, y, z = (self.result.mesh_piv.R.max(axis=0) - self.result.mesh_piv.R.min(axis=0))*1e6
+                self.input_mesh_size_x.setValue(x)
+                self.setParameter("mesh_size_x", x)
+                self.input_mesh_size_y.setValue(y)
+                self.setParameter("mesh_size_y", y)
+                self.input_mesh_size_z.setValue(z)
+                self.setParameter("mesh_size_z", z)
 
+    def check_available(self, result: Result):
+        return result is not None and result.mesh_piv is not None
 
-    def setResult(self, result: Result):
-        self.result = result
-        if self.result is None or self.result.mesh_piv is None:
-            for name, widget in self.parameter_dict.items():
-                widget.setDisabled(True)
-            #self.label.setText("")
-        else:
-            if result.solve_parameter is None:
-                result.solve_parameter = {}
-            for name, widget in self.parameter_dict.items():
-                widget.setDisabled(False)
-                if name in result.solve_parameter:
-                    widget.setValue(result.solve_parameter[name])
-                else:
-                    result.solve_parameter[name] = widget.value()
-            self.changed_same_as()
-            #self.valueChanged()
-        self.update_plot()
-
-    def update_plot(self):
+    def update_display(self):
         if self.result is not None and self.result.mesh_piv is not None:
             self.parent.tabs.setTabEnabled(2, True)
-            mesh = self.result.solver
-            self.point_cloud = pv.PolyData(mesh.R)
-            self.point_cloud.point_arrays["U_target"] = mesh.U_target#getNodeVar("U_measured")
-            self.point_cloud["U_target_mag"] = np.linalg.norm(mesh.U_target, axis=1)
-            arrows = self.point_cloud.glyph(orient="U_target", scale="U_target_mag", factor=5)
-            self.plotter.add_mesh(arrows, colormap='turbo', name="arrows")
-            self.plotter.update_scalar_bar_range(np.nanpercentile(self.point_cloud["U_target_mag"], [1, 99.9]))
-            self.plotter.show_grid()
-            self.plotter.show()
+            showVectorField(self.plotter, self.result.solver, "U_target", factor=5)
         else:
             self.parent.tabs.setTabEnabled(2, False)
 
-    def start_interpolation(self):
-        self.input_button.setEnabled(False)
-        self.progressbar.setRange(0, 0)
-        self.thread = threading.Thread(target=self.interpolation_thread)
-        self.thread.start()
-
-    def interpolation_thread(self):
-        if self.result is None or self.result.mesh_piv is None:
-            return
-        M = self.result.mesh_piv
-        points, cells = saenopy.multigridHelper.getScaledMesh(self.result.solve_parameter["element_size"]*1e-6,
-                                      self.result.solve_parameter["inner_region"]*1e-6,
-                                      np.array([self.result.solve_parameter["mesh_size_x"], self.result.solve_parameter["mesh_size_y"],
-                                                 self.result.solve_parameter["mesh_size_z"]])*1e-6 / 2,
-                                      [0, 0, 0], self.result.solve_parameter["thinning_factor"])
+    def process(self, result: Result, params: dict):
+        M = result.mesh_piv
+        points, cells = saenopy.multigridHelper.getScaledMesh(params["element_size"]*1e-6,
+                                      params["inner_region"]*1e-6,
+                                      np.array([params["mesh_size_x"], params["mesh_size_y"],
+                                                 params["mesh_size_z"]])*1e-6 / 2,
+                                      [0, 0, 0], params["thinning_factor"])
         print(np.max(points, axis=0)*1e6, np.min(points, axis=0)*1e6)
         print(np.max(points, axis=0)*1e6 - np.min(points, axis=0)*1e6)
         print(np.max(M.R, axis=0) * 1e6, np.min(M.R, axis=0) * 1e6)
@@ -480,46 +455,112 @@ class MeshCreator(QtWidgets.QWidget):
 
         R = (M.R - np.min(M.R, axis=0)) - (np.max(M.R, axis=0) - np.min(M.R, axis=0)) / 2
         U_target = saenopy.getDeformations.interpolate_different_mesh(R, M.getNodeVar("U_measured"), points)
-        print(np.min(U_target), np.max(U_target), np.sum(np.isnan(U_target)))
-        self.M = saenopy.Solver()
-        self.M.setNodes(points)
-        self.M.setTetrahedra(cells)
-        self.M.setTargetDisplacements(U_target)
+        print(np.min(U_target), np.max(U_target), np.mean(np.isnan(U_target)))
+        print(np.min(M.getNodeVar("U_measured")), np.max(M.getNodeVar("U_measured")), np.mean(np.isnan(M.getNodeVar("U_measured"))))
+        from saenopy.multigridHelper import getScaledMesh, getNodesWithOneFace
 
-        self.result.solver = self.M
-        self.result.save()
-        self.parent.result_changed.emit(self.result)
+        border_idx = getNodesWithOneFace(cells)
+        inside_mask = np.ones(points.shape[0], dtype=bool)
+        inside_mask[border_idx] = False
 
-        self.detection_finished.emit()
+        M = saenopy.Solver()
+        M.setNodes(points)
+        M.setTetrahedra(cells)
+        M.setTargetDisplacements(U_target, inside_mask)
 
-    def finished_detection(self):
-        self.input_button.setEnabled(True)
-        self.progressbar.setRange(0, 1)
-        #self.replot()
+        result.solver = M
 
-    def replot(self):
-        if self.result is None or self.result.solver is None:
-            self.parent.tabs.setTabEnabled(2, False)
+
+class Regularizer(PipelineModule):
+    iteration_finished = QtCore.Signal(object)
+
+    def __init__(self, parent: "BatchEvaluate", layout):
+        super().__init__(parent, layout)
+
+        with QtShortCuts.QVBoxLayout(self) as main_layout:
+            with QtShortCuts.QGroupBox(None, "Material Parameters") as self.material_parameters:
+                with QtShortCuts.QVBoxLayout() as layout:
+                    with QtShortCuts.QHBoxLayout() as layout2:
+                        self.input_k = QtShortCuts.QInputString(None, "k", "1645", type=float)
+                        self.input_d0 = QtShortCuts.QInputString(None, "d0", "0.0008", type=float)
+                    with QtShortCuts.QHBoxLayout() as layout2:
+                        self.input_lamda_s = QtShortCuts.QInputString(None, "lamdba_s", "0.0075", type=float)
+                        self.input_ds = QtShortCuts.QInputString(None, "ds", "0.033", type=float)
+
+            with QtShortCuts.QGroupBox(None, "Regularisation Parameters") as self.material_parameters:
+                with QtShortCuts.QVBoxLayout() as layout:
+                    self.input_alpha = QtShortCuts.QInputString(None, "alpha", "9", type=float)
+                    with QtShortCuts.QHBoxLayout(None) as layout:
+                        self.input_stepper = QtShortCuts.QInputString(None, "stepper", "0.33", type=float)
+                        self.input_imax = QtShortCuts.QInputNumber(None, "i_max", 100, float=False)
+
+            self.input_button = QtShortCuts.QPushButton(None, "calculate forces", self.start_process)
+
+            self.progressbar = QProgressBar(main_layout)
+
+        with self.parent.tabs.createTab("Forces") as self.tab:
+            with QtShortCuts.QVBoxLayout() as layout:
+                self.canvas = MatplotlibWidget(self)
+                layout.addWidget(self.canvas)
+                layout.addWidget(NavigationToolbar(self.canvas, self))
+
+                self.plotter = QtInteractor(self)
+                self.plotter.set_background("black")
+                layout.addWidget(self.plotter.interactor)
+
+        self.setParameterMapping("solve_parameter", {
+            "k": self.input_k,
+            "d0": self.input_d0,
+            "lambda_s": self.input_lamda_s,
+            "ds": self.input_ds,
+            "alpha": self.input_alpha,
+            "stepper": self.input_stepper,
+            "i_max": self.input_imax,
+        })
+
+        self.iteration_finished.emit(np.ones([10, 3]))
+
+    def check_available(self, result: Result):
+        return result is not None and result.solver is not None
+
+    def iteration_callback(self, relrec):
+        relrec = np.array(relrec)
+        self.canvas.figure.axes[0].cla()
+        self.canvas.figure.axes[0].semilogy(relrec[:, 0])
+        self.canvas.figure.axes[0].semilogy(relrec[:, 1])
+        self.canvas.figure.axes[0].semilogy(relrec[:, 2])
+        self.canvas.figure.axes[0].set_xlabel("iteration")
+        self.canvas.figure.axes[0].set_ylabel("error")
+        self.canvas.draw()
+
+    def process(self, result: Result, params: dict):
+        M = result.solver
+
+        def callback(M, relrec):
+            self.iteration_finished.emit(relrec)
+
+        M.setMaterialModel(saenopy.materials.SemiAffineFiberMaterial(
+                           params["k"],
+                           params["d0"],
+                           params["lambda_s"],
+                           params["ds"],
+                           ))
+
+        M.solve_regularized(stepper=params["stepper"], i_max=params["i_max"],
+                            alpha=params["alpha"], callback=callback, verbose=True)
+
+    def update_display(self):
+        if self.result is not None and self.result.mesh_piv is not None:
+            self.parent.tabs.setTabEnabled(3, True)
+            showVectorField(self.plotter, self.result.solver, "f", factor=3e4)
         else:
-            self.parent.tabs.setTabEnabled(2, True)
-            self.M = self.result.solver
-            self.point_cloud = pv.PolyData(self.M.R)
-            #self.point_cloud.point_arrays["f"] = -self.M.f
-            #self.point_cloud["f_mag"] = np.linalg.norm(self.M.f, axis=1)
-            #self.point_cloud.point_arrays["U"] = self.M.U
-            #self.point_cloud["U_mag"] = np.linalg.norm(self.M.U, axis=1)
-            self.point_cloud.point_arrays["U_target"] = self.M.U_target
-            self.point_cloud["U_target_mag"] = np.linalg.norm(self.M.U_target, axis=1)
+            self.parent.tabs.setTabEnabled(3, False)
 
-            arrows = self.point_cloud.glyph(orient="U_target", scale="U_target_mag", factor=5)
-            self.plotter.add_mesh(arrows, colormap='turbo', name="arrows")
-            self.plotter.update_scalar_bar_range(np.nanpercentile(self.point_cloud["U_target_mag"], [1, 99.9]))
-            self.plotter.show_grid()
-            self.plotter.show()
 
 
 class BatchEvaluate(QtWidgets.QWidget):
     result_changed = QtCore.Signal(object)
+    set_current_result = QtCore.Signal(object)
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -541,14 +582,21 @@ class BatchEvaluate(QtWidgets.QWidget):
                     layout.setContentsMargins(0, 0, 0, 0)
                     with QtShortCuts.QTabWidget(layout) as self.tabs:
                         pass
-                with QtShortCuts.QVBoxLayout() as layout:
-                    self.sub_module_stacks = StackDisplay(self, layout)
-                    with CheckAbleGroup(self, "find deformations").addToLayout() as self.find_deformations:
+                with QtShortCuts.QVBoxLayout() as layout0:
+                    self.sub_module_stacks = StackDisplay(self, layout0)
+                    with CheckAbleGroup(self, "find deformations (piv)").addToLayout() as self.find_deformations:
                         with QtShortCuts.QVBoxLayout() as layout:
+                            layout.setContentsMargins(0, 0, 0, 0)
                             self.sub_module_deformation = DeformationDetector(self, layout)
                     with CheckAbleGroup(self, "interpolate mesh").addToLayout() as self.find_deformations:
                         with QtShortCuts.QVBoxLayout() as layout:
+                            layout.setContentsMargins(0, 0, 0, 0)
                             self.sub_module_mesh = MeshCreator(self, layout)
+                    with CheckAbleGroup(self, "fit forces (regularize)").addToLayout() as self.find_deformations:
+                        with QtShortCuts.QVBoxLayout() as layout:
+                            layout.setContentsMargins(0, 0, 0, 0)
+                            self.sub_module_regularize = Regularizer(self, layout)
+                    layout0.addStretch()
 
         self.data = []
         self.list.setData(self.data)
@@ -619,7 +667,7 @@ class BatchEvaluate(QtWidgets.QWidget):
     def listSelected(self):
         if self.list.currentRow() is not None:
             pipe = self.data[self.list.currentRow()][2]
-            self.result_changed.emit(pipe)
+            self.set_current_result.emit(pipe)
 
 
 
@@ -632,7 +680,7 @@ class MainWindow(QtWidgets.QWidget):
         self.settings = QtCore.QSettings("Saenopy", "Seanopy")
 
         self.setMinimumWidth(800)
-        self.setMinimumHeight(400)
+        self.setMinimumHeight(800)
         self.setWindowTitle("Saenopy Viewer")
 
         main_layout = QtWidgets.QHBoxLayout(self)
