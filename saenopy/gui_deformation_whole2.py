@@ -104,6 +104,7 @@ stack_deformed = Stack({self.deformed})
 stack_relaxed = Stack({self.relaxed})
 """
     def save(self):
+        Path(self.output).parent.mkdir(exist_ok=True, parents=True)
         super().save(self.output)
 
 
@@ -198,21 +199,19 @@ class PipelineModule(QtWidgets.QWidget):
                 widget.setDisabled(True)
         else:
             # if the results instance does not have the parameter dictionary yet, create it
-            if getattr(result, self.params_name) is None:
-                setattr(result, self.params_name, {})
+            if getattr(result, self.params_name + "_tmp", None) is None:
+                setattr(result, self.params_name + "_tmp", {})
             # iterate over the parameters
             for name, widget in self.parameter_dict.items():
                 # enable them
                 widget.setDisabled(False)
                 # set the widgets to the value if the value exits
-                params = getattr(result, self.params_name)
-                if name in params:
+                params = getattr(result, self.params_name, None)
+                params_tmp = getattr(result, self.params_name + "_tmp")
+                if params is not None and name in params:
                     widget.setValue(params[name])
                 else:
-                    params[name] = widget.value()
-            for name in list(params.keys()):
-                if name not in self.parameter_dict:
-                    del params[name]
+                    params_tmp[name] = widget.value()
             self.valueChanged()
         self.update_display()
 
@@ -221,7 +220,7 @@ class PipelineModule(QtWidgets.QWidget):
 
     def setParameter(self, name: str, value):
         if self.result is not None:
-            getattr(self.result, self.params_name)[name] = value
+            getattr(self.result, self.params_name + "_tmp")[name] = value
 
     def valueChanged(self):
         pass
@@ -233,9 +232,11 @@ class PipelineModule(QtWidgets.QWidget):
         self.thread.start()
 
     def process_thread(self, result: Result):
-        params = getattr(result, self.params_name)
+        params = getattr(result, self.params_name + "_tmp")
         try:
             self.process(result, params)
+            # store the parameters that have been used for evaluation
+            setattr(result, self.params_name, params.copy())
             result.save()
             self.parent.result_changed.emit(result)
             self.processing_finished.emit()
