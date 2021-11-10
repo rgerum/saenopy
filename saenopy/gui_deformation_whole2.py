@@ -34,13 +34,11 @@ from saenopy.solver import Solver
 from pathlib import Path
 import re
 from saenopy.loadHelpers import Saveable
+from typing import List
 
-""" some magic to prevent PyQt5 from swallowing exceptions """
-# Back up the reference to the exceptionhook
-sys._excepthook = sys.excepthook
-# Set the exception hook to our wrapping function
-sys.excepthook = lambda *args: sys._excepthook(*args)
-
+"""REFERENCE FOLDERS"""
+#\\131.188.117.96\biophysDS2\dboehringer\Platte_4\SoftwareWorkinProgess\TFM-Example-Data-3D\a127-tom-test-set\20170914_A172_rep1-bispos3\Before
+#\\131.188.117.96\biophysDS\lbischof\tif_and_analysis_backup\2021-06-02-NK92-Blebb-Rock\Blebb-round1\Mark_and_Find_001
 
 
 def showVectorField(plotter, obj, name, show_nan=True, show_all_points=False, factor=5):
@@ -49,6 +47,8 @@ def showVectorField(plotter, obj, name, show_nan=True, show_all_points=False, fa
     except AttributeError:
         field = obj.getNodeVar(name)
     nan_values = np.isnan(field[:, 0])
+
+    plotter.clear()
 
     point_cloud = pv.PolyData(obj.R)
     point_cloud.point_arrays[name] = field
@@ -66,47 +66,71 @@ def showVectorField(plotter, obj, name, show_nan=True, show_all_points=False, fa
 
     # generate the arrows
     arrows = point_cloud.glyph(orient=name, scale=name + "_mag2", factor=factor)
-    plotter.add_mesh(arrows, colormap="turbo", name="arrows")
+
+    title = name
+    if name == "U_measured" or name == "U_target":
+        title = "Deformations (m)"
+    elif name == "f":
+        title = "Forces (N)"
+
+    sargs = dict(#position_x=0.05, position_y=0.95,
+                 title_font_size=15,
+                 label_font_size=9,
+                 n_labels=3,
+                 title=title,
+                 #italic=True,  ##height=0.25, #vertical=True,
+                 fmt="%.1e",
+                 color=plotter._theme.font.color,
+                 font_family="arial")
+    plotter.add_mesh(arrows, scalar_bar_args=sargs, colormap="turbo", name="arrows")
 
     plotter.update_scalar_bar_range([0, np.nanpercentile(point_cloud[name + "_mag2"], 99.9)])
 
-    plotter.show_grid()
+    print(plotter._theme.font.color)
+    plotter.show_grid(color=plotter._theme.font.color)
+    #plotter.renderer.show_bounds(color=plotter._theme.font.color)
     plotter.show()
 
 
 class Result(Saveable):
-    __save_parameters__ = ['output', 'stack_deformed', 'stack_relaxed', 'piv_parameter', 'mesh_piv',
-                           'interpolate_parameter', 'solve_parameter', 'solver']
+    __save_parameters__ = ['output', 'stack', 'piv_parameter', 'mesh_piv',
+                           'interpolate_parameter', 'solve_parameter', 'solver', '___save_name__', '___save_version__']
+    ___save_name__ = "Result"
+    ___save_version__ = "1.0"
     output: str = None
 
-    stack_deformed: Stack = None
-    stack_relaxed: Stack = None
+    stack: List[Stack] = None
 
     piv_parameter: dict = None
-    mesh_piv: saenopy.solver.Mesh = None
+    mesh_piv: List[saenopy.solver.Mesh] = None
 
     interpolate_parameter: dict = None
     solve_parameter: dict = None
-    solver: saenopy.solver.Solver = None
+    solver: List[saenopy.solver.Solver] = None
 
-    def __init__(self, output, stack_deformed, stack_relaxed, **kwargs):
+    def __init__(self, output, stack, **kwargs):
         self.output = output
 
-        self.stack_deformed = stack_deformed
-        self.stack_relaxed = stack_relaxed
+        self.stack = stack
 
         super().__init__(**kwargs)
 
     def __str__(self):
         return f"""
 from saenopy.getDeformations import Stack
-stack_deformed = Stack({self.deformed})
+stack_deformed = Stack({self.deformed}) 
 stack_relaxed = Stack({self.relaxed})
 """
     def save(self):
         Path(self.output).parent.mkdir(exist_ok=True, parents=True)
         super().save(self.output)
 
+
+#result = Result("test.npz", [Stack(r"\\131.188.117.96\biophysDS\lbischof\tif_and_analysis_backup\2021-06-02-NK92-Blebb-Rock\Blebb-round1\Mark_and_Find_001\Pos001_S001_t00_z000_ch00.tif", [1, 1, 1])])
+#result.save()
+
+#Result.load("test.npz")
+#exit()
 
 def double_glob(text):
     glob_string = text.replace("?", "*")
@@ -208,8 +232,11 @@ class PipelineModule(QtWidgets.QWidget):
                 # set the widgets to the value if the value exits
                 params = getattr(result, self.params_name, None)
                 params_tmp = getattr(result, self.params_name + "_tmp")
-                if params is not None and name in params:
+                if name in params_tmp:
+                    widget.setValue(params_tmp[name])
+                elif params is not None and name in params:
                     widget.setValue(params[name])
+                    params_tmp[name] = widget.value()
                 else:
                     params_tmp[name] = widget.value()
             self.valueChanged()
@@ -290,20 +317,21 @@ class StackDisplay(PipelineModule):
     def update_display(self):
         if self.result is not None:
             self.parent.tabs.setTabEnabled(0, True)
-            self.view1.setToolTip(f"deformed stack\n{self.result.stack_deformed.description()}")
-            self.view2.setToolTip(f"relaxed stack\n{self.result.stack_relaxed.description()}")
-            self.z_slider.setRange(0, self.result.stack_deformed.shape[2] - 1)
-            self.z_slider.setValue(self.result.stack_deformed.shape[2] // 2)
+            self.view1.setToolTip(f"deformed stack\n{self.result.stack[0].description()}")
+            self.view2.setToolTip(f"relaxed stack\n{self.result.stack[1].description()}")
+            self.z_slider.setRange(0, self.result.stack[0].shape[2] - 1)
+            self.z_slider.setValue(self.result.stack[0].shape[2] // 2)
+            self.z_slider_value_changed()
         else:
             self.parent.tabs.setTabEnabled(0, False)
 
     def z_slider_value_changed(self):
         if self.result is not None:
-            im = self.result.stack_deformed[:, :, self.z_slider.value()]
+            im = self.result.stack[0][:, :, self.z_slider.value()]
             self.pixmap1.setPixmap(QtGui.QPixmap(array2qimage(im)))
-            self.view1.setExtend(im.shape[1], im.shape[0])
+            self.view1.setExtend(im.shape[0], im.shape[0])
 
-            im = self.result.stack_relaxed[:, :, self.z_slider.value()]
+            im = self.result.stack[1][:, :, self.z_slider.value()]
             self.pixmap2.setPixmap(QtGui.QPixmap(array2qimage(im)))
             self.view2.setExtend(im.shape[1], im.shape[0])
             self.z_slider.setToolTip(f"set z position\ncurrent position {self.z_slider.value()}")
@@ -327,10 +355,57 @@ class DeformationDetector(PipelineModule):
             self.progressbar = QProgressBar(layout).addToLayout()
 
         with self.parent.tabs.createTab("Deformations") as self.tab:
-            with QtShortCuts.QHBoxLayout() as layout:
-                self.plotter = QtInteractor(self)
-                self.plotter.set_background("black")
+            with QtShortCuts.QVBoxLayout() as layout:
+                self.plotter = QtInteractor(self, theme=pv.themes.DocumentTheme())
+                #self.plotter.set_background("black")
+                self.plotter.theme = pv.themes.DocumentTheme()
+
                 layout.addWidget(self.plotter.interactor)
+
+                with QtShortCuts.QHBoxLayout() as layout0:
+                    self.theme = QtShortCuts.QInputChoice(None, "Theme", value=pv.themes.DarkTheme(), values=[pv.themes.DefaultTheme(), pv.themes.ParaViewTheme(), pv.themes.DarkTheme(), pv.themes.DocumentTheme()], value_names=["default", "paraview", "dark", "document"])
+                    def new_plotter(x):
+                        #layout0.removeWidget(self.plotter.interactor)
+                        #self.plotter = QtInteractor(self, theme=x)
+                        #self.plotter.close()
+                        #layout0.addWidget(self.plotter.interactor)
+                        self.plotter.theme = x
+                        self.plotter.set_background(self.plotter._theme.background)
+                        print(self.plotter._theme.font.color)
+                        self.update_display()
+                    self.theme.valueChanged.connect(lambda x: new_plotter(x))
+                    self.button = QtWidgets.QPushButton(qta.icon("fa5s.home"), "").addToLayout()
+                    self.button.setToolTip("reset view")
+                    self.button.clicked.connect(lambda x: self.plotter.isometric_view())
+                    def save():
+                        outer_self = self
+                        class PlotDialog(QtWidgets.QDialog):
+                            def __init__(self, parent):
+                                super().__init__(parent)
+                                with QtShortCuts.QVBoxLayout(self) as layout:
+                                    self.plotter = QtInteractor(self, theme=outer_self.plotter.theme)
+                                    layout.addWidget(self.plotter)
+                                    showVectorField(self.plotter, outer_self.result.mesh_piv, "U_measured")
+                                    self.button2 = QtWidgets.QPushButton(qta.icon("fa5s.save"), "").addToLayout()
+                                    self.button2.setToolTip("save")
+                                    self.button2.clicked.connect(self.save)
+
+                            def save(self):
+                                new_path = QtWidgets.QFileDialog.getSaveFileName(None, "Save Images", os.getcwd())
+                                # if we got one, set it
+                                if new_path:
+                                    if isinstance(new_path, tuple):
+                                        new_path = new_path[0]
+                                    else:
+                                        new_path = str(new_path)
+                                    print(new_path)
+                                    self.plotter.screenshot(new_path)
+                                self.close()
+                        plot_diaolog = PlotDialog(self)
+                        plot_diaolog.show()
+                    self.button2 = QtWidgets.QPushButton(qta.icon("fa5s.save"), "").addToLayout()
+                    self.button2.setToolTip("save")
+                    self.button2.clicked.connect(save)
 
         self.setParameterMapping("piv_parameter", {
             "win_um": self.input_win,
@@ -340,7 +415,7 @@ class DeformationDetector(PipelineModule):
         })
 
     def check_available(self, result: Result):
-        return result is not None and result.stack_deformed is not None and result.stack_relaxed is not None
+        return result is not None and result.stack is not None
 
     def update_display(self):
         if self.result is not None and self.result.mesh_piv is not None:
@@ -351,10 +426,8 @@ class DeformationDetector(PipelineModule):
 
     def valueChanged(self):
         if self.check_available(self.result):
-            voxel_size1 = self.result.stack_deformed.voxel_size
-            voxel_size2 = self.result.stack_relaxed.voxel_size
-            stack_deformed = self.result.stack_deformed
-            stack_relaxed = self.result.stack_relaxed
+            voxel_size1 = self.result.stack[0].voxel_size
+            stack_deformed = self.result.stack[0]
 
             unit_size = (1-self.input_overlap.value())*self.input_win.value()
             stack_size = np.array(stack_deformed.shape)*voxel_size1 - self.input_win.value()
@@ -367,7 +440,7 @@ class DeformationDetector(PipelineModule):
         t = tqdm.tqdm
         n = tqdm.tqdm.__new__
         tqdm.tqdm.__new__ = lambda cls, iter: self.progressbar.iterator(iter)
-        result.mesh_piv = saenopy.getDeformations.getDisplacementsFromStacks2(result.stack_deformed, result.stack_relaxed,
+        result.mesh_piv = saenopy.getDeformations.getDisplacementsFromStacks2(result.stack[0], result.stack[1],
                                    params["win_um"], params["fac_overlap"], params["signoise_filter"],
                                    params["drift_correction"])
 
@@ -436,9 +509,9 @@ class MeshCreator(PipelineModule):
         return result is not None and result.mesh_piv is not None
 
     def update_display(self):
-        if self.result is not None and self.result.mesh_piv is not None:
+        if self.result is not None and self.result.solver is not None:
             self.parent.tabs.setTabEnabled(2, True)
-            showVectorField(self.plotter, self.result.solver, "U_target", factor=5)
+            showVectorField(self.plotter, self.result.solver[0], "U_target", factor=5)
         else:
             self.parent.tabs.setTabEnabled(2, False)
 
@@ -469,7 +542,7 @@ class MeshCreator(PipelineModule):
         M.setTetrahedra(cells)
         M.setTargetDisplacements(U_target, inside_mask)
 
-        result.solver = M
+        result.solver = [M]
 
 
 class Regularizer(PipelineModule):
@@ -535,7 +608,7 @@ class Regularizer(PipelineModule):
         self.canvas.draw()
 
     def process(self, result: Result, params: dict):
-        M = result.solver
+        M = result.solver[0]
 
         def callback(M, relrec):
             self.iteration_finished.emit(relrec)
@@ -551,9 +624,9 @@ class Regularizer(PipelineModule):
                             alpha=params["alpha"], callback=callback, verbose=True)
 
     def update_display(self):
-        if self.result is not None and self.result.mesh_piv is not None:
+        if self.result is not None and self.result.solver is not None:
             self.parent.tabs.setTabEnabled(3, True)
-            showVectorField(self.plotter, self.result.solver, "f", factor=3e4)
+            showVectorField(self.plotter, self.result.solver[0], "f", factor=3e4)
         else:
             self.parent.tabs.setTabEnabled(3, False)
 
@@ -604,8 +677,32 @@ class BatchEvaluate(QtWidgets.QWidget):
 
         #self.list.addData("foo", True, [], mpl.colors.to_hex(f"C0"))
 
-        data = Result.load(r"E:\saenopy\test\TestData\output\Mark_and_Find_001_Pos001_S001_z_ch00.npz")
-        self.list.addData("test", True, data, mpl.colors.to_hex(f"gray"))
+        #data = Result.load(r"..\test\TestData\output3\Mark_and_Find_001_Pos001_S001_z_ch00.npz")
+        #self.list.addData("test", True, data, mpl.colors.to_hex(f"gray"))
+
+        self.setAcceptDrops(True)
+
+    def dragEnterEvent(self, event: QtGui.QDragEnterEvent):
+        # accept url lists (files by drag and drop)
+        for url in event.mimeData().urls():
+            if str(url.toString()).strip().endswith(".npz"):
+                event.accept()
+                return
+        event.ignore()
+
+    def dragMoveEvent(self, event: QtGui.QDragMoveEvent):
+        event.acceptProposedAction()
+
+    def dropEvent(self, event: QtCore.QEvent):
+        for url in event.mimeData().urls():
+            print(url)
+            url = str(url.toString()).strip()
+            if url.startswith("file:///"):
+                url = url[len("file:///"):]
+            if url.startswith("file:"):
+                url = url[len("file:"):]
+            data = Result.load(url)
+            self.list.addData(data.stack[0].filename, True, data, mpl.colors.to_hex(f"gray"))
 
     def show_files(self):
         settings = self.settings
@@ -649,15 +746,15 @@ class BatchEvaluate(QtWidgets.QWidget):
             output = Path(str(output).replace("*", "")+".npz")
 
             if output.exists():
-                print('exists')
+                print('exists', output)
                 data = Result.load(output)
             else:
                 print("new")
                 data = Result(
                     output=output,
-                    stack_deformed=Stack(r1, voxel_size1),
-                    stack_relaxed=Stack(r2, voxel_size2),
+                    stack=[Stack(r1, voxel_size1), Stack(r2, voxel_size2)],
                 )
+                data.save()
             print(r1, r2, output)
             self.list.addData(r1, True, data, mpl.colors.to_hex(f"gray"))
 

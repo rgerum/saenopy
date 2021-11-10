@@ -1,6 +1,11 @@
 import os
 import numpy as np
 import typing
+from typing import List
+try:
+    from typing import _GenericAlias as _GenericAlias
+except ImportError:
+    from typing import GenericMeta as _GenericAlias
 
 from .multigridHelper import makeBoxmeshCoords, makeBoxmeshTets, setActiveFields
 
@@ -20,6 +25,8 @@ class Saveable:
             if attribute is not None:
                 if getattr(attribute, "to_dict", None) is not None:
                     data[param] = getattr(attribute, "to_dict")()
+                elif isinstance(attribute, list) and getattr(attribute[0], "to_dict", None) is not None:
+                    data[param] = [getattr(attr, "to_dict")() if getattr(attribute[0], "to_dict", None) else attribute for attr in attribute]
                 else:
                     data[param] = attribute
         return data
@@ -30,16 +37,26 @@ class Saveable:
         np.savez(filename, **data)
 
     @classmethod
-    def from_dict(cls, dict):
+    def from_dict(cls, data_dict):
         types = typing.get_type_hints(cls)
         data = {}
-        for name in dict:
-            if isinstance(dict[name], np.ndarray) and len(dict[name].shape) == 0:
-                data[name] = dict[name][()]
+        for name in data_dict:
+            if isinstance(data_dict[name], np.ndarray) and len(data_dict[name].shape) == 0:
+                data[name] = data_dict[name][()]
             else:
-                data[name] = dict[name]
-            if name in types and getattr(types[name], "from_dict", None) is not None:
-                data[name] = types[name].from_dict(data[name])
+                data[name] = data_dict[name]
+            if name in types:
+                print(name, types[name])
+                if getattr(types[name], "from_dict", None) is not None:
+                    print("from dict")
+                    data[name] = types[name].from_dict(data[name])
+                elif isinstance(types[name], _GenericAlias) and types[name].__origin__ is list:
+                    print("stack", types[name].__args__[0])
+                    print(data[name])
+                    if isinstance(data[name], dict):
+                        data[name] = types[name].__args__[0].from_dict(data[name])
+                    else:
+                        data[name] = [types[name].__args__[0].from_dict(d) for d in data[name]]
 
         return cls(**data)
 
