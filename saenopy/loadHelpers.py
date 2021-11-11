@@ -34,7 +34,8 @@ class Saveable:
     def save(self, filename: str):
         data = self.to_dict()
 
-        np.savez(filename, **data)
+        #np.savez(filename, **data)
+        np.lib.npyio._savez(filename, [], flatten_dict(data), True, allow_pickle=False)
 
     @classmethod
     def from_dict(cls, data_dict):
@@ -46,13 +47,9 @@ class Saveable:
             else:
                 data[name] = data_dict[name]
             if name in types:
-                print(name, types[name])
                 if getattr(types[name], "from_dict", None) is not None:
-                    print("from dict")
                     data[name] = types[name].from_dict(data[name])
                 elif isinstance(types[name], _GenericAlias) and types[name].__origin__ is list:
-                    print("stack", types[name].__args__[0])
-                    print(data[name])
                     if isinstance(data[name], dict):
                         data[name] = types[name].__args__[0].from_dict(data[name])
                     else:
@@ -62,8 +59,70 @@ class Saveable:
 
     @classmethod
     def load(cls, filename):
-        data = np.load(filename, allow_pickle=True)
-        return cls.from_dict(data)
+        data = np.load(filename, allow_pickle=False)
+
+        return cls.from_dict(unflatten_dict(data))
+
+def flatten_dict(data):
+    result = {}
+
+    def print_content(data, prefix):
+        if isinstance(data, list):  # and not isinstance(data[0], (int, float)):
+            result[prefix] = "list"
+            for name, d in enumerate(data):
+                print_content(d, f"{prefix}/{name}")
+            return
+        if isinstance(data, tuple):  # and not isinstance(data[0], (int, float)):
+            result[prefix] = "tuple"
+            for name, d in enumerate(data):
+                print_content(d, f"{prefix}/{name}")
+            return
+        if isinstance(data, dict):  # and not isinstance(data[0], (int, float)):
+            result[prefix] = "dict"
+            for name, d in data.items():
+                print_content(d, f"{prefix}/{name}")
+            return
+        result[prefix] = data
+
+    for name, d in data.items():
+        print_content(d, name)
+
+    return result
+
+def unflatten_dict(data):
+    result = {}
+    for name, item in data.items():
+        if item.shape == ():
+            item = item[()]
+        if item == "list":
+            item = []
+        if item == "dict":
+            item = {}
+        if item == "tuple":
+            item = ()
+
+        names = name.split("/")
+
+        hierarchy = [result]
+        r = result
+        for name in names[:-1]:
+            try:
+                r = r[name]
+            except TypeError:
+                r = r[int(name)]
+            hierarchy.append(r)
+
+        if isinstance(r, list):
+            r += [item]
+        elif isinstance(r, tuple):
+            try:
+                hierarchy[-2][names[-2]] = r + (item,)
+            except TypeError:
+                hierarchy[-2][int(names[-2])] = r + (item,)
+        else:
+            r[names[-1]] = item
+
+    return result
 
 def load(filename, *args, **kwargs):
     file2 = filename[:-4] + ".npy"

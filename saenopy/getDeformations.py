@@ -126,7 +126,7 @@ class Stack(Saveable):
         if shape is not None:
             self._shape = shape
         if isinstance(filename, str):
-            self.filename = filename
+            self.filename = str(filename)
             self.images = natsort.natsorted(glob.glob(filename))
         else:
             self.images = list(filename)
@@ -145,7 +145,8 @@ class Stack(Saveable):
     def __getitem__(self, index) -> np.ndarray:
         try:
             im = io.imread(self.images[index[2]])
-        except (IndexError, IOError):
+        except (IndexError, IOError) as err:
+            print("ERROR", err)
             im = np.zeros(self.shape[:2])
         if len(im.shape) == 3:
             im = im[:, :, 0]

@@ -56,6 +56,7 @@ class MyScene(QtWidgets.QGraphicsScene):
         e.accept()
 
 class QExtendedGraphicsView(QtWidgets.QGraphicsView):
+    signal_zoom = QtCore.Signal(object, object)
     def __init__(self, dropTarget=None):
         QtWidgets.QGraphicsView.__init__(self)
 
@@ -273,6 +274,7 @@ class QExtendedGraphicsView(QtWidgets.QGraphicsView):
         s0 = self.scaler.transform().m11()
         self.translater.setTransform(QtGui.QTransform(1, 0, 0, 1, +x / s0, +y / s0), combine=True)
         self.zoomEvent(self.scaler.transform().m11(), pos)
+        self.signal_zoom.emit(self.scaler.transform().m11(), pos)
         self.fitted = 0
 
     def setOriginScale(self, scale):
@@ -357,7 +359,7 @@ class QExtendedGraphicsView(QtWidgets.QGraphicsView):
     def link(self, other):
         view1 = self
         view2 = other
-        def changes1(*args):
+        def changes1(*args, scale=0, pos=0):
             view2.setOriginScale(
                 view1.getOriginScale() * view1.view_rect[0] / view2.view_rect[0])
             start_x, start_y, end_x, end_y = view1.GetExtend()
@@ -365,14 +367,15 @@ class QExtendedGraphicsView(QtWidgets.QGraphicsView):
             center_x = center_x / view1.view_rect[0] * view2.view_rect[0]
             center_y = center_y / view1.view_rect[1] * view2.view_rect[1]
             view2.centerOn(center_x, center_y)
+            view2.signal_zoom.emit(scale, pos)
 
         def zoomEvent(scale, pos):
-            changes1()
+            changes1(scale=scale, pos=pos)
 
         view1.zoomEvent = zoomEvent
         view1.panEvent = changes1
 
-        def changes2(*args):
+        def changes2(*args, scale=0, pos=0):
             view1.setOriginScale(
                 view2.getOriginScale() * view2.view_rect[0] / view1.view_rect[0])
             start_x, start_y, end_x, end_y = view2.GetExtend()
@@ -380,13 +383,14 @@ class QExtendedGraphicsView(QtWidgets.QGraphicsView):
             center_x = center_x / view2.view_rect[0] * view1.view_rect[0]
             center_y = center_y / view2.view_rect[1] * view1.view_rect[1]
             view1.centerOn(center_x, center_y)
+            view1.signal_zoom.emit(scale, pos)
 
         def zoomEvent(scale, pos):
-            changes2()
+            changes2(scale=scale, pos=pos)
 
         view2.zoomEvent = zoomEvent
         view2.panEvent = changes2
-        changes2()
+        #changes2()
 
 
 if __name__ == '__main__':
