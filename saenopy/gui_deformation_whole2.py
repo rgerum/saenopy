@@ -249,6 +249,19 @@ class QProgressBar(QtWidgets.QProgressBar):
             print("emit", i)
             self.signal_progress.emit(i+1)
 
+class QTimeSlider(QtWidgets.QWidget):
+    def __init__(self, name="t", connected=None, tooltip="set time", orientation=QtCore.Qt.Horizontal):
+        super().__init__()
+        with (QtShortCuts.QHBoxLayout(self) if orientation == QtCore.Qt.Horizontal else QtShortCuts.QVBoxLayout(self)) as layout:
+            layout.setContentsMargins(0, 0, 0, 0)
+            self.label = QtWidgets.QLabel(name).addToLayout()
+            self.label.setAlignment(QtCore.Qt.AlignCenter)
+            self.t_slider = QtWidgets.QSlider(orientation).addToLayout()
+            self.t_slider.valueChanged.connect(connected)
+            self.t_slider.setToolTip(tooltip)
+        self.value = self.t_slider.value
+        self.setValue = self.t_slider.setValue
+        self.setRange = self.t_slider.setRange
 
 class PipelineModule(QtWidgets.QWidget):
     processing_finished = QtCore.Signal()
@@ -270,6 +283,7 @@ class PipelineModule(QtWidgets.QWidget):
 
         self.parent.result_changed.connect(self.resultChanged)
         self.parent.set_current_result.connect(self.setResult)
+        self.parent.tab_changed.connect(self.tabChanged)
 
     def setParameterMapping(self, params_name: str, parameter_dict: dict):
         self.params_name = params_name
@@ -279,13 +293,33 @@ class PipelineModule(QtWidgets.QWidget):
 
         self.setResult(None)
 
+    current_result_plotted = False
+    current_tab_selected = False
+    def tabChanged(self, tab):
+        if self.tab is not None and self.tab.parent() == tab:
+            if self.current_result_plotted is False:
+                self.update_display()
+                self.current_result_plotted = True
+            self.current_tab_selected = True
+        else:
+            self.current_tab_selected = False
+
     def check_available(self, result: Result) -> bool:
+        return False
+
+    def check_evaluated(self, result: Result) -> bool:
         return False
 
     def resultChanged(self, result: Result):
         """ called when the contents of result changed. Only update view if its the currently displayed one. """
         if result is self.result:
-            self.setResult(result)
+            if self.tab is not None:
+                for i in range(self.parent.tabs.count()):
+                    if self.parent.tabs.widget(i) == self.tab.parent():
+                       self.parent.tabs.setTabEnabled(i, self.check_evaluated(result))
+            if self.current_tab_selected is True:
+                self.update_display()
+            self.state_changed(result)
 
     def state_changed(self, result: Result):
         if result is self.result and getattr(self, "group", None) is not None:
@@ -299,7 +333,7 @@ class PipelineModule(QtWidgets.QWidget):
                 self.group.label.setIcon(qta.icon("fa.check", options=[dict(color="green")]))
                 self.group.label.setToolTip("finished")
             elif getattr(result, self.params_name + "_state", "") == "failed":
-                self.group.label.setIcon(qta.icon("fa.cross", options=[dict(color="red")]))
+                self.group.label.setIcon(qta.icon("fa.times", options=[dict(color="red")]))
                 self.group.label.setToolTip("failed")
             else:
                 self.group.label.setIcon(qta.icon("fa.circle", options=[dict(color="gray")]))
@@ -307,9 +341,19 @@ class PipelineModule(QtWidgets.QWidget):
 
     def setResult(self, result: Result):
         """ set a new active result object """
+        #if result == self.result:
+        #    return
+        self.current_result_plotted = False
         self.result = result
 
+        if result is not None:
+            self.t_slider.setRange(0, len(result.stack)-2)
+
         self.state_changed(result)
+        if self.tab is not None:
+            for i in range(self.parent.tabs.count()):
+                if self.parent.tabs.widget(i) == self.tab.parent():
+                    self.parent.tabs.setTabEnabled(i, self.check_evaluated(result))
 
         # check if the results instance can be evaluated currently with this module
         if self.check_available(result) is False:
@@ -326,7 +370,9 @@ class PipelineModule(QtWidgets.QWidget):
                 params_tmp = getattr(result, self.params_name + "_tmp")
                 widget.setValue(params_tmp[name])
             self.valueChanged()
-        self.update_display()
+        if self.current_tab_selected is True:
+            print(self.__class__.__name__, "Update Display")
+            self.update_display()
 
     def update_display(self):
         pass
@@ -412,7 +458,7 @@ class StackDisplay(PipelineModule):
                         self.button = QtWidgets.QPushButton(qta.icon("fa5s.home"), "").addToLayout()
                         self.button.setToolTip("reset view")
                         self.button.clicked.connect(lambda x: (self.view1.fitInView(), self.view2.fitInView()))
-                        self.button2 = QtWidgets.QPushButton(qta.icon("fa5s.save"), "").addToLayout()
+                        self.button2 = QtWidgets.QPushButton(qta.icon("fa.floppy-o"), "").addToLayout()
                         self.button2.setToolTip("save image")
                         self.button2.clicked.connect(self.export)
                     self.view1 = QExtendedGraphicsView.QExtendedGraphicsView().addToLayout()
@@ -425,13 +471,20 @@ class StackDisplay(PipelineModule):
                     # self.label2.setMinimumWidth(300)
                     self.pixmap2 = QtWidgets.QGraphicsPixmapItem(self.view2.origin)
                     self.scale2 = ModuleScaleBar(self, self.view2)
-                self.z_slider = QtWidgets.QSlider(QtCore.Qt.Vertical).addToLayout()
-                self.z_slider.valueChanged.connect(self.z_slider_value_changed)
-                self.z_slider.setToolTip("set z position")
+
+                    self.views = [self.view1, self.view2]
+                    self.pixmaps = [self.pixmap1, self.pixmap2]
+
+                    self.t_slider = QTimeSlider(connected=self.update_display).addToLayout()
+                    self.tab.parent().t_slider = self.t_slider
+                self.z_slider = QTimeSlider("z", self.z_slider_value_changed, "set z position", QtCore.Qt.Vertical).addToLayout()
 
         self.view1.link(self.view2)
-
+        self.current_tab_selected = True
         self.setParameterMapping(None, {})
+
+    def check_evaluated(self, result: Result) -> bool:
+        return self.result is not None
 
     def export(self):
         if self.result is None:
@@ -452,8 +505,7 @@ class StackDisplay(PipelineModule):
             imageio.mimsave(new_path.parent / (new_path.stem + ".gif"), [self.result.stack[0][:, :, self.z_slider.value()], self.result.stack[1][:, :, self.z_slider.value()]], fps=2)
 
     def update_display(self):
-        if self.result is not None:
-            self.parent.tabs.setTabEnabled(0, True)
+        if self.check_evaluated(self.result):
             self.view1.setToolTip(f"deformed stack\n{self.result.stack[0].description()}")
             self.view2.setToolTip(f"relaxed stack\n{self.result.stack[1].description()}")
             self.scale1.setScale(self.result.stack[0].voxel_size)
@@ -461,18 +513,14 @@ class StackDisplay(PipelineModule):
             self.z_slider.setRange(0, self.result.stack[0].shape[2] - 1)
             self.z_slider.setValue(self.result.stack[0].shape[2] // 2)
             self.z_slider_value_changed()
-        else:
-            self.parent.tabs.setTabEnabled(0, False)
 
     def z_slider_value_changed(self):
         if self.result is not None:
-            im = self.result.stack[0][:, :, self.z_slider.value()]
-            self.pixmap1.setPixmap(QtGui.QPixmap(array2qimage(im)))
-            self.view1.setExtend(im.shape[0], im.shape[0])
+            for i in range(2):
+                im = self.result.stack[self.t_slider.value()+i][:, :, self.z_slider.value()]
+                self.pixmaps[i].setPixmap(QtGui.QPixmap(array2qimage(im)))
+                self.views[i].setExtend(im.shape[0], im.shape[0])
 
-            im = self.result.stack[1][:, :, self.z_slider.value()]
-            self.pixmap2.setPixmap(QtGui.QPixmap(array2qimage(im)))
-            self.view2.setExtend(im.shape[1], im.shape[0])
             self.z_slider.setToolTip(f"set z position\ncurrent position {self.z_slider.value()}")
 
 
@@ -511,7 +559,7 @@ class VTK_Toolbar(QtWidgets.QWidget):
                             self.plotter = QtInteractor(self, theme=outer_self.plotter.theme)
                             layout.addWidget(self.plotter)
                             showVectorField(self.plotter, outer_self.result.mesh_piv, "U_measured")
-                            self.button2 = QtWidgets.QPushButton(qta.icon("fa5s.save"), "").addToLayout()
+                            self.button2 = QtWidgets.QPushButton(qta.icon("fa.floppy-o"), "").addToLayout()
                             self.button2.setToolTip("save")
                             self.button2.clicked.connect(self.save)
 
@@ -530,7 +578,7 @@ class VTK_Toolbar(QtWidgets.QWidget):
                 plot_diaolog = PlotDialog(self)
                 plot_diaolog.show()
 
-            self.button2 = QtWidgets.QPushButton(qta.icon("fa5s.save"), "").addToLayout()
+            self.button2 = QtWidgets.QPushButton(qta.icon("fa.floppy-o"), "").addToLayout()
             self.button2.setToolTip("save")
             self.button2.clicked.connect(save)
 
@@ -583,9 +631,8 @@ class DeformationDetector(PipelineModule):
 
                 layout.addWidget(self.plotter.interactor)
 
-                self.t_slider = QtWidgets.QSlider(QtCore.Qt.Horizontal).addToLayout()
-                self.t_slider.valueChanged.connect(self.update_display)
-                self.t_slider.setToolTip("set time")
+                self.t_slider = QTimeSlider(connected=self.update_display).addToLayout()
+                self.tab.parent().t_slider = self.t_slider
 
         self.setParameterMapping("piv_parameter", {
             "win_um": self.input_win,
@@ -594,20 +641,18 @@ class DeformationDetector(PipelineModule):
             "drift_correction": self.input_driftcorrection,
         })
 
-    def check_available(self, result: Result):
+    def check_available(self, result: Result) -> bool:
         return result is not None and result.stack is not None
 
+    def check_evaluated(self, result: Result) -> bool:
+        return self.result is not None and self.result.mesh_piv is not None
+
     def update_display(self):
-        if self.result is not None and self.result.mesh_piv is not None:
-            self.parent.tabs.setTabEnabled(1, True)
-            self.plotter.interactor.setToolTip(str(self.result.piv_parameter)+f"\nNodes {self.result.mesh_piv[0].R.shape[0]}\nTets {self.result.mesh_piv[0].T.shape[0]}")
-            showVectorField(self.plotter, self.result.mesh_piv[self.t_slider.value()], "U_measured")
-        else:
-            self.parent.tabs.setTabEnabled(1, False)
+        self.plotter.interactor.setToolTip(str(self.result.piv_parameter)+f"\nNodes {self.result.mesh_piv[0].R.shape[0]}\nTets {self.result.mesh_piv[0].T.shape[0]}")
+        showVectorField(self.plotter, self.result.mesh_piv[self.t_slider.value()], "U_measured")
 
     def valueChanged(self):
         if self.check_available(self.result):
-            self.t_slider.setRange(0, len(self.result.stack)-2)
             voxel_size1 = self.result.stack[0].voxel_size
             stack_deformed = self.result.stack[0]
 
@@ -628,6 +673,7 @@ class DeformationDetector(PipelineModule):
             result.mesh_piv[i] = saenopy.getDeformations.getDisplacementsFromStacks2(result.stack[i], result.stack[i+1],
                                        params["win_um"], params["fac_overlap"], params["signoise_filter"],
                                        params["drift_correction"])
+        result.solver = None
 
 
 
@@ -668,9 +714,8 @@ class MeshCreator(PipelineModule):
                 VTK_Toolbar(self.plotter, self.update_display).addToLayout()
                 layout.addWidget(self.plotter.interactor)
 
-                self.t_slider = QtWidgets.QSlider(QtCore.Qt.Horizontal).addToLayout()
-                self.t_slider.valueChanged.connect(self.update_display)
-                self.t_slider.setToolTip("set time")
+                self.t_slider = QTimeSlider(connected=self.update_display).addToLayout()
+                self.tab.parent().t_slider = self.t_slider
 
         self.setParameterMapping("interpolate_parameter", {
             "element_size": self.input_element_size,
@@ -702,15 +747,15 @@ class MeshCreator(PipelineModule):
     def check_available(self, result: Result):
         return result is not None and result.mesh_piv is not None
 
+    def check_evaluated(self, result: Result) -> bool:
+        return self.result is not None and self.result.solver is not None
+
     def update_display(self):
-        if self.result is not None and self.result.solver is not None:
-            self.parent.tabs.setTabEnabled(2, True)
-            self.t_slider.setRange(0, len(self.result.mesh_piv) - 1)
+        if self.check_evaluated(self.result):
             self.plotter.interactor.setToolTip(str(self.result.interpolate_parameter)+f"\nNodes {self.result.solver[self.t_slider.value()].R.shape[0]}\nTets {self.result.solver[self.t_slider.value()].T.shape[0]}")
             showVectorField(self.plotter, self.result.solver[self.t_slider.value()], "U_target", factor=5)
         else:
             self.plotter.interactor.setToolTip("")
-            self.parent.tabs.setTabEnabled(2, False)
 
     def process(self, result: Result, params: dict):
         solvers = []
@@ -740,7 +785,7 @@ class MeshCreator(PipelineModule):
 
 class Regularizer(PipelineModule):
     pipeline_name = "fit forces"
-    iteration_finished = QtCore.Signal(object)
+    iteration_finished = QtCore.Signal(object, object)
 
     def __init__(self, parent: "BatchEvaluate", layout):
         super().__init__(parent, layout)
@@ -780,9 +825,8 @@ class Regularizer(PipelineModule):
                 VTK_Toolbar(self.plotter, self.update_display).addToLayout()
                 layout.addWidget(self.plotter.interactor)
 
-                self.t_slider = QtWidgets.QSlider(QtCore.Qt.Horizontal).addToLayout()
-                self.t_slider.valueChanged.connect(self.update_display)
-                self.t_slider.setToolTip("set time")
+                self.t_slider = QTimeSlider(connected=self.update_display).addToLayout()
+                self.tab.parent().t_slider = self.t_slider
 
         self.setParameterMapping("solve_parameter", {
             "k": self.input_k,
@@ -794,27 +838,43 @@ class Regularizer(PipelineModule):
             "i_max": self.input_imax,
         })
 
-        self.iteration_finished.emit(np.ones([10, 3]))
+        self.iteration_finished.connect(self.iteration_callback)
+        self.iteration_finished.emit(None, np.ones([10, 3]))
 
     def check_available(self, result: Result):
         return result is not None and result.solver is not None
 
-    def iteration_callback(self, relrec):
-        relrec = np.array(relrec)
-        self.canvas.figure.axes[0].cla()
-        self.canvas.figure.axes[0].semilogy(relrec[:, 0])
-        self.canvas.figure.axes[0].semilogy(relrec[:, 1])
-        self.canvas.figure.axes[0].semilogy(relrec[:, 2])
-        self.canvas.figure.axes[0].set_xlabel("iteration")
-        self.canvas.figure.axes[0].set_ylabel("error")
-        self.canvas.draw()
+    def check_evaluated(self, result: Result) -> bool:
+        if self.result is not None and self.result.solver is not None:
+            relrec = getattr(self.result.solver[self.t_slider.value()], "relrec", None)
+            if relrec is not None:
+                return True
+        return self.result is not None and self.result.solver is not None and getattr(self.result.solver[0], "regularisation_results", None) is not None
+
+    def iteration_callback(self, result, relrec):
+        if result is self.result:
+            for i in range(self.parent.tabs.count()):
+                if self.parent.tabs.widget(i) == self.tab.parent():
+                    self.parent.tabs.setTabEnabled(i, self.check_evaluated(result))
+            relrec = np.array(relrec).reshape(-1, 3)
+            self.canvas.figure.axes[0].cla()
+            self.canvas.figure.axes[0].semilogy(relrec[:, 0], label="total loss")
+            self.canvas.figure.axes[0].semilogy(relrec[:, 1], ":", label="least squares loss")
+            self.canvas.figure.axes[0].semilogy(relrec[:, 2], "--", label="regularize loss")
+            self.canvas.figure.axes[0].legend()
+            self.canvas.figure.axes[0].set_xlabel("iteration")
+            self.canvas.figure.axes[0].set_ylabel("error")
+            self.canvas.figure.axes[0].spines["top"].set_visible(False)
+            self.canvas.figure.axes[0].spines["right"].set_visible(False)
+            self.canvas.figure.tight_layout()
+            self.canvas.draw()
 
     def process(self, result: Result, params: dict):
         for i in range(len(result.solver)):
             M = result.solver[i]
 
             def callback(M, relrec):
-                self.iteration_finished.emit(relrec)
+                self.iteration_finished.emit(result, relrec)
 
             M.setMaterialModel(saenopy.materials.SemiAffineFiberMaterial(
                                params["k"],
@@ -826,19 +886,16 @@ class Regularizer(PipelineModule):
             M.solve_regularized(stepper=params["stepper"], i_max=params["i_max"],
                                 alpha=params["alpha"], callback=callback, verbose=True)
 
-    def valueChanged(self):
-        if self.check_available(self.result):
-            self.t_slider.setRange(0, len(self.result.mesh_piv)-1)
-
     def update_display(self):
-        if self.result is not None and self.result.solver is not None and getattr(self.result.solver[self.t_slider.value()], "regularisation_results", None) is not None:
-            self.parent.tabs.setTabEnabled(3, True)
+        if self.check_evaluated(self.result):
             self.plotter.interactor.setToolTip(str(self.result.solve_parameter)+f"\nNodes {self.result.solver[self.t_slider.value()].R.shape[0]}\nTets {self.result.solver[self.t_slider.value()].T.shape[0]}")
             showVectorField(self.plotter, self.result.solver[self.t_slider.value()], "f", factor=3e4)
-            self.iteration_callback(self.result.solver[self.t_slider.value()].regularisation_results)
+            relrec = getattr(self.result.solver[self.t_slider.value()], "relrec", None)
+            if relrec is None:
+                relrec = self.result.solver[self.t_slider.value()].regularisation_results
+            self.iteration_callback(self.result, relrec)
         else:
             self.plotter.interactor.setToolTip("")
-            self.parent.tabs.setTabEnabled(3, False)
 
 
 class ResultView(PipelineModule):
@@ -855,7 +912,7 @@ class ResultView(PipelineModule):
                         input.valueChanged.connect(self.replot)
                         self.input_checks[name] = input
                     layout_vert_plot.addStretch()
-                    self.button_export = QtWidgets.QPushButton(qta.icon("fa5s.save"), "")
+                    self.button_export = QtWidgets.QPushButton(qta.icon("fa.floppy-o"), "")
                     self.button_export.setToolTip("save image")
                     layout_vert_plot.addWidget(self.button_export)
                     self.button_export.clicked.connect(self.saveScreenshot)
@@ -870,15 +927,15 @@ class ResultView(PipelineModule):
                 self.plotter_layout.addWidget(self.plotter.interactor)
                 vlayout.addLayout(self.plotter_layout)
 
-                self.t_slider = QtWidgets.QSlider(QtCore.Qt.Horizontal).addToLayout()
-                self.t_slider.valueChanged.connect(self.update_display)
-                self.t_slider.setToolTip("set time")
+                self.t_slider = QTimeSlider(connected=self.update_display).addToLayout()
+                self.tab.parent().t_slider = self.t_slider
         self.setParameterMapping(None, {})
 
+    def check_evaluated(self, result: Result) -> bool:
+        return self.result is not None and self.result.solver is not None and getattr(self.result.solver[0], "regularisation_results", None) is not None
+
     def update_display(self):
-        if self.result is not None and self.result.solver is not None and getattr(self.result.solver[0], "regularisation_results", None) is not None:
-            self.parent.tabs.setTabEnabled(4, True)
-            self.t_slider.setRange(0, len(self.result.solver)-1)
+        if self.check_evaluated(self.result):
             self.M = self.result.solver[self.t_slider.value()]
 
             def scale(m):
@@ -909,7 +966,6 @@ class ResultView(PipelineModule):
             self.replot()
         else:
             self.plotter.interactor.setToolTip("")
-            self.parent.tabs.setTabEnabled(4, False)
 
     def calculateStiffness(self):
         self.point_cloud2 = pv.PolyData(np.mean(self.M.R[self.M.T], axis=1))
@@ -1030,6 +1086,7 @@ class ResultView(PipelineModule):
 
 class BatchEvaluate(QtWidgets.QWidget):
     result_changed = QtCore.Signal(object)
+    tab_changed = QtCore.Signal(object)
     set_current_result = QtCore.Signal(object)
 
     def __init__(self, parent=None):
@@ -1055,18 +1112,16 @@ class BatchEvaluate(QtWidgets.QWidget):
                         old_tab = None
                         cam_pos = None
                         def tab_changed(x):
-                            print(x)
                             nonlocal old_tab, cam_pos
                             tab = self.tabs.currentWidget()
-                            print(tab, old_tab, getattr(old_tab, "plotter", None), cam_pos)
                             if old_tab is not None and getattr(old_tab, "plotter", None):
-                                print("set cam pos")
                                 cam_pos = old_tab.plotter.camera_position
                             if cam_pos is not None and getattr(tab, "plotter", None):
                                 tab.plotter.camera_position = cam_pos
+                            if old_tab is not None:
+                                tab.t_slider.setValue(old_tab.t_slider.value())
                             old_tab = tab
-
-
+                            self.tab_changed.emit(tab)
                         self.tabs.currentChanged.connect(tab_changed)
                         pass
                 with QtShortCuts.QVBoxLayout() as layout0:

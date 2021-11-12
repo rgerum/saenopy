@@ -496,12 +496,15 @@ class Solver(Saveable):
         Checks whether everything is loaded to start a relaxation process.
         """
         # check if we have nodes
-        if self.N_c == 0:
+        if self.R is None or self.R.shape[0] == 0:
             raise ValueError("No nodes have yet been set. Call setNodes first.")
+        self.N_c = self.R.shape[0]
 
         # check if we have tetrahedra
-        if self.N_T == 0:
+        if self.T is None or self.T.shape[0] == 0:
             raise ValueError("No tetrahedra have yet been set. Call setTetrahedra first.")
+        self.N_T = self.T.shape[0]
+        self.E = np.zeros(self.N_T)
 
         # check if we have a material model
         if self.material_model is None:
@@ -794,6 +797,9 @@ class Solver(Saveable):
 
         # log and store values (if a target file was provided)
         relrec = []
+        self.relrec = relrec
+        if callback is not None:
+            callback(self, relrec)
         self._recordRegularizationStatus(relrec, alpha, relrecname)
 
         if self.verbose:
