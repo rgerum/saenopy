@@ -19,7 +19,7 @@ from scipy import interpolate
 from saenopy.loadHelpers import Saveable
 
 
-def getDisplacementsFromStacks2(stack_deformed, stack_relaxed, win_um, fac_overlap, signoise_filter, drift_correction):
+def getDisplacementsFromStacks2(stack_relaxed, stack_deformed, win_um, fac_overlap, signoise_filter, drift_correction):
     voxel_size1 = stack_deformed.voxel_size
     voxel_size2 = stack_relaxed.voxel_size
 
@@ -40,7 +40,7 @@ def getDisplacementsFromStacks2(stack_deformed, stack_relaxed, win_um, fac_overl
     return M
 
 # Full 3D Deformation analysis
-def getDisplacementsFromStacks(stack_deformed, stack_relaxed, voxel_size, win_um=12, fac_overlap=0.6,
+def getDisplacementsFromStacks_old(stack_deformed, stack_relaxed, voxel_size, win_um=12, fac_overlap=0.6,
                                signoise_filter=1.3, drift_correction=True, return_mesh=False):
     from saenopy.multigridHelper import createBoxMesh
     from saenopy import Solver
@@ -129,11 +129,12 @@ class Stack(Saveable):
             self.filename = str(filename)
             self.images = natsort.natsorted(glob.glob(filename))
         else:
+            self.filename = list(filename)
             self.images = list(filename)
         self.voxel_size = voxel_size
 
-    def description(self):
-        return f"shape {self.shape}px\nsize {np.array(self.shape)*np.array(self.voxel_size)}μm\nvoxel size {self.voxel_size}μm\n{self.filename}"
+    def description(self, z):
+        return f"shape {self.shape}px\nsize {np.array(self.shape)*np.array(self.voxel_size)}μm\nvoxel size {self.voxel_size}μm\n{self.images[z]}"
 
     @property
     def shape(self) -> tuple:

@@ -11,6 +11,7 @@ import numpy as np
 
 import pyvista as pv
 import vtk
+import natsort
 from pyvistaqt import QtInteractor
 
 import saenopy
@@ -34,6 +35,7 @@ import matplotlib as mpl
 from saenopy.solver import Solver
 from pathlib import Path
 import re
+import pandas as pd
 from saenopy.loadHelpers import Saveable
 from typing import List
 
@@ -87,7 +89,6 @@ def showVectorField(plotter, obj, name, show_nan=True, show_all_points=False, fa
 
     plotter.update_scalar_bar_range([0, np.nanpercentile(point_cloud[name + "_mag2"], 99.9)])
 
-    print(plotter._theme.font.color)
     plotter.show_grid(color=plotter._theme.font.color)
     #plotter.renderer.show_bounds(color=plotter._theme.font.color)
     plotter.show()
@@ -171,6 +172,39 @@ def double_glob(text):
     return results, output_base
 
 
+def format_glob(pattern):
+    pattern = str(Path(pattern))
+    regexp_string = re.sub(r"\\{([^}]*)\\}", r"(?P<\1>.*)", re.escape(pattern).replace("\\*\\*", ".*").replace("\\*", ".*"))
+    regexp_string3 = ""
+    replacement = ""
+    count = 1
+    for part in re.split("(\([^)]*\))", regexp_string):
+        if part.startswith("("):
+            regexp_string3 += part
+            replacement += f"{{{part[4:-4]}}}"
+            count += 1
+        else:
+            regexp_string3 += f"({part})"
+            replacement += f"\\{count}"
+            count += 1
+
+    regexp_string2 = re.compile(regexp_string)
+    glob_string = re.sub(r"({[^}]*})", "*", pattern)
+
+    output_base = glob_string
+    while "*" in str(output_base):
+        output_base = Path(output_base).parent
+
+    file_list = []
+    for file in output_base.rglob(str(Path(glob_string).relative_to(output_base))):#glob.glob(glob_string, recursive=True):
+        file = str(Path(file))
+        group = regexp_string2.match(file).groupdict()
+        template_name = re.sub(regexp_string3, replacement, file)
+        group["filename"] = file
+        group["template"] = template_name
+        file_list.append(group)
+    return pd.DataFrame(file_list), output_base
+
 
 class ModuleScaleBar(QtWidgets.QGroupBox):
     pixtomu = None
@@ -252,16 +286,21 @@ class QProgressBar(QtWidgets.QProgressBar):
 class QTimeSlider(QtWidgets.QWidget):
     def __init__(self, name="t", connected=None, tooltip="set time", orientation=QtCore.Qt.Horizontal):
         super().__init__()
+        self.tooltip_name = tooltip
         with (QtShortCuts.QHBoxLayout(self) if orientation == QtCore.Qt.Horizontal else QtShortCuts.QVBoxLayout(self)) as layout:
             layout.setContentsMargins(0, 0, 0, 0)
             self.label = QtWidgets.QLabel(name).addToLayout()
             self.label.setAlignment(QtCore.Qt.AlignCenter)
             self.t_slider = QtWidgets.QSlider(orientation).addToLayout()
             self.t_slider.valueChanged.connect(connected)
+            self.t_slider.valueChanged.connect(self.value_changed)
             self.t_slider.setToolTip(tooltip)
         self.value = self.t_slider.value
         self.setValue = self.t_slider.setValue
         self.setRange = self.t_slider.setRange
+
+    def value_changed(self):
+        self.t_slider.setToolTip(self.tooltip_name+f"\n{self.t_slider.value()+1}/{self.t_slider.maximum()}")
 
 class PipelineModule(QtWidgets.QWidget):
     processing_finished = QtCore.Signal()
@@ -453,8 +492,10 @@ class StackDisplay(PipelineModule):
             with QtShortCuts.QHBoxLayout() as layout:
                 with QtShortCuts.QVBoxLayout() as layout:
                     with QtShortCuts.QHBoxLayout() as layout:
-                        self.label1 = QtWidgets.QLabel("deformed").addToLayout()
+                        self.label1 = QtWidgets.QLabel("relaxed").addToLayout()
                         layout.addStretch()
+                        self.contrast_enhance = QtShortCuts.QInputBool(None, "contrast enhance", False, settings=self.parent.settings, settings_key="stack_contrast_enhance")
+                        self.contrast_enhance.valueChanged.connect(self.z_slider_value_changed)
                         self.button = QtWidgets.QPushButton(qta.icon("fa5s.home"), "").addToLayout()
                         self.button.setToolTip("reset view")
                         self.button.clicked.connect(lambda x: (self.view1.fitInView(), self.view2.fitInView()))
@@ -466,7 +507,7 @@ class StackDisplay(PipelineModule):
                     self.pixmap1 = QtWidgets.QGraphicsPixmapItem(self.view1.origin)
                     self.scale1 = ModuleScaleBar(self, self.view1)
 
-                    self.label2 = QtWidgets.QLabel("relaxed").addToLayout()
+                    self.label2 = QtWidgets.QLabel("deformed").addToLayout()
                     self.view2 = QExtendedGraphicsView.QExtendedGraphicsView().addToLayout()
                     # self.label2.setMinimumWidth(300)
                     self.pixmap2 = QtWidgets.QGraphicsPixmapItem(self.view2.origin)
@@ -500,14 +541,12 @@ class StackDisplay(PipelineModule):
             new_path = new_path.strip(".gif").strip("_relaxed.tif").strip("_deformed.tif")
             new_path = Path(new_path)
             print(new_path.parent / (new_path.stem + "_deformed.tif"))
-            tifffile.imsave(new_path.parent / (new_path.stem + "_deformed.tif"), self.result.stack[0][:, :, self.z_slider.value()])
-            tifffile.imsave(new_path.parent / (new_path.stem + "_relaxed.tif"), self.result.stack[1][:, :, self.z_slider.value()])
+            tifffile.imsave(new_path.parent / (new_path.stem + "_relaxed.tif"), self.result.stack[0][:, :, self.z_slider.value()])
+            tifffile.imsave(new_path.parent / (new_path.stem + "_deformed.tif"), self.result.stack[1][:, :, self.z_slider.value()])
             imageio.mimsave(new_path.parent / (new_path.stem + ".gif"), [self.result.stack[0][:, :, self.z_slider.value()], self.result.stack[1][:, :, self.z_slider.value()]], fps=2)
 
     def update_display(self):
         if self.check_evaluated(self.result):
-            self.view1.setToolTip(f"deformed stack\n{self.result.stack[0].description()}")
-            self.view2.setToolTip(f"relaxed stack\n{self.result.stack[1].description()}")
             self.scale1.setScale(self.result.stack[0].voxel_size)
             self.scale2.setScale(self.result.stack[1].voxel_size)
             self.z_slider.setRange(0, self.result.stack[0].shape[2] - 1)
@@ -517,7 +556,12 @@ class StackDisplay(PipelineModule):
     def z_slider_value_changed(self):
         if self.result is not None:
             for i in range(2):
+                self.views[i].setToolTip(f"stack\n{self.result.stack[self.t_slider.value()+i].description(self.z_slider.value())}")
+
                 im = self.result.stack[self.t_slider.value()+i][:, :, self.z_slider.value()]
+                if self.contrast_enhance.value():
+                    im -= im.min()
+                    im = (im.astype(np.float64)*255/im.max()).astype(np.uint8)
                 self.pixmaps[i].setPixmap(QtGui.QPixmap(array2qimage(im)))
                 self.views[i].setExtend(im.shape[0], im.shape[0])
 
@@ -612,11 +656,15 @@ class DeformationDetector(PipelineModule):
 
                 with QtShortCuts.QVBoxLayout() as layout:
                     with QtShortCuts.QHBoxLayout():
-                        self.input_overlap = QtShortCuts.QInputNumber(None, "overlap", 0.6, step=0.1, value_changed=self.valueChanged)
-                        self.input_win = QtShortCuts.QInputNumber(None, "window size", 30, value_changed=self.valueChanged, unit="μm")
+                        self.input_overlap = QtShortCuts.QInputNumber(None, "overlap", 0.6, step=0.1, value_changed=self.valueChanged,
+                                                                      tooltip="the fraction of a window size by which two adjacent windows overlap")
+                        self.input_win = QtShortCuts.QInputNumber(None, "window size", 30, value_changed=self.valueChanged, unit="μm",
+                                                                  tooltip="the size of the volume to look for a match")
                     with QtShortCuts.QHBoxLayout():
-                        self.input_signoise = QtShortCuts.QInputNumber(None, "signoise", 1.3, step=0.1)
-                        self.input_driftcorrection = QtShortCuts.QInputBool(None, "driftcorrection", True)
+                        self.input_signoise = QtShortCuts.QInputNumber(None, "signoise", 1.3, step=0.1,
+                                                                       tooltip="the signal to noise ratio threshold value, values below are ignore")
+                        self.input_driftcorrection = QtShortCuts.QInputBool(None, "driftcorrection", True,
+                                                                            tooltip="remove the mean displacement to correct for a global drift")
                     self.label = QtWidgets.QLabel().addToLayout()
                     self.input_button = QtShortCuts.QPushButton(None, "detect deformations", self.start_process)
 
@@ -971,10 +1019,7 @@ class ResultView(PipelineModule):
         self.point_cloud2 = pv.PolyData(np.mean(self.M.R[self.M.T], axis=1))
         from saenopy.materials import SemiAffineFiberMaterial
         # self.M.setMaterialModel(SemiAffineFiberMaterial(1645, 0.0008, 0.0075, 0.033), generate_lookup=False)
-        if self.M.material_parameters is not None:
-            print("loading material")
-            self.M.setMaterialModel(SemiAffineFiberMaterial(*self.M.material_parameters[1:]), generate_lookup=False)
-        else:
+        if self.M.material_model is None:
             print("Warning using default material parameters")
             self.M.setMaterialModel(SemiAffineFiberMaterial(1645, 0.0008, 0.0075, 0.033), generate_lookup=False)
         self.M._check_relax_ready()
@@ -1204,13 +1249,17 @@ class BatchEvaluate(QtWidgets.QWidget):
         for url in event.mimeData().urls():
             print(url)
             url = url.path()
+            if url[0] == "/" and url[2] == ":":
+                url = url[1:]
+            print(url)
             if url.endswith(".npz"):
                 urls = [url]
             else:
                 urls = glob.glob(url+"/**/*.npz", recursive=True)
             for url in urls:
+                print(url)
                 data = Result.load(url)
-                self.list.addData(data.stack[0].filename, True, data, mpl.colors.to_hex(f"gray"))
+                self.list.addData(data.stack[0].filename[0], True, data, mpl.colors.to_hex(f"gray"))
         self.update_icons()
 
     def update_icons(self):
@@ -1230,49 +1279,115 @@ class BatchEvaluate(QtWidgets.QWidget):
                 self.setMinimumHeight(600)
                 self.setWindowTitle("Add Files")
                 with QtShortCuts.QVBoxLayout(self) as layout:
-                    self.outputText = QtShortCuts.QInputFolder(None, "output", settings=settings,
-                                                               settings_key="batch/wildcard2", allow_edit=True)
-                    with QtShortCuts.QHBoxLayout() as layout3:
-                        self.stack_before = StackSelector(layout3, "deformed")
-                        self.stack_before.glob_string_changed.connect(lambda x, y: self.input_deformed.setText(y.replace("*", "?")))
-                        self.stack_after = StackSelector(layout3, "relaxed", self.stack_before)
-                        self.stack_after.glob_string_changed.connect(lambda x, y: self.input_relaxed.setText(y.replace("*", "?")))
-                    with QtShortCuts.QHBoxLayout() as layout3:
-                        self.input_deformed = QtWidgets.QLineEdit().addToLayout()
-                        self.input_relaxed = QtWidgets.QLineEdit().addToLayout()
-                        self.input_relaxed.text()
-                    with QtShortCuts.QHBoxLayout() as layout3:
-                        # self.button_clear = QtShortCuts.QPushButton(None, "clear list", self.clear_files)
-                        layout3.addStretch()
-                        self.button_addList2 = QtShortCuts.QPushButton(None, "cancel", self.reject)
-                        self.button_addList1 = QtShortCuts.QPushButton(None, "ok", self.accept)
+                    with QtShortCuts.QTabWidget(layout) as self.tabs:
+                        with self.tabs.createTab("Pair Stacks") as self.tab:
+                            self.outputText = QtShortCuts.QInputFolder(None, "output", settings=settings,
+                                                                       settings_key="batch/wildcard2", allow_edit=True)
+                            with QtShortCuts.QHBoxLayout() as layout3:
+                                self.stack_relaxed = StackSelector(layout3, "relaxed")
+                                self.stack_relaxed.glob_string_changed.connect(lambda x, y: (print("relaxed, y"), self.input_relaxed.setText(y.replace("*", "?"))))
+                                self.stack_deformed = StackSelector(layout3, "deformed", self.stack_relaxed)
+                                self.stack_deformed.glob_string_changed.connect(lambda x, y: (print("deformed, y"),self.input_deformed.setText(y.replace("*", "?"))))
+                            with QtShortCuts.QHBoxLayout() as layout3:
+                                self.input_relaxed = QtWidgets.QLineEdit().addToLayout()
+                                self.input_deformed = QtWidgets.QLineEdit().addToLayout()
+                            with QtShortCuts.QHBoxLayout() as layout3:
+                                # self.button_clear = QtShortCuts.QPushButton(None, "clear list", self.clear_files)
+                                layout3.addStretch()
+                                self.button_addList2 = QtShortCuts.QPushButton(None, "cancel", self.reject)
+                                def accept():
+                                    self.mode = "pair"
+                                    self.accept()
+                                self.button_addList1 = QtShortCuts.QPushButton(None, "ok", accept)
+                        with self.tabs.createTab("Time Stacks") as self.tab2:
+                            self.outputText2 = QtShortCuts.QInputFolder(None, "output", settings=settings,
+                                                                       settings_key="batch/wildcard2", allow_edit=True)
+                            with QtShortCuts.QHBoxLayout() as layout3:
+                                self.stack_before2 = StackSelector(layout3, "time series", use_time=True)
+                                self.stack_before2.glob_string_changed.connect(lambda x, y: self.input_relaxed2.setText(y.replace("*", "?")))
+                            with QtShortCuts.QHBoxLayout() as layout3:
+                                self.input_relaxed2 = QtWidgets.QLineEdit().addToLayout()
+                            with QtShortCuts.QHBoxLayout() as layout3:
+                                # self.button_clear = QtShortCuts.QPushButton(None, "clear list", self.clear_files)
+                                layout3.addStretch()
+                                self.button_addList3 = QtShortCuts.QPushButton(None, "cancel", self.reject)
+                                def accept():
+                                    self.mode = "time"
+                                    self.accept()
+                                self.button_addList4 = QtShortCuts.QPushButton(None, "ok", accept)
+
+                        with self.tabs.createTab("Existing Files") as self.tab3:
+                            self.outputText3 = QtShortCuts.QInputFilename(None, "output", settings=settings, file_type="Results Files (*.npz)",
+                                                                       settings_key="batch/wildcard_existing", allow_edit=True, existing=True)
+                            with QtShortCuts.QHBoxLayout() as layout3:
+                                # self.button_clear = QtShortCuts.QPushButton(None, "clear list", self.clear_files)
+                                layout3.addStretch()
+                                self.button_addList6 = QtShortCuts.QPushButton(None, "cancel", self.reject)
+                                def accept():
+                                    self.mode = "existing"
+                                    self.accept()
+                                self.button_addList5 = QtShortCuts.QPushButton(None, "ok", accept)
         #getStack
         dialog = AddFilesDialog(self)
         if not dialog.exec():
             return
 
-        results1, output_base = double_glob(dialog.input_deformed.text())
-        results2, _ = double_glob(dialog.input_relaxed.text())
-        voxel_size1 = dialog.stack_before.getVoxelSize()
-        voxel_size2 = dialog.stack_after.getVoxelSize()
+        if dialog.mode == "pair":
+            results1, output_base = format_glob(dialog.input_relaxed.text())
+            results2, _ = format_glob(dialog.input_deformed.text())
+            voxel_size1 = dialog.stack_relaxed.getVoxelSize()
+            voxel_size2 = dialog.stack_deformed.getVoxelSize()
+            print(results1)
 
-        for r1, r2 in zip(results1, results2):
-            output = Path(dialog.outputText.value()) / os.path.relpath(r1, output_base)
-            output = output.parent / output.stem
-            output = Path(str(output).replace("*", "")+".npz")
+            for (r1, d1), (r2, d2) in zip(results1.groupby("template").max().iterrows(), results2.groupby("template").max().iterrows()):
+                output = Path(dialog.outputText.value()) / os.path.relpath(r1, output_base)
+                output = output.parent / output.stem
+                output = Path(str(output).replace("*", "") + ".npz")
 
-            if output.exists():
-                print('exists', output)
-                data = Result.load(output)
-            else:
-                print("new")
-                data = Result(
-                    output=output,
-                    stack=[Stack(r1, voxel_size1), Stack(r2, voxel_size2)],
-                )
-                data.save()
-            print(r1, r2, output)
-            self.list.addData(r1, True, data, mpl.colors.to_hex(f"gray"))
+                r1 = r1.format(z="*")
+                r2 = r2.format(z="*")
+
+                if output.exists():
+                    print('exists', output)
+                    data = Result.load(output)
+                else:
+                    print("new")
+                    data = Result(
+                        output=output,
+                        stack=[Stack(r1, voxel_size1), Stack(r2, voxel_size2)],
+                    )
+                    data.save()
+                print(r1, r2, output)
+                self.list.addData(str(output), True, data, mpl.colors.to_hex(f"gray"))
+        elif dialog.mode == "time":
+            results1, output_base = format_glob(dialog.input_relaxed2.text())
+            voxel_size1 = dialog.stack_before2.getVoxelSize()
+            print(results1)
+
+            for template, d in results1.groupby("template"):
+                output = Path(dialog.outputText2.value()) / os.path.relpath(d.iloc[0].template, output_base)
+                output = output.parent / output.stem
+                output = Path(str(output).replace("*", "") + ".npz")
+
+                if output.exists():
+                    print('exists', output)
+                    data = Result.load(output)
+                else:
+                    stacks = []
+                    for t, d0 in d.groupby("t"):
+                        d0 = d0.sort_values(by='z', key=natsort.natsort_keygen())
+                        stacks.append(Stack(d0.filename, voxel_size1))
+
+                    data = Result(
+                        output=output,
+                        stack=stacks,
+                    )
+                    data.save()
+                self.list.addData(str(output), True, data, mpl.colors.to_hex(f"gray"))
+        elif dialog.mode == "existing":
+            for file in glob.glob(dialog.outputText3.value(), recursive=True):
+                data = Result.load(file)
+                self.list.addData(str(file), True, data, mpl.colors.to_hex(f"gray"))
         self.update_icons()
         #import matplotlib as mpl
         #for fiber, cell, out in zip(fiber_list, cell_list, out_list):
@@ -1282,6 +1397,434 @@ class BatchEvaluate(QtWidgets.QWidget):
         if self.list.currentRow() is not None:
             pipe = self.data[self.list.currentRow()][2]
             self.set_current_result.emit(pipe)
+
+
+
+class PlottingWindow(QtWidgets.QWidget):
+    progress_signal = QtCore.Signal(int, int, int, int)
+    finished_signal = QtCore.Signal()
+    thread = None
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+
+        # QSettings
+        self.settings = QtCore.QSettings("Saenopy", "Seanopy")
+
+        self.setMinimumWidth(800)
+        self.setMinimumHeight(400)
+        self.setWindowTitle("Saenopy Evaluation")
+
+        self.images = []
+        self.data_folders = []
+        self.current_plot_func = lambda: None
+
+        with QtShortCuts.QHBoxLayout(self) as main_layout:
+            with QtShortCuts.QVBoxLayout() as layout:
+                with QtShortCuts.QGroupBox(None, "Groups") as (_, layout2):
+                    layout2.setContentsMargins(0, 3, 0, 1)
+                    self.list = ListWidget(layout2, True, add_item_button="add group", color_picker=True)
+                    self.list.setStyleSheet("QListWidget{border: none}")
+                    self.list.itemSelectionChanged.connect(self.listSelected)
+                    self.list.itemChanged.connect(self.replot)
+                    self.list.itemChanged.connect(self.update_group_name)
+                    self.list.addItemClicked.connect(self.addGroup)
+
+                with QtShortCuts.QGroupBox(layout, "Group") as (self.box_group, layout2):
+                    layout2.setContentsMargins(0, 3, 0, 1)
+                    self.list2 = ListWidget(layout2, add_item_button="add files")
+                    self.list2.setStyleSheet("QListWidget{border: none}")
+                    self.list2.itemSelectionChanged.connect(self.run2)
+                    self.list2.itemChanged.connect(self.replot)
+                    self.list2.addItemClicked.connect(self.addFiles)
+
+                    self.setAcceptDrops(True)
+
+            with QtShortCuts.QGroupBox(main_layout, "Plot Forces") as (_, layout):
+                self.type = QtShortCuts.QInputChoice(None, "type", "Pressure", ["Pressure", "Contractility"])
+                self.type.valueChanged.connect(self.replot)
+                self.dt = QtShortCuts.QInputString(None, "dt", 2, unit="min", type=float)
+                self.dt.valueChanged.connect(self.replot)
+                self.input_tbar = QtShortCuts.QInputString(None, "Comparison Time", 2, type=float)
+                self.input_tbar_unit = QtShortCuts.QInputChoice(self.input_tbar.layout(), None, "min", ["steps", "min", "h"])
+                self.input_tbar_unit.valueChanged.connect(self.replot)
+                self.input_tbar.valueChanged.connect(self.replot)
+
+                self.canvas = MatplotlibWidget(self)
+                layout.addWidget(self.canvas)
+                layout.addWidget(NavigationToolbar(self.canvas, self))
+
+                with QtShortCuts.QHBoxLayout() as layout2:
+                    self.button_export = QtShortCuts.QPushButton(layout2, "Export", self.export)
+                    layout2.addStretch()
+                    self.button_run = QtShortCuts.QPushButton(layout2, "Single Time Course", self.run2)
+                    self.button_run2 = QtShortCuts.QPushButton(layout2, "Grouped Time Courses", self.plot_groups)
+                    self.button_run3 = QtShortCuts.QPushButton(layout2, "Grouped Bar Plot", self.barplot)
+                    self.plot_buttons = [self.button_run, self.button_run2, self.button_run3]
+                    for button in self.plot_buttons:
+                        button.setCheckable(True)
+
+        self.list.setData(self.data_folders)
+        self.addGroup()
+        self.current_plot_func = self.run2
+
+    def dragEnterEvent(self, event: QtGui.QDragEnterEvent):
+        # accept url lists (files by drag and drop)
+        for url in event.mimeData().urls():
+            # if str(url.toString()).strip().endswith(".npz"):
+            event.accept()
+            return
+        event.ignore()
+
+    def dragMoveEvent(self, event: QtGui.QDragMoveEvent):
+        event.acceptProposedAction()
+
+    def dropEvent(self, event: QtCore.QEvent):
+        urls = []
+        for url in event.mimeData().urls():
+            print(url)
+            url = url.path()
+            if url[0] == "/" and url[2] == ":":
+                url = url[1:]
+            print(url)
+            if url.endswith(".npz"):
+                urls += [url]
+            else:
+                urls += glob.glob(url + "/**/*.npz", recursive=True)
+        self.add_files(urls)
+
+    def add_files(self, urls):
+        current_group = self.list2.data
+        current_files = [d[0] for d in current_group]
+        for file in urls:
+            if file in current_files:
+                print("File already in list", file)
+                continue
+            try:
+                print("Add file", file)
+                res = Result.load(file)
+                res.resulting_data = []
+                for M in res.solver:
+                    res.resulting_data.append({
+                        "time": 0,
+                        "strain_energy": M.E_glo,
+                        "contractility": M.getContractility(center_mode="force"),
+                        "polarity": M.getPolarity(),
+                        "99_percentile_deformation": np.nanpercentile(np.linalg.norm(M.U_target[M.reg_mask], axis=1), 99),
+                        "99_percentile_force": np.nanpercentile(np.linalg.norm(M.f[M.reg_mask], axis=1), 99),
+                        "filename": file,
+                    })
+                res.resulting_data = pd.DataFrame(res.resulting_data)
+                if self.list2.data is current_group:
+                    self.list2.addData(file, True, res)
+                    print("replot")
+                    self.replot()
+                app.processEvents()
+            except FileNotFoundError:
+                continue
+
+    def update_group_name(self):
+        if self.list.currentItem() is not None:
+            self.box_group.setTitle(f"Files for '{self.list.currentItem().text()}'")
+            self.box_group.setEnabled(True)
+        else:
+            self.box_group.setEnabled(False)
+
+    def addGroup(self):
+        import matplotlib as mpl
+        text = f"Group{1+len(self.data_folders)}"
+        item = self.list.addData(text, True, [], mpl.colors.to_hex(f"C{len(self.data_folders)}"))
+        self.list.setCurrentItem(item)
+        self.list.editItem(item)
+
+    def addFiles(self):
+        settings = self.settings
+        class AddFilesDialog(QtWidgets.QDialog):
+            def __init__(self, parent):
+                super().__init__(parent)
+                self.setWindowTitle("Add Files")
+                with QtShortCuts.QVBoxLayout(self) as layout:
+                    self.label = QtWidgets.QLabel("Select a path as an input wildcard. Use * to specify a placeholder. All paths that match the wildcard will be added.")
+                    layout.addWidget(self.label)
+                    def checker(filename):
+                        return filename + "/**/result.xlsx"
+                    self.inputText = QtShortCuts.QInputFolder(None, None, settings=settings, filename_checker=checker,
+                                                                settings_key="batch_eval/wildcard", allow_edit=True)
+                    with QtShortCuts.QHBoxLayout() as layout3:
+                        # self.button_clear = QtShortCuts.QPushButton(None, "clear list", self.clear_files)
+                        layout3.addStretch()
+                        self.button_addList = QtShortCuts.QPushButton(None, "cancel", self.reject)
+                        self.button_addList = QtShortCuts.QPushButton(None, "ok", self.accept)
+
+        dialog = AddFilesDialog(self)
+        if not dialog.exec():
+            return
+
+        text = os.path.normpath(dialog.inputText.value())
+        files = glob.glob(text, recursive=True)
+
+        current_group = self.list2.data
+        current_files = [d[0] for d in current_group]
+        for file in files:
+            if file in current_files:
+                print("File already in list", file)
+                continue
+            try:
+                print("Add file", file)
+                res = self.getPandasData(file)
+                if self.list2.data is current_group:
+                    self.list2.addData(file, True, res)
+                    print("replot")
+                    self.replot()
+                app.processEvents()
+            except FileNotFoundError:
+                continue
+
+    def getPandasData(self, file):
+        res = pd.read_excel(file)
+        res["filename"] = file
+        res["index"] = res["Unnamed: 0"]
+        del res["Unnamed: 0"]
+        res["group"] = file
+        return res
+
+    def listSelected(self):
+        try:
+            data = self.data_folders[self.list.currentRow()]
+        except IndexError:
+            return
+        self.update_group_name()
+        self.list2.setData(data[2])
+
+    def getAllCurrentPandasData(self):
+        results = []
+        for name, checked, files, color in self.data_folders:
+            if checked != 0:
+                for name2, checked2, res, color in files:
+                    if checked2 != 0:
+                        res.resulting_data["group"] = name
+                        results.append(res.resulting_data)
+        res = pd.concat(results)
+        #res["t"] = res["index"] * self.dt.value() / 60
+        res.to_csv("tmp_pandas.csv")
+        return res
+
+    def replot(self):
+        if self.current_plot_func is not None:
+            self.current_plot_func()
+
+    def get_comparison_index(self):
+        if self.input_tbar.value() is None:
+            return None
+        if self.input_tbar_unit.value() == "steps":
+            index = int(np.floor(self.input_tbar.value() + 0.5))
+        elif self.input_tbar_unit.value() == "min":
+            index = int(np.floor(self.input_tbar.value() / self.dt.value() + 0.5))
+        else:
+            index = int(np.floor(self.input_tbar.value() * 60 / self.dt.value() + 0.5))
+        return index
+
+    def barplot(self):
+        for button in self.plot_buttons:
+            button.setChecked(False)
+        self.button_run3.setChecked(True)
+        self.current_plot_func = self.barplot
+        self.canvas.setActive()
+        plt.cla()
+        if self.type.value() == "Contractility":
+            mu_name = 'contractility'
+            y_label = 'Contractility (µN)'
+        else:
+            mu_name = 'polarity'
+            y_label = 'Pressure (Pa)'
+
+        # get all the data as a pandas dataframe
+        res = self.getAllCurrentPandasData()
+
+        # limit the dataframe to the comparison time
+        #index = self.get_comparison_index()
+        #res = res[res.index == index]
+
+        code_data = [res, ["group", mu_name, "filename"]]
+
+        color_dict = {d[0]: d[3] for d in self.data_folders}
+
+        def plot(res, mu_name, y_label, color_dict2):
+            # define the colors
+            color_dict = color_dict2
+
+            # iterate over the groups
+            for name, data in res.groupby("group", sort=False)[mu_name]:
+                # add the bar with the mean value and the standard error as errorbar
+                plt.bar(name, data.mean(), yerr=data.sem(), error_kw=dict(capsize=5), color=color_dict[name])
+                # add the number of averaged points
+                plt.text(name, data.mean() + data.sem(), f"n={data.count()}", ha="center", va="bottom")
+
+            # add ticks and labels
+            plt.ylabel(y_label)
+            # despine the axes
+            plt.gca().spines["top"].set_visible(False)
+            plt.gca().spines["right"].set_visible(False)
+            plt.tight_layout()
+            # show the plot
+            self.canvas.draw()
+
+        code = execute(plot, code_data[0][code_data[1]], mu_name=mu_name, y_label=y_label, color_dict2=color_dict)
+
+        self.export_data = [code, code_data]
+
+    def plot_groups(self):
+        for button in self.plot_buttons:
+            button.setChecked(False)
+        self.button_run2.setChecked(True)
+        self.current_plot_func = self.plot_groups
+        return
+        if self.type.value() == "Contractility":
+            mu_name = 'Mean Contractility (µN)'
+            std_name = 'St.dev. Contractility (µN)'
+            y_label = 'Contractility (µN)'
+        else:
+            mu_name = 'Mean Pressure (Pa)'
+            std_name = 'St.dev. Pressure (Pa)'
+            y_label = 'Pressure (Pa)'
+
+        self.canvas.setActive()
+        plt.cla()
+        res = self.getAllCurrentPandasData()
+
+        code_data = [res, ["t", "group", mu_name, "filename"]]
+
+        # add a vertical line where the comparison time is
+        if self.input_tbar.value() is not None:
+            comp_h = self.get_comparison_index() * self.dt.value() / 60
+            plt.axvline(comp_h, color="k")
+
+        color_dict = {d[0]: d[3] for d in self.data_folders}
+
+        def plot(res, mu_name, y_label, color_dict2):
+            # define the colors
+            color_dict = color_dict2
+
+            # iterate over the groups
+            for group_name, data in res.groupby("group", sort=False):
+                # get the mean and sem
+                x = data.groupby("t")[mu_name].agg(["mean", "sem", "count"])
+                # plot the mean curve
+                p, = plt.plot(x.index, x["mean"], color=color_dict[group_name], lw=2, label=f"{group_name} (n={int(x['count'].mean())})")
+                # add a shaded area for the standard error
+                plt.fill_between(x.index, x["mean"] - x["sem"], x["mean"] + x["sem"], facecolor=p.get_color(), lw=0, alpha=0.5)
+
+            # add a grid
+            plt.grid(True)
+            # add labels
+            plt.xlabel('Time (h)')
+            plt.ylabel(y_label)
+            plt.tight_layout()
+            plt.legend()
+
+            # show
+            self.canvas.draw()
+
+        code = execute(plot, code_data[0][code_data[1]], mu_name=mu_name, y_label=y_label, color_dict2=color_dict)
+
+        self.export_data = [code, code_data]
+        return
+
+    def run2(self):
+        for button in self.plot_buttons:
+            button.setChecked(False)
+        self.button_run.setChecked(True)
+        return
+        self.current_plot_func = self.run2
+        if self.type.value() == "Contractility":
+            mu_name = 'Mean Contractility (µN)'
+            std_name = 'St.dev. Contractility (µN)'
+            y_label = 'Contractility (µN)'
+        else:
+            mu_name = 'Mean Pressure (Pa)'
+            std_name = 'St.dev. Pressure (Pa)'
+            y_label = 'Pressure (Pa)'
+
+        try:
+            res = self.data_folders[self.list.currentRow()][2][self.list2.currentRow()][2]
+        except IndexError:
+            return
+
+        #plt.figure(figsize=(6, 3))
+        code_data = [res, ["t", mu_name, std_name]]
+
+        res["t"] = res.index * self.dt.value() / 60
+
+        self.canvas.setActive()
+        plt.cla()
+
+        def plot(res, mu_name, std_name, y_label, plot_color):
+            mu = res[mu_name]
+            std = res[std_name]
+
+            # plot time course of mean values
+            p, = plt.plot(res.t, mu, lw=2, color=plot_color)
+            # add standard deviation area
+            plt.fill_between(res.t, mu - std, mu + std, facecolor=p.get_color(), lw=0, alpha=0.5)
+
+            # add grid
+            plt.grid(True)
+            # add labels
+            plt.xlabel('Time (h)')
+            plt.ylabel(y_label)
+            plt.tight_layout()
+
+            # show the plot
+            self.canvas.draw()
+
+        code = execute(plot, code_data[0][code_data[1]], mu_name=mu_name, std_name=std_name, y_label=y_label, plot_color=self.data_folders[self.list.currentRow()][3])
+
+        self.export_data = [code, code_data]
+
+    def export(self):
+        settings = self.settings
+        class AddFilesDialog(QtWidgets.QDialog):
+            def __init__(self, parent):
+                super().__init__(parent)
+                self.setWindowTitle("Export Plot")
+                with QtShortCuts.QVBoxLayout(self) as layout:
+                    self.label = QtWidgets.QLabel("Select a path to export the plot script with the data.")
+                    layout.addWidget(self.label)
+                    self.inputText = QtShortCuts.QInputFilename(None, None, file_type="Python Script (*.py)", settings=settings,
+                                                                settings_key="batch_eval/export_plot", existing=False)
+                    self.strip_data = QtShortCuts.QInputBool(None, "export only essential data columns", True, settings=settings, settings_key="batch_eval/export_complete_df")
+                    self.include_df = QtShortCuts.QInputBool(None, "include dataframe in script", True, settings=settings, settings_key="batch_eval/export_include_df")
+                    with QtShortCuts.QHBoxLayout() as layout3:
+                        # self.button_clear = QtShortCuts.QPushButton(None, "clear list", self.clear_files)
+                        layout3.addStretch()
+                        self.button_addList = QtShortCuts.QPushButton(None, "cancel", self.reject)
+                        self.button_addList = QtShortCuts.QPushButton(None, "ok", self.accept)
+
+        dialog = AddFilesDialog(self)
+        if not dialog.exec():
+            return
+
+        with open(str(dialog.inputText.value()), "wb") as fp:
+            code = ""
+            code += "import matplotlib.pyplot as plt\n"
+            code += "import pandas as pd\n"
+            code += "import io\n"
+            code += "\n"
+            code += "# the data for the plot\n"
+            res, columns = self.export_data[1]
+            if dialog.strip_data.value() is False:
+                columns = None
+            if dialog.include_df.value() is True:
+                code += "csv_data = r'''" + res.to_csv(columns=columns) + "'''\n"
+                code += "# load the data as a DataFrame\n"
+                code += "res = pd.read_csv(io.StringIO(csv_data))\n\n"
+            else:
+                csv_file = str(dialog.inputText.value()).replace(".py", "_data.csv")
+                res.to_csv(csv_file, columns=columns)
+                code += "# load the data from file\n"
+                code += f"res = pd.read_csv('{csv_file}')\n\n"
+            code += self.export_data[0]
+            fp.write(code.encode("utf8"))
 
 
 
@@ -1301,7 +1844,7 @@ class MainWindow(QtWidgets.QWidget):
 
         with QtShortCuts.QTabWidget(main_layout) as self.tabs:
             """ """
-            with self.tabs.createTab("Compaction") as v_layout:
+            with self.tabs.createTab("Analyse Measurements") as v_layout:
                 with QtShortCuts.QHBoxLayout() as h_layout:
                     # self.deformations = Deformation(h_layout, self)
                     self.deformations = BatchEvaluate(self)
@@ -1318,6 +1861,10 @@ class MainWindow(QtWidgets.QWidget):
                     h_layout.addStretch()
                     #self.button_previous = QtShortCuts.QPushButton(None, "back", self.previous)
                     #self.button_next = QtShortCuts.QPushButton(None, "next", self.next)
+            with self.tabs.createTab("Data Analysis") as v_layout:
+                with QtShortCuts.QHBoxLayout() as h_layout:
+                    # self.deformations = Deformation(h_layout, self)
+                    self.deformations = PlottingWindow(self).addToLayout()
 
 
 if __name__ == '__main__':

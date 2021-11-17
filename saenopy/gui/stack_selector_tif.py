@@ -97,7 +97,7 @@ class StackSelectorTif(QtWidgets.QWidget):
     no_update = False
     stack = None
 
-    def __init__(self, parent):
+    def __init__(self, parent, use_time=False):
         super().__init__()
         self.parent = parent
         main_layout = QtWidgets.QVBoxLayout(self)
@@ -105,12 +105,17 @@ class StackSelectorTif(QtWidgets.QWidget):
         self.setVisible(False)
 
         self.property_selectors = []
-        self.property_layout = QtWidgets.QVBoxLayout(self)
+        self.property_layout = QtWidgets.QVBoxLayout()
         self.property_layout.setContentsMargins(0, 0, 0, 0)
         main_layout.addLayout(self.property_layout)
 
         self.z_prop = QtShortCuts.QInputChoice(main_layout, "property to use for z")
         self.z_prop.valueChanged.connect(self.showImage)
+
+        self.use_time = use_time
+        if use_time is True:
+            self.t_prop = QtShortCuts.QInputChoice(main_layout, "property to use for t")
+            self.t_prop.valueChanged.connect(self.showImage)
 
         layout_voxel = QtWidgets.QHBoxLayout()
         main_layout.addLayout(layout_voxel)
@@ -153,11 +158,12 @@ class StackSelectorTif(QtWidgets.QWidget):
 
         properties = []
         z_name = None
-        last_name = None
+        t_name = None
+        names = []
         for col in df.columns:
             if col == "filename":
                 continue
-            last_name = col
+            names.append(col)
 
             prop = QtShortCuts.QInputChoice(self.property_layout, col, str(selected_prop[col]), [str(i) for i in df[col].unique()])
             prop.valueChanged.connect(self.propertiesChanged)
@@ -166,11 +172,18 @@ class StackSelectorTif(QtWidgets.QWidget):
             properties.append(col)
             if col == "z":
                 z_name = col
+            if col == "t":
+                t_name = col
         if z_name is None:
-            z_name = last_name
+            z_name = names.pop()
+        if t_name is None:
+            t_name = names.pop()
 
         self.z_prop.setValues(properties)
         self.z_prop.setValue(z_name)
+        if self.use_time:
+            self.t_prop.setValues(properties)
+            self.t_prop.setValue(t_name)
 
         self.setVisible(True)
         self.df = df
@@ -179,9 +192,12 @@ class StackSelectorTif(QtWidgets.QWidget):
     def propertiesChanged(self):
         z_prop_name = self.z_prop.value()
         d = self.df
-        selected_props_dict = {z_prop_name: "*"}
+        selected_props_dict = {z_prop_name: "{z}"}
+        if self.use_time:
+            t_prop_name = self.t_prop.value()
+            selected_props_dict[t_prop_name] = "{t}"
         for prop in self.property_selectors:
-            if prop.name == z_prop_name:
+            if prop.name == z_prop_name or (self.use_time and prop.name == t_prop_name):
                 prop.setEnabled(False)
                 continue
             else:

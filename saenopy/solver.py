@@ -997,6 +997,46 @@ class Solver(Saveable):
 
     #     return results
 
+    def getPolarity(self):
+
+        inner = self.reg_mask
+        f = self.f[inner]
+        R = self.R[inner]
+
+        fsum = np.sum(f, axis=0)
+
+        # B1 += self.R[c] * np.sum(f**2)
+        B1 = np.einsum("ni,ni,nj->j", f, f, R)
+        # B2 += f * (self.R[c] @ f)
+        B2 = np.einsum("ki,ki,kj->j", f, R, f)
+
+        # A += I * np.sum(f**2) - np.outer(f, f)
+        A = np.sum(np.einsum("ij,kl,kl->kij", np.eye(3), f, f) - np.einsum("ki,kj->kij", f, f), axis=0)
+
+        B = B1 - B2
+
+        Rcms = np.linalg.inv(A) @ B
+
+
+        RR = R - Rcms
+        contractility = np.sum(np.einsum("ki,ki->k", RR, f) / np.linalg.norm(RR, axis=1))
+
+        vecs = buildBeams(150)
+
+        eR = RR / np.linalg.norm(RR, axis=1)[:, None]
+        f = self.f[inner]
+
+        # (eR @ vecs[b]) * (vecs[b] @ self.f_glo[c])
+        ff = np.sum(np.einsum("ni,bi->nb", eR, vecs) * np.einsum("bi,ni->nb", vecs, f), axis=0)
+        # (RR @ vecs[b]) * (vecs[b] @ self.f_glo[c])
+        mm = np.sum(np.einsum("ni,bi->nb", RR, vecs) * np.einsum("bi,ni->nb", vecs, f), axis=0)
+
+        bmax = np.argmax(mm)
+        fmax = ff[bmax]
+
+
+        return fmax / contractility
+
     def storePrincipalStressAndStiffness(self, sbname, sbminname, epkname):
         return # TODO
         sbrec = []

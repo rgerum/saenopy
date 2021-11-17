@@ -8,7 +8,7 @@ from saenopy.gui import QtShortCuts
 
 class StackSelectorLeica(QtWidgets.QWidget):
     no_update = False
-    def __init__(self, parent):
+    def __init__(self, parent, use_time=False):
         super().__init__()
         self.parent = parent
         main_layout = QtWidgets.QVBoxLayout(self)

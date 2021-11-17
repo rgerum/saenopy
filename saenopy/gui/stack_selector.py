@@ -367,7 +367,7 @@ class StackSelector(QtWidgets.QWidget):
     stack_changed = QtCore.Signal()
     glob_string_changed = QtCore.Signal(str, object)
 
-    def __init__(self, layout, name, partner=None):
+    def __init__(self, layout, name, partner=None, use_time=False):
         super().__init__()
         self.name = name
         self.partner = partner
@@ -389,7 +389,7 @@ class StackSelector(QtWidgets.QWidget):
 
         self.selectors = []
         for selector in [StackSelectorLeica, StackSelectorTif]:
-            selector_instance = selector(self)
+            selector_instance = selector(self, use_time=use_time)
             self.selectors.append(selector_instance)
             main_layout.addWidget(selector_instance)
 
