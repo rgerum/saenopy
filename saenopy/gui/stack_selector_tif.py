@@ -119,12 +119,24 @@ class StackSelectorTif(QtWidgets.QWidget):
 
         layout_voxel = QtWidgets.QHBoxLayout()
         main_layout.addLayout(layout_voxel)
-        self.input_voxel_size = QtShortCuts.QInputString(layout_voxel, "Voxel size (xyz) (µm)", "1, 1, 1")
+
+        self.input_voxel_size = QtShortCuts.QInputString(layout_voxel, "Voxel size (xyz) (µm)", "0, 0, 0", validator=self.validator)
+        self.input_voxel_size.valueChanged.connect(self.input_voxel_size_changed)
 
         self.label = QtWidgets.QLabel()
         layout_voxel.addWidget(self.label)
 
         self.stack_initialized = None
+
+    def validator(self, value=None):
+        try:
+            size = self.getVoxelSize(value)
+
+            if len(size) != 3 or np.any(np.array(size) == 0):
+                return False
+            return True
+        except ValueError:
+            return False
 
     def checkAcceptFilename(self, filename):
         return filename.endswith(".tif") or filename.endswith(".png") or filename.endswith(".jpg") or filename.endswith(".jpeg")
@@ -223,6 +235,15 @@ class StackSelectorTif(QtWidgets.QWidget):
 
         self.showImage()
 
+    def input_voxel_size_changed(self):
+        if not self.validator(None):
+            return
+        voxel_size = self.getVoxelSize()
+        im = self.im
+        shape = (im.shape[1], im.shape[0], self.parent.z_count)
+        shape2 = np.array(shape) * np.array(voxel_size)
+        self.label.setText(f"{shape2}µm")
+
     def check_initialized(self, index):
         if self.stack_initialized is False:
             return False
@@ -255,11 +276,15 @@ class StackSelectorTif(QtWidgets.QWidget):
             self.check_initialized(self.parent.getZ())
             im = self.stack[:, :, self.parent.getZ()]
             self.parent.setImage(im)
-        self.label.setText(f"({im.shape[1]}, {im.shape[0]}, {self.parent.z_count})")
+        self.im = im
+        self.label.setText(f"({im.shape[1]}, {im.shape[0]}, {self.parent.z_count})px")
+        self.input_voxel_size_changed()
         #self.label.setText(f"Voxel {self.im.scale[0]:.3}µm x {self.im.scale[1]:.3}µm x {self.im.scale[2]:.3}µm ({im.shape[1]}, {im.shape[0]}, {self.im.nz})")
 
-    def getVoxelSize(self):
-        return [float(x.strip("[,]")) for x in self.input_voxel_size.value().split()]
+    def getVoxelSize(self, value=None):
+        if value is None:
+            value = self.input_voxel_size.value()
+        return [float(x) for x in re.split(r"[\[\](), ]+", value) if x != ""]
 
     def getStack(self):
         return self.stack

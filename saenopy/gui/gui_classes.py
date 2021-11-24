@@ -434,3 +434,102 @@ class ListWidget(QtWidgets.QListWidget):
         item.setFlags(self.flags)
         item.setCheckState(QtCore.Qt.Checked if checked else QtCore.Qt.Unchecked)
         return item
+
+
+
+"""  """
+
+from multiprocessing import Process, Queue
+
+
+class SignalReturn:
+    pass
+
+def call_func(func: callable, queue_in: Queue, queue_out: Queue):
+    args = queue_in.get()
+    kwargs = queue_in.get()
+    returns = func(queue_out, *args, **kwargs)
+    queue_out.put(SignalReturn())
+    queue_out.put(returns)
+
+
+class ProcessSimple:
+    def __init__(self, target, args=[], kwargs={}, progress_signal=None):
+        self.queue_in = Queue()
+        self.queue_out = Queue()
+        self.args = args
+        self.kwargs = kwargs
+        self.progress_signal = progress_signal
+        self.process = Process(target=call_func, args=(target, self.queue_in, self.queue_out))
+
+    def start(self):
+        self.process.start()
+        self.queue_in.put(self.args)
+        self.queue_in.put(self.kwargs)
+
+    def join(self):
+        while True:
+            result = self.queue_out.get()
+            if isinstance(result, SignalReturn):
+                result = self.queue_out.get()
+                break
+            elif self.progress_signal is not None:
+                self.progress_signal.emit(result)
+        self.process.join()
+        return result
+
+
+# Step 1: Create a worker class
+class Worker(QtCore.QObject):
+    finished = QtCore.Signal(object)
+    progress = QtCore.Signal(object)
+
+    def __init__(self, func, args, kwargs):
+        super().__init__()
+        self.func = func
+        self.args = args
+        self.kwargs = kwargs
+
+    def run(self):
+        """Long-running task."""
+        p = ProcessSimple(self.func, self.args, self.kwargs, progress_signal=self.progress)
+        p.start()
+        result = p.join()
+        #for i in range(5):
+        #    time.sleep(1)
+        #    self.progress.emit(i + 1)
+        self.finished.emit(result)
+
+class QProcess(QtCore.QObject):
+    result = None
+    finished = QtCore.Signal()
+    progress = QtCore.Signal(object)
+
+    def __init__(self, func, *args, **kwargs):
+        super().__init__()
+        # Step 2: Create a QThread object
+        self.thread = QtCore.QThread()
+        # Step 3: Create a worker object
+        self.worker = Worker(func, args, kwargs)
+        # Step 4: Move worker to the thread
+        self.worker.moveToThread(self.thread)
+        # Step 5: Connect signals and slots
+        self.thread.started.connect(self.worker.run)
+        #self.worker.finished.connect(self.thread.quit)
+        #self.worker.finished.connect(self.worker.deleteLater)
+        #self.worker.finished.connect(self.finished)
+        self.worker.finished.connect(self.set_result)
+        self.worker.progress.connect(self.progress)
+        self.thread.finished.connect(self.thread.deleteLater)
+        #self.worker.progress.connect(self.reportProgress)
+
+        # Step 6: Start the thread
+        self.thread.start()
+
+    def set_result(self, result):
+        self.result = result
+        self.thread.quit()
+        self.worker.deleteLater()
+        self.finished.emit()
+
+

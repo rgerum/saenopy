@@ -18,7 +18,7 @@ import saenopy
 import saenopy.multigridHelper
 from saenopy.gui import QtShortCuts, QExtendedGraphicsView
 from saenopy.gui.stack_selector import StackSelector
-from saenopy.gui.gui_classes import Spoiler, CheckAbleGroup, QHLine, QVLine, MatplotlibWidget, NavigationToolbar, execute, kill_thread, ListWidget
+from saenopy.gui.gui_classes import Spoiler, CheckAbleGroup, QHLine, QVLine, MatplotlibWidget, NavigationToolbar, execute, kill_thread, ListWidget, QProcess, ProcessSimple
 import imageio
 from qimage2ndarray import array2qimage
 import matplotlib.pyplot as plt
@@ -44,14 +44,14 @@ from typing import List
 #\\131.188.117.96\biophysDS\lbischof\tif_and_analysis_backup\2021-06-02-NK92-Blebb-Rock\Blebb-round1\Mark_and_Find_001
 
 
-def showVectorField(plotter, obj, name, show_nan=True, show_all_points=False, factor=5):
-    try:
-        field = getattr(obj, name)
-    except AttributeError:
-        field = obj.getNodeVar(name)
+def showVectorField(plotter, obj, field, name, show_nan=True, show_all_points=False, factor=.1, scalebar_max=None):
+    #try:
+    #    field = getattr(obj, name)
+    #except AttributeError:
+    #    field = obj.getNodeVar(name)
     nan_values = np.isnan(field[:, 0])
 
-    plotter.clear()
+    #plotter.clear()
 
     point_cloud = pv.PolyData(obj.R)
     point_cloud.point_arrays[name] = field
@@ -65,13 +65,22 @@ def showVectorField(plotter, obj, name, show_nan=True, show_all_points=False, fa
         if R.shape[0]:
             point_cloud2 = pv.PolyData(R)
             point_cloud2.point_arrays["nan"] = obj.R[nan_values, 0] * np.nan
-            plotter.add_mesh(point_cloud2, colormap="turbo", scalars="nan", show_scalar_bar=False)
+            plotter.nan_actor = plotter.add_mesh(point_cloud2, colormap="turbo", scalars="nan", show_scalar_bar=False)
+    else:
+        if getattr(plotter, "nan_actor", None) is not None:
+            plotter.remove_actor(plotter.nan_actor)
+
+    norm_stack_size = np.abs(np.max(obj.R) - np.min(obj.R))
+    if scalebar_max is None:
+        factor = factor * norm_stack_size / np.nanmax(point_cloud[name + "_mag2"])#np.nanpercentile(point_cloud[name + "_mag2"], 99.9)
+    else:
+        factor = factor * norm_stack_size / scalebar_max
 
     # generate the arrows
     arrows = point_cloud.glyph(orient=name, scale=name + "_mag2", factor=factor)
 
     title = name
-    if name == "U_measured" or name == "U_target":
+    if name == "U_measured" or name == "U_target" or name == "U":
         title = "Deformations (m)"
     elif name == "f":
         title = "Forces (N)"
@@ -87,7 +96,11 @@ def showVectorField(plotter, obj, name, show_nan=True, show_all_points=False, fa
                  font_family="arial")
     plotter.add_mesh(arrows, scalar_bar_args=sargs, colormap="turbo", name="arrows")
 
-    plotter.update_scalar_bar_range([0, np.nanpercentile(point_cloud[name + "_mag2"], 99.9)])
+    plotter.auto_value = np.nanpercentile(point_cloud[name + "_mag2"], 99.9)
+    if scalebar_max is None:
+        plotter.update_scalar_bar_range([0, np.nanpercentile(point_cloud[name + "_mag2"], 99.9)])
+    else:
+        plotter.update_scalar_bar_range([0, scalebar_max])
 
     plotter.show_grid(color=plotter._theme.font.color)
     #plotter.renderer.show_bounds(color=plotter._theme.font.color)
@@ -95,7 +108,7 @@ def showVectorField(plotter, obj, name, show_nan=True, show_all_points=False, fa
 
 
 class Result(Saveable):
-    __save_parameters__ = ['output', 'stack', 'piv_parameter', 'mesh_piv',
+    __save_parameters__ = ['stack', 'piv_parameter', 'mesh_piv',
                            'interpolate_parameter', 'solve_parameter', 'solver',
                            '___save_name__', '___save_version__']
     ___save_name__ = "Result"
@@ -120,16 +133,12 @@ class Result(Saveable):
 
         super().__init__(**kwargs)
 
-    def __strX__(self):
-        return f"""
-from saenopy.getDeformations import Stack
-stack_deformed = Stack({self.deformed}) 
-stack_relaxed = Stack({self.relaxed})
-"""
-
     def save(self):
         Path(self.output).parent.mkdir(exist_ok=True, parents=True)
         super().save(self.output)
+
+    def on_load(self, filename):
+        self.output = str(Path(filename))
 
 
 if 0:
@@ -424,6 +433,8 @@ class PipelineModule(QtWidgets.QWidget):
         pass
 
     def ensure_tmp_params_initialized(self, result):
+        if self.params_name is None:
+            return
         # if the results instance does not have the parameter dictionary yet, create it
         if getattr(result, self.params_name + "_tmp", None) is None:
             setattr(result, self.params_name + "_tmp", {})
@@ -572,7 +583,7 @@ vtk_toolbars = []
 class VTK_Toolbar(QtWidgets.QWidget):
     theme_values = [pv.themes.DefaultTheme(), pv.themes.ParaViewTheme(),
                                                           pv.themes.DarkTheme(), pv.themes.DocumentTheme()]
-    def __init__(self, plotter, update_display):
+    def __init__(self, plotter, update_display, scalbar_type="deformation"):
         super().__init__()
         self.plotter = plotter
         self.update_display = update_display
@@ -584,7 +595,12 @@ class VTK_Toolbar(QtWidgets.QWidget):
                                                   values=self.theme_values,
                                                   value_names=["default", "paraview", "dark", "document"])
 
-
+            self.use_nans = QtShortCuts.QInputBool(None, "nans", True, tooltip="Display nodes which do not have values associated as gray dots.")
+            self.use_nans.valueChanged.connect(self.update_display)
+            self.auto_scale = QtShortCuts.QInputBool(None, "auto color", True, tooltip="Automatically choose the maximum for the color scale.")
+            self.auto_scale.valueChanged.connect(self.scale_max_changed)
+            self.scale_max = QtShortCuts.QInputString(None, "max color", 1e-6, type=float, tooltip="Set the maximum of the color scale.")
+            self.scale_max.valueChanged.connect(self.scale_max_changed)
 
             self.theme.valueChanged.connect(lambda x: self.new_plotter(x))
 
@@ -625,6 +641,20 @@ class VTK_Toolbar(QtWidgets.QWidget):
             self.button2 = QtWidgets.QPushButton(qta.icon("fa.floppy-o"), "").addToLayout()
             self.button2.setToolTip("save")
             self.button2.clicked.connect(save)
+
+    def scale_max_changed(self):
+        self.scale_max.setDisabled(self.auto_scale.value())
+        scalebar_max = self.getScaleMax()
+        print(scalebar_max, self.plotter.auto_value, type(self.plotter.auto_value))
+        if scalebar_max is None:
+            self.plotter.update_scalar_bar_range([0, self.plotter.auto_value])
+        else:
+            self.plotter.update_scalar_bar_range([0, scalebar_max])
+
+    def getScaleMax(self):
+        if self.auto_scale.value():
+            return None
+        return self.scale_max.value()
 
     def new_plotter(self, x, no_recursion=False):
         # layout0.removeWidget(self.plotter.interactor)
@@ -668,16 +698,20 @@ class DeformationDetector(PipelineModule):
                     self.label = QtWidgets.QLabel().addToLayout()
                     self.input_button = QtShortCuts.QPushButton(None, "detect deformations", self.start_process)
 
-        with self.parent.tabs.createTab("Deformations") as self.tab:
+        with self.parent.tabs.createTab("PIV Deformations") as self.tab:
             with QtShortCuts.QVBoxLayout() as layout:
+                self.label_tab = QtWidgets.QLabel("The deformations from the piv algorithm at every window where the crosscorrelation was evaluated.").addToLayout()
+
                 self.plotter = QtInteractor(self)#, theme=pv.themes.DocumentTheme())
                 self.tab.parent().plotter = self.plotter
                 self.plotter.set_background("black")
                 #self.plotter.theme = pv.themes.DocumentTheme()
                 self.plotter.reset_camera()
-                VTK_Toolbar(self.plotter, self.update_display).addToLayout()
-
                 layout.addWidget(self.plotter.interactor)
+
+                self.vtk_toolbar = VTK_Toolbar(self.plotter, self.update_display, "deformation").addToLayout()
+
+
 
                 self.t_slider = QTimeSlider(connected=self.update_display).addToLayout()
                 self.tab.parent().t_slider = self.t_slider
@@ -696,8 +730,14 @@ class DeformationDetector(PipelineModule):
         return self.result is not None and self.result.mesh_piv is not None
 
     def update_display(self):
+        cam_pos = None
+        if self.plotter.camera_position is not None:
+            cam_pos = self.plotter.camera_position
         self.plotter.interactor.setToolTip(str(self.result.piv_parameter)+f"\nNodes {self.result.mesh_piv[0].R.shape[0]}\nTets {self.result.mesh_piv[0].T.shape[0]}")
-        showVectorField(self.plotter, self.result.mesh_piv[self.t_slider.value()], "U_measured")
+        M = self.result.mesh_piv[self.t_slider.value()]
+        showVectorField(self.plotter, M, M.getNodeVar("U_measured"), "U_measured", scalebar_max=self.vtk_toolbar.getScaleMax(), show_nan=self.vtk_toolbar.use_nans.value())
+        if cam_pos is not None:
+            self.plotter.camera_position = cam_pos
 
     def valueChanged(self):
         if self.check_available(self.result):
@@ -711,18 +751,41 @@ class DeformationDetector(PipelineModule):
             self.label.setText("")
 
     def process(self, result: Result, params: dict):
-        import tqdm
-        t = tqdm.tqdm
-        n = tqdm.tqdm.__new__
-        tqdm.tqdm.__new__ = lambda cls, iter: self.parent.progressbar.iterator(iter)
+
         if not isinstance(result.mesh_piv, list):
             result.mesh_piv = [None]*(len(result.stack)-1)
+
         for i in range(len(result.stack)-1):
-            result.mesh_piv[i] = saenopy.getDeformations.getDisplacementsFromStacks2(result.stack[i], result.stack[i+1],
-                                       params["win_um"], params["fac_overlap"], params["signoise_filter"],
-                                       params["drift_correction"])
+            p = ProcessSimple(getDeformation, (i, result, params), {})
+            p.start()
+            result.mesh_piv[i] = p.join()
+
+            if 0:
+                fini = False
+                def finished():
+                    nonlocal fini
+                    result.mesh_piv[i] = process.result
+                    fini = True
+                process = QProcess(getDeformation, result, params)
+                process.finished.connect(finished)
+                while fini:
+                    pass
+                #result.mesh_piv[i] = saenopy.getDeformations.getDisplacementsFromStacks2(result.stack[i], result.stack[i+1],
+                #                           params["win_um"], params["fac_overlap"], params["signoise_filter"],
+                #                           params["drift_correction"])
         result.solver = None
 
+
+def getDeformation(progress, i, result, params):
+    #import tqdm
+    #t = tqdm.tqdm
+    #n = tqdm.tqdm.__new__
+    #tqdm.tqdm.__new__ = lambda cls, iter: progress.put(iter)
+
+    mesh_piv = saenopy.getDeformations.getDisplacementsFromStacks2(result.stack[i], result.stack[i+1],
+                                       params["win_um"], params["fac_overlap"], params["signoise_filter"],
+                                       params["drift_correction"])
+    return mesh_piv
 
 
 class MeshCreator(PipelineModule):
@@ -754,13 +817,16 @@ class MeshCreator(PipelineModule):
                     self.input_button = QtWidgets.QPushButton("interpolate mesh").addToLayout()
                     self.input_button.clicked.connect(self.start_process)
 
-        with self.parent.tabs.createTab("Mesh") as self.tab:
+        with self.parent.tabs.createTab("Target Deformations") as self.tab:
             with QtShortCuts.QVBoxLayout() as layout:
+                self.label_tab = QtWidgets.QLabel("The deformations from the piv algorithm interpolated on the new mesh for regularisation.").addToLayout()
+
                 self.plotter = QtInteractor(self)
                 self.tab.parent().plotter = self.plotter
                 self.plotter.set_background("black")
-                VTK_Toolbar(self.plotter, self.update_display).addToLayout()
                 layout.addWidget(self.plotter.interactor)
+                self.vtk_toolbar = VTK_Toolbar(self.plotter, self.update_display).addToLayout()
+
 
                 self.t_slider = QTimeSlider(connected=self.update_display).addToLayout()
                 self.tab.parent().t_slider = self.t_slider
@@ -800,8 +866,14 @@ class MeshCreator(PipelineModule):
 
     def update_display(self):
         if self.check_evaluated(self.result):
+            cam_pos = None
+            if self.plotter.camera_position is not None:
+                cam_pos = self.plotter.camera_position
             self.plotter.interactor.setToolTip(str(self.result.interpolate_parameter)+f"\nNodes {self.result.solver[self.t_slider.value()].R.shape[0]}\nTets {self.result.solver[self.t_slider.value()].T.shape[0]}")
-            showVectorField(self.plotter, self.result.solver[self.t_slider.value()], "U_target", factor=5)
+            M = self.result.solver[self.t_slider.value()]
+            showVectorField(self.plotter, M, M.U_target, "U_target", scalebar_max=self.vtk_toolbar.getScaleMax(), show_nan=self.vtk_toolbar.use_nans.value())
+            if cam_pos is not None:
+                self.plotter.camera_position = cam_pos
         else:
             self.plotter.interactor.setToolTip("")
 
@@ -861,17 +933,25 @@ class Regularizer(PipelineModule):
 
                     self.input_button = QtShortCuts.QPushButton(None, "calculate forces", self.start_process)
 
+                    self.canvas = MatplotlibWidget(self).addToLayout()
+                    NavigationToolbar(self.canvas, self).addToLayout()
+
         with self.parent.tabs.createTab("Forces") as self.tab:
             with QtShortCuts.QVBoxLayout() as layout:
-                self.canvas = MatplotlibWidget(self)
-                layout.addWidget(self.canvas)
-                layout.addWidget(NavigationToolbar(self.canvas, self))
+                self.label_tab = QtWidgets.QLabel("The fitted regularized forces.").addToLayout()
+                if 0:
+                    self.canvas = MatplotlibWidget(self)
+                    layout.addWidget(self.canvas)
+                    layout.addWidget(NavigationToolbar(self.canvas, self))
+                else:
+                    pass #self.canvas = None
 
                 self.plotter = QtInteractor(self)
                 self.plotter.set_background("black")
                 self.tab.parent().plotter = self.plotter
-                VTK_Toolbar(self.plotter, self.update_display).addToLayout()
                 layout.addWidget(self.plotter.interactor)
+
+                self.vtk_toolbar = VTK_Toolbar(self.plotter, self.update_display).addToLayout()
 
                 self.t_slider = QTimeSlider(connected=self.update_display).addToLayout()
                 self.tab.parent().t_slider = self.t_slider
@@ -904,18 +984,19 @@ class Regularizer(PipelineModule):
             for i in range(self.parent.tabs.count()):
                 if self.parent.tabs.widget(i) == self.tab.parent():
                     self.parent.tabs.setTabEnabled(i, self.check_evaluated(result))
-            relrec = np.array(relrec).reshape(-1, 3)
-            self.canvas.figure.axes[0].cla()
-            self.canvas.figure.axes[0].semilogy(relrec[:, 0], label="total loss")
-            self.canvas.figure.axes[0].semilogy(relrec[:, 1], ":", label="least squares loss")
-            self.canvas.figure.axes[0].semilogy(relrec[:, 2], "--", label="regularize loss")
-            self.canvas.figure.axes[0].legend()
-            self.canvas.figure.axes[0].set_xlabel("iteration")
-            self.canvas.figure.axes[0].set_ylabel("error")
-            self.canvas.figure.axes[0].spines["top"].set_visible(False)
-            self.canvas.figure.axes[0].spines["right"].set_visible(False)
-            self.canvas.figure.tight_layout()
-            self.canvas.draw()
+            if self.canvas is not None:
+                relrec = np.array(relrec).reshape(-1, 3)
+                self.canvas.figure.axes[0].cla()
+                self.canvas.figure.axes[0].semilogy(relrec[:, 0], label="total loss")
+                self.canvas.figure.axes[0].semilogy(relrec[:, 1], ":", label="least squares loss")
+                self.canvas.figure.axes[0].semilogy(relrec[:, 2], "--", label="regularize loss")
+                self.canvas.figure.axes[0].legend()
+                self.canvas.figure.axes[0].set_xlabel("iteration")
+                self.canvas.figure.axes[0].set_ylabel("error")
+                self.canvas.figure.axes[0].spines["top"].set_visible(False)
+                self.canvas.figure.axes[0].spines["right"].set_visible(False)
+                self.canvas.figure.tight_layout()
+                self.canvas.draw()
 
     def process(self, result: Result, params: dict):
         for i in range(len(result.solver)):
@@ -936,14 +1017,70 @@ class Regularizer(PipelineModule):
 
     def update_display(self):
         if self.check_evaluated(self.result):
+            cam_pos = None
+            if self.plotter.camera_position is not None:
+                cam_pos = self.plotter.camera_position
             self.plotter.interactor.setToolTip(str(self.result.solve_parameter)+f"\nNodes {self.result.solver[self.t_slider.value()].R.shape[0]}\nTets {self.result.solver[self.t_slider.value()].T.shape[0]}")
-            showVectorField(self.plotter, self.result.solver[self.t_slider.value()], "f", factor=3e4)
+            M = self.result.solver[self.t_slider.value()]
+            showVectorField(self.plotter, M, M.f * M.reg_mask[:, None], "f", factor=0.5, scalebar_max=self.vtk_toolbar.getScaleMax(), show_nan=self.vtk_toolbar.use_nans.value())
+            if cam_pos is not None:
+                self.plotter.camera_position = cam_pos
             relrec = getattr(self.result.solver[self.t_slider.value()], "relrec", None)
             if relrec is None:
                 relrec = self.result.solver[self.t_slider.value()].regularisation_results
             self.iteration_callback(self.result, relrec)
         else:
             self.plotter.interactor.setToolTip("")
+
+
+class FittedMesh(PipelineModule):
+    pipeline_name = "fit forces"
+    iteration_finished = QtCore.Signal(object, object)
+
+    def __init__(self, parent: "BatchEvaluate", layout):
+        super().__init__(parent, layout)
+
+        with self.parent.tabs.createTab("Fitted Deformations") as self.tab:
+            with QtShortCuts.QVBoxLayout() as layout:
+                self.label_tab = QtWidgets.QLabel("The fitted mesh deformations.").addToLayout()
+                if 0:
+                    self.canvas = MatplotlibWidget(self)
+                    layout.addWidget(self.canvas)
+                    layout.addWidget(NavigationToolbar(self.canvas, self))
+                else:
+                    pass #self.canvas = None
+
+                self.plotter = QtInteractor(self)
+                self.plotter.set_background("black")
+                self.tab.parent().plotter = self.plotter
+                layout.addWidget(self.plotter.interactor)
+
+                self.vtk_toolbar = VTK_Toolbar(self.plotter, self.update_display).addToLayout()
+
+                self.t_slider = QTimeSlider(connected=self.update_display).addToLayout()
+                self.tab.parent().t_slider = self.t_slider
+
+        self.setParameterMapping(None, {})
+
+    def check_available(self, result: Result):
+        return result is not None and result.solver is not None
+
+    def check_evaluated(self, result: Result) -> bool:
+        return self.result is not None and self.result.solver is not None and getattr(self.result.solver[0], "regularisation_results", None) is not None
+
+    def update_display(self):
+        if self.check_evaluated(self.result):
+            cam_pos = None
+            if self.plotter.camera_position is not None:
+                cam_pos = self.plotter.camera_position
+            self.plotter.interactor.setToolTip(str(self.result.solve_parameter)+f"\nNodes {self.result.solver[self.t_slider.value()].R.shape[0]}\nTets {self.result.solver[self.t_slider.value()].T.shape[0]}")
+            M = self.result.solver[self.t_slider.value()]
+            showVectorField(self.plotter, M, M.U, "U", factor=0.1, scalebar_max=self.vtk_toolbar.getScaleMax(), show_nan=self.vtk_toolbar.use_nans.value())
+            if cam_pos is not None:
+                self.plotter.camera_position = cam_pos
+        else:
+            self.plotter.interactor.setToolTip("")
+
 
 
 class ResultView(PipelineModule):
@@ -955,8 +1092,8 @@ class ResultView(PipelineModule):
             with QtShortCuts.QVBoxLayout() as vlayout:
                 with QtShortCuts.QHBoxLayout() as layout_vert_plot:
                     self.input_checks = {}
-                    for name in ["U_target", "U", "f", "stiffness"]:
-                        input = QtShortCuts.QInputBool(layout_vert_plot, name, name != "stiffness")
+                    for name, dislay_name in {"U_target": "Target Deformations", "U": "Fitted Deformations", "f": "Forces", "stiffness": "Stiffness"}.items():
+                        input = QtShortCuts.QInputBool(layout_vert_plot, dislay_name, name != "stiffness")
                         input.valueChanged.connect(self.replot)
                         self.input_checks[name] = input
                     layout_vert_plot.addStretch()
@@ -1007,6 +1144,8 @@ class ResultView(PipelineModule):
             self.point_cloud["U_mag"] = np.linalg.norm(self.M.U, axis=1)
             self.point_cloud.point_arrays["U_target"] = self.M.U_target
             self.point_cloud["U_target_mag"] = np.linalg.norm(self.M.U_target, axis=1)
+            nan_values = np.isnan(self.M.U_target[:, 0])
+            self.point_cloud["U_target_mag"][nan_values] = 0
 
             self.point_cloud2 = None
 
@@ -1083,7 +1222,7 @@ class ResultView(PipelineModule):
                 # plotter.add_points(np.array([self.M.getCenter(mode="Force")]), color='r')
 
             elif name == "U_target":
-                arrows2 = self.point_cloud.glyph(orient="U_target", scale="U_target_mag", \
+                arrows2 = self.point_cloud.glyph(orient=name, scale=name + "_mag", \
                                                  # Automatically scale maximal force to 10% of axis length
                                                  factor=0.1 * norm_stack_size / np.nanmax(
                                                      np.linalg.norm(self.M.U_target, axis=1)))
@@ -1094,7 +1233,7 @@ class ResultView(PipelineModule):
                 # plot center if desired
                 # plotter.add_points(np.array([self.M.getCenter(mode="deformation_target")]), color='w')
 
-                plotter.update_scalar_bar_range(np.nanpercentile(self.point_cloud["U_target_mag"], [50, 99.9]))
+                plotter.update_scalar_bar_range(np.nanpercentile(self.point_cloud[name + "_mag"], [50, 99.9]))
                 # plotter.update_scalar_bar_range([0,1.5e-6])
             elif name == "U":
                 arrows3 = self.point_cloud.glyph(orient=name, scale=name + "_mag", \
@@ -1102,9 +1241,9 @@ class ResultView(PipelineModule):
                                                  factor=0.1 * norm_stack_size / np.nanmax(
                                                      np.linalg.norm(self.M.U, axis=1)))
                 sargs2 = sargs.copy()
-                sargs2["title"] = "Rec. Deformations [m]"
+                sargs2["title"] = "Fitted Deformations [m]"
                 plotter.add_mesh(arrows3, colormap='turbo', name="arrows3", scalar_bar_args=sargs2)
-                plotter.update_scalar_bar_range(np.nanpercentile(self.point_cloud["U_mag"], [50, 99.9]))
+                plotter.update_scalar_bar_range(np.nanpercentile(self.point_cloud[name + "_mag"], [50, 99.9]))
                 # plotter.update_scalar_bar_range([0,1.5e-6])
 
             # plot center points if desired
@@ -1175,6 +1314,7 @@ class BatchEvaluate(QtWidgets.QWidget):
                     self.sub_module_stacks = StackDisplay(self, layout0)
                     self.sub_module_deformation = DeformationDetector(self, layout0)
                     self.sub_module_mesh = MeshCreator(self, layout0)
+                    self.sub_module_fitted_mesh = FittedMesh(self, layout0)
                     self.sub_module_regularize = Regularizer(self, layout0)
                     self.sub_module_view = ResultView(self, layout0)
                     layout0.addStretch()
@@ -1247,19 +1387,17 @@ class BatchEvaluate(QtWidgets.QWidget):
 
     def dropEvent(self, event: QtCore.QEvent):
         for url in event.mimeData().urls():
-            print(url)
             url = url.path()
             if url[0] == "/" and url[2] == ":":
                 url = url[1:]
-            print(url)
             if url.endswith(".npz"):
                 urls = [url]
             else:
                 urls = glob.glob(url+"/**/*.npz", recursive=True)
             for url in urls:
-                print(url)
                 data = Result.load(url)
-                self.list.addData(data.stack[0].filename[0], True, data, mpl.colors.to_hex(f"gray"))
+                self.list.addData(data.output, True, data, mpl.colors.to_hex(f"gray"))
+                app.processEvents()
         self.update_icons()
 
     def update_icons(self):
@@ -1297,6 +1435,12 @@ class BatchEvaluate(QtWidgets.QWidget):
                                 self.button_addList2 = QtShortCuts.QPushButton(None, "cancel", self.reject)
                                 def accept():
                                     self.mode = "pair"
+                                    if not self.stack_relaxed.validator():
+                                        QtWidgets.QMessageBox.critical(self, "Deformation Detector", "Enter a valid voxel size for the relaxed stack.")
+                                        return
+                                    if not self.stack_deformed.validator():
+                                        QtWidgets.QMessageBox.critical(self, "Deformation Detector", "Enter a valid voxel size for the deformed stack.")
+                                        return
                                     self.accept()
                                 self.button_addList1 = QtShortCuts.QPushButton(None, "ok", accept)
                         with self.tabs.createTab("Time Stacks") as self.tab2:
@@ -1327,6 +1471,44 @@ class BatchEvaluate(QtWidgets.QWidget):
                                     self.mode = "existing"
                                     self.accept()
                                 self.button_addList5 = QtShortCuts.QPushButton(None, "ok", accept)
+
+        class FileExistsDialog(QtWidgets.QDialog):
+            def __init__(self, parent, filename):
+                super().__init__(parent)
+                #self.setMinimumWidth(800)
+                #self.setMinimumHeight(600)
+                self.setWindowTitle("File Exists")
+                with QtShortCuts.QVBoxLayout(self) as layout:
+                    self.label = QtWidgets.QLabel(f"A file with the name {filename} already exists.").addToLayout()
+                    with QtShortCuts.QHBoxLayout() as layout3:
+                        layout3.addStretch()
+                        self.use_for_all = QtShortCuts.QInputBool(None, "remember decision for all files", False)
+                    with QtShortCuts.QHBoxLayout() as layout3:
+                        # self.button_clear = QtShortCuts.QPushButton(None, "clear list", self.clear_files)
+                        layout3.addStretch()
+                        self.button_addList2 = QtShortCuts.QPushButton(None, "cancel", self.reject)
+                        def accept():
+                            self.mode = "overwrite"
+                            self.accept()
+                        self.button_addList1 = QtShortCuts.QPushButton(None, "overwrite", accept)
+                        def accept2():
+                            self.mode = "read"
+                            self.accept()
+                        self.button_addList1 = QtShortCuts.QPushButton(None, "read", accept2)
+
+        last_decision = None
+        def do_overwrite(filename):
+            nonlocal last_decision
+            if last_decision is not None:
+                return last_decision
+            dialog = FileExistsDialog(self, filename)
+            result = dialog.exec()
+            if not result:
+                return 0
+            if dialog.use_for_all.value():
+                last_decision = dialog.mode
+            return dialog.mode
+
         #getStack
         dialog = AddFilesDialog(self)
         if not dialog.exec():
@@ -1348,17 +1530,23 @@ class BatchEvaluate(QtWidgets.QWidget):
                 r2 = r2.format(z="*")
 
                 if output.exists():
-                    print('exists', output)
-                    data = Result.load(output)
-                else:
-                    print("new")
-                    data = Result(
-                        output=output,
-                        stack=[Stack(r1, voxel_size1), Stack(r2, voxel_size2)],
-                    )
-                    data.save()
+                    mode = do_overwrite(output)
+                    if mode == 0:
+                        break
+                    if mode == "read":
+                        print('exists', output)
+                        data = Result.load(output)
+                        self.list.addData(data.output, True, data, mpl.colors.to_hex(f"gray"))
+                        continue
+
+                print("new")
+                data = Result(
+                    output=output,
+                    stack=[Stack(r1, voxel_size1), Stack(r2, voxel_size2)],
+                )
+                data.save()
                 print(r1, r2, output)
-                self.list.addData(str(output), True, data, mpl.colors.to_hex(f"gray"))
+                self.list.addData(data.output, True, data, mpl.colors.to_hex(f"gray"))
         elif dialog.mode == "time":
             results1, output_base = format_glob(dialog.input_relaxed2.text())
             voxel_size1 = dialog.stack_before2.getVoxelSize()
@@ -1370,24 +1558,29 @@ class BatchEvaluate(QtWidgets.QWidget):
                 output = Path(str(output).replace("*", "") + ".npz")
 
                 if output.exists():
-                    print('exists', output)
-                    data = Result.load(output)
-                else:
-                    stacks = []
-                    for t, d0 in d.groupby("t"):
-                        d0 = d0.sort_values(by='z', key=natsort.natsort_keygen())
-                        stacks.append(Stack(d0.filename, voxel_size1))
+                    mode = do_overwrite(output)
+                    if mode == 0:
+                        break
+                    if mode == "read":
+                        print('exists', output)
+                        data = Result.load(output)
+                        self.list.addData(data.output, True, data, mpl.colors.to_hex(f"gray"))
 
-                    data = Result(
-                        output=output,
-                        stack=stacks,
-                    )
-                    data.save()
-                self.list.addData(str(output), True, data, mpl.colors.to_hex(f"gray"))
+                stacks = []
+                for t, d0 in d.groupby("t"):
+                    d0 = d0.sort_values(by='z', key=natsort.natsort_keygen())
+                    stacks.append(Stack(d0.filename, voxel_size1))
+
+                data = Result(
+                    output=output,
+                    stack=stacks,
+                )
+                data.save()
+                self.list.addData(data.output, True, data, mpl.colors.to_hex(f"gray"))
         elif dialog.mode == "existing":
             for file in glob.glob(dialog.outputText3.value(), recursive=True):
                 data = Result.load(file)
-                self.list.addData(str(file), True, data, mpl.colors.to_hex(f"gray"))
+                self.list.addData(data.output, True, data, mpl.colors.to_hex(f"gray"))
         self.update_icons()
         #import matplotlib as mpl
         #for fiber, cell, out in zip(fiber_list, cell_list, out_list):
@@ -1849,13 +2042,14 @@ class MainWindow(QtWidgets.QWidget):
                     # self.deformations = Deformation(h_layout, self)
                     self.deformations = BatchEvaluate(self)
                     h_layout.addWidget(self.deformations)
-                    self.description = QtWidgets.QTextEdit()
-                    self.description.setDisabled(True)
-                    self.description.setMaximumWidth(300)
-                    h_layout.addWidget(self.description)
-                    self.description.setText("""
-                    <h1>Start Evaluation</h1>
-                     """.strip())
+                    if 0:
+                        self.description = QtWidgets.QTextEdit()
+                        self.description.setDisabled(True)
+                        self.description.setMaximumWidth(300)
+                        h_layout.addWidget(self.description)
+                        self.description.setText("""
+                        <h1>Start Evaluation</h1>
+                         """.strip())
                 v_layout.addWidget(QHLine())
                 with QtShortCuts.QHBoxLayout() as h_layout:
                     h_layout.addStretch()

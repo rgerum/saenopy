@@ -537,6 +537,9 @@ class StackSelector(QtWidgets.QWidget):
     def getStack(self):
         return self.active.getStack()
 
+    def validator(self):
+        return self.active.validator()
+
     def getVoxelSize(self):
         if self.active is None:
             return None

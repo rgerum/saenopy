@@ -29,7 +29,7 @@ def getDisplacementsFromStacks2(stack_relaxed, stack_deformed, win_um, fac_overl
 
     stack_deformed = np.array(stack_deformed)
     stack_relaxed = np.array(stack_relaxed)
-    M = getDisplacementsFromStacks(stack_deformed, stack_relaxed, voxel_size1,
+    M = getDisplacementsFromStacks_old(stack_deformed, stack_relaxed, voxel_size1,
                                         win_um=win_um,
                                         fac_overlap=fac_overlap,
                                         signoise_filter=signoise_filter,

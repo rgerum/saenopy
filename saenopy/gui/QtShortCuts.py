@@ -213,7 +213,7 @@ class QInputNumber(QInput):
 class QInputString(QInput):
     error = None
 
-    def __init__(self, layout=None, name=None, value="", allow_none=True, type=str, unit=None, name_post=None, **kwargs):
+    def __init__(self, layout=None, name=None, value="", allow_none=True, type=str, unit=None, name_post=None, validator=None, **kwargs):
         # initialize the super widget
         QInput.__init__(self, layout, name, **kwargs)
 
@@ -231,12 +231,14 @@ class QInputString(QInput):
 
         self.allow_none = allow_none
         self.type = type
+        self.validator = validator
 
         if name_post is not None:
             self.label2 = QtWidgets.QLabel(name_post)
             self.layout().addWidget(self.label2)
 
         self.setValue(value)
+        self.emitValueChanged()
 
         self.line_edit.textChanged.connect(self.emitValueChanged)
 
@@ -244,6 +246,9 @@ class QInputString(QInput):
         """ connected to the textChanged signal """
         try:
             value = self.value()
+            if self.validator is not None:
+                if self.validator(value) is False:
+                    raise ValueError
             self.line_edit.setStyleSheet("")
         except ValueError as err:
             self.line_edit.setStyleSheet("background: #d56060")

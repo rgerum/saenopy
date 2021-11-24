@@ -61,7 +61,10 @@ class Saveable:
     def load(cls, filename):
         data = np.load(filename, allow_pickle=False)
 
-        return cls.from_dict(unflatten_dict(data))
+        result = cls.from_dict(unflatten_dict(data))
+        if getattr(result, 'on_load') is not None:
+            getattr(result, 'on_load')(filename)
+        return result
 
 def flatten_dict(data):
     result = {}

@@ -24,6 +24,9 @@ class StackSelectorLeica(QtWidgets.QWidget):
         self.label = QtWidgets.QLabel()
         main_layout.addWidget(self.label)
 
+    def validator(self, value=None):
+        return True
+
     def checkAcceptFilename(self, filename):
         return filename.endswith(".lif")
 
