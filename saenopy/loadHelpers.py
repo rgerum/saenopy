@@ -49,11 +49,11 @@ class Saveable:
             if name in types:
                 if getattr(types[name], "from_dict", None) is not None:
                     data[name] = types[name].from_dict(data[name])
-                elif isinstance(types[name], _GenericAlias) and types[name].__origin__ is list:
+                elif typing.get_origin(types[name]) is list:
                     if isinstance(data[name], dict):
-                        data[name] = types[name].__args__[0].from_dict(data[name])
+                        data[name] = typing.get_args(types[name])[0].from_dict(data[name])
                     else:
-                        data[name] = [types[name].__args__[0].from_dict(d) for d in data[name]]
+                        data[name] = [typing.get_args(types[name])[0].from_dict(d) for d in data[name]]
 
         return cls(**data)
 

@@ -540,10 +540,16 @@ class StackSelector(QtWidgets.QWidget):
     def validator(self):
         return self.active.validator()
 
+    def validator_time(self):
+        return self.active.validator_time()
+
     def getVoxelSize(self):
         if self.active is None:
             return None
         return self.active.getVoxelSize()
+
+    def getTimeDelta(self):
+        return self.active.getTimeDelta()
 
     def getStackParameters(self):
         return []

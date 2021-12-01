@@ -123,10 +123,28 @@ class StackSelectorTif(QtWidgets.QWidget):
         self.input_voxel_size = QtShortCuts.QInputString(layout_voxel, "Voxel size (xyz) (µm)", "0, 0, 0", validator=self.validator)
         self.input_voxel_size.valueChanged.connect(self.input_voxel_size_changed)
 
+        if self.use_time:
+            self.input_time_dt = QtShortCuts.QInputString(layout_voxel, "Time Delta", "0",
+                                                             validator=self.validator_time)
+            self.input_tbar_unit = QtShortCuts.QInputChoice(self.input_time_dt.layout(), None, "s",
+                                                            ["s", "min", "h"])
+
         self.label = QtWidgets.QLabel()
         layout_voxel.addWidget(self.label)
 
         self.stack_initialized = None
+
+    def validator_time(self, value=None):
+        try:
+            if value is None:
+                value = self.input_time_dt.value()
+            size = float(value)
+
+            if size <= 1e-10:
+                return False
+            return True
+        except ValueError:
+            return False
 
     def validator(self, value=None):
         try:
@@ -180,6 +198,8 @@ class StackSelectorTif(QtWidgets.QWidget):
             prop = QtShortCuts.QInputChoice(self.property_layout, col, str(selected_prop[col]), [str(i) for i in df[col].unique()])
             prop.valueChanged.connect(self.propertiesChanged)
             prop.name = col
+            prop.check = QtShortCuts.QInputBool(prop.layout(), "all", False)
+            prop.check.valueChanged.connect(self.propertiesChanged)
             self.property_selectors.append(prop)
             properties.append(col)
             if col == "z":
@@ -215,7 +235,10 @@ class StackSelectorTif(QtWidgets.QWidget):
             else:
                 prop.setEnabled(True)
             d = d[d[prop.name] == prop.value()]
-            selected_props_dict[prop.name] = str(prop.value())
+            if prop.check.value() is True:
+                selected_props_dict[prop.name] = "*"
+            else:
+                selected_props_dict[prop.name] = str(prop.value())
 
         self.target_glob = self.format_template.format(**selected_props_dict)
         self.parent.glob_string_changed.emit('getstack', self.target_glob)
@@ -285,6 +308,14 @@ class StackSelectorTif(QtWidgets.QWidget):
         if value is None:
             value = self.input_voxel_size.value()
         return [float(x) for x in re.split(r"[\[\](), ]+", value) if x != ""]
+
+    def getTimeDelta(self):
+        factor = 1
+        if self.input_tbar_unit.value() == "h":
+            factor = 60 * 60
+        elif self.input_tbar_unit.value() == "min":
+            factor = 60
+        return factor * self.input_time_dt.value()
 
     def getStack(self):
         return self.stack

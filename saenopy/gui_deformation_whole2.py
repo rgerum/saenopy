@@ -1,42 +1,38 @@
 import sys
-
-# Setting the Qt bindings for QtPy
 import os
 import qtawesome as qta
-os.environ["QT_API"] = "pyqt5"
-
 from qtpy import QtCore, QtWidgets, QtGui
-
 import numpy as np
-
 import pyvista as pv
-import vtk
-import natsort
 from pyvistaqt import QtInteractor
 
-import saenopy
-import saenopy.multigridHelper
-from saenopy.gui import QtShortCuts, QExtendedGraphicsView
-from saenopy.gui.stack_selector import StackSelector
-from saenopy.gui.gui_classes import Spoiler, CheckAbleGroup, QHLine, QVLine, MatplotlibWidget, NavigationToolbar, execute, kill_thread, ListWidget, QProcess, ProcessSimple
 import imageio
 from qimage2ndarray import array2qimage
 import matplotlib.pyplot as plt
 import glob
 import imageio
 import threading
+
+import natsort
+
+from pathlib import Path
+import re
+import pandas as pd
+import matplotlib as mpl
+
+import saenopy
+import saenopy.multigridHelper
+from saenopy.gui import QtShortCuts, QExtendedGraphicsView
+from saenopy.gui.gui_classes import Spoiler, CheckAbleGroup, QHLine, QVLine, MatplotlibWidget, NavigationToolbar, execute, kill_thread, ListWidget, QProcess, ProcessSimple
 import saenopy.getDeformations
 import saenopy.multigridHelper
 import saenopy.materials
 from saenopy.gui.stack_selector import StackSelector
 from saenopy.getDeformations import getStack, Stack
 from saenopy.multigridHelper import getScaledMesh, getNodesWithOneFace
-import matplotlib as mpl
-from saenopy.solver import Solver
-from pathlib import Path
-import re
-import pandas as pd
+
 from saenopy.loadHelpers import Saveable
+
 from typing import List
 
 """REFERENCE FOLDERS"""
@@ -44,7 +40,7 @@ from typing import List
 #\\131.188.117.96\biophysDS\lbischof\tif_and_analysis_backup\2021-06-02-NK92-Blebb-Rock\Blebb-round1\Mark_and_Find_001
 
 
-def showVectorField(plotter, obj, field, name, show_nan=True, show_all_points=False, factor=.1, scalebar_max=None):
+def showVectorField(plotter, obj, field, name, center=None, show_nan=True, show_all_points=False, factor=.1, scalebar_max=None):
     #try:
     #    field = getattr(obj, name)
     #except AttributeError:
@@ -58,6 +54,8 @@ def showVectorField(plotter, obj, field, name, show_nan=True, show_all_points=Fa
     point_cloud.point_arrays[name + "_mag"] = np.linalg.norm(field, axis=1)
     point_cloud.point_arrays[name + "_mag2"] = point_cloud.point_arrays[name + "_mag"].copy()
     point_cloud.point_arrays[name + "_mag2"][nan_values] = 0
+    if getattr(plotter, "nan_actor", None) is not None:
+        plotter.remove_actor(plotter.nan_actor)
     if show_all_points:
         plotter.add_mesh(point_cloud, colormap="turbo", scalars=name + "_mag2")
     elif show_nan:
@@ -66,9 +64,6 @@ def showVectorField(plotter, obj, field, name, show_nan=True, show_all_points=Fa
             point_cloud2 = pv.PolyData(R)
             point_cloud2.point_arrays["nan"] = obj.R[nan_values, 0] * np.nan
             plotter.nan_actor = plotter.add_mesh(point_cloud2, colormap="turbo", scalars="nan", show_scalar_bar=False)
-    else:
-        if getattr(plotter, "nan_actor", None) is not None:
-            plotter.remove_actor(plotter.nan_actor)
 
     norm_stack_size = np.abs(np.max(obj.R) - np.min(obj.R))
     if scalebar_max is None:
@@ -102,13 +97,19 @@ def showVectorField(plotter, obj, field, name, show_nan=True, show_all_points=Fa
     else:
         plotter.update_scalar_bar_range([0, scalebar_max])
 
+    if getattr(plotter, "center_actor", None) is not None:
+        plotter.remove_actor(plotter.center_actor)
+    if center is not None:
+        # plot center points if desired
+        plotter.center_actor = plotter.add_points(np.array([center]), color='m', point_size=10)
+
     plotter.show_grid(color=plotter._theme.font.color)
     #plotter.renderer.show_bounds(color=plotter._theme.font.color)
     plotter.show()
 
 
 class Result(Saveable):
-    __save_parameters__ = ['stack', 'piv_parameter', 'mesh_piv',
+    __save_parameters__ = ['stack', 'time_delta', 'piv_parameter', 'mesh_piv',
                            'interpolate_parameter', 'solve_parameter', 'solver',
                            '___save_name__', '___save_version__']
     ___save_name__ = "Result"
@@ -125,11 +126,12 @@ class Result(Saveable):
     solve_parameter: dict = None
     solver: List[saenopy.solver.Solver] = None
 
-    def __init__(self, output, stack, **kwargs):
+    def __init__(self, output=None, stack=None, time_delta=None, **kwargs):
         self.output = str(output)
 
         self.stack = stack
         self.state = False
+        self.time_delta = time_delta
 
         super().__init__(**kwargs)
 
@@ -234,6 +236,10 @@ class ModuleScaleBar(QtWidgets.QGroupBox):
         self.scalebar_text = QtWidgets.QGraphicsTextItem("", view.hud_lowerRight)
         self.scalebar_text.setFont(self.font)
         self.scalebar_text.setDefaultTextColor(QtGui.QColor("white"))
+
+        self.time_text = QtWidgets.QGraphicsTextItem("", view.hud_upperRight)
+        self.time_text.setFont(self.font)
+        self.time_text.setDefaultTextColor(QtGui.QColor("white"))
 
         view.signal_zoom.connect(self.zoomEvent)
         #self.parent.view.zoomEvent = lambda scale, pos: self.zoomEvent(scale, pos)
@@ -583,7 +589,7 @@ vtk_toolbars = []
 class VTK_Toolbar(QtWidgets.QWidget):
     theme_values = [pv.themes.DefaultTheme(), pv.themes.ParaViewTheme(),
                                                           pv.themes.DarkTheme(), pv.themes.DocumentTheme()]
-    def __init__(self, plotter, update_display, scalbar_type="deformation"):
+    def __init__(self, plotter, update_display, scalbar_type="deformation", center=False):
         super().__init__()
         self.plotter = plotter
         self.update_display = update_display
@@ -601,6 +607,11 @@ class VTK_Toolbar(QtWidgets.QWidget):
             self.auto_scale.valueChanged.connect(self.scale_max_changed)
             self.scale_max = QtShortCuts.QInputString(None, "max color", 1e-6, type=float, tooltip="Set the maximum of the color scale.")
             self.scale_max.valueChanged.connect(self.scale_max_changed)
+
+            if center is True:
+                self.use_center = QtShortCuts.QInputBool(None, "center", True,
+                                                       tooltip="Display the center of the force field.")
+                self.use_center.valueChanged.connect(self.update_display)
 
             self.theme.valueChanged.connect(lambda x: self.new_plotter(x))
 
@@ -705,13 +716,9 @@ class DeformationDetector(PipelineModule):
                 self.plotter = QtInteractor(self)#, theme=pv.themes.DocumentTheme())
                 self.tab.parent().plotter = self.plotter
                 self.plotter.set_background("black")
-                #self.plotter.theme = pv.themes.DocumentTheme()
-                self.plotter.reset_camera()
                 layout.addWidget(self.plotter.interactor)
 
                 self.vtk_toolbar = VTK_Toolbar(self.plotter, self.update_display, "deformation").addToLayout()
-
-
 
                 self.t_slider = QTimeSlider(connected=self.update_display).addToLayout()
                 self.tab.parent().t_slider = self.t_slider
@@ -951,7 +958,7 @@ class Regularizer(PipelineModule):
                 self.tab.parent().plotter = self.plotter
                 layout.addWidget(self.plotter.interactor)
 
-                self.vtk_toolbar = VTK_Toolbar(self.plotter, self.update_display).addToLayout()
+                self.vtk_toolbar = VTK_Toolbar(self.plotter, self.update_display, center=True).addToLayout()
 
                 self.t_slider = QTimeSlider(connected=self.update_display).addToLayout()
                 self.tab.parent().t_slider = self.t_slider
@@ -1022,7 +1029,10 @@ class Regularizer(PipelineModule):
                 cam_pos = self.plotter.camera_position
             self.plotter.interactor.setToolTip(str(self.result.solve_parameter)+f"\nNodes {self.result.solver[self.t_slider.value()].R.shape[0]}\nTets {self.result.solver[self.t_slider.value()].T.shape[0]}")
             M = self.result.solver[self.t_slider.value()]
-            showVectorField(self.plotter, M, M.f * M.reg_mask[:, None], "f", factor=0.5, scalebar_max=self.vtk_toolbar.getScaleMax(), show_nan=self.vtk_toolbar.use_nans.value())
+            center = None
+            if self.vtk_toolbar.use_center.value() is True:
+                center = M.getCenter(mode="Force")
+            showVectorField(self.plotter, M, -M.f * M.reg_mask[:, None], "f", center=center, factor=0.5, scalebar_max=self.vtk_toolbar.getScaleMax(), show_nan=self.vtk_toolbar.use_nans.value())
             if cam_pos is not None:
                 self.plotter.camera_position = cam_pos
             relrec = getattr(self.result.solver[self.t_slider.value()], "relrec", None)
@@ -1423,9 +1433,9 @@ class BatchEvaluate(QtWidgets.QWidget):
                                                                        settings_key="batch/wildcard2", allow_edit=True)
                             with QtShortCuts.QHBoxLayout() as layout3:
                                 self.stack_relaxed = StackSelector(layout3, "relaxed")
-                                self.stack_relaxed.glob_string_changed.connect(lambda x, y: (print("relaxed, y"), self.input_relaxed.setText(y.replace("*", "?"))))
+                                self.stack_relaxed.glob_string_changed.connect(lambda x, y: (print("relaxed, y"), self.input_relaxed.setText(y)))
                                 self.stack_deformed = StackSelector(layout3, "deformed", self.stack_relaxed)
-                                self.stack_deformed.glob_string_changed.connect(lambda x, y: (print("deformed, y"),self.input_deformed.setText(y.replace("*", "?"))))
+                                self.stack_deformed.glob_string_changed.connect(lambda x, y: (print("deformed, y"),self.input_deformed.setText(y)))
                             with QtShortCuts.QHBoxLayout() as layout3:
                                 self.input_relaxed = QtWidgets.QLineEdit().addToLayout()
                                 self.input_deformed = QtWidgets.QLineEdit().addToLayout()
@@ -1448,7 +1458,7 @@ class BatchEvaluate(QtWidgets.QWidget):
                                                                        settings_key="batch/wildcard2", allow_edit=True)
                             with QtShortCuts.QHBoxLayout() as layout3:
                                 self.stack_before2 = StackSelector(layout3, "time series", use_time=True)
-                                self.stack_before2.glob_string_changed.connect(lambda x, y: self.input_relaxed2.setText(y.replace("*", "?")))
+                                self.stack_before2.glob_string_changed.connect(lambda x, y: self.input_relaxed2.setText(y))
                             with QtShortCuts.QHBoxLayout() as layout3:
                                 self.input_relaxed2 = QtWidgets.QLineEdit().addToLayout()
                             with QtShortCuts.QHBoxLayout() as layout3:
@@ -1456,6 +1466,14 @@ class BatchEvaluate(QtWidgets.QWidget):
                                 layout3.addStretch()
                                 self.button_addList3 = QtShortCuts.QPushButton(None, "cancel", self.reject)
                                 def accept():
+                                    if not self.stack_before2.validator():
+                                        QtWidgets.QMessageBox.critical(self, "Deformation Detector", "Enter a valid voxel size for the stack.")
+                                        return
+                                    if not self.stack_before2.validator_time():
+                                        QtWidgets.QMessageBox.critical(self, "Deformation Detector",
+                                                                       "Enter a valid time delta.")
+                                        return
+
                                     self.mode = "time"
                                     self.accept()
                                 self.button_addList4 = QtShortCuts.QPushButton(None, "ok", accept)
@@ -1550,6 +1568,7 @@ class BatchEvaluate(QtWidgets.QWidget):
         elif dialog.mode == "time":
             results1, output_base = format_glob(dialog.input_relaxed2.text())
             voxel_size1 = dialog.stack_before2.getVoxelSize()
+            time_delta = dialog.stack_before2.getTimeDelta()
             print(results1)
 
             for template, d in results1.groupby("template"):
@@ -1574,6 +1593,7 @@ class BatchEvaluate(QtWidgets.QWidget):
                 data = Result(
                     output=output,
                     stack=stacks,
+                    time_delta=time_delta,
                 )
                 data.save()
                 self.list.addData(data.output, True, data, mpl.colors.to_hex(f"gray"))
