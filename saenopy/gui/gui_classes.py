@@ -418,6 +418,10 @@ class ListWidget(QtWidgets.QListWidget):
         self.itemChanged.emit()
 
     def addData(self, d, checked, extra=None, color=None):
+        # check if the element is already in the list
+        for element in self.data:
+            if element[0] == d:
+                return None
         self.no_list_change = True
         if self.add_item is not None:
             self.takeItem(self.count()-1)
