@@ -12,8 +12,10 @@ from .multigridHelper import getLinesTetrahedra, getLinesTetrahedra2
 from .buildBeams import buildBeams
 from .materials import Material, SemiAffineFiberMaterial
 from .conjugateGradient import cg
-from saenopy.loadHelpers import Saveable
-
+from .loadHelpers import Saveable
+from typing import List
+from pathlib import Path
+from .getDeformations import getStack, Stack
 
 class Mesh(Saveable):
     __save_parameters__ = ['R', 'T', 'node_vars']
@@ -1034,7 +1036,6 @@ class Solver(Saveable):
         bmax = np.argmax(mm)
         fmax = ff[bmax]
 
-
         return fmax / contractility
 
     def storePrincipalStressAndStiffness(self, sbname, sbminname, epkname):
@@ -1579,10 +1580,6 @@ class Solver(Saveable):
          Centricity = self.getContractilityDeformations(center_mode=center_mode, r_max=r_max) / self.getPerpendicularDeformations(center_mode=center_mode, r_max=r_max) 
          return Centricity
 
-    def save(self, filename: str):
-        data = to_dict()
-
-        np.savez(filename, **data)
     
     def forces_to_excel(self, output_folder=None, name="results.xlsx", r_max=25e-6, center_mode = "force", width_outer = 5e-6):
         import pandas as pd
@@ -1745,6 +1742,46 @@ class Solver(Saveable):
             plotter.camera_position = camera_position
         campos = plotter.show(screenshot=export)
         return plotter, campos
+
+
+class Result(Saveable):
+    __save_parameters__ = ['stack', 'time_delta', 'piv_parameter', 'mesh_piv',
+                           'interpolate_parameter', 'solve_parameter', 'solver',
+                           '___save_name__', '___save_version__']
+    ___save_name__ = "Result"
+    ___save_version__ = "1.0"
+    output: str = None
+    state: False
+
+    stack: List[Stack] = None
+
+    piv_parameter: dict = None
+    mesh_piv: List[Mesh] = None
+
+    interpolate_parameter: dict = None
+    solve_parameter: dict = None
+    solver: List[Solver] = None
+
+    def __init__(self, output=None, stack=None, time_delta=None, **kwargs):
+        self.output = str(output)
+
+        self.stack = stack
+        if stack == None:
+            self.stack = []
+        
+        self.state = False
+        self.time_delta = time_delta
+
+        super().__init__(**kwargs)
+
+    def save(self):
+        Path(self.output).parent.mkdir(exist_ok=True, parents=True)
+        super().save(self.output)
+
+    def on_load(self, filename):
+        self.output = str(Path(filename))
+
+
 
 def save(filename: str, M: Solver):
     M.save(filename)

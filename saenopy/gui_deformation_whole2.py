@@ -30,7 +30,7 @@ import saenopy.materials
 from saenopy.gui.stack_selector import StackSelector
 from saenopy.getDeformations import getStack, Stack
 from saenopy.multigridHelper import getScaledMesh, getNodesWithOneFace
-
+from saenopy.solver import Result
 from saenopy.loadHelpers import Saveable
 
 from typing import List
@@ -107,55 +107,6 @@ def showVectorField(plotter, obj, field, name, center=None, show_nan=True, show_
     #plotter.renderer.show_bounds(color=plotter._theme.font.color)
     plotter.show()
 
-
-class Result(Saveable):
-    __save_parameters__ = ['stack', 'time_delta', 'piv_parameter', 'mesh_piv',
-                           'interpolate_parameter', 'solve_parameter', 'solver',
-                           '___save_name__', '___save_version__']
-    ___save_name__ = "Result"
-    ___save_version__ = "1.0"
-    output: str = None
-    state: False
-
-    stack: List[Stack] = None
-
-    piv_parameter: dict = None
-    mesh_piv: List[saenopy.solver.Mesh] = None
-
-    interpolate_parameter: dict = None
-    solve_parameter: dict = None
-    solver: List[saenopy.solver.Solver] = None
-
-    def __init__(self, output=None, stack=None, time_delta=None, **kwargs):
-        self.output = str(output)
-
-        self.stack = stack
-        self.state = False
-        self.time_delta = time_delta
-
-        super().__init__(**kwargs)
-
-    def save(self):
-        Path(self.output).parent.mkdir(exist_ok=True, parents=True)
-        super().save(self.output)
-
-    def on_load(self, filename):
-        self.output = str(Path(filename))
-
-
-if 0:
-    result = Result("test.npz", [Stack(r"../test/TestData/20170914_A172_rep1/Before/*.tif", [1, 1, 1])])
-    result.mesh_piv = saenopy.solver.Mesh()
-    result.mesh_piv.setNodes(np.zeros([4, 3]))
-    print(result.to_dict())
-    result.save()
-
-    Result.load("test.npz")
-    exit()
-#result = Result.load("/home/richard/Dropbox/Projects/2020 Sanopy/saenopy/test/TestData/output4/Mark_and_Find_001_Pos001_S001_z_ch00.npz")
-#pprint(result.stack[0].shape)
-#print(result.stack[0][:, :, 1])
-#exit()
 
 def double_glob(text):
     glob_string = text.replace("?", "*")
@@ -1397,7 +1348,9 @@ class BatchEvaluate(QtWidgets.QWidget):
 
     def dropEvent(self, event: QtCore.QEvent):
         for url in event.mimeData().urls():
-            url = url.path()
+            
+            url = url.toLocalFile()   #path()
+            
             if url[0] == "/" and url[2] == ":":
                 url = url[1:]
             if url.endswith(".npz"):
