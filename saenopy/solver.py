@@ -1606,7 +1606,7 @@ class Solver(Saveable):
                     #'RMS_Deformation_per_node': [],'RMS_Deformation': [], 
                     'RMS_Deformation_normed': [],
                     'Contractility_deformations': [], 
-                    'Iterations': [], 
+                    #'Iterations': [], 
                   }
         
         
@@ -1648,8 +1648,8 @@ class Solver(Saveable):
         
 
         # regularization steps
-        number_iterations = len(self.regularisation_results)
-        results["Iterations"].append(number_iterations)
+        #number_iterations = len(self.regularisation_results)
+        #results["Iterations"].append(number_iterations)
 
         # save result.xlsx
         if output_folder:
