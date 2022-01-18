@@ -50,10 +50,10 @@ def showVectorField(plotter, obj, field, name, center=None, show_nan=True, show_
     #plotter.clear()
 
     point_cloud = pv.PolyData(obj.R)
-    point_cloud.point_arrays[name] = field
-    point_cloud.point_arrays[name + "_mag"] = np.linalg.norm(field, axis=1)
-    point_cloud.point_arrays[name + "_mag2"] = point_cloud.point_arrays[name + "_mag"].copy()
-    point_cloud.point_arrays[name + "_mag2"][nan_values] = 0
+    point_cloud.point_data[name] = field
+    point_cloud.point_data[name + "_mag"] = np.linalg.norm(field, axis=1)
+    point_cloud.point_data[name + "_mag2"] = point_cloud.point_data[name + "_mag"].copy()
+    point_cloud.point_data[name + "_mag2"][nan_values] = 0
     if getattr(plotter, "nan_actor", None) is not None:
         plotter.remove_actor(plotter.nan_actor)
     if show_all_points:
@@ -62,7 +62,7 @@ def showVectorField(plotter, obj, field, name, center=None, show_nan=True, show_
         R = obj.R[nan_values]
         if R.shape[0]:
             point_cloud2 = pv.PolyData(R)
-            point_cloud2.point_arrays["nan"] = obj.R[nan_values, 0] * np.nan
+            point_cloud2.point_data["nan"] = obj.R[nan_values, 0] * np.nan
             plotter.nan_actor = plotter.add_mesh(point_cloud2, colormap="turbo", scalars="nan", show_scalar_bar=False)
 
     norm_stack_size = np.abs(np.max(obj.R) - np.min(obj.R))
