@@ -552,12 +552,12 @@ class VTK_Toolbar(QtWidgets.QWidget):
                                                   values=self.theme_values,
                                                   value_names=["default", "paraview", "dark", "document"])
 
-            self.use_nans = QtShortCuts.QInputBool(None, "nans", True, tooltip="Display nodes which do not have values associated as gray dots.")
-            self.use_nans.valueChanged.connect(self.update_display)
             self.auto_scale = QtShortCuts.QInputBool(None, "auto color", True, tooltip="Automatically choose the maximum for the color scale.")
             self.auto_scale.valueChanged.connect(self.scale_max_changed)
             self.scale_max = QtShortCuts.QInputString(None, "max color", 1e-6, type=float, tooltip="Set the maximum of the color scale.")
             self.scale_max.valueChanged.connect(self.scale_max_changed)
+            self.use_nans = QtShortCuts.QInputBool(None, "nans", True, tooltip="Display nodes which do not have values associated as gray dots.")
+            self.use_nans.valueChanged.connect(self.update_display)
 
             if center is True:
                 self.use_center = QtShortCuts.QInputBool(None, "center", True,
