@@ -1117,11 +1117,11 @@ class ResultView(PipelineModule):
                 self.M.reg_mask = ~border
 
             self.point_cloud = pv.PolyData(self.M.R)
-            self.point_cloud.point_arrays["f"] = -self.M.f * self.M.reg_mask[:, None]
+            self.point_cloud.point_data["f"] = -self.M.f * self.M.reg_mask[:, None]
             self.point_cloud["f_mag"] = np.linalg.norm(self.M.f * self.M.reg_mask[:, None], axis=1)
-            self.point_cloud.point_arrays["U"] = self.M.U
+            self.point_cloud.point_data["U"] = self.M.U
             self.point_cloud["U_mag"] = np.linalg.norm(self.M.U, axis=1)
-            self.point_cloud.point_arrays["U_target"] = self.M.U_target
+            self.point_cloud.point_data["U_target"] = self.M.U_target
             self.point_cloud["U_target_mag"] = np.linalg.norm(self.M.U_target, axis=1)
             nan_values = np.isnan(self.M.U_target[:, 0])
             self.point_cloud["U_target_mag"][nan_values] = 0
@@ -1139,7 +1139,7 @@ class ResultView(PipelineModule):
         # self.M.setMaterialModel(SemiAffineFiberMaterial(1645, 0.0008, 0.0075, 0.033), generate_lookup=False)
         if self.M.material_model is None:
             print("Warning using default material parameters")
-            self.M.setMaterialModel(SemiAffineFiberMaterial(1645, 0.0008, 0.0075, 0.033), generate_lookup=False)
+            self.M.setMaterialModel(SemiAffineFiberMaterial(1449, 0.00215, 0.055, 0.032), generate_lookup=False)
         self.M._check_relax_ready()
         self.M._prepare_temporary_quantities()
         self.point_cloud2["stiffness"] = self.M.getMaxTetStiffness() / 6
@@ -1186,7 +1186,7 @@ class ResultView(PipelineModule):
                 sargs2 = sargs.copy()
                 sargs2["title"] = "Stiffness (Pa)"
                 plotter.add_mesh(self.point_cloud2, colormap="turbo", point_size=4., render_points_as_spheres=True,
-                                 scalar_bar_args=sargs2)
+                                 scalar_bar_args=sargs2, opacity="linear")
                 plotter.update_scalar_bar_range(np.nanpercentile(self.point_cloud2["stiffness"], [50, 99.9]))
             elif name == "f":
                 arrows = self.point_cloud.glyph(orient="f", scale="f_mag", \
