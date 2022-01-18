@@ -572,6 +572,17 @@ class VTK_Toolbar(QtWidgets.QWidget):
             self.button.clicked.connect(lambda x: self.plotter.isometric_view())
 
             def save():
+                if 1:
+                    new_path = QtWidgets.QFileDialog.getSaveFileName(None, "Save Images", os.getcwd())
+                    # if we got one, set it
+                    if new_path:
+                        if isinstance(new_path, tuple):
+                            new_path = new_path[0]
+                        else:
+                            new_path = str(new_path)
+                        print(new_path)
+                        self.plotter.screenshot(new_path)
+                    return
                 outer_self = self
 
                 class PlotDialog(QtWidgets.QDialog):
@@ -580,7 +591,8 @@ class VTK_Toolbar(QtWidgets.QWidget):
                         with QtShortCuts.QVBoxLayout(self) as layout:
                             self.plotter = QtInteractor(self, theme=outer_self.plotter.theme)
                             layout.addWidget(self.plotter)
-                            showVectorField(self.plotter, outer_self.result.mesh_piv, "U_measured")
+                            outer_self.update_display(self.plotter)
+                            #showVectorField(self.plotter, outer_self.result.mesh_piv, "U_measured")
                             self.button2 = QtWidgets.QPushButton(qta.icon("fa.floppy-o"), "").addToLayout()
                             self.button2.setToolTip("save")
                             self.button2.clicked.connect(self.save)
@@ -595,7 +607,11 @@ class VTK_Toolbar(QtWidgets.QWidget):
                                 new_path = str(new_path)
                             print(new_path)
                             self.plotter.screenshot(new_path)
+                        self.plotter.close()
                         self.close()
+
+                    def close(self):
+                        self.plotter.close()
 
                 plot_diaolog = PlotDialog(self)
                 plot_diaolog.show()
@@ -687,15 +703,17 @@ class DeformationDetector(PipelineModule):
     def check_evaluated(self, result: Result) -> bool:
         return self.result is not None and self.result.mesh_piv is not None
 
-    def update_display(self):
+    def update_display(self, plotter=None):
+        if plotter is None:
+            plotter = self.plotter
         cam_pos = None
-        if self.plotter.camera_position is not None:
+        if plotter.camera_position is not None:
             cam_pos = self.plotter.camera_position
-        self.plotter.interactor.setToolTip(str(self.result.piv_parameter)+f"\nNodes {self.result.mesh_piv[0].R.shape[0]}\nTets {self.result.mesh_piv[0].T.shape[0]}")
+        plotter.interactor.setToolTip(str(self.result.piv_parameter)+f"\nNodes {self.result.mesh_piv[0].R.shape[0]}\nTets {self.result.mesh_piv[0].T.shape[0]}")
         M = self.result.mesh_piv[self.t_slider.value()]
-        showVectorField(self.plotter, M, M.getNodeVar("U_measured"), "U_measured", scalebar_max=self.vtk_toolbar.getScaleMax(), show_nan=self.vtk_toolbar.use_nans.value())
+        showVectorField(plotter, M, M.getNodeVar("U_measured"), "U_measured", scalebar_max=self.vtk_toolbar.getScaleMax(), show_nan=self.vtk_toolbar.use_nans.value())
         if cam_pos is not None:
-            self.plotter.camera_position = cam_pos
+            plotter.camera_position = cam_pos
 
     def valueChanged(self):
         if self.check_available(self.result):
