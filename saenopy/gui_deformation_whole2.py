@@ -653,6 +653,7 @@ class VTK_Toolbar(QtWidgets.QWidget):
         self.update_display()
 
 
+cam_pos_initiaized = False
 class DeformationDetector(PipelineModule):
     pipeline_name = "find deformations"
 
@@ -705,11 +706,13 @@ class DeformationDetector(PipelineModule):
         return self.result is not None and self.result.mesh_piv is not None
 
     def update_display(self, plotter=None):
+        global cam_pos_initiaized
         if plotter is None:
             plotter = self.plotter
         cam_pos = None
-        if plotter.camera_position is not None:
+        if plotter.camera_position is not None and cam_pos_initiaized is True:
             cam_pos = self.plotter.camera_position
+        cam_pos_initiaized = True
         plotter.interactor.setToolTip(str(self.result.piv_parameter)+f"\nNodes {self.result.mesh_piv[0].R.shape[0]}\nTets {self.result.mesh_piv[0].T.shape[0]}")
         M = self.result.mesh_piv[self.t_slider.value()]
 
@@ -845,10 +848,12 @@ class MeshCreator(PipelineModule):
         return self.result is not None and self.result.solver is not None
 
     def update_display(self):
+        global cam_pos_initiaized
         if self.check_evaluated(self.result):
             cam_pos = None
-            if self.plotter.camera_position is not None:
+            if self.plotter.camera_position is not None and cam_pos_initiaized is True:
                 cam_pos = self.plotter.camera_position
+            cam_pos_initiaized = True
             self.plotter.interactor.setToolTip(str(self.result.interpolate_parameter)+f"\nNodes {self.result.solver[self.t_slider.value()].R.shape[0]}\nTets {self.result.solver[self.t_slider.value()].T.shape[0]}")
             M = self.result.solver[self.t_slider.value()]
             showVectorField(self.plotter, M, M.U_target, "U_target", scalebar_max=self.vtk_toolbar.getScaleMax(), show_nan=self.vtk_toolbar.use_nans.value())
@@ -996,10 +1001,12 @@ class Regularizer(PipelineModule):
                                 alpha=params["alpha"], callback=callback, verbose=True)
 
     def update_display(self):
+        global cam_pos_initiaized
         if self.check_evaluated(self.result):
             cam_pos = None
-            if self.plotter.camera_position is not None:
+            if self.plotter.camera_position is not None and cam_pos_initiaized is True:
                 cam_pos = self.plotter.camera_position
+            cam_pos_initiaized = True
             self.plotter.interactor.setToolTip(str(self.result.solve_parameter)+f"\nNodes {self.result.solver[self.t_slider.value()].R.shape[0]}\nTets {self.result.solver[self.t_slider.value()].T.shape[0]}")
             M = self.result.solver[self.t_slider.value()]
             center = None
@@ -1052,10 +1059,12 @@ class FittedMesh(PipelineModule):
         return self.result is not None and self.result.solver is not None and getattr(self.result.solver[0], "regularisation_results", None) is not None
 
     def update_display(self):
+        global cam_pos_initiaized
         if self.check_evaluated(self.result):
             cam_pos = None
-            if self.plotter.camera_position is not None:
+            if self.plotter.camera_position is not None and cam_pos_initiaized is True:
                 cam_pos = self.plotter.camera_position
+            cam_pos_initiaized = True
             self.plotter.interactor.setToolTip(str(self.result.solve_parameter)+f"\nNodes {self.result.solver[self.t_slider.value()].R.shape[0]}\nTets {self.result.solver[self.t_slider.value()].T.shape[0]}")
             M = self.result.solver[self.t_slider.value()]
             showVectorField(self.plotter, M, M.U, "U", factor=0.1, scalebar_max=self.vtk_toolbar.getScaleMax(), show_nan=self.vtk_toolbar.use_nans.value())
