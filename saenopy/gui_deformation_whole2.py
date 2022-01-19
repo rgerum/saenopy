@@ -646,6 +646,7 @@ class VTK_Toolbar(QtWidgets.QWidget):
                 if widget is not self:
                     widget.theme.setValue(x)
                     widget.new_plotter(x, no_recursion=True)
+            result_view.setTheme(x)
         self.plotter.theme = x
         self.plotter.set_background(self.plotter._theme.background)
         print(self.plotter._theme.font.color)
@@ -711,14 +712,10 @@ class DeformationDetector(PipelineModule):
             cam_pos = self.plotter.camera_position
         plotter.interactor.setToolTip(str(self.result.piv_parameter)+f"\nNodes {self.result.mesh_piv[0].R.shape[0]}\nTets {self.result.mesh_piv[0].T.shape[0]}")
         M = self.result.mesh_piv[self.t_slider.value()]
-        
-        
+
         if M.hasNodeVar("U_measured"):
             showVectorField(plotter, M, M.getNodeVar("U_measured"), "U_measured", scalebar_max=self.vtk_toolbar.getScaleMax(), show_nan=self.vtk_toolbar.use_nans.value())
-        
-        
-        
-        
+
         if cam_pos is not None:
             plotter.camera_position = cam_pos
 
@@ -1068,11 +1065,13 @@ class FittedMesh(PipelineModule):
             self.plotter.interactor.setToolTip("")
 
 
-
+result_view = None
 class ResultView(PipelineModule):
 
     def __init__(self, parent: "BatchEvaluate", layout):
+        global result_view
         super().__init__(parent, layout)
+        result_view = self
 
         with self.parent.tabs.createTab("View") as self.tab:
             with QtShortCuts.QVBoxLayout() as vlayout:
@@ -1153,6 +1152,11 @@ class ResultView(PipelineModule):
 
     point_cloud = None
 
+    theme = None
+    def setTheme(self, x):
+        self.theme = x
+        self.current_result_plotted = False
+
     def replot(self):
         names = [name for name, input in self.input_checks.items() if input.value()]
         if len(names) == 0:
@@ -1166,9 +1170,14 @@ class ResultView(PipelineModule):
             self.plotter.close()
 
             self.plotter = QtInteractor(self.frame, shape=shape, border=False)
+
             self.plotter.set_background("black")
             # pv.set_plot_theme("document")
             self.plotter_layout.addWidget(self.plotter.interactor)
+
+        if self.theme is not None:
+            self.plotter._theme = self.theme
+            self.plotter.set_background(self.theme.background)
 
         plotter = self.plotter
         # color bar design properties
@@ -1236,7 +1245,11 @@ class ResultView(PipelineModule):
             # plotter.add_points(np.array([self.M.getCenter(mode="Deformation")]), color='w')
             # plotter.add_points(np.array([self.M.getCenter(mode="Force")]), color='r')
 
-            plotter.show_grid()
+            if self.theme is not None:
+                plotter.show_grid(color=self.theme.font.color)
+            else:
+                plotter.show_grid()
+
         # print(names)
         plotter.link_views()
         plotter.show()
