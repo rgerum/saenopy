@@ -82,6 +82,9 @@ class Mesh(Saveable):
 
     def getNodeVar(self, name):
         return self.node_vars[name]
+    
+    def hasNodeVar(self, name):
+        return name in self.node_vars
 
 
 class Solver(Saveable):
