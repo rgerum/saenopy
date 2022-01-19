@@ -25,7 +25,7 @@ class Saveable:
             if attribute is not None:
                 if getattr(attribute, "to_dict", None) is not None:
                     data[param] = getattr(attribute, "to_dict")()
-                elif isinstance(attribute, list) and getattr(attribute[0], "to_dict", None) is not None:
+                elif isinstance(attribute, list) and len(attribute) and getattr(attribute[0], "to_dict", None) is not None:
                     data[param] = [getattr(attr, "to_dict")() if getattr(attribute[0], "to_dict", None) else attribute for attr in attribute]
                 else:
                     data[param] = attribute
