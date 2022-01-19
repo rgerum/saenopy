@@ -514,7 +514,7 @@ class StackDisplay(PipelineModule):
             imageio.mimsave(new_path.parent / (new_path.stem + ".gif"), [self.result.stack[0][:, :, self.z_slider.value()], self.result.stack[1][:, :, self.z_slider.value()]], fps=2)
 
     def update_display(self):
-        if self.check_evaluated(self.result):
+        if self.check_available(self.result):
             self.scale1.setScale(self.result.stack[0].voxel_size)
             self.scale2.setScale(self.result.stack[1].voxel_size)
             self.z_slider.setRange(0, self.result.stack[0].shape[2] - 1)
@@ -698,7 +698,7 @@ class DeformationDetector(PipelineModule):
         })
 
     def check_available(self, result: Result) -> bool:
-        return result is not None and result.stack is not None
+        return result is not None and result.stack is not None and len(result.stack)
 
     def check_evaluated(self, result: Result) -> bool:
         return self.result is not None and self.result.mesh_piv is not None
@@ -711,7 +711,14 @@ class DeformationDetector(PipelineModule):
             cam_pos = self.plotter.camera_position
         plotter.interactor.setToolTip(str(self.result.piv_parameter)+f"\nNodes {self.result.mesh_piv[0].R.shape[0]}\nTets {self.result.mesh_piv[0].T.shape[0]}")
         M = self.result.mesh_piv[self.t_slider.value()]
-        showVectorField(plotter, M, M.getNodeVar("U_measured"), "U_measured", scalebar_max=self.vtk_toolbar.getScaleMax(), show_nan=self.vtk_toolbar.use_nans.value())
+        
+        
+        if M.hasNodeVar("U_measured"):
+            showVectorField(plotter, M, M.getNodeVar("U_measured"), "U_measured", scalebar_max=self.vtk_toolbar.getScaleMax(), show_nan=self.vtk_toolbar.use_nans.value())
+        
+        
+        
+        
         if cam_pos is not None:
             plotter.camera_position = cam_pos
 
