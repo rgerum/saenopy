@@ -32,7 +32,7 @@ setup(name='saenopy',
           'tqdm',
           'qimage2ndarray',
           'pyvista',
-          'pyvistaqt',
+          'pyvistaqt>=0.6.0',
           'imagecodecs',
       ],
       extras_require={
