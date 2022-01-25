@@ -817,6 +817,7 @@ class MeshCreator(PipelineModule):
                 self.tab.parent().t_slider = self.t_slider
 
         self.setParameterMapping("interpolate_parameter", {
+            "reference_stack": self.input_reference,
             "element_size": self.input_element_size,
             "inner_region": self.input_inner_region,
             "thinning_factor": self.input_thinning_factor,
@@ -1652,7 +1653,12 @@ class PlottingWindow(QtWidgets.QWidget):
         self.data_folders = []
         self.current_plot_func = lambda: None
 
-        with QtShortCuts.QHBoxLayout(self) as main_layout:
+        with QtShortCuts.QVBoxLayout(self) as main_layout0:
+         with QtShortCuts.QHBoxLayout() as main_layout00:
+             self.button_save = QtShortCuts.QPushButton(None, "save", self.save)
+             self.button_load = QtShortCuts.QPushButton(None, "load", self.load)
+             main_layout00.addStretch()
+         with QtShortCuts.QHBoxLayout() as main_layout:
             with QtShortCuts.QVBoxLayout() as layout:
                 with QtShortCuts.QGroupBox(None, "Groups") as (_, layout2):
                     layout2.setContentsMargins(0, 3, 0, 1)
@@ -1674,14 +1680,11 @@ class PlottingWindow(QtWidgets.QWidget):
                     self.setAcceptDrops(True)
 
             with QtShortCuts.QGroupBox(main_layout, "Plot Forces") as (_, layout):
-                self.type = QtShortCuts.QInputChoice(None, "type", "Pressure", ["Pressure", "Contractility"])
+                self.type = QtShortCuts.QInputChoice(None, "type", "strain_energy", ["strain_energy", "contractility", "polarity", "99_percentile_deformation", "99_percentile_force"])
                 self.type.valueChanged.connect(self.replot)
-                self.dt = QtShortCuts.QInputString(None, "dt", 2, unit="min", type=float)
-                self.dt.valueChanged.connect(self.replot)
-                self.input_tbar = QtShortCuts.QInputString(None, "Comparison Time", 2, type=float)
-                self.input_tbar_unit = QtShortCuts.QInputChoice(self.input_tbar.layout(), None, "min", ["steps", "min", "h"])
-                self.input_tbar_unit.valueChanged.connect(self.replot)
-                self.input_tbar.valueChanged.connect(self.replot)
+                self.agg = QtShortCuts.QInputChoice(None, "aggregate", "mean",
+                                                     ["mean", "max", "min", "median"])
+                self.agg.valueChanged.connect(self.replot)
 
                 self.canvas = MatplotlibWidget(self)
                 layout.addWidget(self.canvas)
@@ -1701,6 +1704,47 @@ class PlottingWindow(QtWidgets.QWidget):
         self.addGroup()
         self.current_plot_func = self.run2
 
+    def save(self):
+        new_path = QtWidgets.QFileDialog.getSaveFileName(None, "Save Session", os.getcwd(), "JSON File (*.json)")
+        if new_path:
+            if isinstance(new_path, tuple):
+                new_path = new_path[0]
+            else:
+                new_path = str(new_path)
+            list_new = []
+            for item in self.list.data:
+                list_new.append({"name": item[0], "selected": item[1], "color": item[3], "paths": []})
+                for item2 in item[2]:
+                    list_new[-1]["paths"].append({"path": item2[0], "selected": item[1]})
+            import json
+            with open(new_path, "w") as fp:
+                json.dump(list_new, fp, indent=2)
+
+    def load(self):
+        new_path = QtWidgets.QFileDialog.getOpenFileName(None, "Save Session", os.getcwd(), "JSON File (*.json)")
+        if new_path:
+            if isinstance(new_path, tuple):
+                new_path = new_path[0]
+            else:
+                new_path = str(new_path)
+            import json
+            with open(new_path, "r") as fp:
+                list_new = json.load(fp)
+            self.list.clear()
+            self.list.setData([[i["name"], i["selected"], [], i["color"]] for i in list_new])
+            self.data_folders = self.list.data
+            print("y", self.list.data)
+            for i, d in enumerate(list_new):
+                self.list.setCurrentRow(i)
+                self.list.listSelected()
+                self.listSelected()
+                self.list2.data = self.list.data[i][2]
+                self.add_files([d0["path"] for d0 in d["paths"]])
+                print("xxx", self.list.data)
+                for ii, d0 in enumerate(d["paths"]):
+                    self.list2.data[ii][1] = d0["selected"]
+            print("x", self.list.data)
+
     def dragEnterEvent(self, event: QtGui.QDragEnterEvent):
         # accept url lists (files by drag and drop)
         for url in event.mimeData().urls():
@@ -1716,7 +1760,7 @@ class PlottingWindow(QtWidgets.QWidget):
         urls = []
         for url in event.mimeData().urls():
             print(url)
-            url = url.path()
+            url = url.toLocalFile()
             if url[0] == "/" and url[2] == ":":
                 url = url[1:]
             print(url)
@@ -1737,9 +1781,9 @@ class PlottingWindow(QtWidgets.QWidget):
                 print("Add file", file)
                 res = Result.load(file)
                 res.resulting_data = []
-                for M in res.solver:
+                for i, M in enumerate(res.solver):
                     res.resulting_data.append({
-                        "time": 0,
+                        "t": i*res.time_delta if res.time_delta else 0,
                         "strain_energy": M.E_glo,
                         "contractility": M.getContractility(center_mode="force"),
                         "polarity": M.getPolarity(),
@@ -1846,17 +1890,6 @@ class PlottingWindow(QtWidgets.QWidget):
         if self.current_plot_func is not None:
             self.current_plot_func()
 
-    def get_comparison_index(self):
-        if self.input_tbar.value() is None:
-            return None
-        if self.input_tbar_unit.value() == "steps":
-            index = int(np.floor(self.input_tbar.value() + 0.5))
-        elif self.input_tbar_unit.value() == "min":
-            index = int(np.floor(self.input_tbar.value() / self.dt.value() + 0.5))
-        else:
-            index = int(np.floor(self.input_tbar.value() * 60 / self.dt.value() + 0.5))
-        return index
-
     def barplot(self):
         for button in self.plot_buttons:
             button.setChecked(False)
@@ -1864,21 +1897,37 @@ class PlottingWindow(QtWidgets.QWidget):
         self.current_plot_func = self.barplot
         self.canvas.setActive()
         plt.cla()
-        if self.type.value() == "Contractility":
+        if self.type.value() == "strain_energy":
+            mu_name = 'strain_energy'
+            y_label = 'Strain Energy'
+        elif self.type.value() == "contractility":
             mu_name = 'contractility'
-            y_label = 'Contractility (µN)'
-        else:
+            y_label = 'Contractility'
+        elif self.type.value() == "polarity":
             mu_name = 'polarity'
-            y_label = 'Pressure (Pa)'
+            y_label = 'Polarity'
+        elif self.type.value() == "99_percentile_deformation":
+            mu_name = '99_percentile_deformation'
+            y_label = 'Deformation'
+        elif self.type.value() == "99_percentile_force":
+            mu_name = '99_percentile_force'
+            y_label = 'Force'
 
         # get all the data as a pandas dataframe
         res = self.getAllCurrentPandasData()
 
         # limit the dataframe to the comparison time
+        print(res)
+        print(res.columns)
+        res0 = res.groupby("filename").agg("max")
+        res = res.groupby("filename").agg(self.agg.value())
+        res["group"] = res0["group"]
         #index = self.get_comparison_index()
         #res = res[res.index == index]
+        print(res)
+        print(res.columns, self.agg.value())
 
-        code_data = [res, ["group", mu_name, "filename"]]
+        code_data = [res, ["group", mu_name]]
 
         color_dict = {d[0]: d[3] for d in self.data_folders}
 
@@ -1911,26 +1960,27 @@ class PlottingWindow(QtWidgets.QWidget):
             button.setChecked(False)
         self.button_run2.setChecked(True)
         self.current_plot_func = self.plot_groups
-        return
-        if self.type.value() == "Contractility":
-            mu_name = 'Mean Contractility (µN)'
-            std_name = 'St.dev. Contractility (µN)'
-            y_label = 'Contractility (µN)'
-        else:
-            mu_name = 'Mean Pressure (Pa)'
-            std_name = 'St.dev. Pressure (Pa)'
-            y_label = 'Pressure (Pa)'
+        if self.type.value() == "strain_energy":
+            mu_name = 'strain_energy'
+            y_label = 'Strain Energy'
+        elif self.type.value() == "contractility":
+            mu_name = 'contractility'
+            y_label = 'Contractility'
+        elif self.type.value() == "polarity":
+            mu_name = 'polarity'
+            y_label = 'Polarity'
+        elif self.type.value() == "99_percentile_deformation":
+            mu_name = '99_percentile_deformation'
+            y_label = 'Deformation'
+        elif self.type.value() == "99_percentile_force":
+            mu_name = '99_percentile_force'
+            y_label = 'Force'
 
         self.canvas.setActive()
         plt.cla()
         res = self.getAllCurrentPandasData()
 
         code_data = [res, ["t", "group", mu_name, "filename"]]
-
-        # add a vertical line where the comparison time is
-        if self.input_tbar.value() is not None:
-            comp_h = self.get_comparison_index() * self.dt.value() / 60
-            plt.axvline(comp_h, color="k")
 
         color_dict = {d[0]: d[3] for d in self.data_folders}
 
@@ -1967,38 +2017,51 @@ class PlottingWindow(QtWidgets.QWidget):
         for button in self.plot_buttons:
             button.setChecked(False)
         self.button_run.setChecked(True)
-        return
+        #return
         self.current_plot_func = self.run2
-        if self.type.value() == "Contractility":
-            mu_name = 'Mean Contractility (µN)'
-            std_name = 'St.dev. Contractility (µN)'
-            y_label = 'Contractility (µN)'
-        else:
-            mu_name = 'Mean Pressure (Pa)'
-            std_name = 'St.dev. Pressure (Pa)'
-            y_label = 'Pressure (Pa)'
+        if self.type.value() == "strain_energy":
+            mu_name = 'strain_energy'
+            y_label = 'Strain Energy'
+        elif self.type.value() == "contractility":
+            mu_name = 'contractility'
+            y_label = 'Contractility'
+        elif self.type.value() == "polarity":
+            mu_name = 'polarity'
+            y_label = 'Polarity'
+        elif self.type.value() == "99_percentile_deformation":
+            mu_name = '99_percentile_deformation'
+            y_label = 'Deformation'
+        elif self.type.value() == "99_percentile_force":
+            mu_name = '99_percentile_force'
+            y_label = 'Force'
+        if 0:
+            if self.type.value() == "Contractility":
+                mu_name = 'Mean Contractility (µN)'
+                std_name = 'St.dev. Contractility (µN)'
+                y_label = 'Contractility (µN)'
+            else:
+                mu_name = 'Mean Pressure (Pa)'
+                std_name = 'St.dev. Pressure (Pa)'
+                y_label = 'Pressure (Pa)'
 
         try:
-            res = self.data_folders[self.list.currentRow()][2][self.list2.currentRow()][2]
+            res = self.data_folders[self.list.currentRow()][2][self.list2.currentRow()][2].resulting_data
         except IndexError:
             return
 
         #plt.figure(figsize=(6, 3))
-        code_data = [res, ["t", mu_name, std_name]]
+        code_data = [res, ["t", mu_name]]
 
-        res["t"] = res.index * self.dt.value() / 60
+        #res["t"] = res.index * self.dt.value() / 60
 
         self.canvas.setActive()
         plt.cla()
 
-        def plot(res, mu_name, std_name, y_label, plot_color):
+        def plot(res, mu_name, y_label, plot_color):
             mu = res[mu_name]
-            std = res[std_name]
 
             # plot time course of mean values
             p, = plt.plot(res.t, mu, lw=2, color=plot_color)
-            # add standard deviation area
-            plt.fill_between(res.t, mu - std, mu + std, facecolor=p.get_color(), lw=0, alpha=0.5)
 
             # add grid
             plt.grid(True)
@@ -2010,7 +2073,7 @@ class PlottingWindow(QtWidgets.QWidget):
             # show the plot
             self.canvas.draw()
 
-        code = execute(plot, code_data[0][code_data[1]], mu_name=mu_name, std_name=std_name, y_label=y_label, plot_color=self.data_folders[self.list.currentRow()][3])
+        code = execute(plot, code_data[0][code_data[1]], mu_name=mu_name, y_label=y_label, plot_color=self.data_folders[self.list.currentRow()][3])
 
         self.export_data = [code, code_data]
 
