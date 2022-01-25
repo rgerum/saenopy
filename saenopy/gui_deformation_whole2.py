@@ -705,7 +705,7 @@ class DeformationDetector(PipelineModule):
     def check_evaluated(self, result: Result) -> bool:
         return self.result is not None and self.result.mesh_piv is not None
 
-    def update_display(self, plotter=None):
+    def update_display(self, *, plotter=None):
         global cam_pos_initiaized
         if plotter is None:
             plotter = self.plotter
@@ -782,6 +782,8 @@ class MeshCreator(PipelineModule):
             layout.setContentsMargins(0, 0, 0, 0)
             with CheckAbleGroup(self, "interpolate mesh").addToLayout() as self.group:
                 with QtShortCuts.QVBoxLayout() as layout:
+                    self.input_reference = QtShortCuts.QInputChoice(None, "reference stack", "first", ["first", "median", "last"])
+                    self.input_reference.setEnabled(False)
                     with QtShortCuts.QHBoxLayout():
                         with QtShortCuts.QVBoxLayout() as layout2:
                             self.input_element_size = QtShortCuts.QInputNumber(None, "element_size", 7, unit="μm")
@@ -849,6 +851,10 @@ class MeshCreator(PipelineModule):
 
     def update_display(self):
         global cam_pos_initiaized
+        if self.result is not None and len(self.result.mesh_piv) > 2:
+            self.input_reference.setEnabled(True)
+        else:
+            self.input_reference.setEnabled(False)
         if self.check_evaluated(self.result):
             cam_pos = None
             if self.plotter.camera_position is not None and cam_pos_initiaized is True:
@@ -864,6 +870,20 @@ class MeshCreator(PipelineModule):
 
     def process(self, result: Result, params: dict):
         solvers = []
+        mode = self.input_reference.value()
+
+        U = [M.getNodeVar("U_measured") for M in result.mesh_piv]
+        # correct for the median position
+        if len(U) > 2:
+            xpos2 = np.cumsum(U, axis=0)  # mittlere position
+            if mode == "first":
+                xpos2 -= xpos2[0]
+            elif mode == "median":
+                xpos2 -= np.nanmedian(xpos2, axis=0)  # aktuelle abweichung von
+            elif mode == "last":
+                xpos2 -= xpos2[-1]
+        else:
+            xpos2 = U
         for i in range(len(result.mesh_piv)):
             M = result.mesh_piv[i]
             points, cells = saenopy.multigridHelper.getScaledMesh(params["element_size"]*1e-6,
@@ -873,7 +893,7 @@ class MeshCreator(PipelineModule):
                                           [0, 0, 0], params["thinning_factor"])
 
             R = (M.R - np.min(M.R, axis=0)) - (np.max(M.R, axis=0) - np.min(M.R, axis=0)) / 2
-            U_target = saenopy.getDeformations.interpolate_different_mesh(R, M.getNodeVar("U_measured"), points)
+            U_target = saenopy.getDeformations.interpolate_different_mesh(R, xpos2[i], points)
 
             border_idx = getNodesWithOneFace(cells)
             inside_mask = np.ones(points.shape[0], dtype=bool)
