@@ -538,8 +538,8 @@ class QGroupBox(QtWidgets.QGroupBox):
 
 class QTabWidget(QtWidgets.QTabWidget):
 
-    def __init__(self, layout):
-        super().__init__()
+    def __init__(self, layout, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         if layout is None and current_layout is not None:
             layout = current_layout
         layout.addWidget(self)

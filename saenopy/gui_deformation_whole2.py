@@ -1824,9 +1824,9 @@ class PlottingWindow(QtWidgets.QWidget):
                     self.label = QtWidgets.QLabel("Select a path as an input wildcard. Use * to specify a placeholder. All paths that match the wildcard will be added.")
                     layout.addWidget(self.label)
                     def checker(filename):
-                        return filename + "/**/result.xlsx"
+                        return filename + "/**/*.npz"
                     self.inputText = QtShortCuts.QInputFolder(None, None, settings=settings, filename_checker=checker,
-                                                                settings_key="batch_eval/wildcard", allow_edit=True)
+                                                                settings_key="batch_eval/analyse_force_wildcard", allow_edit=True)
                     with QtShortCuts.QHBoxLayout() as layout3:
                         # self.button_clear = QtShortCuts.QPushButton(None, "clear list", self.clear_files)
                         layout3.addStretch()
@@ -1840,22 +1840,7 @@ class PlottingWindow(QtWidgets.QWidget):
         text = os.path.normpath(dialog.inputText.value())
         files = glob.glob(text, recursive=True)
 
-        current_group = self.list2.data
-        current_files = [d[0] for d in current_group]
-        for file in files:
-            if file in current_files:
-                print("File already in list", file)
-                continue
-            try:
-                print("Add file", file)
-                res = self.getPandasData(file)
-                if self.list2.data is current_group:
-                    self.list2.addData(file, True, res)
-                    print("replot")
-                    self.replot()
-                app.processEvents()
-            except FileNotFoundError:
-                continue
+        self.add_files(files)
 
     def getPandasData(self, file):
         res = pd.read_excel(file)
@@ -2135,6 +2120,7 @@ class MainWindow(QtWidgets.QWidget):
         self.setMinimumWidth(1400)
         self.setMinimumHeight(900)
         self.setWindowTitle("Saenopy Viewer")
+        self.setWindowIcon(QtGui.QIcon("Icon.ico"))
 
         main_layout = QtWidgets.QHBoxLayout(self)
 

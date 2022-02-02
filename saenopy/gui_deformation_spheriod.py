@@ -714,11 +714,6 @@ class MainWindow(QtWidgets.QWidget):
                     </ul>
                  
                      """.strip())
-                v_layout.addWidget(QHLine())
-                with QtShortCuts.QHBoxLayout() as h_layout:
-                    h_layout.addStretch()
-                    self.button_previous = QtShortCuts.QPushButton(None, "back", self.previous)
-                    self.button_next = QtShortCuts.QPushButton(None, "next", self.next)
 
             """ """
             with self.tabs.createTab("Data Analysis") as v_layout:
@@ -759,23 +754,11 @@ class MainWindow(QtWidgets.QWidget):
                             Export allows to store the data as CSV file or an embedded table within a python script 
                             allowing to re-plot and adjust the figures later on. <br/>
                             """)
-                v_layout.addWidget(QHLine())
-                with QtShortCuts.QHBoxLayout() as h_layout:
-                    h_layout.addStretch()
-                    self.button_previous = QtShortCuts.QPushButton(None, "back", self.previous)
-                    self.button_next = QtShortCuts.QPushButton(None, "next", self.next)
 
     def load(self):
         files = glob.glob(self.input_filename.value())
         self.input_label.setText("\n".join(files))
 #        self.input_filename
-
-    def next(self):
-        self.tabs.setCurrentIndex(self.tabs.currentIndex()+1)
-
-    def previous(self):
-        self.tabs.setCurrentIndex(self.tabs.currentIndex()-1)
-
 
 
 
@@ -1544,7 +1527,12 @@ class PlottingWindow(QtWidgets.QWidget):
         self.data_folders = []
         self.current_plot_func = lambda: None
 
-        with QtShortCuts.QHBoxLayout(self) as main_layout:
+        with QtShortCuts.QVBoxLayout(self) as main_layout0:
+         with QtShortCuts.QHBoxLayout() as main_layout00:
+             self.button_save = QtShortCuts.QPushButton(None, "save", self.save)
+             self.button_load = QtShortCuts.QPushButton(None, "load", self.load)
+             main_layout00.addStretch()
+         with QtShortCuts.QHBoxLayout() as main_layout:
             with QtShortCuts.QVBoxLayout() as layout:
                 with QtShortCuts.QGroupBox(None, "Groups") as (_, layout2):
                     layout2.setContentsMargins(0, 3, 0, 1)
@@ -1562,6 +1550,8 @@ class PlottingWindow(QtWidgets.QWidget):
                     self.list2.itemSelectionChanged.connect(self.run2)
                     self.list2.itemChanged.connect(self.replot)
                     self.list2.addItemClicked.connect(self.addFiles)
+
+                    self.setAcceptDrops(True)
 
             with QtShortCuts.QGroupBox(main_layout, "Plot Forces") as (_, layout):
                 self.type = QtShortCuts.QInputChoice(None, "type", "Pressure", ["Pressure", "Contractility"])
@@ -1591,6 +1581,47 @@ class PlottingWindow(QtWidgets.QWidget):
         self.addGroup()
         self.current_plot_func = self.run2
 
+    def save(self):
+        new_path = QtWidgets.QFileDialog.getSaveFileName(None, "Save Session", os.getcwd(), "JSON File (*.json)")
+        if new_path:
+            if isinstance(new_path, tuple):
+                new_path = new_path[0]
+            else:
+                new_path = str(new_path)
+            list_new = []
+            for item in self.list.data:
+                list_new.append({"name": item[0], "selected": item[1], "color": item[3], "paths": []})
+                for item2 in item[2]:
+                    list_new[-1]["paths"].append({"path": item2[0], "selected": item[1]})
+            import json
+            with open(new_path, "w") as fp:
+                json.dump(list_new, fp, indent=2)
+
+    def load(self):
+        new_path = QtWidgets.QFileDialog.getOpenFileName(None, "Save Session", os.getcwd(), "JSON File (*.json)")
+        if new_path:
+            if isinstance(new_path, tuple):
+                new_path = new_path[0]
+            else:
+                new_path = str(new_path)
+            import json
+            with open(new_path, "r") as fp:
+                list_new = json.load(fp)
+            self.list.clear()
+            self.list.setData([[i["name"], i["selected"], [], i["color"]] for i in list_new])
+            self.data_folders = self.list.data
+            print("y", self.list.data)
+            for i, d in enumerate(list_new):
+                self.list.setCurrentRow(i)
+                self.list.listSelected()
+                self.listSelected()
+                self.list2.data = self.list.data[i][2]
+                self.add_files([d0["path"] for d0 in d["paths"]])
+                print("xxx", self.list.data)
+                for ii, d0 in enumerate(d["paths"]):
+                    self.list2.data[ii][1] = d0["selected"]
+            print("x", self.list.data)
+
     def update_group_name(self):
         if self.list.currentItem() is not None:
             self.box_group.setTitle(f"Files for '{self.list.currentItem().text()}'")
@@ -1604,6 +1635,33 @@ class PlottingWindow(QtWidgets.QWidget):
         item = self.list.addData(text, True, [], mpl.colors.to_hex(f"C{len(self.data_folders)}"))
         self.list.setCurrentItem(item)
         self.list.editItem(item)
+
+
+    def dragEnterEvent(self, event: QtGui.QDragEnterEvent):
+        # accept url lists (files by drag and drop)
+        for url in event.mimeData().urls():
+            # if str(url.toString()).strip().endswith(".npz"):
+            event.accept()
+            return
+        event.ignore()
+
+    def dragMoveEvent(self, event: QtGui.QDragMoveEvent):
+        event.acceptProposedAction()
+
+    def dropEvent(self, event: QtCore.QEvent):
+        urls = []
+        for url in event.mimeData().urls():
+            print(url)
+            url = url.toLocalFile()
+            if url[0] == "/" and url[2] == ":":
+                url = url[1:]
+            print(url)
+            if url.endswith("result.xlsx"):
+                urls += [url]
+            else:
+                urls += glob.glob(url + "/**/result.xlsx", recursive=True)
+        self.add_files(urls)
+
 
     def addFiles(self):
         settings = self.settings
@@ -1629,8 +1687,13 @@ class PlottingWindow(QtWidgets.QWidget):
             return
 
         text = os.path.normpath(dialog.inputText.value())
+        print(text)
         files = glob.glob(text, recursive=True)
+        print(files)
 
+        self.add_files(files)
+
+    def add_files(self, files):
         current_group = self.list2.data
         current_files = [d[0] for d in current_group]
         for file in files:
