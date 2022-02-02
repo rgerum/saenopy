@@ -57,7 +57,7 @@ class MainWindow(QtWidgets.QWidget):
         self.setMinimumWidth(800)
         self.setMinimumHeight(400)
         self.setWindowTitle("Saenopy")
-        self.setWindowIcon(QtGui.QIcon("../Icon.ico"))
+        self.setWindowIcon(QtGui.QIcon("img/Icon.ico"))
 
         self.settings = QtCore.QSettings("Saenopy", "Seanopy")
 
@@ -71,7 +71,7 @@ class MainWindow(QtWidgets.QWidget):
                     with QtShortCuts.QHBoxLayout() as layout2:
                         layout.addStretch()
                         self.image = QtWidgets.QLabel("x").addToLayout()
-                        self.image.setPixmap(QtGui.QPixmap("../Logo.png"))
+                        self.image.setPixmap(QtGui.QPixmap("img/Logo.png"))
                         self.image.setScaledContents(True)
                         self.image.setMaximumWidth(400)
                         self.image.setMaximumHeight(200)

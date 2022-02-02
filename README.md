@@ -5,6 +5,8 @@ SAENOPY
 [![DOC](https://api.travis-ci.com/rgerum/saenopy.svg?branch=master)](https://travis-ci.com/github/rgerum/saenopy)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
+![Saenopy](saenopy/img/Logo.png "Saenopy")
+
 SAENOPY a python implementation of the SAENO - Semi-affine Elastic Network Optimizer, originally developed by Julian
  Steinwachs.
 

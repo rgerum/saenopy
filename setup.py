@@ -26,6 +26,8 @@ setup(name='saenopy',
       author_email='richard.gerum@fau.de',
       license='MIT',
       packages=['saenopy'],
+      use_scm_version=True,
+      setup_requires=['setuptools_scm'],
       install_requires=[
           'numpy',
           'scipy',
