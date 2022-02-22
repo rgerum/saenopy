@@ -494,7 +494,12 @@ class StackDisplay(PipelineModule):
 
     def check_evaluated(self, result: Result) -> bool:
         return self.result is not None
-
+    
+    def check_available(self, result: Result) -> bool:
+        if result is not None and result.stack is not None:
+            return True            
+        return False
+      
     def export(self):
         if self.result is None:
             return
@@ -513,7 +518,7 @@ class StackDisplay(PipelineModule):
             tifffile.imsave(new_path.parent / (new_path.stem + "_deformed.tif"), self.result.stack[1][:, :, self.z_slider.value()])
             imageio.mimsave(new_path.parent / (new_path.stem + ".gif"), [self.result.stack[0][:, :, self.z_slider.value()], self.result.stack[1][:, :, self.z_slider.value()]], fps=2)
 
-    def update_display(self):
+    def update_display(self):   
         if self.check_available(self.result):
             self.scale1.setScale(self.result.stack[0].voxel_size)
             self.scale2.setScale(self.result.stack[1].voxel_size)
