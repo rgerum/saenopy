@@ -36,6 +36,7 @@ setup(name='saenopy',
           'pyvista',
           'pyvistaqt>=0.6.0',
           'imagecodecs',
+          'jointforces @ https://github.com/christophmark/jointforces/archive/master.zip'
       ],
       extras_require={
         'compilation':  ["numba"],
