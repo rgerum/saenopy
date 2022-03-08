@@ -1020,8 +1020,10 @@ class Solver(Saveable):
 
         B = B1 - B2
 
-        Rcms = np.linalg.inv(A) @ B
-
+        try:
+            Rcms = np.linalg.inv(A) @ B
+        except np.linalg.LinAlgError:
+            Rcms = np.array([0, 0, 0])
 
         RR = R - Rcms
         contractility = np.sum(np.einsum("ki,ki->k", RR, f) / np.linalg.norm(RR, axis=1))
@@ -1251,7 +1253,10 @@ class Solver(Saveable):
             # A += I * np.sum(f**2) - np.outer(f, f)
             A = np.sum(np.einsum("ij,kl,kl->kij", np.eye(3), f, f) - np.einsum("ki,kj->kij", f, f), axis=0)
             B = B1 - B2
-            Rcms = np.linalg.inv(A) @ B
+            try:
+                Rcms = np.linalg.inv(A) @ B
+            except np.linalg.LinAlgError:
+                Rcms = np.array([0, 0, 0])
             
         return Rcms
     
