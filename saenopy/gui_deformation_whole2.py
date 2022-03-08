@@ -361,7 +361,8 @@ class PipelineModule(QtWidgets.QWidget):
                     self.parent.tabs.setTabEnabled(i, self.check_evaluated(result))
 
         # check if the results instance can be evaluated currently with this module
-        if self.check_available(result) is False:
+        #if self.check_available(result) is False:
+        if result is None:
             # if not disable all the widgets
             for name, widget in self.parameter_dict.items():
                 widget.setDisabled(True)
@@ -671,8 +672,11 @@ class DeformationDetector(PipelineModule):
 
                 with QtShortCuts.QVBoxLayout() as layout:
                     with QtShortCuts.QHBoxLayout():
-                        self.input_overlap = QtShortCuts.QInputNumber(None, "overlap", 0.6, step=0.1, value_changed=self.valueChanged,
-                                                                      tooltip="the fraction of a window size by which two adjacent windows overlap")
+                        # self.input_overlap = QtShortCuts.QInputNumber(None, "overlap", 0.6, step=0.1, value_changed=self.valueChanged,
+                        #                                               tooltip="the fraction of a window size by which two adjacent windows overlap")
+                        self.input_elementsize = QtShortCuts.QInputNumber(None, "piv element size", 15.0, step=1, value_changed=self.valueChanged,
+                                                                      tooltip="the grid size for deformation detection")
+                                    
                         self.input_win = QtShortCuts.QInputNumber(None, "window size", 30, value_changed=self.valueChanged, unit="μm",
                                                                   tooltip="the size of the volume to look for a match")
                     with QtShortCuts.QHBoxLayout():
@@ -699,7 +703,8 @@ class DeformationDetector(PipelineModule):
 
         self.setParameterMapping("piv_parameter", {
             "win_um": self.input_win,
-            "fac_overlap": self.input_overlap,
+            "elementsize": self.input_elementsize,
+            #"fac_overlap": self.input_overlap,
             "signoise_filter": self.input_signoise,
             "drift_correction": self.input_driftcorrection,
         })
@@ -731,10 +736,10 @@ class DeformationDetector(PipelineModule):
         if self.check_available(self.result):
             voxel_size1 = self.result.stack[0].voxel_size
             stack_deformed = self.result.stack[0]
-
-            unit_size = (1-self.input_overlap.value())*self.input_win.value()
+            overlap = 1 - (self.input_elementsize.value()/self.input_win.value()) 
             stack_size = np.array(stack_deformed.shape)*voxel_size1 - self.input_win.value()
-            self.label.setText(f"Deformation grid with {unit_size:.1f}μm elements.\nTotal region is {stack_size}.")
+            # self.label.setText(f"Deformation grid with {unit_size:.1f}μm elements.\nTotal region is {stack_size}.")
+            self.label.setText(f"""Overlap between neighbouring windows (size={self.input_win.value()}µm or {(self.input_win.value()/np.array(voxel_size1)).astype(int)} px) is choosen \n to {int(overlap*100)}% for an elementsize of {self.input_elementsize.value():.1f}μm elements.\nTotal region is {stack_size}.""")
         else:
             self.label.setText("")
 
@@ -771,7 +776,9 @@ def getDeformation(progress, i, result, params):
     #tqdm.tqdm.__new__ = lambda cls, iter: progress.put(iter)
 
     mesh_piv = saenopy.getDeformations.getDisplacementsFromStacks2(result.stack[i], result.stack[i+1],
-                                       params["win_um"], params["fac_overlap"], params["signoise_filter"],
+                                       params["win_um"],
+                                       1-(params["elementsize"]/params["win_um"]), ## calculate overlap from specified element and win-size
+                                       params["signoise_filter"],
                                        params["drift_correction"])
     return mesh_piv
 
@@ -791,9 +798,9 @@ class MeshCreator(PipelineModule):
                     self.input_reference.setEnabled(False)
                     with QtShortCuts.QHBoxLayout():
                         with QtShortCuts.QVBoxLayout() as layout2:
-                            self.input_element_size = QtShortCuts.QInputNumber(None, "element_size", 7, unit="μm")
+                            self.input_element_size = QtShortCuts.QInputNumber(None, "mesh element size", 7, unit="μm")
                             #with QtShortCuts.QHBoxLayout() as layout2:
-                            self.input_inner_region = QtShortCuts.QInputNumber(None, "inner_region", 100, unit="μm")
+                            self.input_inner_region = QtShortCuts.QInputNumber(None, "inner region", 100, unit="μm")
                             self.input_thinning_factor = QtShortCuts.QInputNumber(None, "thinning factor", 0.2, step=0.1)
                             layout2.addStretch()
                         with QtShortCuts.QVBoxLayout() as layout2:
@@ -1433,7 +1440,7 @@ class BatchEvaluate(QtWidgets.QWidget):
             for url in urls:
                 data = Result.load(url)
                 self.list.addData(data.output, True, data, mpl.colors.to_hex(f"gray"))
-                app.processEvents()
+                #app.processEvents()
         self.update_icons()
 
     def update_icons(self):
@@ -2157,6 +2164,10 @@ class MainWindow(QtWidgets.QWidget):
 
 if __name__ == '__main__':
     app = QtWidgets.QApplication(sys.argv)
+    if sys.platform.startswith('win'):
+        import ctypes
+        myappid = 'fabrylab.saenopy.master'  # arbitrary string
+        ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
     print(sys.argv)
     window = MainWindow()
     if len(sys.argv) >= 2:

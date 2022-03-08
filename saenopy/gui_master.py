@@ -115,9 +115,10 @@ class MainWindow(QtWidgets.QWidget):
 
 if __name__ == '__main__':
     app = QtWidgets.QApplication(sys.argv)
-    import ctypes
-    myappid = 'fabrylab.saenopy.master'  # arbitrary string
-    ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
+    if sys.platform.startswith('win'):
+        import ctypes
+        myappid = 'fabrylab.saenopy.master'  # arbitrary string
+        ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
     print(sys.argv)
     window = MainWindow()
     if len(sys.argv) >= 2:
