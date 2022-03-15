@@ -23,6 +23,7 @@ import matplotlib.pyplot as plt
 import glob
 import imageio
 import threading
+from pathlib import Path
 import saenopy.getDeformations
 import saenopy.multigridHelper
 import saenopy.materials
@@ -57,7 +58,7 @@ class MainWindow(QtWidgets.QWidget):
         self.setMinimumWidth(800)
         self.setMinimumHeight(400)
         self.setWindowTitle("Saenopy")
-        self.setWindowIcon(QtGui.QIcon("img/Icon.ico"))
+        self.setWindowIcon(QtGui.QIcon(str(Path(__file__).parent / "img/Icon.ico")))
 
         self.settings = QtCore.QSettings("Saenopy", "Seanopy")
 
@@ -71,7 +72,7 @@ class MainWindow(QtWidgets.QWidget):
                     with QtShortCuts.QHBoxLayout() as layout2:
                         layout.addStretch()
                         self.image = QtWidgets.QLabel("x").addToLayout()
-                        self.image.setPixmap(QtGui.QPixmap("img/Logo.png"))
+                        self.image.setPixmap(QtGui.QPixmap(str(Path(__file__).parent / "img/Logo.png")))
                         self.image.setScaledContents(True)
                         self.image.setMaximumWidth(400)
                         self.image.setMaximumHeight(200)
@@ -92,7 +93,7 @@ class MainWindow(QtWidgets.QWidget):
                 with self.tabs.createTab("Orientation") as self.layout_orientation:
                     self.layout_orientation.setContentsMargins(0, 0, 0, 0)
 
-        self.tabs.setCurrentIndex(self.settings.value("master_tab", 0))
+        #self.tabs.setCurrentIndex(self.settings.value("master_tab", 0))
         self.first_tab_change = False
 
     first_tab_change = True
