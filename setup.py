@@ -44,4 +44,5 @@ setup(name='saenopy',
       entry_points={
            'console_scripts': ['saenopy=saenopy.gui_master:main'],
       },
+      include_package_data=True,
 )

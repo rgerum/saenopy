@@ -1,1 +1,1 @@
-include img/Icon.ico img/Logo.png
+recursive-include saenopy/img *.ico *.png
