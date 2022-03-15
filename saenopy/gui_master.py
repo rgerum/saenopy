@@ -113,7 +113,8 @@ class MainWindow(QtWidgets.QWidget):
     def setTab(self, value):
         self.tabs.setCurrentIndex(value)
 
-if __name__ == '__main__':
+
+def main():
     app = QtWidgets.QApplication(sys.argv)
     if sys.platform.startswith('win'):
         import ctypes
@@ -125,3 +126,7 @@ if __name__ == '__main__':
         window.loadFile(sys.argv[1])
     window.show()
     sys.exit(app.exec_())
+
+
+if __name__ == '__main__':
+    main()

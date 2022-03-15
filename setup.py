@@ -42,6 +42,6 @@ setup(name='saenopy',
         'compilation':  ["numba"],
       },
       entry_points={
-           'console_scripts': ['saenopy=saenopy.main:main'],
+           'console_scripts': ['saenopy=gui_master.:main'],
       },
 )
