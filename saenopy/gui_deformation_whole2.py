@@ -12,6 +12,7 @@ import matplotlib.pyplot as plt
 import glob
 import imageio
 import threading
+import inspect
 
 import natsort
 
@@ -28,12 +29,11 @@ import saenopy.getDeformations
 import saenopy.multigridHelper
 import saenopy.materials
 from saenopy.gui.stack_selector import StackSelector
-from saenopy.getDeformations import getStack, Stack
+from saenopy.getDeformations import getStack, Stack, format_glob, Result
 from saenopy.multigridHelper import getScaledMesh, getNodesWithOneFace
-from saenopy.solver import Result
 from saenopy.loadHelpers import Saveable
 
-from typing import List
+from typing import List, Tuple
 
 """REFERENCE FOLDERS"""
 #\\131.188.117.96\biophysDS2\dboehringer\Platte_4\SoftwareWorkinProgess\TFM-Example-Data-3D\a127-tom-test-set\20170914_A172_rep1-bispos3\Before
@@ -107,65 +107,6 @@ def showVectorField(plotter, obj, field, name, center=None, show_nan=True, show_
     #plotter.renderer.show_bounds(color=plotter._theme.font.color)
     plotter.show()
 
-
-def double_glob(text):
-    glob_string = text.replace("?", "*")
-    print("globbing", glob_string)
-    files = glob.glob(glob_string)
-
-    output_base = glob_string
-    while "*" in str(output_base):
-        output_base = Path(output_base).parent
-
-    regex_string = re.escape(text).replace("\*", "(.*)").replace("\?", ".*")
-
-    results = []
-    for file in files:
-        file = os.path.normpath(file)
-        print(file, regex_string)
-        match = re.match(regex_string, file).groups()
-        reconstructed_file = regex_string
-        for element in match:
-            reconstructed_file = reconstructed_file.replace("(.*)", element, 1)
-        reconstructed_file = reconstructed_file.replace(".*", "*")
-        reconstructed_file = re.sub(r'\\(.)', r'\1', reconstructed_file)
-        if reconstructed_file not in results:
-            results.append(reconstructed_file)
-    return results, output_base
-
-
-def format_glob(pattern):
-    pattern = str(Path(pattern))
-    regexp_string = re.sub(r"\\{([^}]*)\\}", r"(?P<\1>.*)", re.escape(pattern).replace("\\*\\*", ".*").replace("\\*", ".*"))
-    regexp_string3 = ""
-    replacement = ""
-    count = 1
-    for part in re.split("(\([^)]*\))", regexp_string):
-        if part.startswith("("):
-            regexp_string3 += part
-            replacement += f"{{{part[4:-4]}}}"
-            count += 1
-        else:
-            regexp_string3 += f"({part})"
-            replacement += f"\\{count}"
-            count += 1
-
-    regexp_string2 = re.compile(regexp_string)
-    glob_string = re.sub(r"({[^}]*})", "*", pattern)
-
-    output_base = glob_string
-    while "*" in str(output_base):
-        output_base = Path(output_base).parent
-
-    file_list = []
-    for file in output_base.rglob(str(Path(glob_string).relative_to(output_base))):#glob.glob(glob_string, recursive=True):
-        file = str(Path(file))
-        group = regexp_string2.match(file).groupdict()
-        template_name = re.sub(regexp_string3, replacement, file)
-        group["filename"] = file
-        group["template"] = template_name
-        file_list.append(group)
-    return pd.DataFrame(file_list), output_base
 
 
 class ModuleScaleBar(QtWidgets.QGroupBox):

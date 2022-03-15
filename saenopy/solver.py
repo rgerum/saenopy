@@ -8,14 +8,14 @@ import scipy.sparse as ssp
 from numba import jit, njit
 from typing import Union
 
-from .multigridHelper import getLinesTetrahedra, getLinesTetrahedra2
-from .buildBeams import buildBeams
-from .materials import Material, SemiAffineFiberMaterial
-from .conjugateGradient import cg
-from .loadHelpers import Saveable
+from saenopy.multigridHelper import getLinesTetrahedra, getLinesTetrahedra2
+from saenopy.buildBeams import buildBeams
+from saenopy.materials import Material, SemiAffineFiberMaterial
+from saenopy.conjugateGradient import cg
+from saenopy.loadHelpers import Saveable
 from typing import List
 from pathlib import Path
-from .getDeformations import getStack, Stack
+from saenopy.getDeformations import getStack, Stack, format_glob
 
 class Mesh(Saveable):
     __save_parameters__ = ['R', 'T', 'node_vars']
@@ -1789,6 +1789,31 @@ class Result(Saveable):
     def on_load(self, filename):
         self.output = str(Path(filename))
 
+    def __repr__(self):
+        def filename_to_string(filename):
+            if isinstance(filename, list):
+                return str(Path(common_start(filename) + "{z}" + common_end(filename)))
+            return str(Path(filename))
+        folders = [filename_to_string(stack.filename) for stack in self.stack]
+        base_folder = common_start(folders)
+        base_folder = os.sep.join(base_folder.split(os.sep)[:-1])
+        indent = "    "
+        text = "Result(" + "\n"
+        text += indent + "output = " + self.output + "\n"
+        text += indent + "stacks = [" + "\n"
+        text += indent + indent + "base_folder = " + base_folder + "\n"
+        for stack, filename in zip(self.stack, folders):
+            text += indent + indent + filename[len(base_folder):] + " " + str(stack.voxel_size) + "\n"
+        text += indent + "]" + "\n"
+        if self.piv_parameter:
+            text += indent + "piv_parameter = " + str(self.piv_parameter) + "\n"
+        if self.interpolate_parameter:
+            text += indent + "interpolate_parameter = " + str(self.interpolate_parameter) + "\n"
+        if self.solve_parameter:
+            text += indent + "solve_parameter = " + str(self.solve_parameter) + "\n"
+        text += ")" + "\n"
+        return text
+
 
 
 def save(filename: str, M: Solver):
@@ -1799,3 +1824,73 @@ def load(filename: str) -> Solver:
     M = Solver()
     M.load(filename)
     return M
+
+
+
+
+from pathlib import Path
+import os
+def getStacks(filename, output_path, voxel_size, time_delta=None):
+    results = []
+    if isinstance(filename, (list, tuple)):
+        results1, output_base = format_glob(filename[0])
+        results2, output_base = format_glob(filename[1])
+
+        for (r1, d1), (r2, d2) in zip(results1.groupby("template").max().iterrows(),
+                                      results2.groupby("template").max().iterrows()):
+            output = Path(output_path) / os.path.relpath(r1, output_base)
+            output = output.parent / output.stem
+            output = Path(str(output).replace("*", "") + ".npz")
+
+            r1 = r1.format(z="*")
+            r2 = r2.format(z="*")
+
+            data = Result(
+                output=output,
+                stack=[Stack(r1, voxel_size), Stack(r2, voxel_size)],
+            )
+            data.save()
+            results.append(data)
+    else:
+        results1, output_base = format_glob(filename)
+        if time_delta is None:
+            raise ValueError("A time series needs a time_delta, None was given.")
+
+        for template, d in results1.groupby("template"):
+            output = Path(output_path) / os.path.relpath(d.iloc[0].template, output_base)
+            output = output.parent / output.stem
+            output = Path(str(output).replace("*", "") + ".npz")
+
+            stacks = []
+            for t, d0 in d.groupby("t"):
+                d0 = d0.sort_values(by='z', key=natsort.natsort_keygen())
+                stacks.append(Stack(d0.filename, voxel_size1))
+
+            data = Result(
+                output=output,
+                stack=stacks,
+                time_delta=time_delta,
+            )
+            data.save()
+            results.append(data)
+    return results
+
+def common_start(values):
+    if len(values) != 0:
+        start = values[0]
+        while start:
+            if all(value.startswith(start) for value in values):
+                return start
+            start = start[:-1]
+    return ""
+
+def common_end(values):
+    if len(values) != 0:
+        end = values[0]
+        while end:
+            if all(value.endswith(end) for value in values):
+                return end
+            end = end[1:]
+    return ""
+
+
