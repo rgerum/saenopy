@@ -1506,70 +1506,25 @@ class BatchEvaluate(QtWidgets.QWidget):
         if not dialog.exec():
             return
 
+        from saenopy.solver import getStacks
         if dialog.mode == "pair":
-            results1, output_base = format_glob(dialog.input_relaxed.text())
-            results2, _ = format_glob(dialog.input_deformed.text())
-            voxel_size1 = dialog.stack_relaxed.getVoxelSize()
-            voxel_size2 = dialog.stack_deformed.getVoxelSize()
-            print(results1)
-
-            for (r1, d1), (r2, d2) in zip(results1.groupby("template").max().iterrows(), results2.groupby("template").max().iterrows()):
-                output = Path(dialog.outputText.value()) / os.path.relpath(r1, output_base)
-                output = output.parent / output.stem
-                output = Path(str(output).replace("*", "") + ".npz")
-
-                r1 = r1.format(z="*")
-                r2 = r2.format(z="*")
-
-                if output.exists():
-                    mode = do_overwrite(output)
-                    if mode == 0:
-                        break
-                    if mode == "read":
-                        print('exists', output)
-                        data = Result.load(output)
-                        self.list.addData(data.output, True, data, mpl.colors.to_hex(f"gray"))
-                        continue
-
-                print("new")
-                data = Result(
-                    output=output,
-                    stack=[Stack(r1, voxel_size1), Stack(r2, voxel_size2)],
-                )
-                data.save()
-                print(r1, r2, output)
+            results = getStacks(
+                [dialog.input_relaxed.text(), dialog.input_deformed.text()],
+                output_path=dialog.outputText.value(),
+                voxel_size=dialog.stack_relaxed.getVoxelSize(),
+                exist_overwrite_callback=do_overwrite,
+            )
+            for data in results:
                 self.list.addData(data.output, True, data, mpl.colors.to_hex(f"gray"))
         elif dialog.mode == "time":
-            results1, output_base = format_glob(dialog.input_relaxed2.text())
-            voxel_size1 = dialog.stack_before2.getVoxelSize()
-            time_delta = dialog.stack_before2.getTimeDelta()
-            print(results1)
-
-            for template, d in results1.groupby("template"):
-                output = Path(dialog.outputText2.value()) / os.path.relpath(d.iloc[0].template, output_base)
-                output = output.parent / output.stem
-                output = Path(str(output).replace("*", "") + ".npz")
-
-                if output.exists():
-                    mode = do_overwrite(output)
-                    if mode == 0:
-                        break
-                    if mode == "read":
-                        print('exists', output)
-                        data = Result.load(output)
-                        self.list.addData(data.output, True, data, mpl.colors.to_hex(f"gray"))
-
-                stacks = []
-                for t, d0 in d.groupby("t"):
-                    d0 = d0.sort_values(by='z', key=natsort.natsort_keygen())
-                    stacks.append(Stack(d0.filename, voxel_size1))
-
-                data = Result(
-                    output=output,
-                    stack=stacks,
-                    time_delta=time_delta,
-                )
-                data.save()
+            results = getStacks(
+                dialog.input_relaxed2.text(),
+                output_path=dialog.outputText2.value(),
+                voxel_size=dialog.stack_before2.getVoxelSize(),
+                time_delta=dialog.stack_before2.getTimeDelta(),
+                exist_overwrite_callback=do_overwrite,
+            )
+            for data in results:
                 self.list.addData(data.output, True, data, mpl.colors.to_hex(f"gray"))
         elif dialog.mode == "existing":
             for file in glob.glob(dialog.outputText3.value(), recursive=True):

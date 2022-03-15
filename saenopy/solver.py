@@ -15,6 +15,7 @@ from saenopy.conjugateGradient import cg
 from saenopy.loadHelpers import Saveable
 from typing import List
 from pathlib import Path
+import natsort
 from saenopy.getDeformations import getStack, Stack, format_glob
 
 class Mesh(Saveable):
@@ -1830,11 +1831,11 @@ def load(filename: str) -> Solver:
 
 from pathlib import Path
 import os
-def getStacks(filename, output_path, voxel_size, time_delta=None):
+def getStacks(filename, output_path, voxel_size, time_delta=None, exist_overwrite_callback=None):
     results = []
     if isinstance(filename, (list, tuple)):
         results1, output_base = format_glob(filename[0])
-        results2, output_base = format_glob(filename[1])
+        results2, _ = format_glob(filename[1])
 
         for (r1, d1), (r2, d2) in zip(results1.groupby("template").max().iterrows(),
                                       results2.groupby("template").max().iterrows()):
@@ -1844,6 +1845,16 @@ def getStacks(filename, output_path, voxel_size, time_delta=None):
 
             r1 = r1.format(z="*")
             r2 = r2.format(z="*")
+
+            if output.exists() and exist_overwrite_callback is not None:
+                mode = exist_overwrite_callback(output)
+                if mode == 0:
+                    break
+                if mode == "read":
+                    print('exists', output)
+                    data = Result.load(output)
+                    results.append(data)
+                    continue
 
             data = Result(
                 output=output,
@@ -1861,10 +1872,20 @@ def getStacks(filename, output_path, voxel_size, time_delta=None):
             output = output.parent / output.stem
             output = Path(str(output).replace("*", "") + ".npz")
 
+            if output.exists() and exist_overwrite_callback is not None:
+                mode = exist_overwrite_callback(output)
+                if mode == 0:
+                    break
+                if mode == "read":
+                    print('exists', output)
+                    data = Result.load(output)
+                    results.append(data)
+                    continue
+
             stacks = []
             for t, d0 in d.groupby("t"):
                 d0 = d0.sort_values(by='z', key=natsort.natsort_keygen())
-                stacks.append(Stack(d0.filename, voxel_size1))
+                stacks.append(Stack(d0.filename, voxel_size))
 
             data = Result(
                 output=output,
