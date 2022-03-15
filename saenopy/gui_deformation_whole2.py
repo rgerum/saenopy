@@ -393,6 +393,9 @@ class PipelineModule(QtWidgets.QWidget):
         self.input_button.setEnabled(True)
         self.parent.progressbar.setRange(0, 1)
 
+    def get_code(self) -> Tuple[str, str]:
+        return "", ""
+
 
 class StackDisplay(PipelineModule):
     def __init__(self, parent: "BatchEvaluate", layout):
@@ -482,6 +485,54 @@ class StackDisplay(PipelineModule):
 
             self.z_slider.setToolTip(f"set z position\ncurrent position {self.z_slider.value()}")
 
+    def get_code(self) -> Tuple[str, str]:
+        from saenopy.solver import common_start, common_end
+        def filename_to_string(filename, insert="{z}"):
+            if isinstance(filename, list):
+                return str(Path(common_start(filename) + insert + common_end(filename)))
+            return str(Path(filename))
+        from saenopy.solver import getStacks
+        import_code = "from saenopy.solver import getStacks\n"
+        if self.result.time_delta is None:
+            def code(stack1, stack2, output, voxel_size1):
+                # load the relaxed and the contracted stack, {z} is the placeholder for the z stack
+                results = getStacks([
+                    stack1,
+                    stack2,
+                ], output, voxel_size=voxel_size1)
+            data = dict(
+                stack1=filename_to_string(self.result.stack[0].filename),
+                stack2=filename_to_string(self.result.stack[1].filename),
+                output=str(Path(self.result.output).parent),
+                voxel_size1=self.result.stack[0].voxel_size,
+            )
+        else:
+            def code(stack1, output, voxel_size1, time_delta1):
+                # load the time series stack, {z} is the placeholder for the z stack, {t} is the placeholder for the time steps
+                results = getStacks(stack1,
+                                    output,
+                                    voxel_size=voxel_size1, time_delta=time_delta1)
+            stack_filenames = filename_to_string([filename_to_string(stack.filename) for stack in self.result.stack], insert="{t}")
+            data = dict(
+                stack1=stack_filenames,
+                output=str(Path(self.result.output).parent),
+                voxel_size1=self.result.stack[0].voxel_size,
+                time_delta1=self.result.time_delta,
+            )
+
+        code_lines = inspect.getsource(code).split("\n")[1:]
+        indent = len(code_lines[0]) - len(code_lines[0].lstrip())
+        code = "\n".join(line[indent:] for line in code_lines)
+
+        for key, value in data.items():
+            if isinstance(value, str):
+                if "\\" in value:
+                    code = code.replace(key, "r'" + value + "'")
+                else:
+                    code = code.replace(key, "'" + value + "'")
+            else:
+                code = code.replace(key, str(value))
+        return import_code, code
 
 vtk_toolbars = []
 class VTK_Toolbar(QtWidgets.QWidget):
@@ -709,6 +760,40 @@ class DeformationDetector(PipelineModule):
                 #                           params["drift_correction"])
         result.solver = None
 
+    def get_code(self) -> Tuple[str, str]:
+        from saenopy.getDeformations import getDisplacementsFromStacks2
+        import_code = "from saenopy.getDeformations import getDisplacementsFromStacks2\n"
+        def code(my_piv_params):
+            # define the parameters for the piv deformation detection
+            params = my_piv_params
+            # iterate over all the results objects
+            for result in results:
+                # set the parameters
+                result.piv_parameter = params
+                # iterate over all stack pairs
+                for i in range(len(result.stack) - 1):
+                    # and calculate the displacement between them
+                    result.mesh_piv[i] = getDisplacementsFromStacks2(result.stack[i], result.stack[i + 1],
+                                                                     params["win_um"],
+                                                                     1 - (params["elementsize"] / params["win_um"]),
+                                                                     params["signoise_filter"],
+                                                                     params["drift_correction"])
+                # save the displacements
+                result.save()
+        data = {
+            "my_piv_params": self.result.piv_parameter_tmp
+        }
+
+        code_lines = inspect.getsource(code).split("\n")[1:]
+        indent = len(code_lines[0]) - len(code_lines[0].lstrip())
+        code = "\n".join(line[indent:] for line in code_lines)
+
+        for key, value in data.items():
+            if isinstance(value, str):
+                code = code.replace(key, "'" + value + "'")
+            else:
+                code = code.replace(key, str(value))
+        return import_code, code
 
 def getDeformation(progress, i, result, params):
     #import tqdm
@@ -1301,6 +1386,7 @@ class BatchEvaluate(QtWidgets.QWidget):
                     self.sub_module_view = ResultView(self, layout0)
                     layout0.addStretch()
                     self.button_start_all = QtShortCuts.QPushButton(None, "run all", self.run_all)
+                    self.button_code = QtShortCuts.QPushButton(None, "export code", self.generate_code)
 
         self.data = []
         self.list.setData(self.data)
@@ -1316,6 +1402,16 @@ class BatchEvaluate(QtWidgets.QWidget):
         self.current_task_id = 0
         self.thread = None
         self.signal_task_finished.connect(self.run_finished)
+
+    def generate_code(self):
+        import_code = ""
+        run_code = ""
+        for module in [self.sub_module_stacks, self.sub_module_deformation, self.sub_module_mesh, self.sub_module_regularize]:
+            code1, code2 = module.get_code()
+            import_code += code1
+            run_code += code2+"\n"
+        run_code = import_code + "\n\n" + run_code
+        print(run_code)
 
     def run_all(self):
         for i in range(len(self.data)):

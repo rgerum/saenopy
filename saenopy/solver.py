@@ -1913,5 +1913,3 @@ def common_end(values):
                 return end
             end = end[1:]
     return ""
-
-
