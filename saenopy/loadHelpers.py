@@ -25,8 +25,10 @@ class Saveable:
             if attribute is not None:
                 if getattr(attribute, "to_dict", None) is not None:
                     data[param] = getattr(attribute, "to_dict")()
-                elif isinstance(attribute, list) and len(attribute) and getattr(attribute[0], "to_dict", None) is not None:
-                    data[param] = [getattr(attr, "to_dict")() if getattr(attribute[0], "to_dict", None) else attribute for attr in attribute]
+                elif isinstance(attribute, list) and len(attribute) and (getattr(attribute[0], "to_dict", None) is not None or attribute[0] is None):
+                    data[param] = [getattr(attr, "to_dict")() if getattr(attribute[0], "to_dict", None) else "__NONE__" if attr is None else attr for attr in attribute]
+                elif attribute is None:
+                    data[param] = "__NONE__"
                 else:
                     data[param] = attribute
         return data
@@ -53,7 +55,7 @@ class Saveable:
                     if isinstance(data[name], dict):
                         data[name] = typing.get_args(types[name])[0].from_dict(data[name])
                     else:
-                        data[name] = [typing.get_args(types[name])[0].from_dict(d) for d in data[name]]
+                        data[name] = [None if d == "__NONE__" else typing.get_args(types[name])[0].from_dict(d) for d in data[name]]
 
         return cls(**data)
 
