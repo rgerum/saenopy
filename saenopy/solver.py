@@ -1781,6 +1781,9 @@ class Result(Saveable):
         self.state = False
         self.time_delta = time_delta
 
+        self.mesh_piv = [None] * (len(self.stack) - 1)
+        self.solver = [None] * (len(self.mesh_piv))
+
         super().__init__(**kwargs)
 
     def save(self):
@@ -1913,3 +1916,43 @@ def common_end(values):
                 return end
             end = end[1:]
     return ""
+
+
+def substract_reference_state(mesh_piv, mode):
+    U = [M.getNodeVar("U_measured") for M in mesh_piv]
+    # correct for the median position
+    if len(U) > 2:
+        xpos2 = np.cumsum(U, axis=0)  # mittlere position
+        if mode == "first":
+            xpos2 -= xpos2[0]
+        elif mode == "median":
+            xpos2 -= np.nanmedian(xpos2, axis=0)  # aktuelle abweichung von
+        elif mode == "last":
+            xpos2 -= xpos2[-1]
+    else:
+        xpos2 = U
+    return xpos2
+
+
+def interpolate_mesh(M, xpos2, params):
+    import saenopy
+    from saenopy.multigridHelper import getScaledMesh, getNodesWithOneFace
+    points, cells = saenopy.multigridHelper.getScaledMesh(params["element_size"] * 1e-6,
+                                                          params["inner_region"] * 1e-6,
+                                                          np.array([params["mesh_size_x"], params["mesh_size_y"],
+                                                                    params["mesh_size_z"]]) * 1e-6 / 2,
+                                                          [0, 0, 0], params["thinning_factor"])
+
+    R = (M.R - np.min(M.R, axis=0)) - (np.max(M.R, axis=0) - np.min(M.R, axis=0)) / 2
+    U_target = saenopy.getDeformations.interpolate_different_mesh(R, xpos2, points)
+
+    border_idx = getNodesWithOneFace(cells)
+    inside_mask = np.ones(points.shape[0], dtype=bool)
+    inside_mask[border_idx] = False
+
+    M = saenopy.Solver()
+    M.setNodes(points)
+    M.setTetrahedra(cells)
+    M.setTargetDisplacements(U_target, inside_mask)
+
+    return M

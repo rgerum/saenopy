@@ -767,6 +767,7 @@ class DeformationDetector(PipelineModule):
         def code(my_piv_params):
             # define the parameters for the piv deformation detection
             params = my_piv_params
+
             # iterate over all the results objects
             for result in results:
                 # set the parameters
@@ -946,6 +947,40 @@ class MeshCreator(PipelineModule):
 
             solvers.append(M)
         result.solver = solvers
+
+    def get_code(self) -> Tuple[str, str]:
+        from saenopy.solver import substract_reference_state, interpolate_mesh
+        import_code = "from saenopy.solver import substract_reference_state, interpolate_mesh\n"
+        def code(my_mesh_params):
+            # define the parameters to generate the solver mesh and interpolate the piv mesh onto it
+            params = my_mesh_params
+
+            # iterate over all the results objects
+            for result in results:
+                # correct for the reference state
+                displacement_list = substract_reference_state(result.mesh_piv, params["reference_stack"])
+                # set the parameters
+                result.interpolate_parameter = params
+                # iterate over all stack pairs
+                for i in range(len(result.mesh_piv)):
+                    # and create the interpolated solver mesh
+                    result.solver[i] = interpolate_mesh(result.mesh_piv[i], displacement_list[i], params)
+                # save the displacements
+                result.save()
+        data = {
+            "my_mesh_params": self.result.interpolate_parameter_tmp,
+        }
+
+        code_lines = inspect.getsource(code).split("\n")[1:]
+        indent = len(code_lines[0]) - len(code_lines[0].lstrip())
+        code = "\n".join(line[indent:] for line in code_lines)
+
+        for key, value in data.items():
+            if isinstance(value, str):
+                code = code.replace(key, "'" + value + "'")
+            else:
+                code = code.replace(key, str(value))
+        return import_code, code
 
 
 class Regularizer(PipelineModule):
