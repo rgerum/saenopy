@@ -296,9 +296,12 @@ class Solver(Saveable):
         self.N_b = beams.shape[0]
 
     def _computeConnections(self):
+        from scipy.sparse.sputils import get_index_dtype
         # calculate the indices for "update_f_glo"
         y, x = np.meshgrid(np.arange(3), self.T.ravel())
         self.force_distribute_coordinates = (x.ravel(), y.ravel())
+
+        self.force_distribute_coordinates = tuple(self.force_distribute_coordinates[i].astype(dtype=get_index_dtype(maxval=max(self.force_distribute_coordinates[i].shape))) for i in range(2))
 
         # calculate the indices for "update_K_glo"
         @njit()
@@ -331,6 +334,7 @@ class Solver(Saveable):
             return filter_in.ravel(), (stiffness_distribute_coordinates2[:, 0], stiffness_distribute_coordinates2[:, 1])
 
         self.filter_in, self.stiffness_distribute_coordinates2 = numba_get_pair_coordinates(self.T, self.var)
+        self.stiffness_distribute_coordinates2 = np.array(self.stiffness_distribute_coordinates2, dtype=get_index_dtype(maxval=max(self.stiffness_distribute_coordinates2[0].shape)))
 
         # remember that for the current configuration the connections have been calculated
         self.connections_valid = True
