@@ -20,7 +20,7 @@
 from setuptools import setup
 
 setup(name='saenopy',
-      version="0.7.2",
+      version="0.7.3",
       description='Semi-elastic fiber optimisation in python.',
       author='Richard Gerum',
       author_email='richard.gerum@fau.de',
