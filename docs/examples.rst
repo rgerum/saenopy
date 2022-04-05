@@ -10,3 +10,4 @@ These examples provide data and code to try the different evaluation modes of sa
    :maxdepth: 2
 
    example_1_classic_single_cell_tfm.rst
+   example_2_dynamical_single_cell_tfm.rst
