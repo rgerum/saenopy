@@ -9,7 +9,6 @@ install:
   - pip install --upgrade pip setuptools wheel
   - pip install numpy scipy pytest-cov hypothesis bbcs-tools mock matplotlib
   - pip install -e . --no-dependencies
-  - python setup.py develop
 script:
   - py.test --cov=saenopy
 after_success:
