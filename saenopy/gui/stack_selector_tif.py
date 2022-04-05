@@ -125,7 +125,7 @@ class StackSelectorTif(QtWidgets.QWidget):
 
         if self.use_time:
             self.input_time_dt = QtShortCuts.QInputString(layout_voxel, "Time Delta", "0",
-                                                             validator=self.validator_time)
+                                                             validator=self.validator_time, type=float)
             self.input_tbar_unit = QtShortCuts.QInputChoice(self.input_time_dt.layout(), None, "s",
                                                             ["s", "min", "h"])
 

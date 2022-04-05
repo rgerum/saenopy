@@ -83,7 +83,8 @@ def format_glob(pattern):
     return pd.DataFrame(file_list), output_base
 
 
-def getDisplacementsFromStacks2(stack_relaxed, stack_deformed, win_um, fac_overlap, signoise_filter, drift_correction):
+def get_displacements_from_stacks(stack_relaxed, stack_deformed, win_um, elementsize, signoise_filter, drift_correction):
+    fac_overlap = 1 - (elementsize/win_um)
     voxel_size1 = stack_deformed.voxel_size
     voxel_size2 = stack_relaxed.voxel_size
 

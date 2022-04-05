@@ -491,13 +491,14 @@ class StackDisplay(PipelineModule):
         def filename_to_string(filename, insert="{z}"):
             if isinstance(filename, list):
                 return str(Path(common_start(filename) + insert + common_end(filename)))
-            return str(Path(filename))
-        from saenopy.solver import getStacks
-        import_code = "from saenopy.solver import getStacks\n"
+            return str(Path(filename)).replace("*", insert)
+        from saenopy.solver import get_stacks
+        import_code = ""
         if self.result.time_delta is None:
             def code(stack1, stack2, output, voxel_size1):
                 # load the relaxed and the contracted stack, {z} is the placeholder for the z stack
-                results = getStacks([
+                # use * as a placeholder to import multiple experiments at once
+                results = saenopy.get_stacks([
                     stack1,
                     stack2,
                 ], output, voxel_size=voxel_size1)
@@ -510,9 +511,10 @@ class StackDisplay(PipelineModule):
         else:
             def code(stack1, output, voxel_size1, time_delta1):
                 # load the time series stack, {z} is the placeholder for the z stack, {t} is the placeholder for the time steps
-                results = getStacks(stack1,
-                                    output,
-                                    voxel_size=voxel_size1, time_delta=time_delta1)
+                # use * as a placeholder to import multiple experiments at once
+                results = saenopy.get_stacks(stack1,
+                                             output,
+                                             voxel_size=voxel_size1, time_delta=time_delta1)
             stack_filenames = filename_to_string([filename_to_string(stack.filename) for stack in self.result.stack], insert="{t}")
             data = dict(
                 stack1=stack_filenames,
@@ -762,8 +764,7 @@ class DeformationDetector(PipelineModule):
         result.solver = None
 
     def get_code(self) -> Tuple[str, str]:
-        from saenopy.getDeformations import getDisplacementsFromStacks2
-        import_code = "from saenopy.getDeformations import getDisplacementsFromStacks2\n"
+        import_code = ""
         def code(my_piv_params):
             # define the parameters for the piv deformation detection
             params = my_piv_params
@@ -775,11 +776,11 @@ class DeformationDetector(PipelineModule):
                 # iterate over all stack pairs
                 for i in range(len(result.stack) - 1):
                     # and calculate the displacement between them
-                    result.mesh_piv[i] = getDisplacementsFromStacks2(result.stack[i], result.stack[i + 1],
-                                                                     params["win_um"],
-                                                                     1 - (params["elementsize"] / params["win_um"]),
-                                                                     params["signoise_filter"],
-                                                                     params["drift_correction"])
+                    result.mesh_piv[i] = saenopy.get_displacements_from_stacks(result.stack[i], result.stack[i + 1],
+                                                                       params["win_um"],
+                                                                       params["elementsize"],
+                                                                       params["signoise_filter"],
+                                                                       params["drift_correction"])
                 # save the displacements
                 result.save()
         data = {
@@ -803,11 +804,11 @@ def getDeformation(progress, i, result, params):
     #n = tqdm.tqdm.__new__
     #tqdm.tqdm.__new__ = lambda cls, iter: progress.put(iter)
 
-    mesh_piv = saenopy.getDeformations.getDisplacementsFromStacks2(result.stack[i], result.stack[i+1],
-                                       params["win_um"],
-                                       1-(params["elementsize"]/params["win_um"]), ## calculate overlap from specified element and win-size
-                                       params["signoise_filter"],
-                                       params["drift_correction"])
+    mesh_piv = saenopy.get_displacements_from_stacks(result.stack[i], result.stack[i + 1],
+                                                     params["win_um"],
+                                                     params["elementsize"],
+                                                     params["signoise_filter"],
+                                                     params["drift_correction"])
     return mesh_piv
 
 
@@ -949,8 +950,7 @@ class MeshCreator(PipelineModule):
         result.solver = solvers
 
     def get_code(self) -> Tuple[str, str]:
-        from saenopy.solver import substract_reference_state, interpolate_mesh
-        import_code = "from saenopy.solver import substract_reference_state, interpolate_mesh\n"
+        import_code = ""
         def code(my_mesh_params):
             # define the parameters to generate the solver mesh and interpolate the piv mesh onto it
             params = my_mesh_params
@@ -958,14 +958,14 @@ class MeshCreator(PipelineModule):
             # iterate over all the results objects
             for result in results:
                 # correct for the reference state
-                displacement_list = substract_reference_state(result.mesh_piv, params["reference_stack"])
+                displacement_list = saenopy.substract_reference_state(result.mesh_piv, params["reference_stack"])
                 # set the parameters
                 result.interpolate_parameter = params
                 # iterate over all stack pairs
                 for i in range(len(result.mesh_piv)):
                     # and create the interpolated solver mesh
-                    result.solver[i] = interpolate_mesh(result.mesh_piv[i], displacement_list[i], params)
-                # save the displacements
+                    result.solver[i] = saenopy.interpolate_mesh(result.mesh_piv[i], displacement_list[i], params)
+                # save the meshes
                 result.save()
         data = {
             "my_mesh_params": self.result.interpolate_parameter_tmp,
@@ -1116,6 +1116,42 @@ class Regularizer(PipelineModule):
             self.iteration_callback(self.result, relrec)
         else:
             self.plotter.interactor.setToolTip("")
+
+    def get_code(self) -> Tuple[str, str]:
+        import_code = "import saenopy\n"
+        def code(my_reg_params):
+            # define the parameters to generate the solver mesh and interpolate the piv mesh onto it
+            params = my_reg_params
+
+            # iterate over all the results objects
+            for result in results:
+                result.solve_parameter = params
+                for M in result.solver:
+                    # set the material model
+                    M.setMaterialModel(saenopy.materials.SemiAffineFiberMaterial(
+                        params["k"],
+                        params["d0"],
+                        params["lambda_s"],
+                        params["ds"],
+                    ))
+                    # find the regularized force solution
+                    M.solve_regularized(stepper=params["stepper"], i_max=params["i_max"], alpha=params["alpha"], verbose=True)
+                # save the forces
+                result.save()
+        data = {
+            "my_reg_params": self.result.solve_parameter_tmp,
+        }
+
+        code_lines = inspect.getsource(code).split("\n")[1:]
+        indent = len(code_lines[0]) - len(code_lines[0].lstrip())
+        code = "\n".join(line[indent:] for line in code_lines)
+
+        for key, value in data.items():
+            if isinstance(value, str):
+                code = code.replace(key, "'" + value + "'")
+            else:
+                code = code.replace(key, str(value))
+        return import_code, code
 
 
 class FittedMesh(PipelineModule):
@@ -1440,14 +1476,23 @@ class BatchEvaluate(QtWidgets.QWidget):
         self.signal_task_finished.connect(self.run_finished)
 
     def generate_code(self):
-        import_code = ""
-        run_code = ""
-        for module in [self.sub_module_stacks, self.sub_module_deformation, self.sub_module_mesh, self.sub_module_regularize]:
-            code1, code2 = module.get_code()
-            import_code += code1
-            run_code += code2+"\n"
-        run_code = import_code + "\n\n" + run_code
-        print(run_code)
+        new_path = QtWidgets.QFileDialog.getSaveFileName(None, "Save Session as Script", os.getcwd(), "Python File (*.py)")
+        if new_path:
+            if isinstance(new_path, tuple):
+                new_path = new_path[0]
+            else:
+                new_path = str(new_path)
+
+            import_code = ""
+            run_code = ""
+            for module in [self.sub_module_stacks, self.sub_module_deformation, self.sub_module_mesh, self.sub_module_regularize]:
+                code1, code2 = module.get_code()
+                import_code += code1
+                run_code += code2+"\n"
+            run_code = import_code + "\n\n" + run_code
+            print(run_code)
+            with open(new_path, "w") as fp:
+                fp.write(run_code)
 
     def run_all(self):
         for i in range(len(self.data)):
@@ -1638,9 +1683,9 @@ class BatchEvaluate(QtWidgets.QWidget):
         if not dialog.exec():
             return
 
-        from saenopy.solver import getStacks
+        from saenopy.solver import get_stacks
         if dialog.mode == "pair":
-            results = getStacks(
+            results = get_stacks(
                 [dialog.input_relaxed.text(), dialog.input_deformed.text()],
                 output_path=dialog.outputText.value(),
                 voxel_size=dialog.stack_relaxed.getVoxelSize(),
@@ -1649,7 +1694,7 @@ class BatchEvaluate(QtWidgets.QWidget):
             for data in results:
                 self.list.addData(data.output, True, data, mpl.colors.to_hex(f"gray"))
         elif dialog.mode == "time":
-            results = getStacks(
+            results = get_stacks(
                 dialog.input_relaxed2.text(),
                 output_path=dialog.outputText2.value(),
                 voxel_size=dialog.stack_before2.getVoxelSize(),

@@ -1838,7 +1838,7 @@ def load(filename: str) -> Solver:
 
 from pathlib import Path
 import os
-def getStacks(filename, output_path, voxel_size, time_delta=None, exist_overwrite_callback=None):
+def get_stacks(filename, output_path, voxel_size, time_delta=None, exist_overwrite_callback=None):
     results = []
     if isinstance(filename, (list, tuple)):
         results1, output_base = format_glob(filename[0])
