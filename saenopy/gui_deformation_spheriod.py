@@ -11,7 +11,7 @@ os.environ["QT_API"] = "pyqt5"
 from qtpy import QtCore, QtWidgets, QtGui
 
 import numpy as np
-
+from natsort import natsorted
 import pyvista as pv
 import vtk
 from pyvistaqt import QtInteractor
@@ -989,7 +989,7 @@ class BatchEvaluate(QtWidgets.QWidget):
                         text = os.path.normpath(self.inputText.value())
 
                         glob_string = text.replace("?", "*")
-                        files = glob.glob(glob_string)
+                        files =natsorted( glob.glob(glob_string))
                                               
                         regex_string = re.escape(text).replace("\*", "(.*)").replace("\?", ".*")
 
@@ -1061,7 +1061,7 @@ class BatchEvaluate(QtWidgets.QWidget):
         text = os.path.normpath(dialog.inputText.value())
         glob_string = text.replace("?", "*")
         print("globbing", glob_string)
-        files = glob.glob(glob_string)
+        files = natsorted(glob.glob(glob_string))
 
         output_base = glob_string
         while "*" in str(output_base):
