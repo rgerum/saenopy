@@ -1881,7 +1881,7 @@ class PlottingWindow(QtWidgets.QWidget):
                     self.list2.addData(file, True, res)
                     print("replot")
                     self.replot()
-                app.processEvents()
+                #app.processEvents()
             except FileNotFoundError:
                 continue
 
