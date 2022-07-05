@@ -418,8 +418,8 @@ def minimize(cost_data: list, parameter_start: Sequence, method='Nelder-Mead', m
                 stretchx = data[:, 0]
                 stretchy = data[:, 1]
 
-                lambda_h = np.arange(1 - 0.05, 1 + 0.07, 0.01)
-                #lambda_h = np.linspace(np.min(stretchx), np.max(stretchx), x_sample)
+                ###lambda_h = np.arange(1 - 0.05, 1 + 0.07, 0.01)
+                lambda_h = np.linspace(np.min(stretchx), np.max(stretchx), x_sample) ## fit complete input data regime
                 lambda_v = np.arange(0, 1.1, 0.001)
 
                 def cost(p):
