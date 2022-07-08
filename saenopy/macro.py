@@ -400,7 +400,7 @@ def getMaping(p, func, indices):
     return mapping
 
 
-def minimize(cost_data: list, parameter_start: Sequence, method='CG', maxfev:int = 1e4, MaterialClass=SemiAffineFiberMaterial, x_sample=100, **kwargs):
+def minimize(cost_data: list, parameter_start: Sequence, method='Powell', maxfev:int = 1e4, MaterialClass=SemiAffineFiberMaterial, x_sample=20, **kwargs):
     parameter_start = np.array(parameter_start)
 
     costs_shear = []
