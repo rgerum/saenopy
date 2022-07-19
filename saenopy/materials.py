@@ -123,9 +123,12 @@ class SemiAffineFiberMaterial(Material, Saveable):
     def __init__(self, k, d0=None, lambda_s=None, ds=None):
         # parameters
         self.k = k
-        self.d0 = d0 if d0 is not None and d0 > 0 else None
-        self.lambda_s = lambda_s if lambda_s is not None and lambda_s > 0 else None
-        self.ds = ds if ds is not None and ds > 0 else None
+        self.d0 = d0 if d0 is not None and d0 >= 0 else None
+        # approximate the zero case (not equal to the None case)
+        if self.d0 < 1e-30:
+            self.d0 = 1e-30       
+        self.lambda_s = lambda_s if lambda_s is not None and lambda_s >= 0 else None
+        self.ds = ds if ds is not None and ds >= 0 else None
         self.parameters = dict(k=k, d0=d0, lambda_s=lambda_s, ds=ds)
 
     def stiffness(self, s):
