@@ -56,7 +56,6 @@ class Saveable:
                         data[name] = typing.get_args(types[name])[0].from_dict(data[name])
                     else:
                         data[name] = [None if d == "__NONE__" else typing.get_args(types[name])[0].from_dict(d) for d in data[name]]
-
         return cls(**data)
 
     @classmethod
@@ -64,7 +63,7 @@ class Saveable:
         data = np.load(filename, allow_pickle=False)
 
         result = cls.from_dict(unflatten_dict(data))
-        if getattr(result, 'on_load') is not None:
+        if getattr(result, 'on_load', None) is not None:
             getattr(result, 'on_load')(filename)
         return result
 
