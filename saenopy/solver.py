@@ -839,16 +839,16 @@ class Solver(Saveable):
                 callback(self, relrec)
             
             # if we have passed 6 iterations calculate average and std
-            if i > 6:
+            if i > 6: 
                 # calculate the average energy over the last 6 iterations
                 last_Ls = np.array(relrec)[:-6:-1, 1]
                 Lmean = np.mean(last_Ls)
                 Lstd = np.std(last_Ls) / np.sqrt(5)  # the original formula just had /N instead of /sqrt(N)
 
                 # if the iterations converge, stop the iteration
-                if Lstd / Lmean < rel_conv_crit:
-                    self.regularisation_results = relrec
-                    break             
+                if Lstd / Lmean < rel_conv_crit:   
+                    break       
+     
         self.regularisation_results = relrec
 
         return relrec
