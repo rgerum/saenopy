@@ -754,7 +754,7 @@ class Solver(Saveable):
         Parameters
         ----------
         stepper : float, optional
-             How much of the displacement of each conjugate gradient step to apply. Default 0.033
+             How much of the displacement of each conjugate gradient step to apply. Default 0.33
         solver_precision : float, optional
             The tolerance for the conjugate gradient step. Will be multiplied by the number of nodes. Default 1e-18.
         i_max : int, optional
@@ -837,7 +837,7 @@ class Solver(Saveable):
 
             if callback is not None:
                 callback(self, relrec)
-
+            
             # if we have passed 6 iterations calculate average and std
             if i > 6:
                 # calculate the average energy over the last 6 iterations
@@ -847,8 +847,8 @@ class Solver(Saveable):
 
                 # if the iterations converge, stop the iteration
                 if Lstd / Lmean < rel_conv_crit:
-                    break
-
+                    self.regularisation_results = relrec
+                    break             
         self.regularisation_results = relrec
 
         return relrec
