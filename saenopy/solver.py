@@ -596,9 +596,10 @@ class Solver(Saveable):
                 # calculate the average energy over the last 6 iterations
                 last_Es = np.array(relrec)[:-6:-1, 1]
                 Emean = np.mean(last_Es)
-                Estd = np.std(last_Es)/np.sqrt(5)  # the original formula just had /N instead of /sqrt(N)
+                Estd = np.std(last_Es)   
 
                 # if the iterations converge, stop the iteration
+                # coefficient of variation below "rel_conv_crit"
                 if Estd / Emean < rel_conv_crit:
                     break
 
