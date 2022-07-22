@@ -746,7 +746,7 @@ class Solver(Saveable):
             np.savetxt(relrecname, relrec)
 
     def solve_regularized(self, stepper: float =0.33, solver_precision: float =1e-18, i_max: int = 100,
-                          rel_conv_crit: float = 0.01, alpha: float = 3e9, method: str = "huber", relrecname: str = None,
+                          rel_conv_crit: float = 0.01, alpha: float = 1e10, method: str = "huber", relrecname: str = None,
                           verbose: bool = False, callback: callable = None):
         """
         Fit the provided displacements. Displacements can be provided with
