@@ -1673,7 +1673,7 @@ class Solver(Saveable):
 
 
 
-    def load(self, filename: str):
+    def load_old(self, filename: str):
         data = np.load(filename, allow_pickle=True)
 
         if "R" in data:
@@ -1830,9 +1830,7 @@ def save(filename: str, M: Solver):
 
 
 def load(filename: str) -> Solver:
-    M = Solver()
-    M.load(filename)
-    return M
+    return Solver.load(filename)
 
 
 
