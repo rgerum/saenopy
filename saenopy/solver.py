@@ -609,7 +609,6 @@ class Solver(Saveable):
             print("| time for relaxation was", finish - start)
 
         self.boundary_results = relrec
-
         return relrec
 
     def _solve_CG(self, stepper: float):
@@ -848,10 +847,9 @@ class Solver(Saveable):
 
                 # if the iterations converge, stop the iteration
                 if Lstd / Lmean < rel_conv_crit:   
-                    break       
+                    break  
      
         self.regularisation_results = relrec
-
         return relrec
 
     def _solve_regularization_CG(self, stepper: float =0.33, solver_precision: float = 1e-18):
@@ -1681,13 +1679,13 @@ class Solver(Saveable):
         if "T" in data:
             self.setTetrahedra(data["T"])
         if "U_fixed" in data:
-            print(data["U_fixed"].shape)
-            print(data["f_target"].shape)
+            #print(data["U_fixed"].shape)
+            #print(data["f_target"].shape)
             self.setBoundaryCondition(data["f_target"], data["f_target"])
 
         for param in data:
             setattr(self, param, data[param])
-
+        return self
         #if self.U_fixed is not None:
         #    self.var = np.any(np.isnan(self.U_fixed), axis=1)
         #if self.U_target_mask is not None:
@@ -1831,7 +1829,6 @@ def save(filename: str, M: Solver):
 
 def load(filename: str) -> Solver:
     return Solver.load(filename)
-
 
 
 
