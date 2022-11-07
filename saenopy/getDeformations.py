@@ -32,7 +32,7 @@ def double_glob(text):
     while "*" in str(output_base):
         output_base = Path(output_base).parent
 
-    regex_string = re.escape(text).replace("\*", "(.*)").replace("\?", ".*")
+    regex_string = re.escape(text).replace(r"\*", "(.*)").replace(r"\?", ".*")
 
     results = []
     for file in files:
@@ -55,7 +55,7 @@ def format_glob(pattern):
     regexp_string3 = ""
     replacement = ""
     count = 1
-    for part in re.split("(\([^)]*\))", regexp_string):
+    for part in re.split(r"(\([^)]*\))", regexp_string):
         if part.startswith("("):
             regexp_string3 += part
             replacement += f"{{{part[4:-4]}}}"

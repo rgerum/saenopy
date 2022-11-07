@@ -160,7 +160,7 @@ class Solver(Saveable):
         # store the number of vertices
         self.N_c = data.shape[0]
 
-        self.var = np.ones(self.N_c, dtype=np.bool)
+        self.var = np.ones(self.N_c, dtype=bool)
         self.U = np.zeros((self.N_c, 3))
         self.f = np.zeros((self.N_c, 3))
         self.f_target = np.zeros((self.N_c, 3))
@@ -249,7 +249,7 @@ class Solver(Saveable):
         assert data.max() < self.N_c, "Mesh tetrahedron node indices cannot be bigger than the number of vertices."
 
         # store the tetrahedron data (needs to be int indices)
-        self.T = data.astype(np.int)
+        self.T = data.astype(int)
 
         # the number of tetrahedra
         self.N_T = data.shape[0]
