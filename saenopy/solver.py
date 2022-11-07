@@ -296,7 +296,12 @@ class Solver(Saveable):
         self.N_b = beams.shape[0]
 
     def _computeConnections(self):
-        from scipy.sparse.sputils import get_index_dtype
+        # current scipy versions do not have the sputils anymore
+        try:
+            from scipy.sparse import get_index_dtype
+        except ImportError:
+            from scipy.sparse.sputils import get_index_dtype
+
         # calculate the indices for "update_f_glo"
         y, x = np.meshgrid(np.arange(3), self.T.ravel())
         self.force_distribute_coordinates = (x.ravel(), y.ravel())
