@@ -25,6 +25,10 @@ jointforces = "^1.0.1"
 numba = "^0.56.4"
 
 
+[tool.poetry.scripts]
+saenopy = "saenopy.gui_master:main"
+
+
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
