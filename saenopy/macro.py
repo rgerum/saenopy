@@ -124,6 +124,7 @@ def getShearRheometerStress(gamma: np.ndarray, material: Material, s: np.ndarray
         The strain values.
     stress : ndarray
         The resulting stress.
+
     """
     if s is None:
         s = buildBeams(30)

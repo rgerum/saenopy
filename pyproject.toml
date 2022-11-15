@@ -29,6 +29,11 @@ numba = "^0.56.4"
 saenopy = "saenopy.gui_master:main"
 
 
+[tool.poetry.group.docs.dependencies]
+sphinx-rtd-theme = "^1.1.1"
+nbsphinx = "^0.8.10"
+
+
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"

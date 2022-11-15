@@ -1,8 +1,0 @@
-ipykernel
-numpy
-matplotlib
-pandas
-sphinxcontrib-bibtex
-sphinxcontrib-svg2pdfconverter
-ipywidgets
-nbsphinx

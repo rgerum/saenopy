@@ -14,7 +14,7 @@ from saenopy.materials import SemiAffineFiberMaterial
 material = SemiAffineFiberMaterial(900, 0.0004, 0.0075, 0.033)
 print(material)
 
-x, y = np.loadtxt("../macrorheology/data_exp/rheodata.dat").T
+x, y = np.loadtxt("../../macrorheology/data_exp/rheodata.dat").T
 plt.plot(x, y, "o", label="data")
 
 gamma = np.arange(0.005, 0.3, 0.0001)
@@ -36,7 +36,7 @@ from saenopy.materials import SemiAffineFiberMaterial
 material = SemiAffineFiberMaterial(900, 0.0004, 0.0075, 0.033)
 print(material)
 
-x, y = np.loadtxt("../macrorheology/data_exp/stretcherdata.dat").T
+x, y = np.loadtxt("../../macrorheology/data_exp/stretcherdata.dat").T
 plt.plot(x, y, "o", label="data")
 
 lambda_h = np.arange(1-0.05, 1+0.07, 0.01)
