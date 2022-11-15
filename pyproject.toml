@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "saenopy"
-version = "0.7.4"
+version = "0.8.0"
 description = "Semi-elastic fiber optimisation in python."
 authors = ["rgerum <14153051+rgerum@users.noreply.github.com>"]
 license = "MIT"
