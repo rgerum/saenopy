@@ -17,6 +17,7 @@ import imageio
 import threading
 import glob
 import re
+from pathlib import Path
 
 
 
@@ -747,7 +748,7 @@ class PlottingWindow(QtWidgets.QWidget):
             if self.list2.data is current_group:
                 data = {"results_total": pd.read_excel(file),
                         "results_distance": pd.read_excel(Path(file).parent / "results_distance.xlsx"),
-                        "image": Path(file).parent / "Figures\overlay2.png"}
+                        "image": Path(file).parent / "Figures" / "overlay2.png"}
                 self.list2.addData(file, True, data)
 
     def listSelected(self):
