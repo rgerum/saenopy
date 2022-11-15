@@ -15,3 +15,5 @@ build/*
 *-checkpoint.ipynb
 david/
 /.eggs/
+/docs/build/
+poetry.lock
