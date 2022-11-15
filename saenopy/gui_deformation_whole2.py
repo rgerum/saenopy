@@ -271,19 +271,19 @@ class PipelineModule(QtWidgets.QWidget):
     def state_changed(self, result: Result):
         if result is self.result and getattr(self, "group", None) is not None:
             if getattr(result, self.params_name + "_state", "") == "scheduled":
-                self.group.label.setIcon(qta.icon("fa.hourglass-o", options=[dict(color="gray")]))
+                self.group.label.setIcon(qta.icon("fa5s.hourglass-start", options=[dict(color="gray")]))
                 self.group.label.setToolTip("scheduled")
             elif getattr(result, self.params_name + "_state", "") == "running":
-                self.group.label.setIcon(qta.icon("fa.hourglass", options=[dict(color="orange")]))
+                self.group.label.setIcon(qta.icon("fa5s.hourglass-half", options=[dict(color="orange")]))
                 self.group.label.setToolTip("running")
             elif getattr(result, self.params_name + "_state", "") == "finished":
-                self.group.label.setIcon(qta.icon("fa.check", options=[dict(color="green")]))
+                self.group.label.setIcon(qta.icon("fa5s.hourglass-end", options=[dict(color="green")]))
                 self.group.label.setToolTip("finished")
             elif getattr(result, self.params_name + "_state", "") == "failed":
-                self.group.label.setIcon(qta.icon("fa.times", options=[dict(color="red")]))
+                self.group.label.setIcon(qta.icon("fa5s.times", options=[dict(color="red")]))
                 self.group.label.setToolTip("failed")
             else:
-                self.group.label.setIcon(qta.icon("fa.circle", options=[dict(color="gray")]))
+                self.group.label.setIcon(qta.icon("fa5.circle", options=[dict(color="gray")]))
                 self.group.label.setToolTip("")
 
     def setResult(self, result: Result):
@@ -413,7 +413,7 @@ class StackDisplay(PipelineModule):
                         self.button = QtWidgets.QPushButton(qta.icon("fa5s.home"), "").addToLayout()
                         self.button.setToolTip("reset view")
                         self.button.clicked.connect(lambda x: (self.view1.fitInView(), self.view2.fitInView()))
-                        self.button2 = QtWidgets.QPushButton(qta.icon("fa.floppy-o"), "").addToLayout()
+                        self.button2 = QtWidgets.QPushButton(qta.icon("mdi.floppy"), "").addToLayout()
                         self.button2.setToolTip("save image")
                         self.button2.clicked.connect(self.export)
                     self.view1 = QExtendedGraphicsView.QExtendedGraphicsView().addToLayout()
@@ -594,7 +594,7 @@ class VTK_Toolbar(QtWidgets.QWidget):
                             layout.addWidget(self.plotter)
                             outer_self.update_display(self.plotter)
                             #showVectorField(self.plotter, outer_self.result.mesh_piv, "U_measured")
-                            self.button2 = QtWidgets.QPushButton(qta.icon("fa.floppy-o"), "").addToLayout()
+                            self.button2 = QtWidgets.QPushButton(qta.icon("mdi.floppy"), "").addToLayout()
                             self.button2.setToolTip("save")
                             self.button2.clicked.connect(self.save)
 
@@ -617,7 +617,7 @@ class VTK_Toolbar(QtWidgets.QWidget):
                 plot_diaolog = PlotDialog(self)
                 plot_diaolog.show()
 
-            self.button2 = QtWidgets.QPushButton(qta.icon("fa.floppy-o"), "").addToLayout()
+            self.button2 = QtWidgets.QPushButton(qta.icon("mdi.floppy"), "").addToLayout()
             self.button2.setToolTip("save")
             self.button2.clicked.connect(save)
 
@@ -1222,7 +1222,7 @@ class ResultView(PipelineModule):
                         input.valueChanged.connect(self.replot)
                         self.input_checks[name] = input
                     layout_vert_plot.addStretch()
-                    self.button_export = QtWidgets.QPushButton(qta.icon("fa.floppy-o"), "")
+                    self.button_export = QtWidgets.QPushButton(qta.icon("mdi.floppy"), "")
                     self.button_export.setToolTip("save image")
                     layout_vert_plot.addWidget(self.button_export)
                     self.button_export.clicked.connect(self.saveScreenshot)
@@ -1564,9 +1564,9 @@ class BatchEvaluate(QtWidgets.QWidget):
     def update_icons(self):
         for j in range(self.list.count()-1):
             if self.data[j][2].state is True:
-                self.list.item(j).setIcon(qta.icon("fa.hourglass", options=[dict(color="orange")]))
+                self.list.item(j).setIcon(qta.icon("fa5s.hourglass-half", options=[dict(color="orange")]))
             else:
-                self.list.item(j).setIcon(qta.icon("fa.circle", options=[dict(color="gray")]))
+                self.list.item(j).setIcon(qta.icon("fa5.circle", options=[dict(color="gray")]))
 
     def show_files(self):
         settings = self.settings

@@ -311,12 +311,12 @@ class ListWidget(QtWidgets.QListWidget):
         self.customContextMenuRequested.connect(self.list2_context_menu)
         self.itemChanged.connect(self.list2_checked_changed)
         self.itemChanged = self.itemChanged2
-        self.act_delete = QtWidgets.QAction(qta.icon("fa.trash"), "Delete", self)
+        self.act_delete = QtWidgets.QAction(qta.icon("fa5.trash-alt"), "Delete", self)
         self.act_delete.triggered.connect(self.delete_item)
 
         self.act_color = None
         if color_picker is True:
-            self.act_color = QtWidgets.QAction(qta.icon("fa.paint-brush"), "Change Color", self)
+            self.act_color = QtWidgets.QAction(qta.icon("fa5s.paint-brush"), "Change Color", self)
             self.act_color.triggered.connect(self.change_color)
 
         self.setDragDropMode(QtWidgets.QAbstractItemView.InternalMove)
@@ -363,7 +363,7 @@ class ListWidget(QtWidgets.QListWidget):
             return
         if self.add_item is not None:
             del self.add_item
-        self.add_item = QtWidgets.QListWidgetItem(qta.icon("fa.plus"), self.add_item_button, self)
+        self.add_item = QtWidgets.QListWidgetItem(qta.icon("fa5s.plus"), self.add_item_button, self)
         self.add_item.setFlags(QtCore.Qt.ItemIsEnabled)
 
     def list2_context_menu(self, position):
@@ -389,7 +389,7 @@ class ListWidget(QtWidgets.QListWidget):
         # if a color is set, apply it
         if color.isValid():
             self.data[index][3] = "#%02x%02x%02x" % color.getRgb()[:3]
-            self.item(index).setIcon(qta.icon("fa.circle", options=[dict(color=color)]))
+            self.item(index).setIcon(qta.icon("fa5.circle", options=[dict(color=color)]))
 
     def delete_item(self):
         index = self.currentRow()
@@ -434,7 +434,7 @@ class ListWidget(QtWidgets.QListWidget):
     def customAddItem(self, d, checked, color):
         item = QtWidgets.QListWidgetItem(d, self)
         if color is not None:
-            item.setIcon(qta.icon("fa.circle", options=[dict(color=color)]))
+            item.setIcon(qta.icon("fa5.circle", options=[dict(color=color)]))
         item.setFlags(self.flags)
         item.setCheckState(QtCore.Qt.Checked if checked else QtCore.Qt.Unchecked)
         return item

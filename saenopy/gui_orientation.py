@@ -588,11 +588,11 @@ class BatchEvaluate(QtWidgets.QWidget):
 
     def measurement_evaluated(self, index, state):
         if state == 1:
-            self.list.item(index).setIcon(qta.icon("fa.check", options=[dict(color="darkgreen")]))
+            self.list.item(index).setIcon(qta.icon("fa5s.check", options=[dict(color="darkgreen")]))
         elif state == -1:
-            self.list.item(index).setIcon(qta.icon("fa.times", options=[dict(color="red")]))
+            self.list.item(index).setIcon(qta.icon("fa5s.times", options=[dict(color="red")]))
         else:
-            self.list.item(index).setIcon(qta.icon("fa.circle", options=[dict(color="white")]))
+            self.list.item(index).setIcon(qta.icon("fa5.circle", options=[dict(color="white")]))
 
     def run_thread(self):
         try:
