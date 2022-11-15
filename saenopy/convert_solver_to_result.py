@@ -3,8 +3,8 @@ from saenopy.getDeformations import getStack, Stack
 from saenopy.solver import load
 import natsort
 
-filename = r"\\131.188.117.96\biophysDS\lbischof\tif_and_analysis_backup\2021-06-02-NK92-Blebb-Rock\Analysis\2b_Regularization\{folder}\Mark_and_Find_001\median_corrected_regularized\Pos{pos}_t{t}_mesh4um_alpha_10.npz"
-stack = r"\\131.188.117.96\biophysDS\lbischof\tif_and_analysis_backup\2021-06-02-NK92-Blebb-Rock\{folder}\Mark_and_Find_001\Pos{pos}_S001_t{t}_z{z}_ch00.tif"
+filename = r"{folder}\Mark_and_Find_001\median_corrected_regularized\Pos{pos}_t{t}_mesh4um_alpha_10.npz"
+stack = r"{folder}\Mark_and_Find_001\Pos{pos}_S001_t{t}_z{z}_ch00.tif"
 
 print("glob1")
 data, _ = format_glob(filename)
