@@ -10,8 +10,15 @@ SAENOPY
 </p>
 
 
+SAENOPY is a free open source 3D traction force microscopy software. Its material model is especially well suited for
+tissue-mimicking and typically highly non-linear biopolymer matrices such as collagen, fibrin, or Matrigel. 
 
-SAENOPY a python implementation of the SAENO - Semi-affine Elastic Network Optimizer, originally developed by Julian
- Steinwachs.
+It features a python package to use in scripts and an extensive graphical user interface.
 
-[Documentation](https://saenopy.readthedocs.io)
+Check out our [Documentation](https://saenopy.readthedocs.io) on how to install and use it or our preprint:
+
+*Dynamic traction force measurements of migrating immune cells in 3D matrices*
+David Böhringer, Mar Cóndor, Lars Bischof, Tina Czerwinski, Andreas Bauer, Caroline Voskens, Silvia Budday, 
+Christoph Mark, Ben Fabry, Richard Gerum
+**bioRxiv 2022.11.16.516758**; doi: https://doi.org/10.1101/2022.11.16.516758
+
