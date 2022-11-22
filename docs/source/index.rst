@@ -22,6 +22,13 @@ It features a python package to use in scripts and an extensive graphical user i
    examples
    api
 
+.. raw:: html
+
+    <div style="position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; max-width: 100%; height: auto;">
+        <iframe src="//www.youtube.com/embed/g7vlqs_hT4s" frameborder="0" allowfullscreen style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"></iframe>
+    </div>
+    <br/>
+
 Installation
 ------------
 
