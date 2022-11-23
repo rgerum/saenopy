@@ -106,10 +106,16 @@ class MainWindow(QtWidgets.QWidget):
 
         if value == 1 and self.solver is None:
             self.solver = SolverMain().addToLayout(self.layout_solver)
+            self.setMinimumWidth(1600)
+            self.setMinimumHeight(900)
         if value == 2 and self.spheriod is None:
             self.spheriod = SpheriodMain().addToLayout(self.layout_spheriod)
+            self.setMinimumWidth(1600)
+            self.setMinimumHeight(900)
         if value == 3 and self.orientation is None:
             self.orientation = OrientationMain().addToLayout(self.layout_orientation)
+            self.setMinimumWidth(1600)
+            self.setMinimumHeight(900)
 
     def setTab(self, value):
         self.tabs.setCurrentIndex(value)

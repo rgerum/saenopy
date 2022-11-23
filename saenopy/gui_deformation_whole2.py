@@ -2202,7 +2202,7 @@ class MainWindow(QtWidgets.QWidget):
         # QSettings
         self.settings = QtCore.QSettings("Saenopy", "Seanopy")
 
-        self.setMinimumWidth(1400)
+        self.setMinimumWidth(1600)
         self.setMinimumHeight(900)
         self.setWindowTitle("Saenopy Viewer")
         self.setWindowIcon(QtGui.QIcon("img/Icon.ico"))
