@@ -1641,6 +1641,32 @@ class BatchEvaluate(QtWidgets.QWidget):
                                     self.accept()
                                 self.button_addList5 = QtShortCuts.QPushButton(None, "ok", accept)
 
+                        with self.tabs.createTab("Examples") as self.tab4:
+                            def loadexample1():
+                                import appdirs
+                                saenopy.loadExample("ClassicSingleCellTFM", appdirs.user_data_dir("saenopy", "rgerum"))
+                                self.mode = "example"
+                                self.mode_data = 1
+                                self.accept()
+                            with QtShortCuts.QGroupBox(None, "ClassicSingleCellTFM"):
+                                QtWidgets.QLabel("This example evaluates three hepatic stellate cells in 1.2mg/ml collagen with relaxed and deformed stacks.\nThe relaxed stacks were recorded with cytochalasin D treatment of the cells.").addToLayout()
+                                self.button_example1 = QtShortCuts.QPushButton(None, "Open", loadexample1)
+
+                            def loadexample2():
+                                import appdirs
+                                saenopy.loadExample("DynamicalSingleCellTFM", appdirs.user_data_dir("saenopy", "rgerum"))
+                                self.mode = "example"
+                                self.mode_data = 2
+                                self.accept()
+
+                            with QtShortCuts.QGroupBox(None, "DynamicalSingleCellTFM"):
+                                QtWidgets.QLabel(
+                                    "This example evaluates a single natural killer cell that migrated through 1.2mg/ml collagen, recorded for 24min.").addToLayout()
+
+                                self.button_example2 = QtShortCuts.QPushButton(None, "Open", loadexample2)
+                            self.tab4.addStretch()
+
+
         class FileExistsDialog(QtWidgets.QDialog):
             def __init__(self, parent, filename):
                 super().__init__(parent)
@@ -1707,6 +1733,30 @@ class BatchEvaluate(QtWidgets.QWidget):
             for file in glob.glob(dialog.outputText3.value(), recursive=True):
                 data = Result.load(file)
                 self.list.addData(data.output, True, data, mpl.colors.to_hex(f"gray"))
+        elif dialog.mode == "example":
+            import appdirs
+            if dialog.mode_data == 1:
+                results = get_stacks(
+                    [str(Path(appdirs.user_data_dir("saenopy", "rgerum")) / '1_ClassicSingleCellTFM/Relaxed/Mark_and_Find_001/Pos*_S001_z{z}_ch00.tif'),
+                     str(Path(appdirs.user_data_dir("saenopy", "rgerum")) / '1_ClassicSingleCellTFM/Deformed/Mark_and_Find_001/Pos*_S001_z{z}_ch00.tif'),
+                     ],
+                    output_path=str(Path(appdirs.user_data_dir("saenopy", "rgerum")) / '1_ClassicSingleCellTFM/example_output'),
+                    voxel_size=[0.7211, 0.7211, 0.988],
+                    exist_overwrite_callback=do_overwrite,
+                )
+                for data in results:
+                    self.list.addData(data.output, True, data, mpl.colors.to_hex(f"gray"))
+            if dialog.mode_data == 2:
+                results = get_stacks(
+                    str(Path(appdirs.user_data_dir("saenopy", "rgerum")) / '2_DynamicalSingleCellTFM/data/Pos*_S001_t{t}_z{z}_ch00.tif'),
+                    output_path=str(Path(appdirs.user_data_dir("saenopy", "rgerum")) / '2_DynamicalSingleCellTFM/example_output'),
+                    voxel_size=[0.2407, 0.2407, 1.0071],
+                    time_delta=60,
+                    exist_overwrite_callback=do_overwrite,
+                )
+                for data in results:
+                    self.list.addData(data.output, True, data, mpl.colors.to_hex(f"gray"))
+
         self.update_icons()
         #import matplotlib as mpl
         #for fiber, cell, out in zip(fiber_list, cell_list, out_list):
