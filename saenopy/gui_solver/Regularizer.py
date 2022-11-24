@@ -1,0 +1,194 @@
+from qtpy import QtCore, QtWidgets
+import numpy as np
+from pyvistaqt import QtInteractor
+
+import inspect
+
+import saenopy
+import saenopy.multigridHelper
+from saenopy.gui import QtShortCuts
+from saenopy.gui.gui_classes import CheckAbleGroup, MatplotlibWidget, NavigationToolbar
+import saenopy.getDeformations
+import saenopy.multigridHelper
+import saenopy.materials
+from saenopy.solver import Result
+
+from typing import Tuple
+
+from .PipelineModule import PipelineModule
+from .QTimeSlider import QTimeSlider
+from .VTK_Toolbar import VTK_Toolbar
+from .showVectorField import showVectorField
+from .DeformationDetector import CamPos
+
+
+class Regularizer(PipelineModule):
+    pipeline_name = "fit forces"
+    iteration_finished = QtCore.Signal(object, object)
+
+    def __init__(self, parent: "BatchEvaluate", layout):
+        super().__init__(parent, layout)
+
+        with QtShortCuts.QVBoxLayout(self) as layout:
+            layout.setContentsMargins(0, 0, 0, 0)
+            with CheckAbleGroup(self, "fit forces (regularize)").addToLayout() as self.group:
+
+                with QtShortCuts.QVBoxLayout() as main_layout:
+                    with QtShortCuts.QGroupBox(None, "Material Parameters") as self.material_parameters:
+                        with QtShortCuts.QVBoxLayout() as layout:
+                            with QtShortCuts.QHBoxLayout() as layout2:
+                                self.input_k = QtShortCuts.QInputString(None, "k", "1645", type=float)
+                                self.input_d0 = QtShortCuts.QInputString(None, "d0", "0.0008", type=float)
+                            with QtShortCuts.QHBoxLayout() as layout2:
+                                self.input_lamda_s = QtShortCuts.QInputString(None, "lamdba_s", "0.0075", type=float)
+                                self.input_ds = QtShortCuts.QInputString(None, "ds", "0.033", type=float)
+
+                    with QtShortCuts.QGroupBox(None, "Regularisation Parameters") as self.material_parameters:
+                        with QtShortCuts.QVBoxLayout() as layout:
+                            self.input_alpha = QtShortCuts.QInputString(None, "alpha", "9", type=float)
+                            with QtShortCuts.QHBoxLayout(None) as layout:
+                                self.input_stepper = QtShortCuts.QInputString(None, "stepper", "0.33", type=float)
+                                self.input_imax = QtShortCuts.QInputNumber(None, "i_max", 100, float=False)
+
+                    self.input_button = QtShortCuts.QPushButton(None, "calculate forces", self.start_process)
+
+                    self.canvas = MatplotlibWidget(self).addToLayout()
+                    NavigationToolbar(self.canvas, self).addToLayout()
+
+        with self.parent.tabs.createTab("Forces") as self.tab:
+            with QtShortCuts.QVBoxLayout() as layout:
+                self.label_tab = QtWidgets.QLabel("The fitted regularized forces.").addToLayout()
+                if 0:
+                    self.canvas = MatplotlibWidget(self)
+                    layout.addWidget(self.canvas)
+                    layout.addWidget(NavigationToolbar(self.canvas, self))
+                else:
+                    pass #self.canvas = None
+
+                self.plotter = QtInteractor(self)
+                self.plotter.set_background("black")
+                self.tab.parent().plotter = self.plotter
+                layout.addWidget(self.plotter.interactor)
+
+                self.vtk_toolbar = VTK_Toolbar(self.plotter, self.update_display, center=True).addToLayout()
+
+                self.t_slider = QTimeSlider(connected=self.update_display).addToLayout()
+                self.tab.parent().t_slider = self.t_slider
+
+        self.setParameterMapping("solve_parameter", {
+            "k": self.input_k,
+            "d0": self.input_d0,
+            "lambda_s": self.input_lamda_s,
+            "ds": self.input_ds,
+            "alpha": self.input_alpha,
+            "stepper": self.input_stepper,
+            "i_max": self.input_imax,
+        })
+
+        self.iteration_finished.connect(self.iteration_callback)
+        self.iteration_finished.emit(None, np.ones([10, 3]))
+
+    def check_available(self, result: Result):
+        return result is not None and result.solver is not None
+
+    def check_evaluated(self, result: Result) -> bool:
+        if self.result is not None and self.result.solver is not None:
+            relrec = getattr(self.result.solver[self.t_slider.value()], "relrec", None)
+            if relrec is not None:
+                return True
+        return self.result is not None and self.result.solver is not None and getattr(self.result.solver[0], "regularisation_results", None) is not None
+
+    def iteration_callback(self, result, relrec):
+        if result is self.result:
+            for i in range(self.parent.tabs.count()):
+                if self.parent.tabs.widget(i) == self.tab.parent():
+                    self.parent.tabs.setTabEnabled(i, self.check_evaluated(result))
+            if self.canvas is not None:
+                relrec = np.array(relrec).reshape(-1, 3)
+                self.canvas.figure.axes[0].cla()
+                self.canvas.figure.axes[0].semilogy(relrec[:, 0], label="total loss")
+                self.canvas.figure.axes[0].semilogy(relrec[:, 1], ":", label="least squares loss")
+                self.canvas.figure.axes[0].semilogy(relrec[:, 2], "--", label="regularize loss")
+                self.canvas.figure.axes[0].legend()
+                self.canvas.figure.axes[0].set_xlabel("iteration")
+                self.canvas.figure.axes[0].set_ylabel("error")
+                self.canvas.figure.axes[0].spines["top"].set_visible(False)
+                self.canvas.figure.axes[0].spines["right"].set_visible(False)
+                self.canvas.figure.tight_layout()
+                self.canvas.draw()
+
+    def process(self, result: Result, params: dict):
+        for i in range(len(result.solver)):
+            M = result.solver[i]
+
+            def callback(M, relrec):
+                self.iteration_finished.emit(result, relrec)
+
+            M.setMaterialModel(saenopy.materials.SemiAffineFiberMaterial(
+                               params["k"],
+                               params["d0"],
+                               params["lambda_s"],
+                               params["ds"],
+                               ))
+
+            M.solve_regularized(stepper=params["stepper"], i_max=params["i_max"],
+                                alpha=params["alpha"], callback=callback, verbose=True)
+
+    def update_display(self):
+        if self.check_evaluated(self.result):
+            cam_pos = None
+            if self.plotter.camera_position is not None and CamPos.cam_pos_initialized is True:
+                cam_pos = self.plotter.camera_position
+            CamPos.cam_pos_initialized = True
+            self.plotter.interactor.setToolTip(str(self.result.solve_parameter)+f"\nNodes {self.result.solver[self.t_slider.value()].R.shape[0]}\nTets {self.result.solver[self.t_slider.value()].T.shape[0]}")
+            M = self.result.solver[self.t_slider.value()]
+            center = None
+            if self.vtk_toolbar.use_center.value() is True:
+                center = M.getCenter(mode="Force")
+            showVectorField(self.plotter, M, -M.f * M.reg_mask[:, None], "f", center=center, factor=0.5, scalebar_max=self.vtk_toolbar.getScaleMax(), show_nan=self.vtk_toolbar.use_nans.value())
+            if cam_pos is not None:
+                self.plotter.camera_position = cam_pos
+            relrec = getattr(self.result.solver[self.t_slider.value()], "relrec", None)
+            if relrec is None:
+                relrec = self.result.solver[self.t_slider.value()].regularisation_results
+            self.iteration_callback(self.result, relrec)
+        else:
+            self.plotter.interactor.setToolTip("")
+
+    def get_code(self) -> Tuple[str, str]:
+        import_code = "import saenopy\n"
+        results = None
+        def code(my_reg_params):
+            # define the parameters to generate the solver mesh and interpolate the piv mesh onto it
+            params = my_reg_params
+
+            # iterate over all the results objects
+            for result in results:
+                result.solve_parameter = params
+                for M in result.solver:
+                    # set the material model
+                    M.setMaterialModel(saenopy.materials.SemiAffineFiberMaterial(
+                        params["k"],
+                        params["d0"],
+                        params["lambda_s"],
+                        params["ds"],
+                    ))
+                    # find the regularized force solution
+                    M.solve_regularized(stepper=params["stepper"], i_max=params["i_max"], alpha=params["alpha"], verbose=True)
+                # save the forces
+                result.save()
+        data = {
+            "my_reg_params": self.result.solve_parameter_tmp,
+        }
+
+        code_lines = inspect.getsource(code).split("\n")[1:]
+        indent = len(code_lines[0]) - len(code_lines[0].lstrip())
+        code = "\n".join(line[indent:] for line in code_lines)
+
+        for key, value in data.items():
+            if isinstance(value, str):
+                code = code.replace(key, "'" + value + "'")
+            else:
+                code = code.replace(key, str(value))
+        return import_code, code
+

@@ -1,0 +1,122 @@
+import os
+import qtawesome as qta
+from qtpy import QtWidgets
+import pyvista as pv
+from pyvistaqt import QtInteractor
+from saenopy.gui import QtShortCuts
+from .ResultView import result_view
+
+
+vtk_toolbars = []
+class VTK_Toolbar(QtWidgets.QWidget):
+    theme_values = [pv.themes.DefaultTheme(), pv.themes.ParaViewTheme(),
+                                                          pv.themes.DarkTheme(), pv.themes.DocumentTheme()]
+    def __init__(self, plotter, update_display, scalbar_type="deformation", center=False):
+        super().__init__()
+        self.plotter = plotter
+        self.update_display = update_display
+        vtk_toolbars.append(self)
+
+        with QtShortCuts.QHBoxLayout(self) as layout0:
+            layout0.setContentsMargins(0, 0, 0, 0)
+            self.theme = QtShortCuts.QInputChoice(None, "Theme", value=self.theme_values[2],
+                                                  values=self.theme_values,
+                                                  value_names=["default", "paraview", "dark", "document"])
+
+            self.auto_scale = QtShortCuts.QInputBool(None, "auto color", True, tooltip="Automatically choose the maximum for the color scale.")
+            self.auto_scale.valueChanged.connect(self.scale_max_changed)
+            self.scale_max = QtShortCuts.QInputString(None, "max color", 1e-6, type=float, tooltip="Set the maximum of the color scale.")
+            self.scale_max.valueChanged.connect(self.scale_max_changed)
+            self.use_nans = QtShortCuts.QInputBool(None, "nans", True, tooltip="Display nodes which do not have values associated as gray dots.")
+            self.use_nans.valueChanged.connect(self.update_display)
+
+            if center is True:
+                self.use_center = QtShortCuts.QInputBool(None, "center", True,
+                                                       tooltip="Display the center of the force field.")
+                self.use_center.valueChanged.connect(self.update_display)
+
+            self.theme.valueChanged.connect(lambda x: self.new_plotter(x))
+
+            layout0.addStretch()
+            self.button = QtWidgets.QPushButton(qta.icon("fa5s.home"), "").addToLayout()
+            self.button.setToolTip("reset view")
+            self.button.clicked.connect(lambda x: self.plotter.isometric_view())
+
+            def save():
+                if 1:
+                    new_path = QtWidgets.QFileDialog.getSaveFileName(None, "Save Images", os.getcwd())
+                    # if we got one, set it
+                    if new_path:
+                        if isinstance(new_path, tuple):
+                            new_path = new_path[0]
+                        else:
+                            new_path = str(new_path)
+                        print(new_path)
+                        self.plotter.screenshot(new_path)
+                    return
+                outer_self = self
+
+                class PlotDialog(QtWidgets.QDialog):
+                    def __init__(self, parent):
+                        super().__init__(parent)
+                        with QtShortCuts.QVBoxLayout(self) as layout:
+                            self.plotter = QtInteractor(self, theme=outer_self.plotter.theme)
+                            layout.addWidget(self.plotter)
+                            outer_self.update_display(self.plotter)
+                            #showVectorField(self.plotter, outer_self.result.mesh_piv, "U_measured")
+                            self.button2 = QtWidgets.QPushButton(qta.icon("mdi.floppy"), "").addToLayout()
+                            self.button2.setToolTip("save")
+                            self.button2.clicked.connect(self.save)
+
+                    def save(self):
+                        new_path = QtWidgets.QFileDialog.getSaveFileName(None, "Save Images", os.getcwd())
+                        # if we got one, set it
+                        if new_path:
+                            if isinstance(new_path, tuple):
+                                new_path = new_path[0]
+                            else:
+                                new_path = str(new_path)
+                            print(new_path)
+                            self.plotter.screenshot(new_path)
+                        self.plotter.close()
+                        self.close()
+
+                    def close(self):
+                        self.plotter.close()
+
+                plot_diaolog = PlotDialog(self)
+                plot_diaolog.show()
+
+            self.button2 = QtWidgets.QPushButton(qta.icon("mdi.floppy"), "").addToLayout()
+            self.button2.setToolTip("save")
+            self.button2.clicked.connect(save)
+
+    def scale_max_changed(self):
+        self.scale_max.setDisabled(self.auto_scale.value())
+        scalebar_max = self.getScaleMax()
+        print(scalebar_max, self.plotter.auto_value, type(self.plotter.auto_value))
+        if scalebar_max is None:
+            self.plotter.update_scalar_bar_range([0, self.plotter.auto_value])
+        else:
+            self.plotter.update_scalar_bar_range([0, scalebar_max])
+
+    def getScaleMax(self):
+        if self.auto_scale.value():
+            return None
+        return self.scale_max.value()
+
+    def new_plotter(self, x, no_recursion=False):
+        if self.plotter.theme == x:
+            return
+        if no_recursion is False:
+            for widget in vtk_toolbars:
+                if widget is not self:
+                    widget.theme.setValue(x)
+                    widget.new_plotter(x, no_recursion=True)
+            result_view.setTheme(x)
+        self.plotter.theme = x
+        self.plotter.set_background(self.plotter._theme.background)
+        print(self.plotter._theme.font.color)
+        self.update_display()
+
+
