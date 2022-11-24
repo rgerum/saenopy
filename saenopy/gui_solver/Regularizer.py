@@ -65,7 +65,7 @@ class Regularizer(PipelineModule):
                 else:
                     pass #self.canvas = None
 
-                self.plotter = QtInteractor(self)
+                self.plotter = QtInteractor(self, auto_update=False)
                 self.plotter.set_background("black")
                 self.tab.parent().plotter = self.plotter
                 layout.addWidget(self.plotter.interactor)
@@ -114,7 +114,10 @@ class Regularizer(PipelineModule):
                 self.canvas.figure.axes[0].set_ylabel("error")
                 self.canvas.figure.axes[0].spines["top"].set_visible(False)
                 self.canvas.figure.axes[0].spines["right"].set_visible(False)
-                self.canvas.figure.tight_layout()
+                try:
+                    self.canvas.figure.tight_layout()
+                except np.linalg.LinAlgError:
+                    pass
                 self.canvas.draw()
 
     def process(self, result: Result, params: dict):

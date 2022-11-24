@@ -22,7 +22,7 @@ class FittedMesh(PipelineModule):
             with QtShortCuts.QVBoxLayout() as layout:
                 self.label_tab = QtWidgets.QLabel("The fitted mesh deformations.").addToLayout()
 
-                self.plotter = QtInteractor(self)
+                self.plotter = QtInteractor(self, auto_update=False)
                 self.plotter.set_background("black")
                 self.tab.parent().plotter = self.plotter
                 layout.addWidget(self.plotter.interactor)

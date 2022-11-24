@@ -42,10 +42,10 @@ class ResultView(PipelineModule):
                 self.frame = QtWidgets.QFrame().addToLayout()
                 self.frame.setLayout(self.plotter_layout)
 
-                self.plotter = QtInteractor(self.frame)
+                self.plotter = QtInteractor(self.frame, auto_update=False)
                 self.plotter_layout.addWidget(self.plotter.interactor)
-                vlayout.addLayout(self.plotter_layout)
-
+                #vlayout.addLayout(self.plotter_layout)
+                #return
                 self.t_slider = QTimeSlider(connected=self.update_display).addToLayout()
                 self.tab.parent().t_slider = self.t_slider
         self.setParameterMapping(None, {})
@@ -113,7 +113,7 @@ class ResultView(PipelineModule):
             self.plotter_layout.removeWidget(self.plotter)
             self.plotter.close()
 
-            self.plotter = QtInteractor(self.frame, shape=shape, border=False)
+            self.plotter = QtInteractor(self.frame, shape=shape, border=False, auto_update=False)
 
             self.plotter.set_background("black")
             # pv.set_plot_theme("document")

@@ -78,7 +78,7 @@ class MeshCreator(PipelineModule):
             with QtShortCuts.QVBoxLayout() as layout:
                 self.label_tab = QtWidgets.QLabel("The deformations from the piv algorithm interpolated on the new mesh for regularisation.").addToLayout()
 
-                self.plotter = QtInteractor(self)
+                self.plotter = QtInteractor(self, auto_update=False)
                 self.tab.parent().plotter = self.plotter
                 self.plotter.set_background("black")
                 layout.addWidget(self.plotter.interactor)

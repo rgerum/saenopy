@@ -55,7 +55,7 @@ class DeformationDetector(PipelineModule):
                 self.label_tab = QtWidgets.QLabel(
                     "The deformations from the piv algorithm at every window where the crosscorrelation was evaluated.").addToLayout()
 
-                self.plotter = QtInteractor(self)  # , theme=pv.themes.DocumentTheme())
+                self.plotter = QtInteractor(self, auto_update=False)  # , theme=pv.themes.DocumentTheme())
                 self.tab.parent().plotter = self.plotter
                 self.plotter.set_background("black")
                 layout.addWidget(self.plotter.interactor)

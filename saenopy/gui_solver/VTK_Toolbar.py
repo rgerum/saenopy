@@ -60,7 +60,7 @@ class VTK_Toolbar(QtWidgets.QWidget):
                     def __init__(self, parent):
                         super().__init__(parent)
                         with QtShortCuts.QVBoxLayout(self) as layout:
-                            self.plotter = QtInteractor(self, theme=outer_self.plotter.theme)
+                            self.plotter = QtInteractor(self, theme=outer_self.plotter.theme, auto_update=False)
                             layout.addWidget(self.plotter)
                             outer_self.update_display(self.plotter)
                             #showVectorField(self.plotter, outer_self.result.mesh_piv, "U_measured")

@@ -69,7 +69,7 @@ class DeformationDetector(QtWidgets.QWidget):
 
         self.progressbar = QProgressBar(main_layout)
 
-        self.plotter = QtInteractor(self)
+        self.plotter = QtInteractor(self, auto_update=False)
         self.plotter.set_background("black")
         main_layout.addWidget(self.plotter.interactor)
 
@@ -177,7 +177,7 @@ class MeshCreator(QtWidgets.QWidget):
 
         self.progressbar = QProgressBar(main_layout)
 
-        self.plotter = QtInteractor(self)
+        self.plotter = QtInteractor(self, auto_update=False)
         self.plotter.set_background("black")
         main_layout.addWidget(self.plotter.interactor)
 
@@ -256,7 +256,7 @@ class Regularizer(QtWidgets.QWidget):
         self.canvas.figure.add_axes([0.2, 0.2, 0.8, 0.8])
         main_layout.addWidget(self.canvas)
 
-        self.plotter = QtInteractor(self)
+        self.plotter = QtInteractor(self, auto_update=False)
         self.plotter.set_background("black")
         main_layout.addWidget(self.plotter.interactor)
 

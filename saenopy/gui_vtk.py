@@ -106,7 +106,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # add the pyvista interactor object
         self.plotter_layout = QtWidgets.QHBoxLayout()
-        self.plotter = QtInteractor(self.frame)
+        self.plotter = QtInteractor(self.frame, auto_update=False)
         self.plotter_layout.addWidget(self.plotter.interactor)
         vlayout.addLayout(self.plotter_layout)
 
@@ -253,7 +253,7 @@ class MainWindow(QtWidgets.QMainWindow):
             self.plotter_layout.removeWidget(self.plotter)
             self.plotter.close()
 
-            self.plotter = QtInteractor(self.frame, shape=shape, border=False)
+            self.plotter = QtInteractor(self.frame, shape=shape, border=False, auto_update=False)
             self.plotter.set_background("black")
             #pv.set_plot_theme("document")
             self.plotter_layout.addWidget(self.plotter.interactor)
