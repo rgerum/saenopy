@@ -7,6 +7,7 @@ import scipy.sparse as ssp
 
 from numba import jit, njit
 from typing import Union
+from nptyping import NDArray, Shape, Float, Int, Bool
 
 from saenopy.multigridHelper import getLinesTetrahedra, getLinesTetrahedra2
 from saenopy.buildBeams import buildBeams
@@ -18,14 +19,18 @@ from pathlib import Path
 import natsort
 from saenopy.getDeformations import getStack, Stack, format_glob
 
+
 class Mesh(Saveable):
     __save_parameters__ = ['R', 'T', 'node_vars']
-    R = None  # the 3D positions of the vertices, dimension: N_c x 3
-    T = None  # the tetrahedra' 4 corner vertices (defined by index), dimensions: N_T x 4
+    R: NDArray[Shape["N_c, 3"], Float] = None  # the 3D positions of the vertices, dimension: N_c x 3
+    T: NDArray[Shape["N_t, 4"], Int] = None  # the tetrahedra' 4 corner vertices (defined by index), dimensions: N_T x 4
 
-    node_vars = None
+    node_vars: dict = None
 
-    def __init__(self, R=None, T=None, node_vars=None):
+    def __init__(self,
+                 R: NDArray[Shape["N_c, 3"], Float] = None,
+                 T: NDArray[Shape["N_t, 4"], Int] = None,
+                 node_vars: dict = None):
         if R is not None:
             self.setNodes(R)
         if T is not None:
@@ -35,7 +40,7 @@ class Mesh(Saveable):
             for name, data in node_vars.items():
                 self.setNodeVar(name, data)
 
-    def setNodes(self, data: np.ndarray):
+    def setNodes(self, data: NDArray[Shape["N_c, 3"], Float]):
         """
         Provide mesh coordinates.
 
@@ -52,8 +57,7 @@ class Mesh(Saveable):
         # store the loaded node coordinates
         self.R = data.astype(np.float64)
 
-
-    def setTetrahedra(self, data: np.ndarray):
+    def setTetrahedra(self, data: NDArray[Shape["N_t, 4"], Int]):
         """
         Provide mesh connectivity. Nodes have to be connected by tetrahedra. Each tetraherdon consts of the indices of
         the 4 vertices which it connects.
@@ -73,7 +77,7 @@ class Mesh(Saveable):
         # store the tetrahedron data (needs to be int indices)
         self.T = data.astype(np.int)
 
-    def setNodeVar(self, name, data):
+    def setNodeVar(self, name: str, data: Union[NDArray[Shape["N_c"], Float], NDArray[Shape["N_c, 3"], Float]]):
         data = np.asarray(data)
         assert len(data.shape) == 1 or len(data.shape) == 2, "Node var needs to be scalar or vectorial"
         if len(data.shape) == 2:
@@ -81,10 +85,10 @@ class Mesh(Saveable):
         assert data.shape[0] == self.R.shape[0], "Node var has to have the same number of nodes than the mesh"
         self.node_vars[name] = data
 
-    def getNodeVar(self, name):
+    def getNodeVar(self, name: str) -> Union[NDArray[Shape["N_c"], Float], NDArray[Shape["N_c, 3"], Float]]:
         return self.node_vars[name]
 
-    def hasNodeVar(self, name):
+    def hasNodeVar(self, name: str):
         return name in self.node_vars
 
 
@@ -92,36 +96,36 @@ class Solver(Saveable):
     __save_parameters__ = ["R", "T", "U", "f", "U_fixed", "U_target", "U_target_mask", "f_target", "E_glo", "var", "regularisation_results",
                       "reg_mask", "regularisation_parameters", "material_model"]
 
-    R = None  # the 3D positions of the vertices, dimension: N_c x 3
-    T = None  # the tetrahedra' 4 corner vertices (defined by index), dimensions: N_T x 4
-    E = None  # the energy stored in each tetrahedron, dimensions: N_T
-    V = None  # the volume of each tetrahedron, dimensions: N_T
-    var = None  # a bool if a node is movable
+    R: NDArray[Shape["N_c, 3"], Float] = None  # the 3D positions of the vertices, dimension: N_c x 3
+    T: NDArray[Shape["N_t, 4"], Int] = None  # the tetrahedra' 4 corner vertices (defined by index), dimensions: N_T x 4
+    E: NDArray[Shape["N_t"], Float] = None  # the energy stored in each tetrahedron, dimensions: N_T
+    V: NDArray[Shape["N_t"], Float] = None  # the volume of each tetrahedron, dimensions: N_T
+    var: NDArray[Shape["N_c"], Bool] = None  # a bool if a node is movable
 
-    Phi = None  # the shape tensor of each tetrahedron, dimensions: N_T x 4 x 3
+    Phi: NDArray[Shape["N_t, 4, 3"], Float] = None  # the shape tensor of each tetrahedron, dimensions: N_T x 4 x 3
     Phi_valid = False
-    U = None  # the displacements of each node, dimensions: N_c x 3
-    U_fixed = None
-    U_target = None
-    U_target_mask = None
-    reg_mask = None
+    U: NDArray[Shape["N_c, 3"], Float] = None  # the displacements of each node, dimensions: N_c x 3
+    U_fixed: NDArray[Shape["N_c, 3"], Float] = None
+    U_target: NDArray[Shape["N_c, 3"], Float] = None
+    U_target_mask: NDArray[Shape["N_c"], Bool] = None
+    reg_mask: NDArray[Shape["N_c"], Bool] = None
 
-    f = None  # the global forces on each node, dimensions: N_c x 3
-    f_target = None  # the external forces on each node, dimensions: N_c x 3
-    K_glo = None  # the global stiffness tensor, dimensions: N_c x N_c x 3 x 3
+    f: NDArray[Shape["N_c, 3"], Float] = None  # the global forces on each node, dimensions: N_c x 3
+    f_target: NDArray[Shape["N_c, 3"], Float] = None  # the external forces on each node, dimensions: N_c x 3
+    K_glo: NDArray[Shape["N_c, N_c, 3, 3"], Float] = None  # the global stiffness tensor, dimensions: N_c x N_c x 3 x 3
 
     Laplace = None
 
-    E_glo = 0  # the global energy
+    E_glo: float = 0  # the global energy
 
     # a list of all vertices are connected via a tetrahedron, stored as pairs: dimensions: N_connections x 2
-    connections = None
+    connections: NDArray[Shape["N_con, 2"], Int] = None
     connections_valid = False
 
     N_T = 0  # the number of tetrahedra
     N_c = 0  # the number of vertices
 
-    s = None  # the beams, dimensions N_b x 3
+    s: NDArray[Shape["N_b, 3"], Float] = None  # the beams, dimensions N_b x 3
     N_b = 0  # the number of beams
 
     material_model: SemiAffineFiberMaterial = None  # the function specifying the material model
@@ -138,7 +142,7 @@ class Solver(Saveable):
     ]
     '''
 
-    def setNodes(self, data: np.ndarray):
+    def setNodes(self, data: NDArray[Shape["N_c, 3"], Float]):
         """
         Provide mesh coordinates.
 
@@ -165,7 +169,8 @@ class Solver(Saveable):
         self.f = np.zeros((self.N_c, 3))
         self.f_target = np.zeros((self.N_c, 3))
 
-    def setBoundaryCondition(self, displacements: np.ndarray = None, forces: np.ndarray = None):
+    def setBoundaryCondition(self, displacements: NDArray[Shape["N_c, 3"], Float] = None,
+                             forces: NDArray[Shape["N_c, 3"], Float] = None):
         """
         Provide the boundary condition for the mesh, to be used with :py:meth:`~.Solver.solve_nonregularized`.
 
@@ -202,7 +207,7 @@ class Solver(Saveable):
                 print("WARNING: Forces for fixed vertices were specified. These boundary conditions cannot be"
                       "fulfilled", file=sys.stderr)
 
-    def setInitialDisplacements(self, displacements: np.ndarray):
+    def setInitialDisplacements(self, displacements: NDArray[Shape["N_c, 3"], Float]):
         """
         Provide initial displacements of the nodes. For fixed nodes these displacements are ignored.
 
@@ -216,7 +221,7 @@ class Solver(Saveable):
         assert displacements.shape == (self.N_c, 3)
         self.U[self.var] = displacements[self.var].astype(np.float64)
 
-    def _setExternalForces(self, forces: np.ndarray):
+    def _setExternalForces(self, forces: NDArray[Shape["N_c, 3"], Float]):
         """
         Provide external forces that act on the vertices. The forces can also be set with
         :py:meth:`~.Solver.setNodes` directly with the vertices.
@@ -231,7 +236,7 @@ class Solver(Saveable):
         assert forces.shape == (self.N_c, 3)
         self.f_target = forces.astype(np.float64)
 
-    def setTetrahedra(self, data: np.ndarray):
+    def setTetrahedra(self, data: NDArray[Shape["N_t, 4"], Int]):
         """
         Provide mesh connectivity. Nodes have to be connected by tetrahedra. Each tetraherdon consts of the indices of
         the 4 vertices which it connects.
@@ -280,7 +285,7 @@ class Solver(Saveable):
         if generate_lookup is True:
             self.material_model_look_up = self.material_model.generate_look_up_table()
 
-    def setBeams(self, beams: Union[int, np.ndarray] = 300):
+    def setBeams(self, beams: Union[int, NDArray[Shape["N_b, 3"], Float]] = 300):
         """
         Sets the beams for the calculation over the whole solid angle.
 
@@ -421,7 +426,7 @@ class Solver(Saveable):
         if self.verbose:
             print("updating forces and stiffness matrix finished %.2fs" % (time.time() - t_start))
 
-    def getMaxTetStiffness(self):
+    def getMaxTetStiffness(self) -> NDArray[Shape["N_t"], Float]:
         """
         Calculates the stiffness matrix K_ij, the force F_i and the energy E of each node.
         """
@@ -445,7 +450,7 @@ class Solver(Saveable):
 
         return tetrahedra_stiffness
 
-    def _get_s_bar(self, t: np.ndarray):
+    def _get_s_bar(self, t: slice) -> NDArray[Shape["N_t, 3, N_b"], Float]:
         # get the displacements of all corners of the tetrahedron (N_Tx3x4)
         # u_tim  (t in [0, N_T], i in {x,y,z}, m in {1,2,3,4})
         # F is the linear map from T (the undeformed tetrahedron) to T' (the deformed tetrahedron)
@@ -640,7 +645,7 @@ class Solver(Saveable):
 
     """ regularization """
 
-    def setTargetDisplacements(self, displacement: np.ndarray, reg_mask: np.ndarray=None):
+    def setTargetDisplacements(self, displacement: NDArray[Shape["N_c, 3"], Float], reg_mask: NDArray[Shape["N_c"], Bool] = None):
         """
         Provide the displacements that should be fitted by the regularization.
 
@@ -749,9 +754,9 @@ class Solver(Saveable):
         if relrecname is not None:
             np.savetxt(relrecname, relrec)
 
-    def solve_regularized(self, stepper: float =0.33, solver_precision: float =1e-18, i_max: int = 100,
-                          rel_conv_crit: float = 0.01, alpha: float = 1e10, method: str = "huber", relrecname: str = None,
-                          verbose: bool = False, callback: callable = None):
+    def solve_regularized(self, stepper: float = 0.33, solver_precision: float = 1e-18, i_max: int = 100,
+                          rel_conv_crit: float = 0.01, alpha: float = 1e10, method: str = "huber",
+                          relrecname: str = None, verbose: bool = False, callback: callable = None):
         """
         Fit the provided displacements. Displacements can be provided with
         :py:meth:`~.Solver.setTargetDisplacements`.
@@ -857,7 +862,7 @@ class Solver(Saveable):
         self.regularisation_results = relrec
         return relrec
 
-    def _solve_regularization_CG(self, stepper: float =0.33, solver_precision: float = 1e-18):
+    def _solve_regularization_CG(self, stepper: float = 0.33, solver_precision: float = 1e-18):
         """
         Solve the displacements from the current stiffness tensor using conjugate gradient.
         """
@@ -1011,7 +1016,7 @@ class Solver(Saveable):
 
     #     return results
 
-    def getPolarity(self):
+    def getPolarity(self) -> float:
 
         inner = self.reg_mask
         f = self.f[inner]
@@ -1219,7 +1224,7 @@ class Solver(Saveable):
 
         return MeshViewer(self.R, L, self.f, self.U, f1, f2)
 
-    def getCenter(self, mode="force", border=None):
+    def getCenter(self, mode="force", border=None) -> NDArray[Shape["3"], Float]:
         f = self.f
         R = self.R
         U = self.U
@@ -1284,7 +1289,7 @@ class Solver(Saveable):
         f3 = np.cross(RRnorm, f)
         return f2, f3
 
-    def force_ratio_outer_to_inner(self, width_outer = 5e-6):
+    def force_ratio_outer_to_inner(self, width_outer=5e-6):
         """
         Divides the Cubus in an outer and inner part, where the outer part
         is defined as everything closer than width_outer (default ist 14 um)
@@ -1340,7 +1345,7 @@ class Solver(Saveable):
             ratioz = np.nan
         return ratioz
 
-    def getContractility(self, center_mode="force", r_max=None):
+    def getContractility(self, center_mode="force", r_max=None) -> str:
         f = self.f
         R = self.R
 
@@ -1364,9 +1369,9 @@ class Solver(Saveable):
         return contractility
 
 
-    def getContractilityIgnoreBorder(self, width_outer = 5e-6, center_mode="force" ):
+    def getContractilityIgnoreBorder(self, width_outer=5e-6, center_mode="force") -> float:
         """
-        Computes the contractilty value while ignoring all force vectors that
+        Computes the contractility value while ignoring all force vectors that
         are located within at the borders (outer shell with width_outer).
         For Drift/Rotation we often find high forces here.
         """
@@ -1393,15 +1398,15 @@ class Solver(Saveable):
 
     def getContractilityUnbiasedEpicenter(self,  r_max=None):
         """
-        Computes a contractilty value, that uses an unbiased center approach.
-        Instsead of computing the center from all force vectors, which will bias the
-        the location (as a result of optimization), here we split the image stack into +x,-x halfspaces
-        +y,-y halfspaces and +z,-z halfspaces around the intitially found center.
-        Then we compute the center of the force vectors within this halfsphere and
-        compute the contractility of the force components in the opposing halfspacce
-        onto this center (e.g. -x halfspace values uses the center from +x halfsphere).
+        Computes a contractility value, that uses an unbiased center approach.
+        Instead of computing the center from all force vectors, which will bias
+        the location (as a result of optimization), here we split the image stack into +x,-x half-spaces
+        +y,-y half-spaces and +z,-z half-spaces around the initially found center.
+        Then we compute the center of the force vectors within this half-sphere and
+        compute the contractility of the force components in the opposing half-space
+        onto this center (e.g. -x halfspace values uses the center from +x half-sphere).
         We then add up the derived contractility values from -x and +x components (same for -+y and -+z)
-        and  compute the final unbiased contractilty as mean value of all 3 dimension.
+        and  compute the final unbiased contractility as mean value of all 3 dimension.
 
         returns the unbiased contractility value
         """

@@ -1,9 +1,12 @@
 import numpy as np
 import pandas as pd
 import time
+from typing import Union
+from nptyping import NDArray, Shape, Float, Int, Bool
 
 
-def createMesh(count=None, element_width=None, box_width=None, tesselation_mode="6"):
+def createMesh(count: int = None, element_width: float = None, box_width: float = None, tesselation_mode: str = "6") \
+        -> (NDArray[Shape["N_c, 3"], Float], NDArray[Shape["N_t, 4"], Int]):
     if isinstance(box_width, (int, float)):
         box_width = [box_width, box_width, box_width]
 
@@ -599,7 +602,9 @@ def getStress(M, lambd, stepper=0.066, rel_conv_crit=0.01, verbose=False, callba
     print("strain", lambd, "stress", stress, "duration", time.time() - t)
     return stress
 
-def getBorder(R, width=0.5e-6):
+
+def getBorder(R: NDArray[Shape["N_c, 3"], Float], width=0.5e-6) \
+               -> NDArray[Shape["N_c"], Bool]:
     minR = np.min(R, axis=0)
     maxR = np.max(R, axis=0)
 
@@ -608,7 +613,7 @@ def getBorder(R, width=0.5e-6):
              (R[:, 2] < minR[2] + width) | (R[:, 2] > maxR[2] - width)
     return border
 
-def getBoxMeshSurface(T):
+def getBoxMeshSurface(T: NDArray[Shape["N_t, 4"], Int]) -> NDArray[Shape["N_surface"], Int]:
     node_uses = pd.Series(T.ravel()).value_counts().sort_index()
     surface = node_uses != 20
     return surface
@@ -643,7 +648,9 @@ def plotMesh(R, T, ax=None):
     ax.set_ylim(center[1]-max_width/2, center[1]+max_width/2)
     ax.set_zlim(center[2]-max_width/2, center[2]+max_width/2)
 
-def removeNodes(R, T, remove_indices):
+
+def removeNodes(R: NDArray[Shape["N_c, 3"], Float], T: NDArray[Shape["N_t, 4"], Int], remove_indices) \
+        -> (NDArray[Shape["N_c, 3"], Float], NDArray[Shape["N_t, 4"], Int]):
     """ removes the nodes with the provided indices from the mesh """
     R2 = R[~remove_indices].copy()
     indices_keep = np.arange(0, len(R))[~remove_indices]
