@@ -853,7 +853,7 @@ class Solver(Saveable):
                 # calculate the average energy over the last 6 iterations
                 last_Ls = np.array(relrec)[:-6:-1, 1]
                 Lmean = np.mean(last_Ls)
-                Lstd = np.std(last_Ls) / np.sqrt(5)  # the original formula just had /N instead of /sqrt(N)
+                Lstd = np.std(last_Ls)       #  Use Coefficient of Variation; in saeno there was the additional factor  "/ np.sqrt(5)" behind 
 
                 # if the iterations converge, stop the iteration
                 if Lstd / Lmean < rel_conv_crit:
