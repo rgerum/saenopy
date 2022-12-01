@@ -166,11 +166,14 @@ class StackSelectorTif(QtWidgets.QWidget):
 
         self.format_template = str(filename)
 
-        selected_prop = {key: value for _, key, value in re.findall(r"(_|^)([^_\d]*)(\d+)", filename.name)}
+        # find data according to reglar expression pattern
+        regexpr = r"([^_\d]*)(\d+)"        
+
+        selected_prop = {key: value for key, value in re.findall(regexpr, filename.name)}    
 
         properties = []
         for file in filenames:
-            prop = {key:value for _, key, value in re.findall(r"(_|^)([^_\d]*)(\d+)", file.name)}
+            prop = {key:value for key, value in re.findall(regexpr, file.name)}
             prop["filename"] = file
             properties.append(prop)
         df = pd.DataFrame(properties)
@@ -206,9 +209,9 @@ class StackSelectorTif(QtWidgets.QWidget):
                 z_name = col
             if col == "t":
                 t_name = col
-        if z_name is None:
+        if z_name is None and len(names):
             z_name = names.pop()
-        if t_name is None:
+        if t_name is None and len(names):
             t_name = names.pop()
 
         self.z_prop.setValues(properties)
