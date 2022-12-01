@@ -9,10 +9,6 @@ import pandas as pd
 from saenopy.gui import QtShortCuts
 from saenopy.gui.gui_classes import QHLine, MatplotlibWidget, NavigationToolbar, execute, ListWidget
 from saenopy.solver import Result
-
-"""REFERENCE FOLDERS"""
-#xx\dboehringer\Platte_4\SoftwareWorkinProgess\TFM-Example-Data-3D\a127-tom-test-set\20170914_A172_rep1-bispos3\Before
-#xx\lbischof\tif_and_analysis_backup\2021-06-02-NK92-Blebb-Rock\Blebb-round1\Mark_and_Find_001
 from saenopy.gui_solver.BatchEvaluate import BatchEvaluate
 
 
