@@ -54,11 +54,12 @@ class MeshCreator(PipelineModule):
             layout.setContentsMargins(0, 0, 0, 0)
             with CheckAbleGroup(self, "interpolate mesh").addToLayout() as self.group:
                 with QtShortCuts.QVBoxLayout() as layout:
-                    self.input_reference = QtShortCuts.QInputChoice(None, "reference stack", "first", ["first", "median", "last"])
-                    self.input_reference.setEnabled(False)
                     with QtShortCuts.QHBoxLayout():
                         with QtShortCuts.QVBoxLayout() as layout2:
-                            self.input_element_size = QtShortCuts.QInputNumber(None, "mesh element size", 7, unit="μm")
+                            self.input_reference = QtShortCuts.QInputChoice(None, "reference stack", "first",
+                                                                            ["first", "median", "last"])
+                            self.input_reference.setEnabled(False)
+                            self.input_element_size = QtShortCuts.QInputNumber(None, "mesh elem. size", 7, unit="μm")
                             #with QtShortCuts.QHBoxLayout() as layout2:
                             self.input_inner_region = QtShortCuts.QInputNumber(None, "inner region", 100, unit="μm")
                             self.input_thinning_factor = QtShortCuts.QInputNumber(None, "thinning factor", 0.2, step=0.1)

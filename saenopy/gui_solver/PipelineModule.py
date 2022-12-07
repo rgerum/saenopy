@@ -8,6 +8,7 @@ from typing import Tuple
 
 class PipelineModule(QtWidgets.QWidget):
     processing_finished = QtCore.Signal()
+    processing_progress = QtCore.Signal(tuple)
     processing_state_changed = QtCore.Signal(object)
     processing_error = QtCore.Signal(str)
     result: Result = None
@@ -29,6 +30,10 @@ class PipelineModule(QtWidgets.QWidget):
         self.parent.result_changed.connect(self.resultChanged)
         self.parent.set_current_result.connect(self.setResult)
         self.parent.tab_changed.connect(self.tabChanged)
+
+        self.processing_progress.connect(self.parent.progress)
+
+
 
     def setParameterMapping(self, params_name: str = None, parameter_dict: dict=None):
         self.params_name = params_name
@@ -159,6 +164,7 @@ class PipelineModule(QtWidgets.QWidget):
         if getattr(result, self.params_name + "_state", "") == "scheduled" or \
             getattr(result, self.params_name + "_state", "") == "running":
             return
+        self.parent.progressbar.setRange(0, 0)
         self.ensure_tmp_params_initialized(result)
         params = getattr(result, self.params_name + "_tmp")
         setattr(result, self.params_name + "_state", "scheduled")

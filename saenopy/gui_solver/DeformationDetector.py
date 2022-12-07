@@ -35,7 +35,7 @@ class DeformationDetector(PipelineModule):
             with CheckAbleGroup(self, "find deformations (piv)").addToLayout() as self.group:
                 with QtShortCuts.QVBoxLayout() as layout:
                     with QtShortCuts.QHBoxLayout():
-                        self.input_elementsize = QtShortCuts.QInputNumber(None, "piv element size", 15.0, step=1,
+                        self.input_elementsize = QtShortCuts.QInputNumber(None, "piv elem. size", 15.0, step=1,
                                                                           value_changed=self.valueChanged,
                                                                           tooltip="the grid size for deformation detection")
 
@@ -119,7 +119,7 @@ class DeformationDetector(PipelineModule):
             result.mesh_piv = [None] * (len(result.stack) - 1)
 
         for i in range(len(result.stack) - 1):
-            p = ProcessSimple(getDeformation, (i, result, params), {})
+            p = ProcessSimple(getDeformation, (i, result, params), {}, self.processing_progress)
             p.start()
             result.mesh_piv[i] = p.join()
 

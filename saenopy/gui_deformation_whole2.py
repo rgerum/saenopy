@@ -517,9 +517,9 @@ class MainWindow(QtWidgets.QWidget):
                         self.description.setText("""
                         <h1>Start Evaluation</h1>
                          """.strip())
-                v_layout.addWidget(QHLine())
-                with QtShortCuts.QHBoxLayout() as h_layout:
-                    h_layout.addStretch()
+                #v_layout.addWidget(QHLine())
+                #with QtShortCuts.QHBoxLayout() as h_layout:
+                #    h_layout.addStretch()
                     #self.button_previous = QtShortCuts.QPushButton(None, "back", self.previous)
                     #self.button_next = QtShortCuts.QPushButton(None, "next", self.next)
             with self.tabs.createTab("Data Analysis") as v_layout:
