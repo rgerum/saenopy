@@ -83,6 +83,8 @@ class PipelineModule(QtWidgets.QWidget):
             else:
                 self.group.label.setIcon(qta.icon("fa5.circle", options=[dict(color="gray")]))
                 self.group.label.setToolTip("")
+            if getattr(self, "input_button", None):
+                self.input_button.setEnabled(self.check_available(result))
 
     def setResult(self, result: Result):
         """ set a new active result object """
@@ -102,6 +104,8 @@ class PipelineModule(QtWidgets.QWidget):
 
         # check if the results instance can be evaluated currently with this module
         #if self.check_available(result) is False:
+        if getattr(self, "input_button", None):
+            self.input_button.setEnabled(self.check_available(result))
         if result is None:
             # if not disable all the widgets
             for name, widget in self.parameter_dict.items():

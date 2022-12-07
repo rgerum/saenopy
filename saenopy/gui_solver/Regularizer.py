@@ -89,7 +89,7 @@ class Regularizer(PipelineModule):
         self.iteration_finished.emit(None, np.ones([10, 3]))
 
     def check_available(self, result: Result):
-        return result is not None and result.solver is not None
+        return result is not None and result.solver is not None and self.result.solver[0] is not None
 
     def check_evaluated(self, result: Result) -> bool:
         if self.result is not None and self.result.solver is not None:
