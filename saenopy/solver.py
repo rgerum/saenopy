@@ -819,7 +819,7 @@ class Solver(Saveable):
         relrec = []
         self.relrec = relrec
         if callback is not None:
-            callback(self, relrec)
+            callback(self, relrec, 0, i_max)
         self._recordRegularizationStatus(relrec, alpha, relrecname)
 
         if self.verbose:
@@ -846,7 +846,7 @@ class Solver(Saveable):
             self._recordRegularizationStatus(relrec, alpha, relrecname)
 
             if callback is not None:
-                callback(self, relrec)
+                callback(self, relrec, i, i_max)
 
             # if we have passed 6 iterations calculate average and std
             if i > 6:

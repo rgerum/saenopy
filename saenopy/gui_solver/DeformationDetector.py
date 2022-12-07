@@ -166,14 +166,32 @@ class DeformationDetector(PipelineModule):
 
 
 def getDeformation(progress, i, result, params):
-    #import tqdm
-    #t = tqdm.tqdm
-    #n = tqdm.tqdm.__new__
+    import tqdm
+    t = tqdm.tqdm
+    n = tqdm.tqdm.__new__
+    old_update = tqdm.tqdm.update
+    old_init = tqdm.tqdm.__init__
+    def wrap_update(update):
+        def do_update(self, n):
+            update(self, n)
+            progress.put((self.n, self.total))
+        return do_update
+    tqdm.tqdm.update = wrap_update(tqdm.tqdm.update)
+    def wrap_init(init):
+        def do_init(self, *args, **kwargs):
+            init(self, *args, **kwargs)
+            progress.put((0, self.total))
+        return do_init
+    tqdm.tqdm.__init__ = wrap_init(tqdm.tqdm.__init__)
     #tqdm.tqdm.__new__ = lambda cls, iter: progress.put(iter)
 
-    mesh_piv = saenopy.get_displacements_from_stacks(result.stack[i], result.stack[i + 1],
-                                                     params["win_um"],
-                                                     params["elementsize"],
-                                                     params["signoise_filter"],
-                                                     params["drift_correction"])
+    try:
+        mesh_piv = saenopy.get_displacements_from_stacks(result.stack[i], result.stack[i + 1],
+                                                         params["win_um"],
+                                                         params["elementsize"],
+                                                         params["signoise_filter"],
+                                                         params["drift_correction"])
+    finally:
+        tqdm.tqdm.update = old_update
+        tqdm.tqdm.__init__ = old_init
     return mesh_piv

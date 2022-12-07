@@ -115,6 +115,11 @@ class BatchEvaluate(QtWidgets.QWidget):
         self.thread = None
         self.signal_task_finished.connect(self.run_finished)
 
+    def progress(self, tup):
+        n, total = tup
+        self.progressbar.setMaximum(total)
+        self.progressbar.setValue(n)
+
     def generate_code(self):
         new_path = QtWidgets.QFileDialog.getSaveFileName(None, "Save Session as Script", os.getcwd(), "Python File (*.py)")
         if new_path:

@@ -24,7 +24,7 @@ from .DeformationDetector import CamPos
 
 class Regularizer(PipelineModule):
     pipeline_name = "fit forces"
-    iteration_finished = QtCore.Signal(object, object)
+    iteration_finished = QtCore.Signal(object, object, int, int)
 
     def __init__(self, parent: "BatchEvaluate", layout):
         super().__init__(parent, layout)
@@ -86,7 +86,7 @@ class Regularizer(PipelineModule):
         })
 
         self.iteration_finished.connect(self.iteration_callback)
-        self.iteration_finished.emit(None, np.ones([10, 3]))
+        self.iteration_finished.emit(None, np.ones([10, 3]), 0, None)
 
     def check_available(self, result: Result):
         return result is not None and result.solver is not None and self.result.solver[0] is not None
@@ -98,7 +98,10 @@ class Regularizer(PipelineModule):
                 return True
         return self.result is not None and self.result.solver is not None and getattr(self.result.solver[0], "regularisation_results", None) is not None
 
-    def iteration_callback(self, result, relrec):
+    def iteration_callback(self, result, relrec, i=0, imax=None):
+        if imax is not None:
+            self.parent.progressbar.setRange(0, imax)
+            self.parent.progressbar.setValue(i)
         if result is self.result:
             for i in range(self.parent.tabs.count()):
                 if self.parent.tabs.widget(i) == self.tab.parent():
@@ -124,8 +127,8 @@ class Regularizer(PipelineModule):
         for i in range(len(result.solver)):
             M = result.solver[i]
 
-            def callback(M, relrec):
-                self.iteration_finished.emit(result, relrec)
+            def callback(M, relrec, i, imax):
+                self.iteration_finished.emit(result, relrec, i, imax)
 
             M.setMaterialModel(saenopy.materials.SemiAffineFiberMaterial(
                                params["k"],
