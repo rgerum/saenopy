@@ -199,7 +199,10 @@ class Stack(Saveable):
         self.voxel_size = voxel_size
 
     def description(self, z):
-        return f"shape {self.shape}px\nsize {np.array(self.shape)*np.array(self.voxel_size)}μm\nvoxel size {self.voxel_size}μm\n{self.images[z]}"
+        try:
+            return f"shape {self.shape}px\nsize {np.array(self.shape)*np.array(self.voxel_size)}μm\nvoxel size {self.voxel_size}μm\n{self.images[z]}"
+        except IndexError:
+            return ""
 
     @property
     def shape(self) -> tuple:
