@@ -161,7 +161,7 @@ class BatchEvaluate(QtWidgets.QWidget):
 
     def run_next(self):
         task, result, params, name = self.tasks[self.current_task_id]
-        self.thread = threading.Thread(target=self.run_thread, args=(task, result, params, name))
+        self.thread = threading.Thread(target=self.run_thread, args=(task, result, params, name), daemon=True)
         self.thread.start()
 
     def run_thread(self, task, result, params, name):
