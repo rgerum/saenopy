@@ -73,23 +73,37 @@ class PipelineModule(QtWidgets.QWidget):
 
     def state_changed(self, result: Result):
         if result is self.result and getattr(self, "group", None) is not None:
-            if getattr(result, self.params_name + "_state", "") == "scheduled":
+            state = getattr(result, self.params_name + "_state", "")
+            if state == "scheduled":
                 self.group.label.setIcon(qta.icon("fa5s.hourglass-start", options=[dict(color="gray")]))
                 self.group.label.setToolTip("scheduled")
-            elif getattr(result, self.params_name + "_state", "") == "running":
+            elif state == "running":
                 self.group.label.setIcon(qta.icon("fa5s.hourglass-half", options=[dict(color="orange")]))
                 self.group.label.setToolTip("running")
-            elif getattr(result, self.params_name + "_state", "") == "finished":
+            elif state == "finished":
                 self.group.label.setIcon(qta.icon("fa5s.hourglass-end", options=[dict(color="green")]))
                 self.group.label.setToolTip("finished")
-            elif getattr(result, self.params_name + "_state", "") == "failed":
+            elif state == "failed":
                 self.group.label.setIcon(qta.icon("fa5s.times", options=[dict(color="red")]))
                 self.group.label.setToolTip("failed")
             else:
                 self.group.label.setIcon(qta.icon("fa5.circle", options=[dict(color="gray")]))
                 self.group.label.setToolTip("")
-            if getattr(self, "input_button", None):
-                self.input_button.setEnabled(self.check_available(result))
+
+            if state == "scheduled" or state == "running":
+                # if not disable all the widgets
+                for name, widget in self.parameter_dict.items():
+                    widget.setDisabled(True)
+                if getattr(self, "input_button", None):
+                    self.input_button.setEnabled(False)
+            else:
+                # if not disable all the widgets
+                for name, widget in self.parameter_dict.items():
+                    widget.setDisabled(False)
+                if getattr(self, "input_button", None):
+                    self.input_button.setEnabled(self.check_available(result))
+            #if getattr(self, "input_button", None):
+            #    self.input_button.setEnabled(self.check_available(result))
 
     def setResult(self, result: Result):
         """ set a new active result object """
@@ -111,10 +125,14 @@ class PipelineModule(QtWidgets.QWidget):
         #if self.check_available(result) is False:
         if getattr(self, "input_button", None):
             self.input_button.setEnabled(self.check_available(result))
-        if result is None:
+        if result is None or \
+                (self.params_name and (getattr(result, self.params_name + "_state", "") == "scheduled"
+                                       or getattr(result, self.params_name + "_state", "") == "running")):
             # if not disable all the widgets
             for name, widget in self.parameter_dict.items():
                 widget.setDisabled(True)
+            if getattr(self, "input_button", None):
+                self.input_button.setEnabled(False)
         else:
             self.ensure_tmp_params_initialized(result)
             # iterate over the parameters
@@ -194,13 +212,14 @@ class PipelineModule(QtWidgets.QWidget):
         pass
 
     def finished_process(self):
-        self.input_button.setEnabled(True)
-        self.parent.progressbar.setRange(0, 1)
+        #self.input_button.setEnabled(True)
+        #self.parent.progressbar.setRange(0, 1)
+        pass
 
     def errored_process(self, text: str):
         QtWidgets.QMessageBox.critical(self, "Deformation Detector", text)
-        self.input_button.setEnabled(True)
-        self.parent.progressbar.setRange(0, 1)
+        #self.input_button.setEnabled(True)
+        #self.parent.progressbar.setRange(0, 1)
 
     def get_code(self) -> Tuple[str, str]:
         return "", ""
