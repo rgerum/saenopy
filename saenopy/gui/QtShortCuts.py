@@ -283,7 +283,7 @@ class QInputBool(QInput):
         self.setValue(value)
 
     def _doSetValue(self, value):
-        self.checkbox.setChecked(value)
+        self.checkbox.setChecked(bool(value))
 
     def value(self):
         return self.checkbox.isChecked()
