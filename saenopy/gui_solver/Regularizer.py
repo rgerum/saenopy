@@ -148,7 +148,7 @@ class Regularizer(PipelineModule):
             center = None
             if self.vtk_toolbar.use_center.value() is True:
                 center = M.getCenter(mode="Force")
-            showVectorField(self.plotter, M, -M.f * M.reg_mask[:, None], "f", center=center, factor=0.5, scalebar_max=self.vtk_toolbar.getScaleMax(), show_nan=self.vtk_toolbar.use_nans.value())
+            showVectorField(self.plotter, M, -M.f * M.reg_mask[:, None], "f", center=center, factor=0.15, scalebar_max=self.vtk_toolbar.getScaleMax(), show_nan=self.vtk_toolbar.use_nans.value())
             if cam_pos is not None:
                 self.plotter.camera_position = cam_pos
             relrec = getattr(self.result.solver[self.t_slider.value()], "relrec", None)
