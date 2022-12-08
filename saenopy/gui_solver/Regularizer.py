@@ -129,9 +129,9 @@ class Regularizer(PipelineModule):
 
             M.setMaterialModel(saenopy.materials.SemiAffineFiberMaterial(
                                params["k"],
-                               params["d0"],
-                               params["lambda_s"],
-                               params["ds"],
+                               params["d0"] if params["d0"] != "None" else None,
+                               params["lambda_s"] if params["lambda_s"] != "None" else None,
+                               params["ds"] if params["ds"] != "None" else None,
                                ))
 
             M.solve_regularized(stepper=params["stepper"], i_max=params["i_max"],
@@ -180,8 +180,16 @@ class Regularizer(PipelineModule):
                     M.solve_regularized(stepper=params["stepper"], i_max=params["i_max"], alpha=params["alpha"], verbose=True)
                 # save the forces
                 result.save()
+
+        params = self.result.solve_parameter_tmp
+        if params["d0"] != "None":
+            params["d0"] = None
+        if params["lambda_s"] != "None":
+            params["lambda_s"] = None
+        if params["ds"] != "None":
+            params["ds"] = None
         data = {
-            "my_reg_params": self.result.solve_parameter_tmp,
+            "my_reg_params": params,
         }
 
         code_lines = inspect.getsource(code).split("\n")[1:]

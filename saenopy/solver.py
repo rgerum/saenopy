@@ -303,7 +303,7 @@ class Solver(Saveable):
     def _computeConnections(self):
         # current scipy versions do not have the sputils anymore
         try:
-            from scipy.sparse import get_index_dtype
+            from scipy.sparse._sputils import get_index_dtype
         except ImportError:
             from scipy.sparse.sputils import get_index_dtype
 

@@ -258,8 +258,8 @@ class QInputString(QInput):
 
     def value(self):
         text = self.line_edit.text()
-        if self.allow_none is True and text == "None":
-            return None
+        if self.allow_none is True and (text == "None" or text == ""):
+            return "None"
         if self.type == int:
             return int(text)
         if self.type == float:
