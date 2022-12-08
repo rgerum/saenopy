@@ -182,7 +182,6 @@ class PipelineModule(QtWidgets.QWidget):
         if getattr(result, self.params_name + "_state", "") == "scheduled" or \
             getattr(result, self.params_name + "_state", "") == "running":
             return
-        self.parent.progressbar.setRange(0, 0)
         self.ensure_tmp_params_initialized(result)
         params = getattr(result, self.params_name + "_tmp")
         setattr(result, self.params_name + "_state", "scheduled")
@@ -191,6 +190,7 @@ class PipelineModule(QtWidgets.QWidget):
 
     def process_thread(self, result: Result, params: dict):
         #params = getattr(result, self.params_name + "_tmp")
+        self.parent.progressbar.setRange(0, 0)
         setattr(result, self.params_name + "_state", "running")
         self.processing_state_changed.emit(result)
         try:
@@ -212,14 +212,11 @@ class PipelineModule(QtWidgets.QWidget):
         pass
 
     def finished_process(self):
-        #self.input_button.setEnabled(True)
-        #self.parent.progressbar.setRange(0, 1)
-        pass
+        self.parent.progressbar.setRange(0, 1)
 
     def errored_process(self, text: str):
         QtWidgets.QMessageBox.critical(self, "Deformation Detector", text)
-        #self.input_button.setEnabled(True)
-        #self.parent.progressbar.setRange(0, 1)
+        self.parent.progressbar.setRange(0, 1)
 
     def get_code(self) -> Tuple[str, str]:
         return "", ""
