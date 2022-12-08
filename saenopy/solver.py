@@ -75,7 +75,7 @@ class Mesh(Saveable):
         assert data.max() < self.R.shape[0], "Mesh tetrahedron node indices cannot be bigger than the number of vertices."
 
         # store the tetrahedron data (needs to be int indices)
-        self.T = data.astype(np.int)
+        self.T = data.astype(int)
 
     def setNodeVar(self, name: str, data: Union[NDArray[Shape["N_c"], Float], NDArray[Shape["N_c, 3"], Float]]):
         data = np.asarray(data)
