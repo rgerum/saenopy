@@ -113,10 +113,8 @@ class VTK_Toolbar(QtWidgets.QWidget):
                 if widget is not self:
                     widget.theme.setValue(x)
                     widget.new_plotter(x, no_recursion=True)
-            result_view.setTheme(x)
         self.plotter.theme = x
         self.plotter.set_background(self.plotter._theme.background)
-        print(self.plotter._theme.font.color)
         self.update_display()
 
 
