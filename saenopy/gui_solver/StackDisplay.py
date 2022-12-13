@@ -70,7 +70,7 @@ class StackDisplay(PipelineModule):
         return self.result is not None
 
     def check_available(self, result: Result) -> bool:
-        if result is not None and result.stack is not None:
+        if result is not None and result.stack is not None and len(result.stack)>0:
             return True
         return False
 
