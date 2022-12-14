@@ -33,3 +33,40 @@ for (folder, pos), datab in data.groupby(["folder", "pos_int"]):
     result = Result(f"nkoutput/{folder}/Pos{pos}_mesh4um_alpha_10.npz", stacks, time_delta=60, solver=solver)
     print("save", result.output)
     result.save()
+
+
+
+
+
+
+"""
+Option 2
+"""
+
+# Basic approach that does not incluse all information
+from glob import glob
+from saenopy.solver import Mesh, Result
+from saenopy.getDeformations import getStack, Stack
+import saenopy
+import os
+
+# load solver files
+liste = glob(r"../Amp*.npz")
+for d in liste:
+    M = saenopy.load(d)      
+    # ad PIV data   
+    piv_mesh = Mesh(M.R,M.T, node_vars={"U_target":M.U_target})   ## overwrites now.. 
+    # create result object and save that
+    Result("Converted_"+os.path.basename(d),   
+                   mesh_piv=[piv_mesh], 
+                  solver=[M]).save()
+    
+
+  
+
+
+
+
+
+
+
