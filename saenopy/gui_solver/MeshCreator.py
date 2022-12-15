@@ -53,24 +53,26 @@ class MeshCreator(PipelineModule):
         with QtShortCuts.QVBoxLayout(self) as layout:
             layout.setContentsMargins(0, 0, 0, 0)
             with CheckAbleGroup(self, "interpolate mesh").addToLayout() as self.group:
-                with QtShortCuts.QVBoxLayout() as layout:
-                    with QtShortCuts.QHBoxLayout():
-                        with QtShortCuts.QVBoxLayout() as layout2:
-                            self.input_reference = QtShortCuts.QInputChoice(None, "reference stack", "first",
-                                                                            ["first", "median", "last"])
-                            self.input_reference.setEnabled(False)
-                            self.input_element_size = QtShortCuts.QInputNumber(None, "mesh elem. size", 7, unit="μm")
-                            #with QtShortCuts.QHBoxLayout() as layout2:
-                            self.input_inner_region = QtShortCuts.QInputNumber(None, "inner region", 100, unit="μm")
-                            self.input_thinning_factor = QtShortCuts.QInputNumber(None, "thinning factor", 0.2, step=0.1)
-                            layout2.addStretch()
-                        with QtShortCuts.QVBoxLayout() as layout2:
-                            self.input_mesh_size_same = QtShortCuts.QInputBool(None, "mesh size same as stack", True, value_changed=self.valueChanged)
-                            self.input_mesh_size_x = QtShortCuts.QInputNumber(None, "x", 200, step=1, name_post="μm")
-                            self.input_mesh_size_y = QtShortCuts.QInputNumber(None, "y", 200, step=1, name_post="μm")
-                            self.input_mesh_size_z = QtShortCuts.QInputNumber(None, "z", 200, step=1, name_post="μm")
-                            #self.input_mesh_size_label = QtWidgets.QLabel("μm").addToLayout()
-                        self.valueChanged()
+                with QtShortCuts.QVBoxLayout():
+
+                    with QtShortCuts.QHBoxLayout() as layout2:
+                        self.input_reference = QtShortCuts.QInputChoice(None, "reference stack", "first",
+                                                                        ["first", "median", "last"])
+                        self.input_reference.setEnabled(False)
+                        self.input_element_size = QtShortCuts.QInputNumber(None, "mesh elem. size", 7, unit="μm")
+                        #with QtShortCuts.QHBoxLayout() as layout2:
+                        self.input_inner_region = QtShortCuts.QInputNumber(None, "inner region", 100, unit="μm")
+                        self.input_inner_region.setVisible(False)
+                        self.input_thinning_factor = QtShortCuts.QInputNumber(None, "thinning factor", 0, step=0.1)
+                        self.input_thinning_factor.setVisible(False)
+                        layout2.addStretch()
+                    with QtShortCuts.QHBoxLayout() as layout2:
+                        self.input_mesh_size_same = QtShortCuts.QInputBool(None, "mesh size same as stack", True, value_changed=self.valueChanged)
+                        self.input_mesh_size_x = QtShortCuts.QInputNumber(None, "x", 200, step=1, name_post="μm")
+                        self.input_mesh_size_y = QtShortCuts.QInputNumber(None, "y", 200, step=1, name_post="μm")
+                        self.input_mesh_size_z = QtShortCuts.QInputNumber(None, "z", 200, step=1, name_post="μm")
+                        #self.input_mesh_size_label = QtWidgets.QLabel("μm").addToLayout()
+                    self.valueChanged()
 
                     self.input_button = QtWidgets.QPushButton("interpolate mesh").addToLayout()
                     self.input_button.clicked.connect(self.start_process)
