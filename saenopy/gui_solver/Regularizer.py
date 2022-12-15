@@ -182,11 +182,11 @@ class Regularizer(PipelineModule):
                 result.save()
 
         params = self.result.solve_parameter_tmp
-        if params["d0"] != "None":
+        if params["d0"] == "None":
             params["d0"] = None
-        if params["lambda_s"] != "None":
+        if params["lambda_s"] == "None":
             params["lambda_s"] = None
-        if params["ds"] != "None":
+        if params["ds"] == "None":
             params["ds"] = None
         data = {
             "my_reg_params": params,
