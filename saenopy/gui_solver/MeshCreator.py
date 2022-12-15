@@ -53,11 +53,12 @@ class MeshCreator(PipelineModule):
         with QtShortCuts.QVBoxLayout(self) as layout:
             layout.setContentsMargins(0, 0, 0, 0)
             with CheckAbleGroup(self, "interpolate mesh").addToLayout() as self.group:
+
                 with QtShortCuts.QVBoxLayout():
 
                     with QtShortCuts.QHBoxLayout() as layout2:
                         self.input_reference = QtShortCuts.QInputChoice(None, "reference stack", "first",
-                                                                        ["first", "median", "last"])
+                                                                        ["first", "median", "last",  "next"])
                         self.input_reference.setEnabled(False)
                         self.input_element_size = QtShortCuts.QInputNumber(None, "mesh elem. size", 7, unit="μm")
                         #with QtShortCuts.QHBoxLayout() as layout2:
@@ -73,6 +74,7 @@ class MeshCreator(PipelineModule):
                         self.input_mesh_size_z = QtShortCuts.QInputNumber(None, "z", 200, step=1, name_post="μm")
                         #self.input_mesh_size_label = QtWidgets.QLabel("μm").addToLayout()
                     self.valueChanged()
+
 
                     self.input_button = QtWidgets.QPushButton("interpolate mesh").addToLayout()
                     self.input_button.clicked.connect(self.start_process)
@@ -144,8 +146,32 @@ class MeshCreator(PipelineModule):
             self.plotter.interactor.setToolTip("")
 
     def process(self, result: Result, params: dict):
+        
+        # make sure the solver list exists and has the required length
+        if result.solver is None or len(result.solver) != len(result.mesh_piv):
+            result.solver = [None]*len(result.mesh_piv)
+        
+        # correct for the reference state
+        displacement_list = saenopy.substract_reference_state(result.mesh_piv, params["reference_stack"])
+        
+        # set the parameters
+        result.interpolate_parameter = params
+        # iterate over all stack pairs
+        for i in range(len(result.mesh_piv)):
+            # and create the interpolated solver mesh
+            result.solver[i] = saenopy.interpolate_mesh(result.mesh_piv[i], displacement_list[i], params)
+        # save the meshes
+        result.save()
+            
+        return
         solvers = []
         mode = self.input_reference.value()
+        
+        if params["mesh_size_same"]:
+            x, y, z = (result.mesh_piv[0].R.max(axis=0) - result.mesh_piv[0].R.min(axis=0))*1e6
+            params["mesh_size_x"] = x
+            params["mesh_size_y"] = y
+            params["mesh_size_z"] = z
 
         U = [M.getNodeVar("U_measured") for M in result.mesh_piv]
         # correct for the median position
@@ -157,6 +183,8 @@ class MeshCreator(PipelineModule):
                 xpos2 -= np.nanmedian(xpos2, axis=0)  # aktuelle abweichung von
             elif mode == "last":
                 xpos2 -= xpos2[-1]
+            elif mode == "next":
+                xpos2 = U
         else:
             xpos2 = U
         for i in range(len(result.mesh_piv)):
