@@ -1776,6 +1776,7 @@ class Result(Saveable):
     state: False
 
     stack: List[Stack] = None
+    stack_parameter: dict = None
 
     piv_parameter: dict = None
     mesh_piv: List[Mesh] = None
@@ -1790,6 +1791,7 @@ class Result(Saveable):
         self.stack = stack
         if stack == None:
             self.stack = []
+        self.stack_parameter = dict(z_project_name=None, z_project_range=0)
 
         self.state = False
         self.time_delta = time_delta

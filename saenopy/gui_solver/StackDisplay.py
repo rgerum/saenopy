@@ -33,6 +33,14 @@ class StackDisplay(PipelineModule):
                     with QtShortCuts.QHBoxLayout() as layout:
                         self.label1 = QtWidgets.QLabel("relaxed").addToLayout()
                         layout.addStretch()
+                        self.button_z_proj1 = QtShortCuts.QPushButton(None, "", connect=lambda: self.setZProj(0))
+                        self.button_z_proj1.setIcon(QtGui.QIcon(str(Path(__file__).parent.parent / "img" / "slice0.png")))
+                        self.button_z_proj2 = QtShortCuts.QPushButton(None, "", connect=lambda: self.setZProj(5))
+                        self.button_z_proj2.setIcon(
+                            QtGui.QIcon(str(Path(__file__).parent.parent / "img" / "slice1.png")))
+                        self.button_z_proj3 = QtShortCuts.QPushButton(None, "", connect=lambda: self.setZProj(10))
+                        self.button_z_proj3.setIcon(
+                            QtGui.QIcon(str(Path(__file__).parent.parent / "img" / "slice2.png")))
                         self.contrast_enhance = QtShortCuts.QInputBool(None, "contrast enhance", False,
                                                                        settings=self.parent.settings,
                                                                        settings_key="stack_contrast_enhance")
@@ -65,6 +73,15 @@ class StackDisplay(PipelineModule):
         self.view1.link(self.view2)
         self.current_tab_selected = True
         self.setParameterMapping(None, {})
+
+    def setZProj(self, value):
+        if self.result:
+            if value is 0:
+                self.result.stack_parameter["z_project_name"] = None
+            else:
+                self.result.stack_parameter["z_project_name"] = "maximum"
+            self.result.stack_parameter["z_project_range"] = value
+            self.z_slider_value_changed()
 
     def check_evaluated(self, result: Result) -> bool:
         return self.result is not None
@@ -110,7 +127,15 @@ class StackDisplay(PipelineModule):
                 self.views[i].setToolTip(
                     f"stack\n{self.result.stack[self.t_slider.value() + i].description(self.z_slider.value())}")
 
-                im = self.result.stack[self.t_slider.value() + i][:, :, self.z_slider.value()]
+                stack = self.result.stack[self.t_slider.value() + i]
+
+                if self.result.stack_parameter["z_project_name"] == "maximum":
+                    start = np.clip(self.z_slider.value()-self.result.stack_parameter["z_project_range"], 0, stack.shape[2])
+                    end = np.clip(self.z_slider.value()+self.result.stack_parameter["z_project_range"], 0, stack.shape[2])
+                    im = stack[:, :, start:end]
+                    im = np.max(im, axis=2)
+                else:
+                    im = self.result.stack[self.t_slider.value() + i][:, :, self.z_slider.value()]
                 if self.contrast_enhance.value():
                     im -= im.min()
                     im = (im.astype(np.float64) * 255 / im.max()).astype(np.uint8)

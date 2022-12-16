@@ -212,6 +212,8 @@ class Stack(Saveable):
         return self._shape
 
     def __getitem__(self, index) -> np.ndarray:
+        if isinstance(index[2], slice):
+            return np.array([self.__getitem__(tuple([index[0], index[1], i])) for i in range(index[2].start, index[2].stop, index[2].step if index[2].step is not None else 1)]).transpose(1, 2, 0)
         try:
             im = io.imread(self.images[index[2]])
         except (IndexError, IOError) as err:
