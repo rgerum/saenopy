@@ -24,8 +24,16 @@ from .QTimeSlider import QTimeSlider
 
 
 class StackDisplay(PipelineModule):
+    view_single = False
+    view_single_timer = None
+    view_single_switch = 0
+
     def __init__(self, parent: "BatchEvaluate", layout):
         super().__init__(parent, layout)
+
+        self.view_single_timer = QtCore.QTimer()
+        self.view_single_timer.timeout.connect(self.viewSingleTimer)
+        self.view_single_timer.setInterval(400)
 
         with self.parent.tabs.createTab("Stacks") as self.tab:
             with QtShortCuts.QHBoxLayout() as layout:
@@ -33,14 +41,28 @@ class StackDisplay(PipelineModule):
                     with QtShortCuts.QHBoxLayout() as layout:
                         self.label1 = QtWidgets.QLabel("relaxed").addToLayout()
                         layout.addStretch()
+                        self.button_display_single = QtShortCuts.QPushButton(None, "", connect=lambda: self.setSingle(False))
+                        self.button_display_single.setIcon(QtGui.QIcon(str(Path(__file__).parent.parent / "img" / "view_two.ico")))
+                        self.button_display_single.setToolTip("Parallel view of the two stacks")
+                        self.button_display_single1 = QtShortCuts.QPushButton(None, "", connect=lambda: self.setSingle(True))
+                        self.button_display_single1.setIcon(QtGui.QIcon(str(Path(__file__).parent.parent / "img" / "view_single.ico")))
+                        self.button_display_single1.setToolTip("View only one stack and alternate view between them")
+                        QtShortCuts.QVLine()
+
                         self.button_z_proj1 = QtShortCuts.QPushButton(None, "", connect=lambda: self.setZProj(0))
-                        self.button_z_proj1.setIcon(QtGui.QIcon(str(Path(__file__).parent.parent / "img" / "slice0.png")))
+                        self.button_z_proj1.setIcon(
+                            QtGui.QIcon(str(Path(__file__).parent.parent / "img" / "slice0.ico")))
+                        self.button_z_proj1.setToolTip("Show only the current z slice")
                         self.button_z_proj2 = QtShortCuts.QPushButton(None, "", connect=lambda: self.setZProj(5))
                         self.button_z_proj2.setIcon(
-                            QtGui.QIcon(str(Path(__file__).parent.parent / "img" / "slice1.png")))
+                            QtGui.QIcon(str(Path(__file__).parent.parent / "img" / "slice1.ico")))
+                        self.button_z_proj2.setToolTip("Show a maximum intensity projection over +-5 z slices")
                         self.button_z_proj3 = QtShortCuts.QPushButton(None, "", connect=lambda: self.setZProj(10))
                         self.button_z_proj3.setIcon(
-                            QtGui.QIcon(str(Path(__file__).parent.parent / "img" / "slice2.png")))
+                            QtGui.QIcon(str(Path(__file__).parent.parent / "img" / "slice2.ico")))
+                        self.button_z_proj3.setToolTip("Show a maximum intensity projection over +-10 z slices")
+                        QtShortCuts.QVLine()
+
                         self.contrast_enhance = QtShortCuts.QInputBool(None, "contrast enhance", False,
                                                                        settings=self.parent.settings,
                                                                        settings_key="stack_contrast_enhance")
@@ -83,11 +105,27 @@ class StackDisplay(PipelineModule):
             self.result.stack_parameter["z_project_range"] = value
             self.z_slider_value_changed()
 
+    def setSingle(self, use_single):
+        self.view_single = use_single
+        self.view2.setVisible(not self.view_single)
+        self.label1.setVisible(not self.view_single)
+        self.label2.setVisible(not self.view_single)
+        if use_single:
+            self.view_single_timer.start()
+        else:
+            self.view_single_timer.stop()
+            self.view_single_switch = 0
+        self.update_display()
+
+    def viewSingleTimer(self):
+        self.view_single_switch = 1-self.view_single_switch
+        self.update_display()
+
     def check_evaluated(self, result: Result) -> bool:
         return self.result is not None
 
     def check_available(self, result: Result) -> bool:
-        if result is not None and result.stack is not None and len(result.stack)>0:
+        if result is not None and result.stack is not None and len(result.stack) > 0:
             return True
         return False
 
@@ -123,11 +161,11 @@ class StackDisplay(PipelineModule):
 
     def z_slider_value_changed(self):
         if self.result is not None:
-            for i in range(2):
-                self.views[i].setToolTip(
-                    f"stack\n{self.result.stack[self.t_slider.value() + i].description(self.z_slider.value())}")
+            for i in range(2 - self.view_single):
+                stack = self.result.stack[self.t_slider.value() + i + self.view_single_switch]
 
-                stack = self.result.stack[self.t_slider.value() + i]
+                self.views[i].setToolTip(
+                    f"stack\n{stack.description(self.z_slider.value())}")
 
                 if self.result.stack_parameter["z_project_name"] == "maximum":
                     start = np.clip(self.z_slider.value()-self.result.stack_parameter["z_project_range"], 0, stack.shape[2])
@@ -135,7 +173,7 @@ class StackDisplay(PipelineModule):
                     im = stack[:, :, start:end]
                     im = np.max(im, axis=2)
                 else:
-                    im = self.result.stack[self.t_slider.value() + i][:, :, self.z_slider.value()]
+                    im = stack[:, :, self.z_slider.value()]
                 if self.contrast_enhance.value():
                     im -= im.min()
                     im = (im.astype(np.float64) * 255 / im.max()).astype(np.uint8)

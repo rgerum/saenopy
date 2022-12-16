@@ -597,6 +597,18 @@ class QHBoxLayout(QtWidgets.QHBoxLayout, EnterableLayout):
             self.setContentsMargins(0, 0, 0, 0)
 
 
+def QVLine(layout=None):
+    line = QtWidgets.QFrame()
+    line.setFrameShape(QtWidgets.QFrame.VLine)
+    line.setFrameShadow(QtWidgets.QFrame.Sunken)
+
+    if current_layout is not None:
+        current_layout.addWidget(line)
+    else:
+        layout.addWidget(line)
+    return line
+
+
 class QSplitter(QtWidgets.QSplitter, EnterableLayout):
     def __init__(self, *args):
         super().__init__(*args)
