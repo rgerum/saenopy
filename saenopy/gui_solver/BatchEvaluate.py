@@ -115,6 +115,16 @@ class BatchEvaluate(QtWidgets.QWidget):
         self.thread = None
         self.signal_task_finished.connect(self.run_finished)
 
+        for arg in sys.argv:
+            if arg.endswith(".npz"):
+                if "*" in arg:
+                    for url in glob.glob(arg, recursive=True):
+                        data = Result.load(url)
+                        self.list.addData(data.output, True, data, mpl.colors.to_hex(f"gray"))
+                else:
+                    data = Result.load(arg)
+                    self.list.addData(data.output, True, data, mpl.colors.to_hex(f"gray"))
+
     def progress(self, tup):
         n, total = tup
         self.progressbar.setMaximum(total)
