@@ -302,9 +302,11 @@ class ListWidget(QtWidgets.QListWidget):
     itemSelectionChanged2 = QtCore.Signal()
     itemChanged2 = QtCore.Signal()
     addItemClicked = QtCore.Signal()
+    signal_act_copy_clicked = QtCore.Signal()
+    signal_act_paste_clicked = QtCore.Signal()
 
     data = []
-    def __init__(self, layout, editable=False, add_item_button=False, color_picker=False):
+    def __init__(self, layout, editable=False, add_item_button=False, color_picker=False, copy_params=False, allow_paste_callback=None):
         super().__init__()
         layout.addWidget(self)
         self.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
@@ -318,6 +320,13 @@ class ListWidget(QtWidgets.QListWidget):
         if color_picker is True:
             self.act_color = QtWidgets.QAction(qta.icon("fa5s.paint-brush"), "Change Color", self)
             self.act_color.triggered.connect(self.change_color)
+        self.act_copy = None
+        if copy_params is True:
+            self.act_copy = QtWidgets.QAction(qta.icon("fa5.copy"), "Copy Parameters", self)
+            self.act_copy.triggered.connect(self.signal_act_copy_clicked)
+            self.act_paste = QtWidgets.QAction(qta.icon("fa5s.paste"), "Paste Parameters", self)
+            self.act_paste.triggered.connect(self.signal_act_paste_clicked)
+            self.allow_paste_callback = allow_paste_callback
 
         self.setDragDropMode(QtWidgets.QAbstractItemView.InternalMove)
 
@@ -373,6 +382,10 @@ class ListWidget(QtWidgets.QListWidget):
 
             if self.act_color is not None:
                 menu.addAction(self.act_color)
+            if self.act_copy is not None:
+                menu.addAction(self.act_copy)
+                self.act_paste.setDisabled(not self.allow_paste_callback())
+                menu.addAction(self.act_paste)
 
             menu.addAction(self.act_delete)
 

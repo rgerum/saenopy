@@ -1,3 +1,4 @@
+import json
 import sys
 import os
 import qtawesome as qta
@@ -62,8 +63,10 @@ class BatchEvaluate(QtWidgets.QWidget):
             with QtShortCuts.QSplitter() as lay:
                 with QtShortCuts.QVBoxLayout() as layout:
                     layout.setContentsMargins(0, 0, 0, 0)
-                    self.list = ListWidget(layout, add_item_button="add measurements")
+                    self.list = ListWidget(layout, add_item_button="add measurements", copy_params=True, allow_paste_callback=self.allow_paste)
                     self.list.addItemClicked.connect(self.show_files)
+                    self.list.signal_act_copy_clicked.connect(self.copy_params)
+                    self.list.signal_act_paste_clicked.connect(self.paste_params)
                     self.list.itemSelectionChanged.connect(self.listSelected)
                     self.progressbar = QProgressBar().addToLayout()
                 #           self.label = QtWidgets.QLabel(
@@ -124,6 +127,50 @@ class BatchEvaluate(QtWidgets.QWidget):
                 else:
                     data = Result.load(arg)
                     self.list.addData(data.output, True, data, mpl.colors.to_hex(f"gray"))
+
+    def copy_params(self):
+        result = self.list.data[self.list.currentRow()][2]
+        params = {
+            "piv_parameter": result.piv_parameter_tmp,
+            "interpolate_parameter": result.interpolate_parameter_tmp,
+            "solve_parameter": result.solve_parameter_tmp,
+        }
+        print(params)
+        for group in params:
+            if params[group] is None:
+                continue
+            for g in params[group]:
+                if type(params[group][g]) == np.bool_:
+                    params[group][g] = bool(params[group][g])
+        text = json.dumps(params, indent=2)
+        cb = QtGui.QGuiApplication.clipboard()
+        cb.setText(text, mode=cb.Clipboard)
+
+    def allow_paste(self):
+        cb = QtGui.QGuiApplication.clipboard()
+        text = cb.text(mode=cb.Clipboard)
+        try:
+            data = json.loads(text)
+            if "piv_parameter" in data and \
+                "interpolate_parameter" in data and \
+                "solve_parameter" in data:
+                return True
+        except ValueError:
+            return False
+        return False
+
+    def paste_params(self):
+        cb = QtGui.QGuiApplication.clipboard()
+        text = cb.text(mode=cb.Clipboard)
+        try:
+            data = json.loads(text)
+        except ValueError:
+            return False
+        result = self.list.data[self.list.currentRow()][2]
+        params = ["piv_parameter", "interpolate_parameter", "solve_parameter"]
+        for par in params:
+            setattr(result, par+"_tmp", data[par])
+        self.set_current_result.emit(result)
 
     def progress(self, tup):
         n, total = tup

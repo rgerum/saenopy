@@ -33,8 +33,6 @@ class PipelineModule(QtWidgets.QWidget):
 
         self.processing_progress.connect(self.parent.progress)
 
-
-
     def setParameterMapping(self, params_name: str = None, parameter_dict: dict=None):
         self.params_name = params_name
         self.parameter_dict = parameter_dict
