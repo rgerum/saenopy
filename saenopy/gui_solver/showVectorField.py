@@ -1,3 +1,4 @@
+import imageio
 import numpy as np
 import pyvista as pv
 from pyvistaqt import QtInteractor
@@ -6,7 +7,7 @@ import numpy as np
 
 
 def showVectorField(plotter: QtInteractor, obj: Solver, field: np.ndarray, name: str, center=None, show_nan=True,
-                    show_all_points=False, factor=.1, scalebar_max=None):
+                    show_all_points=False, factor=.1, scalebar_max=None, display_image=None):
     # force rendering to be disabled while updating content to prevent flickering
     render = plotter.render
     plotter.render = lambda *args: None
@@ -84,6 +85,26 @@ def showVectorField(plotter: QtInteractor, obj: Solver, field: np.ndarray, name:
         # plot center points if desired
         if center is not None:
             plotter.center_actor = plotter.add_points(np.array([center]), color='m', point_size=10, render=False)
+
+        if getattr(plotter, "_image_mesh", None) is not None:
+            plotter.remove_actor(plotter._image_mesh, render=False)
+        if display_image is not None:
+            img, voxel_size, z_pos = display_image
+            xmin = (-img.shape[1]/2)*voxel_size[0]*1e-6
+            ymin = (-img.shape[0]/2)*voxel_size[1]*1e-6
+            x = np.linspace(xmin, -xmin, 10)
+            y = np.linspace(ymin, -ymin, 10)
+            x, y = np.meshgrid(x, y)
+            z = z_pos*voxel_size[2]*1e-6+0*x
+
+            curvsurf = pv.StructuredGrid(x, y, z)
+
+            # Map the curved surface to a plane - use best fitting plane
+            curvsurf.texture_map_to_plane(inplace=True)
+
+            tex = pv.numpy_to_texture(img)
+            mesh = plotter.add_mesh(curvsurf, texture=tex)
+            plotter._image_mesh = mesh
 
         xmin, ymin, zmin = obj.R.min(axis=0)
         xmax, ymax, zmax = obj.R.max(axis=0)

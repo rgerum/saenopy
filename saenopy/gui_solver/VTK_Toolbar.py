@@ -11,10 +11,11 @@ vtk_toolbars = []
 class VTK_Toolbar(QtWidgets.QWidget):
     theme_values = [pv.themes.DefaultTheme(), pv.themes.ParaViewTheme(),
                                                           pv.themes.DarkTheme(), pv.themes.DocumentTheme()]
-    def __init__(self, plotter, update_display, scalbar_type="deformation", center=False):
+    def __init__(self, plotter, update_display, scalbar_type="deformation", center=False, z_slider=None):
         super().__init__()
         self.plotter = plotter
         self.update_display = update_display
+        self.z_slider = z_slider
         vtk_toolbars.append(self)
 
         with QtShortCuts.QHBoxLayout(self) as layout0:
@@ -29,6 +30,12 @@ class VTK_Toolbar(QtWidgets.QWidget):
             self.scale_max.valueChanged.connect(self.scale_max_changed)
             self.use_nans = QtShortCuts.QInputBool(None, "nans", True, tooltip="Display nodes which do not have values associated as gray dots.")
             self.use_nans.valueChanged.connect(self.update_display)
+            self.show_image = QtShortCuts.QInputBool(None, "image", True,
+                                                   tooltip="Display the stack image.")
+            self.show_image.valueChanged.connect(self.update_display)
+            self.show_image2 = QtShortCuts.QInputBool(None, "bottom", True,
+                                                     tooltip="Display the stack image at the bottom.")
+            self.show_image2.valueChanged.connect(self.update_display)
 
             if center is True:
                 self.use_center = QtShortCuts.QInputBool(None, "center", True,

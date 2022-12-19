@@ -98,7 +98,7 @@ class StackDisplay(PipelineModule):
 
     def setZProj(self, value):
         if self.result:
-            if value is 0:
+            if value == 0:
                 self.result.stack_parameter["z_project_name"] = None
             else:
                 self.result.stack_parameter["z_project_name"] = "maximum"
@@ -119,7 +119,7 @@ class StackDisplay(PipelineModule):
 
     def viewSingleTimer(self):
         self.view_single_switch = 1-self.view_single_switch
-        self.update_display()
+        self.z_slider_value_changed()
 
     def check_evaluated(self, result: Result) -> bool:
         return self.result is not None
@@ -155,7 +155,11 @@ class StackDisplay(PipelineModule):
         if self.check_available(self.result):
             self.scale1.setScale(self.result.stack[0].voxel_size)
             self.scale2.setScale(self.result.stack[1].voxel_size)
-            self.z_slider.setRange(0, self.result.stack[0].shape[2] - 1)
+
+    def setResult(self, result: Result):
+        super().setResult(result)
+        if result and result.stack and result.stack[0]:
+            self.z_slider.setRange(0, result.stack[0].shape[2] - 1)
             self.z_slider.setValue(self.result.stack[0].shape[2] // 2)
             self.z_slider_value_changed()
 
@@ -175,10 +179,13 @@ class StackDisplay(PipelineModule):
                 else:
                     im = stack[:, :, self.z_slider.value()]
                 if self.contrast_enhance.value():
-                    im -= im.min()
-                    im = (im.astype(np.float64) * 255 / im.max()).astype(np.uint8)
+                    (min, max) = np.percentile(im, (1, 99))
+                    im = im.astype(np.float32)-min
+                    im = im.astype(np.float64) * 255 / (max-min)
+                    im = np.clip(im, 0, 255).astype(np.uint8)
                 self.pixmaps[i].setPixmap(QtGui.QPixmap(array2qimage(im)))
                 self.views[i].setExtend(im.shape[0], im.shape[0])
+                self.parent.display_image = (im, stack.voxel_size)
 
             self.z_slider.setToolTip(f"set z position\ncurrent position {self.z_slider.value()}")
 

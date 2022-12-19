@@ -1,4 +1,4 @@
-from qtpy import QtWidgets
+from qtpy import QtWidgets, QtCore
 import numpy as np
 from pyvistaqt import QtInteractor
 import inspect
@@ -55,12 +55,16 @@ class DeformationDetector(PipelineModule):
                 self.label_tab = QtWidgets.QLabel(
                     "The deformations from the piv algorithm at every window where the crosscorrelation was evaluated.").addToLayout()
 
-                self.plotter = QtInteractor(self, auto_update=False)  # , theme=pv.themes.DocumentTheme())
-                self.tab.parent().plotter = self.plotter
-                self.plotter.set_background("black")
-                layout.addWidget(self.plotter.interactor)
+                with QtShortCuts.QHBoxLayout() as layout:
+                    self.plotter = QtInteractor(self, auto_update=False)  # , theme=pv.themes.DocumentTheme())
+                    self.tab.parent().plotter = self.plotter
+                    self.plotter.set_background("black")
+                    layout.addWidget(self.plotter.interactor)
 
-                self.vtk_toolbar = VTK_Toolbar(self.plotter, self.update_display, "deformation").addToLayout()
+                    self.z_slider = QTimeSlider("z", self.z_slider_value_changed, "set z position",
+                                                QtCore.Qt.Vertical).addToLayout()
+
+                self.vtk_toolbar = VTK_Toolbar(self.plotter, self.update_display, "deformation", z_slider=self.z_slider).addToLayout()
 
                 self.t_slider = QTimeSlider(connected=self.update_display).addToLayout()
                 self.tab.parent().t_slider = self.t_slider
@@ -73,11 +77,19 @@ class DeformationDetector(PipelineModule):
             "drift_correction": self.input_driftcorrection,
         })
 
+    def z_slider_value_changed(self):
+        self.update_display()
+
     def check_available(self, result: Result) -> bool:
         return result is not None and result.stack is not None and len(result.stack)
 
     def check_evaluated(self, result: Result) -> bool:
         return self.result is not None and self.result.mesh_piv is not None and self.result.mesh_piv[0] is not None
+
+    def setResult(self, result: Result):
+        super().setResult(result)
+        if result and result.stack and result.stack[0]:
+            self.z_slider.setRange(0, result.stack[0].shape[2] - 1)
 
     def update_display(self, *, plotter=None):
         if plotter is None:
@@ -95,8 +107,31 @@ class DeformationDetector(PipelineModule):
             return
 
         if M.hasNodeVar("U_measured"):
+            image = self.vtk_toolbar.show_image.value()
+            if image:
+                stack = self.result.stack[self.t_slider.value()+1]
+                im = stack[:, :, self.z_slider.value()]
+                if self.result.stack_parameter["z_project_name"] == "maximum":
+                    start = np.clip(self.z_slider.value() - self.result.stack_parameter["z_project_range"], 0,
+                                    stack.shape[2])
+                    end = np.clip(self.z_slider.value() + self.result.stack_parameter["z_project_range"], 0, stack.shape[2])
+                    im = stack[:, :, start:end]
+                    im = np.max(im, axis=2)
+                else:
+                    (min, max) = np.percentile(im, (1, 99))
+                    im = im.astype(np.float32) - min
+                    im = im.astype(np.float64) * 255 / (max - min)
+                    im = np.clip(im, 0, 255).astype(np.uint8)
+
+                display_image = [im, stack.voxel_size, self.z_slider.value()-stack.shape[2]/2]
+                if self.vtk_toolbar.show_image2.value():
+                    display_image[2] = -stack.shape[2]/2
+            else:
+                display_image = None
+
             showVectorField(plotter, M, M.getNodeVar("U_measured"), "U_measured",
-                            scalebar_max=self.vtk_toolbar.getScaleMax(), show_nan=self.vtk_toolbar.use_nans.value())
+                            scalebar_max=self.vtk_toolbar.getScaleMax(), show_nan=self.vtk_toolbar.use_nans.value(),
+                            display_image=display_image)
 
         if cam_pos is not None:
             plotter.camera_position = cam_pos
