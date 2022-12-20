@@ -268,24 +268,56 @@ class QInputString(QInput):
 
 
 class QInputBool(QInput):
+    button = None
+    my_value = None
+    icon = None
 
-    def __init__(self, layout=None, name=None, value=False, **kwargs):
+    def __init__(self, layout=None, name=None, value=False, icon=None, **kwargs):
         # initialize the super widget
         QInput.__init__(self, layout, name, **kwargs)
 
         if self.settings is not None:
             value = self.settings.value(self.settings_key, value) == "true"
 
-        self.checkbox = QtWidgets.QCheckBox()
-        self.layout().addWidget(self.checkbox)
-        self.checkbox.stateChanged.connect(lambda: self._valueChangedEvent(self.value()))
+        if icon is not None:
+            self.icon = icon
+            self.button = QtWidgets.QPushButton()
+            if isinstance(icon, list):
+                self.button.setIcon(icon[0])
+            else:
+                self.button.setIcon(icon)
+            self.button.setCheckable(True)
+            self.layout().addWidget(self.button)
+            if isinstance(icon, list) and len(icon) > 2:
+                self.button.clicked.connect(self.button_clicked)
+            else:
+                self.button.clicked.connect(lambda: self._valueChangedEvent(self.value()))
+        else:
+            self.checkbox = QtWidgets.QCheckBox()
+            self.layout().addWidget(self.checkbox)
+            self.checkbox.stateChanged.connect(lambda: self._valueChangedEvent(self.value()))
 
         self.setValue(value)
 
+    def button_clicked(self):
+        self.my_value = (self.my_value + 1) % len(self.icon)
+        self._doSetValue(self.my_value)
+        self._valueChangedEvent(self.my_value)
+
     def _doSetValue(self, value):
-        self.checkbox.setChecked(bool(value))
+        self.my_value = value
+        if self.button is not None:
+            self.button.setChecked(bool(value))
+            if isinstance(self.icon, list):
+                self.button.setIcon(self.icon[value])
+        else:
+            self.checkbox.setChecked(bool(value))
 
     def value(self):
+        if isinstance(self.icon, list) and len(self.icon) > 2:
+            return self.my_value
+        if self.button is not None:
+            return self.button.isChecked()
         return self.checkbox.isChecked()
 
 

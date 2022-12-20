@@ -7,7 +7,7 @@ import numpy as np
 
 
 def showVectorField(plotter: QtInteractor, obj: Solver, field: np.ndarray, name: str, center=None, show_nan=True,
-                    show_all_points=False, factor=.1, scalebar_max=None, display_image=None):
+                    show_all_points=False, factor=.1, scalebar_max=None, display_image=None, show_grid=True):
     # force rendering to be disabled while updating content to prevent flickering
     render = plotter.render
     plotter.render = lambda *args: None
@@ -37,6 +37,7 @@ def showVectorField(plotter: QtInteractor, obj: Solver, field: np.ndarray, name:
             plotter.remove_actor(plotter.center_actor, render=False)
 
         plotter.renderer.remove_bounds_axes()
+        plotter.renderer.remove_bounding_box()
 
         # scalebar scaling factor
         norm_stack_size = np.abs(np.max(obj.R) - np.min(obj.R))
@@ -108,7 +109,14 @@ def showVectorField(plotter: QtInteractor, obj: Solver, field: np.ndarray, name:
 
         xmin, ymin, zmin = obj.R.min(axis=0)
         xmax, ymax, zmax = obj.R.max(axis=0)
-        plotter.show_grid(bounds=[xmin, xmax, ymin, ymax, zmin, zmax], color=plotter._theme.font.color, render=False)
+        plotter.remove_bounds_axes()
+
+        if show_grid == 2:
+            plotter.show_bounds(bounds=[xmin, xmax, ymin, ymax, zmin, zmax], grid='front', location='outer', all_edges=True,
+                                show_xlabels=False, show_ylabels=False, show_zlabels=False,
+                                xlabel=" ", ylabel=" ", zlabel=" ", render=False)
+        elif show_grid:
+            plotter.show_grid(bounds=[xmin, xmax, ymin, ymax, zmin, zmax], color=plotter._theme.font.color, render=False)
     finally:
         plotter.render = render
         plotter.render()

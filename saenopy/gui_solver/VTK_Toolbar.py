@@ -1,6 +1,7 @@
 import os
+from pathlib import Path
 import qtawesome as qta
-from qtpy import QtWidgets
+from qtpy import QtWidgets, QtGui
 import pyvista as pv
 from pyvistaqt import QtInteractor
 from saenopy.gui import QtShortCuts
@@ -30,12 +31,21 @@ class VTK_Toolbar(QtWidgets.QWidget):
             self.scale_max.valueChanged.connect(self.scale_max_changed)
             self.use_nans = QtShortCuts.QInputBool(None, "nans", True, tooltip="Display nodes which do not have values associated as gray dots.")
             self.use_nans.valueChanged.connect(self.update_display)
-            self.show_image = QtShortCuts.QInputBool(None, "image", True,
-                                                   tooltip="Display the stack image.")
+            self.show_grid = QtShortCuts.QInputBool(None, "", True,
+                                                     tooltip="Display a grid or a bounding box.", icon=[
+                    QtGui.QIcon(str(Path(__file__).parent.parent / "img" / "grid.ico")),
+                    QtGui.QIcon(str(Path(__file__).parent.parent / "img" / "grid2.ico")),
+                    QtGui.QIcon(str(Path(__file__).parent.parent / "img" / "grid3.ico")),
+                ])
+            self.show_grid.valueChanged.connect(self.update_display)
+
+
+            self.show_image = QtShortCuts.QInputBool(None, "", True,
+                                                   tooltip="Display the stack image in the stack or at the bottom.", icon=[
+                    QtGui.QIcon(str(Path(__file__).parent.parent / "img" / "show_image3.ico")),
+                    QtGui.QIcon(str(Path(__file__).parent.parent / "img" / "show_image.ico")),
+                    QtGui.QIcon(str(Path(__file__).parent.parent / "img" / "show_image2.ico"))])
             self.show_image.valueChanged.connect(self.update_display)
-            self.show_image2 = QtShortCuts.QInputBool(None, "bottom", True,
-                                                     tooltip="Display the stack image at the bottom.")
-            self.show_image2.valueChanged.connect(self.update_display)
 
             if center is True:
                 self.use_center = QtShortCuts.QInputBool(None, "center", True,

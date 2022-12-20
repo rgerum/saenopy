@@ -90,6 +90,7 @@ class DeformationDetector(PipelineModule):
         super().setResult(result)
         if result and result.stack and result.stack[0]:
             self.z_slider.setRange(0, result.stack[0].shape[2] - 1)
+            self.z_slider.setValue(self.result.stack[0].shape[2] // 2)
 
     def update_display(self, *, plotter=None):
         if plotter is None:
@@ -124,14 +125,14 @@ class DeformationDetector(PipelineModule):
                     im = np.clip(im, 0, 255).astype(np.uint8)
 
                 display_image = [im, stack.voxel_size, self.z_slider.value()-stack.shape[2]/2]
-                if self.vtk_toolbar.show_image2.value():
+                if self.vtk_toolbar.show_image.value() == 2:
                     display_image[2] = -stack.shape[2]/2
             else:
                 display_image = None
 
             showVectorField(plotter, M, M.getNodeVar("U_measured"), "U_measured",
                             scalebar_max=self.vtk_toolbar.getScaleMax(), show_nan=self.vtk_toolbar.use_nans.value(),
-                            display_image=display_image)
+                            display_image=display_image, show_grid=self.vtk_toolbar.show_grid.value())
 
         if cam_pos is not None:
             plotter.camera_position = cam_pos
