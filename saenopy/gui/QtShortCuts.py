@@ -90,7 +90,7 @@ class QInput(QtWidgets.QWidget):
             self.label = QtWidgets.QLabel(name)
             self.layout().addWidget(self.label)
 
-        if tooltip is not None:
+        if tooltip is not None and not isinstance(tooltip, list):
             self.setToolTip(tooltip)
 
         if value_changed is not None:
@@ -271,15 +271,30 @@ class QInputBool(QInput):
     button = None
     my_value = None
     icon = None
+    buttons = None
 
-    def __init__(self, layout=None, name=None, value=False, icon=None, **kwargs):
+    def __init__(self, layout=None, name=None, value=False, icon=None, group=False, **kwargs):
         # initialize the super widget
         QInput.__init__(self, layout, name, **kwargs)
 
         if self.settings is not None:
             value = self.settings.value(self.settings_key, value) == "true"
 
-        if icon is not None:
+        if group is True and isinstance(icon, list):
+            self.button_group = QtWidgets.QButtonGroup()
+            self.icon = icon
+            self.buttons = []
+            for button_icon in icon:
+                button = QtWidgets.QPushButton()
+                button.setIcon(button_icon)
+                button.setCheckable(True)
+                if kwargs["tooltip"] and isinstance(kwargs["tooltip"], list):
+                    button.setToolTip(kwargs["tooltip"][len(self.buttons)])
+                self.layout().addWidget(button)
+                #self.button_group.addButton(button)
+                self.buttons.append(button)
+                button.clicked.connect(lambda _, index=len(self.buttons): self.button_group_clicked(index-1))
+        elif icon is not None:
             self.icon = icon
             self.button = QtWidgets.QPushButton()
             if isinstance(icon, list):
@@ -299,6 +314,13 @@ class QInputBool(QInput):
 
         self.setValue(value)
 
+    def button_group_clicked(self, index):
+        if self.no_signal:
+            return
+        self.my_value = index
+        #self._doSetValue(self.my_value)
+        self._valueChangedEvent(self.my_value)
+
     def button_clicked(self):
         self.my_value = (self.my_value + 1) % len(self.icon)
         self._doSetValue(self.my_value)
@@ -310,11 +332,17 @@ class QInputBool(QInput):
             self.button.setChecked(bool(value))
             if isinstance(self.icon, list):
                 self.button.setIcon(self.icon[value])
+        elif self.buttons is not None:
+            self.no_signal = True
+            for button in self.buttons:
+                button.setChecked(False)
+            self.buttons[value].setChecked(True)
+            self.no_signal = False
         else:
             self.checkbox.setChecked(bool(value))
 
     def value(self):
-        if isinstance(self.icon, list) and len(self.icon) > 2:
+        if isinstance(self.icon, list) and (len(self.icon) > 2 or self.buttons):
             return self.my_value
         if self.button is not None:
             return self.button.isChecked()

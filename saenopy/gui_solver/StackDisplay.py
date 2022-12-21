@@ -41,26 +41,22 @@ class StackDisplay(PipelineModule):
                     with QtShortCuts.QHBoxLayout() as layout:
                         self.label1 = QtWidgets.QLabel("relaxed").addToLayout()
                         layout.addStretch()
-                        self.button_display_single = QtShortCuts.QPushButton(None, "", connect=lambda: self.setSingle(False))
-                        self.button_display_single.setIcon(QtGui.QIcon(str(Path(__file__).parent.parent / "img" / "view_two.ico")))
-                        self.button_display_single.setToolTip("Parallel view of the two stacks")
-                        self.button_display_single1 = QtShortCuts.QPushButton(None, "", connect=lambda: self.setSingle(True))
-                        self.button_display_single1.setIcon(QtGui.QIcon(str(Path(__file__).parent.parent / "img" / "view_single.ico")))
-                        self.button_display_single1.setToolTip("View only one stack and alternate view between them")
+
+                        self.button_display_single = QtShortCuts.QInputBool(None, "", icon=[
+                            QtGui.QIcon(str(Path(__file__).parent.parent / "img" / "view_two.ico")),
+                            QtGui.QIcon(str(Path(__file__).parent.parent / "img" / "view_single.ico")),
+                        ], group=True, tooltip=["Parallel view of the two stacks", "View only one stack and alternate view between them"])
+                        self.button_display_single.valueChanged.connect(self.setSingle)
                         QtShortCuts.QVLine()
 
-                        self.button_z_proj1 = QtShortCuts.QPushButton(None, "", connect=lambda: self.setZProj(0))
-                        self.button_z_proj1.setIcon(
-                            QtGui.QIcon(str(Path(__file__).parent.parent / "img" / "slice0.ico")))
-                        self.button_z_proj1.setToolTip("Show only the current z slice")
-                        self.button_z_proj2 = QtShortCuts.QPushButton(None, "", connect=lambda: self.setZProj(5))
-                        self.button_z_proj2.setIcon(
-                            QtGui.QIcon(str(Path(__file__).parent.parent / "img" / "slice1.ico")))
-                        self.button_z_proj2.setToolTip("Show a maximum intensity projection over +-5 z slices")
-                        self.button_z_proj3 = QtShortCuts.QPushButton(None, "", connect=lambda: self.setZProj(10))
-                        self.button_z_proj3.setIcon(
-                            QtGui.QIcon(str(Path(__file__).parent.parent / "img" / "slice2.ico")))
-                        self.button_z_proj3.setToolTip("Show a maximum intensity projection over +-10 z slices")
+                        self.button_z_proj = QtShortCuts.QInputBool(None, "", icon=[
+                            QtGui.QIcon(str(Path(__file__).parent.parent / "img" / "slice0.ico")),
+                            QtGui.QIcon(str(Path(__file__).parent.parent / "img" / "slice1.ico")),
+                            QtGui.QIcon(str(Path(__file__).parent.parent / "img" / "slice2.ico")),
+                        ], group=True, tooltip=["Show only the current z slice",
+                                                "Show a maximum intensity projection over +-5 z slices",
+                                                "Show a maximum intensity projection over +-10 z slices"])
+                        self.button_z_proj.valueChanged.connect(lambda value: self.setZProj([0, 5, 10][value]))
                         QtShortCuts.QVLine()
 
                         self.contrast_enhance = QtShortCuts.QInputBool(None, "contrast enhance", False,
