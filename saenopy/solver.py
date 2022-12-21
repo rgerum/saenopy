@@ -1941,6 +1941,8 @@ def substract_reference_state(mesh_piv, mode):
             xpos2 -= np.nanmedian(xpos2, axis=0)  # aktuelle abweichung von
         elif mode == "last":
             xpos2 -= xpos2[-1]
+        elif mode == "next":
+            xpos2 = U
     else:
         xpos2 = U
     return xpos2
@@ -1949,6 +1951,13 @@ def substract_reference_state(mesh_piv, mode):
 def interpolate_mesh(M, xpos2, params):
     import saenopy
     from saenopy.multigridHelper import getScaledMesh, getNodesWithOneFace
+    
+    if params["mesh_size_same"]:
+        x, y, z = (M.R.max(axis=0) - M.R.min(axis=0))*1e6
+        params["mesh_size_x"] = x
+        params["mesh_size_y"] = y
+        params["mesh_size_z"] = z
+        
     points, cells = saenopy.multigridHelper.getScaledMesh(params["element_size"] * 1e-6,
                                                           params["inner_region"] * 1e-6,
                                                           np.array([params["mesh_size_x"], params["mesh_size_y"],
