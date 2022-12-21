@@ -300,8 +300,14 @@ class BatchEvaluate(QtWidgets.QWidget):
                                 self.button_addList2 = QtShortCuts.QPushButton(None, "cancel", self.reject)
                                 def accept():
                                     self.mode = "pair"
+                                    if self.stack_relaxed.active is None:
+                                        QtWidgets.QMessageBox.critical(self, "Deformation Detector", "Provide a stack for the relaxed state.")
+                                        return
                                     if not self.stack_relaxed.validator():
                                         QtWidgets.QMessageBox.critical(self, "Deformation Detector", "Enter a valid voxel size for the relaxed stack.")
+                                        return
+                                    if self.stack_deformed.active is None:
+                                        QtWidgets.QMessageBox.critical(self, "Deformation Detector", "Provide a stack for the deformed state.")
                                         return
                                     if not self.stack_deformed.validator():
                                         QtWidgets.QMessageBox.critical(self, "Deformation Detector", "Enter a valid voxel size for the deformed stack.")

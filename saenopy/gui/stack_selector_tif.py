@@ -164,16 +164,24 @@ class StackSelectorTif(QtWidgets.QWidget):
         filename = Path(filename)
         filenames = list(filename.parent.glob(re.sub("\d+", "*", filename.name)))
 
-        self.format_template = str(filename)
+        self.format_template = str(filename.parent) + "/" + re.sub("\d+", "*", filename.name)
 
-        # find data according to reglar expression pattern
-        regexpr = r"([^_\d]*)(\d+)"        
+        # find data according to regular expression pattern
+        regexpr = re.compile(r"([^_\d]*|[^_\d]+_)(\d+)")
 
-        selected_prop = {key: value for key, value in re.findall(regexpr, filename.name)}    
+        def filename_to_prop_dict(regexpr, filename):
+            properties = {}
+            for index, (key, value) in enumerate(regexpr.findall(filename.name)):
+                if key == "":
+                    key = f"Unnamed_{index}"
+                properties[key.strip("_")] = value
+            return properties
+
+        selected_prop = filename_to_prop_dict(regexpr, filename)
 
         properties = []
         for file in filenames:
-            prop = {key:value for key, value in re.findall(regexpr, file.name)}
+            prop = filename_to_prop_dict(regexpr, file)
             prop["filename"] = file
             properties.append(prop)
         df = pd.DataFrame(properties)
@@ -183,7 +191,7 @@ class StackSelectorTif(QtWidgets.QWidget):
 
         for key, value in selected_prop.items():
             if key in df.columns:
-                self.format_template = self.format_template.replace(key+value, key+"{"+key+"}")
+                self.format_template = self.format_template.replace("*", "{"+key+"}", 1)
 
         for prop in self.property_selectors:
             prop.setParent(None)
