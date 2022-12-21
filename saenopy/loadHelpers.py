@@ -26,7 +26,15 @@ class Saveable:
                 if getattr(attribute, "to_dict", None) is not None:
                     data[param] = getattr(attribute, "to_dict")()
                 elif isinstance(attribute, list) and len(attribute) and (getattr(attribute[0], "to_dict", None) is not None or attribute[0] is None):
-                    data[param] = [getattr(attr, "to_dict")() if getattr(attribute[0], "to_dict", None) else "__NONE__" if attr is None else attr for attr in attribute]
+                    my_list = []
+                    for attr in attribute:
+                        value = attr
+                        if getattr(attribute[0], "to_dict", None):
+                            value = getattr(attr, "to_dict")()
+                        if attr is None:
+                            value = "__NONE__"
+                        my_list.append(value)
+                    data[param] = my_list
                 elif attribute is None:
                     data[param] = "__NONE__"
                 else:
@@ -74,16 +82,22 @@ def flatten_dict(data):
         if isinstance(data, list):  # and not isinstance(data[0], (int, float)):
             result[prefix] = "list"
             for name, d in enumerate(data):
+                if d is None:
+                    d = "__NONE__"
                 print_content(d, f"{prefix}/{name}")
             return
         if isinstance(data, tuple):  # and not isinstance(data[0], (int, float)):
             result[prefix] = "tuple"
             for name, d in enumerate(data):
+                if d is None:
+                    d = "__NONE__"
                 print_content(d, f"{prefix}/{name}")
             return
         if isinstance(data, dict):  # and not isinstance(data[0], (int, float)):
             result[prefix] = "dict"
             for name, d in data.items():
+                if d is None:
+                    d = "__NONE__"
                 print_content(d, f"{prefix}/{name}")
             return
         result[prefix] = data
@@ -124,6 +138,8 @@ def unflatten_dict(data):
             except TypeError:
                 hierarchy[-2][int(names[-2])] = r + (item,)
         else:
+            if item == "__NONE__":
+                item = None
             r[names[-1]] = item
 
     return result
