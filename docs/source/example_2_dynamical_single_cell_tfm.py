@@ -29,7 +29,7 @@ for result in results:
     result.save()
 
 # define the parameters to generate the solver mesh and interpolate the piv mesh onto it
-params = {'reference_stack': 'first', 'element_size': 4.0, 'inner_region': 100.0, 'thinning_factor': 0.2, 'mesh_size_same': True, 'mesh_size_x': 200.0, 'mesh_size_y': 200.0, 'mesh_size_z': 200.0}
+params = {'reference_stack': 'median', 'element_size': 4.0, 'inner_region': 100.0, 'thinning_factor': 0, 'mesh_size_same': True, 'mesh_size_x': 200.0, 'mesh_size_y': 200.0, 'mesh_size_z': 200.0}
 
 # iterate over all the results objects
 for result in results:
