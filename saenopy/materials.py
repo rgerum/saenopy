@@ -125,7 +125,7 @@ class SemiAffineFiberMaterial(Material, Saveable):
         self.k = k
         self.d0 = d0 if d0 is not None and d0 >= 0 else None    
         # buckling None (constant stiffness) and buckling zero (drop in stiffness) is not the same 
-        if d0 is not None and self.d0 < 1e-30:  # approximate the zero case
+        if self.d0 is not None and self.d0 < 1e-30:  # approximate the zero case
             self.d0 = 1e-30
         self.lambda_s = lambda_s if lambda_s is not None and lambda_s >= 0 else None
         self.ds = ds if ds is not None and ds >= 0 else None
