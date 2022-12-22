@@ -103,7 +103,7 @@ def showVectorField(plotter: QtInteractor, obj: Solver, field: np.ndarray, name:
             # Map the curved surface to a plane - use best fitting plane
             curvsurf.texture_map_to_plane(inplace=True)
 
-            tex = pv.numpy_to_texture(img)
+            tex = pv.numpy_to_texture(img[:, ::-1])
             mesh = plotter.add_mesh(curvsurf, texture=tex)
             plotter._image_mesh = mesh
 
