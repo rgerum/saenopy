@@ -181,7 +181,7 @@ def getStack(filename):
     return stack
 
 class Stack(Saveable):
-    __save_parameters__ = ['filename', 'voxel_size', 'shape']
+    __save_parameters__ = ['filename', 'voxel_size', 'shape', 'channels']
     images: list = None
     input: str = ""
     _shape = None
@@ -194,7 +194,7 @@ class Stack(Saveable):
             self._shape = shape
         self.channels = channels
         if channels is not None:
-            self.filename = str(filename)
+            self.filename = filename
             self.images = natsort.natsorted(glob.glob(filename[0]))
             self.images_channels = []
             for filename_pattern in filename[1:]:
