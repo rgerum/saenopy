@@ -110,12 +110,15 @@ class StackSelectorTif(QtWidgets.QWidget):
         main_layout.addLayout(self.property_layout)
 
         self.z_prop = QtShortCuts.QInputChoice(main_layout, "property to use for z")
-        self.z_prop.valueChanged.connect(self.showImage)
+        self.z_prop.valueChanged.connect(self.propertiesChanged)
+
+        self.c_prop = QtShortCuts.QInputChoice(main_layout, "property to use for channel")
+        self.c_prop.valueChanged.connect(self.propertiesChanged)
 
         self.use_time = use_time
         if use_time is True:
             self.t_prop = QtShortCuts.QInputChoice(main_layout, "property to use for t")
-            self.t_prop.valueChanged.connect(self.showImage)
+            self.t_prop.valueChanged.connect(self.propertiesChanged)
 
         layout_voxel = QtWidgets.QHBoxLayout()
         main_layout.addLayout(layout_voxel)
@@ -224,6 +227,8 @@ class StackSelectorTif(QtWidgets.QWidget):
 
         self.z_prop.setValues(properties)
         self.z_prop.setValue(z_name)
+        self.c_prop.setValues(["None"]+properties)
+        self.c_prop.setValue("None")
         if self.use_time:
             self.t_prop.setValues(properties)
             self.t_prop.setValue(t_name)
@@ -234,8 +239,11 @@ class StackSelectorTif(QtWidgets.QWidget):
 
     def propertiesChanged(self):
         z_prop_name = self.z_prop.value()
+        c_prop_name = self.c_prop.value()
         d = self.df
         selected_props_dict = {z_prop_name: "{z}"}
+        if c_prop_name != "None":
+            selected_props_dict[c_prop_name] = "{c}"
         if self.use_time:
             t_prop_name = self.t_prop.value()
             selected_props_dict[t_prop_name] = "{t}"
@@ -246,6 +254,9 @@ class StackSelectorTif(QtWidgets.QWidget):
             else:
                 prop.setEnabled(True)
             d = d[d[prop.name] == prop.value()]
+            if c_prop_name == prop.name:
+                selected_props_dict[prop.name] = "{c:"+str(prop.value())+"}"
+                continue
             if prop.check.value() is True:
                 selected_props_dict[prop.name] = "*"
             else:

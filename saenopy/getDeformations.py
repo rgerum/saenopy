@@ -186,11 +186,20 @@ class Stack(Saveable):
     input: str = ""
     _shape = None
     voxel_size: tuple = None
+    channels: list = None
+    images_channels: list = None
 
-    def __init__(self, filename, voxel_size, shape=None):
+    def __init__(self, filename, voxel_size, shape=None, channels=None):
         if shape is not None:
             self._shape = shape
-        if isinstance(filename, str):
+        self.channels = channels
+        if channels is not None:
+            self.filename = str(filename)
+            self.images = natsort.natsorted(glob.glob(filename[0]))
+            self.images_channels = []
+            for filename_pattern in filename[1:]:
+                self.images_channels.append(natsort.natsorted(glob.glob(filename_pattern)))
+        elif isinstance(filename, str):
             self.filename = str(filename)
             self.images = natsort.natsorted(glob.glob(filename))
         else:
@@ -210,6 +219,11 @@ class Stack(Saveable):
             im = io.imread(self.images[0])
             self._shape = tuple(list(im.shape[:2]) + [len(self.images)])
         return self._shape
+
+    def get_image(self, z, channel):
+        if channel == 0:
+            return io.imread(self.images[z])
+        return io.imread(self.images_channels[channel-1][z])
 
     def __getitem__(self, index) -> np.ndarray:
         if isinstance(index[2], slice):

@@ -1843,23 +1843,57 @@ def load(filename: str) -> Solver:
     return Solver.load(filename)
 
 
+def get_channel_placeholder(filename):
+    match = re.match(r".*{c:([^}]*)}.*", filename)
+    if match:
+        filename = re.sub(r"{c:[^}]*}", "{c}", filename)
+        return filename, match.groups()[0]
+    return filename, None
 
+def get_channels(filename, z, c):
+    original_filename = filename
+    filename = filename.replace("{z}", z)
+    regex = re.compile(filename.replace("{c}", "(.*)"))
+    filenames = glob.glob(filename.replace("{c}", "*"))
+    channels = [c]
+    for file in filenames:
+        new_channel = regex.match(file).groups()[0]
+        if new_channel not in channels:
+            channels.append(new_channel)
+    filenames_new = []
+    for ch in channels:
+        filenames_new.append(original_filename.format(z="*", c=ch))
+    return list(channels), filenames_new
+
+import glob
+import re
 from pathlib import Path
 import os
 def get_stacks(filename, output_path, voxel_size, time_delta=None, exist_overwrite_callback=None):
     results = []
     if isinstance(filename, (list, tuple)):
+        filename[0], channel1 = get_channel_placeholder(filename[0])
         results1, output_base = format_glob(filename[0])
+
+        filename[1], channel2 = get_channel_placeholder(filename[1])
         results2, _ = format_glob(filename[1])
 
         for (r1, d1), (r2, d2) in zip(results1.groupby("template").max().iterrows(),
                                       results2.groupby("template").max().iterrows()):
             output = Path(output_path) / os.path.relpath(r1, output_base)
             output = output.parent / output.stem
-            output = Path(str(output).replace("*", "") + ".npz")
+            output = Path(str(output).replace("*", "").replace("{c}", "{c:"+str(channel1)+"}") + ".npz")
 
-            r1 = r1.format(z="*")
-            r2 = r2.format(z="*")
+            if channel1 is not None:
+                channels1, r1 = get_channels(r1, d1.z, channel1)
+            else:
+                channels1 = None
+                r1 = r1.format(z="*")
+            if channel2 is not None:
+                channels2, r2 = get_channels(r2, d2.z, channel2)
+            else:
+                channels2 = None
+                r2 = r2.format(z="*")
 
             if output.exists() and exist_overwrite_callback is not None:
                 mode = exist_overwrite_callback(output)
@@ -1873,7 +1907,7 @@ def get_stacks(filename, output_path, voxel_size, time_delta=None, exist_overwri
 
             data = Result(
                 output=output,
-                stack=[Stack(r1, voxel_size), Stack(r2, voxel_size)],
+                stack=[Stack(r1, voxel_size, channels=channels1), Stack(r2, voxel_size, channels=channels2)],
             )
             data.save()
             results.append(data)
