@@ -12,7 +12,7 @@ vtk_toolbars = []
 class VTK_Toolbar(QtWidgets.QWidget):
     theme_values = [pv.themes.DefaultTheme(), pv.themes.ParaViewTheme(),
                                                           pv.themes.DarkTheme(), pv.themes.DocumentTheme()]
-    def __init__(self, plotter, update_display, scalbar_type="deformation", center=False, z_slider=None):
+    def __init__(self, plotter, update_display, scalbar_type="deformation", center=False, z_slider=None, channels=None):
         super().__init__()
         self.plotter = plotter
         self.update_display = update_display
@@ -46,6 +46,9 @@ class VTK_Toolbar(QtWidgets.QWidget):
                     QtGui.QIcon(str(Path(__file__).parent.parent / "img" / "show_image.ico")),
                     QtGui.QIcon(str(Path(__file__).parent.parent / "img" / "show_image2.ico"))])
             self.show_image.valueChanged.connect(self.update_display)
+
+            self.channel_select = QtShortCuts.QInputChoice(None, "", 0, [0], [""])
+            self.channel_select.valueChanged.connect(self.update_display)
 
             if center is True:
                 self.use_center = QtShortCuts.QInputBool(None, "center", True,

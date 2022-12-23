@@ -226,10 +226,15 @@ class Stack(Saveable):
         return io.imread(self.images_channels[channel-1][z])
 
     def __getitem__(self, index) -> np.ndarray:
+        images = self.images
+        channel = 0
+        if len(index) == 4 and index[3] > 0 and self.images_channels is not None:
+            images = self.images_channels[index[3]-1]
+            channel = index[3]
         if isinstance(index[2], slice):
-            return np.array([self.__getitem__(tuple([index[0], index[1], i])) for i in range(index[2].start, index[2].stop, index[2].step if index[2].step is not None else 1)]).transpose(1, 2, 0)
+            return np.array([self.__getitem__(tuple([index[0], index[1], i, channel])) for i in range(index[2].start, index[2].stop, index[2].step if index[2].step is not None else 1)]).transpose(1, 2, 0)
         try:
-            im = io.imread(self.images[index[2]])
+            im = io.imread(images[index[2]])
         except (IndexError, IOError) as err:
             print("ERROR", err)
             im = np.zeros(self.shape[:2])

@@ -92,6 +92,13 @@ class DeformationDetector(PipelineModule):
             self.z_slider.setRange(0, result.stack[0].shape[2] - 1)
             self.z_slider.setValue(self.result.stack[0].shape[2] // 2)
 
+            if self.result.stack[0].channels:
+                self.vtk_toolbar.channel_select.setValues(np.arange(len(self.result.stack[0].channels)), self.result.stack[0].channels)
+                self.vtk_toolbar.channel_select.setVisible(True)
+            else:
+                self.vtk_toolbar.channel_select.setValue(0)
+                self.vtk_toolbar.channel_select.setVisible(False)
+
     def update_display(self, *, plotter=None):
         if plotter is None:
             plotter = self.plotter
@@ -99,24 +106,26 @@ class DeformationDetector(PipelineModule):
         if plotter.camera_position is not None and CamPos.cam_pos_initialized is True:
             cam_pos = self.plotter.camera_position
         CamPos.cam_pos_initialized = True
-        plotter.interactor.setToolTip(
-            str(self.result.piv_parameter) + f"\nNodes {self.result.mesh_piv[0].R.shape[0]}\nTets {self.result.mesh_piv[0].T.shape[0]}")
+        plotter.interactor.setToolTip("")
         M = self.result.mesh_piv[self.t_slider.value()]
 
         if M is None:
             plotter.show()
             return
 
+        plotter.interactor.setToolTip(
+            str(self.result.piv_parameter) + f"\nNodes {self.result.mesh_piv[0].R.shape[0]}\nTets {self.result.mesh_piv[0].T.shape[0]}")
+
         if M.hasNodeVar("U_measured"):
             image = self.vtk_toolbar.show_image.value()
             if image:
                 stack = self.result.stack[self.t_slider.value()+1]
-                im = stack[:, :, self.z_slider.value()]
+                im = stack[:, :, self.z_slider.value(), self.vtk_toolbar.channel_select.value()]
                 if self.result.stack_parameter["z_project_name"] == "maximum":
                     start = np.clip(self.z_slider.value() - self.result.stack_parameter["z_project_range"], 0,
                                     stack.shape[2])
                     end = np.clip(self.z_slider.value() + self.result.stack_parameter["z_project_range"], 0, stack.shape[2])
-                    im = stack[:, :, start:end]
+                    im = stack[:, :, start:end, self.vtk_toolbar.channel_select.value()]
                     im = np.max(im, axis=2)
                 else:
                     (min, max) = np.percentile(im, (1, 99))
