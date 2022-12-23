@@ -449,8 +449,8 @@ class BatchEvaluate(QtWidgets.QWidget):
             import appdirs
             if dialog.mode_data == 1:
                 results = get_stacks(
-                    [str(Path(appdirs.user_data_dir("saenopy", "rgerum")) / '1_ClassicSingleCellTFM/Relaxed/Mark_and_Find_001/Pos*_S001_z{z}_ch00.tif'),
-                     str(Path(appdirs.user_data_dir("saenopy", "rgerum")) / '1_ClassicSingleCellTFM/Deformed/Mark_and_Find_001/Pos*_S001_z{z}_ch00.tif'),
+                    [str(Path(appdirs.user_data_dir("saenopy", "rgerum")) / '1_ClassicSingleCellTFM/Relaxed/Mark_and_Find_001/Pos*_S001_z{z}_ch{c:00}.tif'),
+                     str(Path(appdirs.user_data_dir("saenopy", "rgerum")) / '1_ClassicSingleCellTFM/Deformed/Mark_and_Find_001/Pos*_S001_z{z}_ch{c:00}.tif'),
                      ],
                     output_path=str
                         (Path(appdirs.user_data_dir("saenopy", "rgerum")) / '1_ClassicSingleCellTFM/example_output'),
@@ -461,7 +461,7 @@ class BatchEvaluate(QtWidgets.QWidget):
                     self.list.addData(data.output, True, data, mpl.colors.to_hex(f"gray"))
             if dialog.mode_data == 2:
                 results = get_stacks(
-                    str(Path(appdirs.user_data_dir("saenopy", "rgerum")) / '2_DynamicalSingleCellTFM/data/Pos*_S001_t{t}_z{z}_ch00.tif'),
+                    str(Path(appdirs.user_data_dir("saenopy", "rgerum")) / '2_DynamicalSingleCellTFM/data/Pos*_S001_t{t}_z{z}_ch{c:00}.tif'),
                     output_path=str
                         (Path(appdirs.user_data_dir("saenopy", "rgerum")) / '2_DynamicalSingleCellTFM/example_output'),
                     voxel_size=[0.2407, 0.2407, 1.0071],
