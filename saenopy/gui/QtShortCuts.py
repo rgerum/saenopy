@@ -397,6 +397,8 @@ class QInputChoice(QInput):
         if self.reference_by_index is True:
             return self.combobox.currentIndex()
         else:
+            if self.values is None:
+                return None
             return self.values[self.combobox.currentIndex()]
 
 

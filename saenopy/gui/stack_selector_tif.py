@@ -188,13 +188,15 @@ class StackSelectorTif(QtWidgets.QWidget):
             prop["filename"] = file
             properties.append(prop)
         df = pd.DataFrame(properties)
-        for col in df.columns:
-            if len(df[col].unique()) == 1:
-                df.drop(col, inplace=True, axis=1)
 
         for key, value in selected_prop.items():
             if key in df.columns:
                 self.format_template = self.format_template.replace("*", "{"+key+"}", 1)
+
+        for col in df.columns:
+            if len(df[col].unique()) == 1:
+                self.format_template = self.format_template.replace("{" + col + "}", df[col].unique()[0], 1)
+                df.drop(col, inplace=True, axis=1)
 
         for prop in self.property_selectors:
             prop.setParent(None)
