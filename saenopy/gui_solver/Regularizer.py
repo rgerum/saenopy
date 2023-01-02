@@ -43,7 +43,7 @@ class Regularizer(PipelineModule):
 
                     with QtShortCuts.QGroupBox(None, "Regularisation Parameters") as self.material_parameters:
                         with QtShortCuts.QHBoxLayout(None) as layout:
-                            self.input_alpha = QtShortCuts.QInputString(None, "alpha", "9", type=float)
+                            self.input_alpha = QtShortCuts.QInputString(None, "alpha", "10", type=float)
                             self.input_stepper = QtShortCuts.QInputString(None, "stepper", "0.33", type=float)
                             self.input_imax = QtShortCuts.QInputNumber(None, "i_max", 100, float=False)
 
