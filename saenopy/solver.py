@@ -1375,6 +1375,7 @@ class Solver(Saveable):
         are located within at the borders (outer shell with width_outer).
         For Drift/Rotation we often find high forces here.
         """
+        f_org = self.f.copy()
         f = self.f
         R = self.R
         # exclude counter forces
@@ -1393,6 +1394,9 @@ class Solver(Saveable):
 
         RRnorm = RR / np.linalg.norm(RR, axis=1)[:, None]
         contractility = np.nansum(np.einsum("ki,ki->k", RRnorm, f))
+        
+        # go back to original forcefield
+        self.f = f_org        
 
         return contractility
 
