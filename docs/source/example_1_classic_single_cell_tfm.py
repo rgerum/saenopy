@@ -45,7 +45,7 @@ for result in results:
     result.save()
 
 # define the parameters to generate the solver mesh and interpolate the piv mesh onto it
-params = {'k': 1449.0, 'd0': 0.00215, 'lambda_s': 0.032, 'ds': 0.055, 'alpha': 10.0, 'stepper': 0.33, 'i_max': 300}
+params = {'k': 1449.0, 'd0': 0.00215, 'lambda_s': 0.032, 'ds': 0.055, 'alpha': 10**10, 'stepper': 0.33, 'i_max': 300}
 
 # iterate over all the results objects
 for result in results:
