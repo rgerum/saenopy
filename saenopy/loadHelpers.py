@@ -138,7 +138,7 @@ def unflatten_dict(data):
             except TypeError:
                 hierarchy[-2][int(names[-2])] = r + (item,)
         else:
-            if item == "__NONE__":
+            if isinstance(item, str) and item == "__NONE__":
                 item = None
             r[names[-1]] = item
 
