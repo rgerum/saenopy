@@ -122,10 +122,10 @@ class MeshCreator(PipelineModule):
                 self.setParameter("mesh_size_z", z)
 
     def check_available(self, result: Result):
-        return result is not None and result.mesh_piv is not None and result.mesh_piv[0] is not None
+        return result is not None and result.mesh_piv is not None and len(result.mesh_piv) and result.mesh_piv[0] is not None
 
     def check_evaluated(self, result: Result) -> bool:
-        return result is not None and result.solver is not None and result.solver[0] is not None
+        return result is not None and result.solver is not None and len(result.solver) and result.solver[0] is not None
 
     def update_display(self):
         if self.result is not None and len(self.result.mesh_piv) > 2:
