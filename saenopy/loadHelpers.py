@@ -112,11 +112,11 @@ def unflatten_dict(data):
     for name, item in data.items():
         if item.shape == ():
             item = item[()]
-        if item == "list":
+        if isinstance(item, str) and item == "list":
             item = []
-        if item == "dict":
+        if isinstance(item, str) and item == "dict":
             item = {}
-        if item == "tuple":
+        if isinstance(item, str) and item == "tuple":
             item = ()
 
         names = name.split("/")
