@@ -1857,7 +1857,7 @@ def get_channel_placeholder(filename):
 def get_channels(filename, z, c):
     original_filename = filename
     filename = filename.replace("{z}", z)
-    regex = re.compile(filename.replace("{c}", "(.*)"))
+    regex = re.compile(filename.replace("\\", "\\\\").replace("{c}", "(.*)"))
     filenames = glob.glob(filename.replace("{c}", "*"))
     channels = [c]
     for file in filenames:
