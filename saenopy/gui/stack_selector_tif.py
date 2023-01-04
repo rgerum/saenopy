@@ -96,6 +96,7 @@ class StackSelectorTif(QtWidgets.QWidget):
 class StackSelectorTif(QtWidgets.QWidget):
     no_update = False
     stack = None
+    df = None
 
     def __init__(self, parent, use_time=False):
         super().__init__()
@@ -240,6 +241,8 @@ class StackSelectorTif(QtWidgets.QWidget):
         self.propertiesChanged()
 
     def propertiesChanged(self):
+        if self.df is None:
+            return
         z_prop_name = self.z_prop.value()
         c_prop_name = self.c_prop.value()
         d = self.df
@@ -276,7 +279,7 @@ class StackSelectorTif(QtWidgets.QWidget):
         if len(im.shape) == 3:
             im = im[:, :, 0]
         self.stack = np.zeros((im.shape[0], im.shape[1], len(d)), dtype=im.dtype)
-        self.stack_initialized = np.zeros(len(d), dtype=np.bool)
+        self.stack_initialized = np.zeros(len(d), dtype=bool)
         self.stack_initialized[0] = True
         self.stack[:, :, 0] = im
 
