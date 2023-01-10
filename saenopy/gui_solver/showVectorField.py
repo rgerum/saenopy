@@ -104,7 +104,10 @@ def showVectorField(plotter: QtInteractor, obj: Solver, field: np.ndarray, name:
             curvsurf.texture_map_to_plane(inplace=True)
 
             # adjust the direction of the underlying image 
-            img_adjusted = img[:, ::-1]      # img_adjusted = np.transpose(img, axes=[1,0]) 
+            # the combination of following both operations does the job
+            img_adjusted = img[:, ::-1]                             # mirror the image
+            img_adjusted = np.transpose(img_adjusted, axes=[1,0])   # switch axis
+            
             tex = pv.numpy_to_texture(img_adjusted)
             # add image below arrow field            
             mesh = plotter.add_mesh(curvsurf, texture=tex)
