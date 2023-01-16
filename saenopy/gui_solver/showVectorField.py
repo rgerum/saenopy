@@ -90,24 +90,22 @@ def showVectorField(plotter: QtInteractor, obj: Solver, field: np.ndarray, name:
         if getattr(plotter, "_image_mesh", None) is not None:
             plotter.remove_actor(plotter._image_mesh, render=False)
         if display_image is not None:
-            img, voxel_size, z_pos = display_image
-            xmin = (-img.shape[1]/2)*voxel_size[0]*1e-6
-            ymin = (-img.shape[0]/2)*voxel_size[1]*1e-6
+            img, voxel_size, z_pos = display_image  
+            # adjust the direction of the underlying image 
+            # the combination of following both operations does the job
+            img_adjusted = img[:, ::-1]                             # mirror the image
+            img_adjusted = np.transpose(img_adjusted, axes=[1,0])   # switch axis 
+            # get coords
+            xmin = (-img_adjusted.shape[1]/2)*voxel_size[0]*1e-6
+            ymin = (-img_adjusted.shape[0]/2)*voxel_size[1]*1e-6
             x = np.linspace(xmin, -xmin, 10)
             y = np.linspace(ymin, -ymin, 10)
             x, y = np.meshgrid(x, y)
             z = z_pos*voxel_size[2]*1e-6+0*x
-
+            # structureGrid
             curvsurf = pv.StructuredGrid(x, y, z)
-
             # Map the curved surface to a plane - use best fitting plane
-            curvsurf.texture_map_to_plane(inplace=True)
-
-            # adjust the direction of the underlying image 
-            # the combination of following both operations does the job
-            img_adjusted = img[:, ::-1]                             # mirror the image
-            img_adjusted = np.transpose(img_adjusted, axes=[1,0])   # switch axis
-            
+            curvsurf.texture_map_to_plane(inplace=True)   
             tex = pv.numpy_to_texture(img_adjusted)
             # add image below arrow field            
             mesh = plotter.add_mesh(curvsurf, texture=tex)
