@@ -429,6 +429,9 @@ class BatchEvaluate(QtWidgets.QWidget):
                 voxel_size=dialog.stack_relaxed.getVoxelSize(),
                 exist_overwrite_callback=do_overwrite,
             )
+            from saenopy.gui.stack_selector_tif import add_last_voxel_size
+            add_last_voxel_size(dialog.stack_relaxed.getVoxelSize())
+
             for data in results:
                 self.list.addData(data.output, True, data, mpl.colors.to_hex(f"gray"))
         elif dialog.mode == "time":
@@ -439,6 +442,10 @@ class BatchEvaluate(QtWidgets.QWidget):
                 time_delta=dialog.stack_before2.getTimeDelta(),
                 exist_overwrite_callback=do_overwrite,
             )
+            from saenopy.gui.stack_selector_tif import add_last_voxel_size, add_last_time_delta
+            add_last_voxel_size(dialog.stack_before2.getVoxelSize())
+            add_last_time_delta(dialog.stack_before2.getTimeDelta())
+
             for data in results:
                 self.list.addData(data.output, True, data, mpl.colors.to_hex(f"gray"))
         elif dialog.mode == "existing":

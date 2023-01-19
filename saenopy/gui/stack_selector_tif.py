@@ -9,7 +9,58 @@ import tifffile
 from qtpy import QtWidgets, QtCore, QtGui
 from saenopy.gui import QtShortCuts
 from saenopy.gui.stack_selector_leica import StackSelectorLeica
+import appdirs
 
+
+voxel_size_file = Path(appdirs.user_data_dir("saenopy", "rgerum")) / 'voxel_sizes.txt'
+time_delta_file = Path(appdirs.user_data_dir("saenopy", "rgerum")) / 'time_deltas.txt'
+def get_last_voxel_sizes():
+    if not voxel_size_file.exists():
+        return []
+    with open(voxel_size_file, "r") as fp:
+        sizes = []
+        for line in fp:
+            line = line.strip()
+            if re.match(r"(\d*\.\d+|\d+.?),\s*(\d*\.\d+|\d+.?),\s*(\d*\.\d+|\d+.?)", line):
+                if line not in sizes:
+                    sizes.append(line)
+    return sizes
+
+def add_last_voxel_size(size):
+    size = ", ".join(str(s) for s in size)
+    sizes = get_last_voxel_sizes()
+    new_sizes = [size.strip()]
+    for s in sizes:
+        if s.strip() != size.strip():
+            new_sizes.append(s.strip())
+    with open(voxel_size_file, "w") as fp:
+        for s in new_sizes[:5]:
+            fp.write(s)
+            fp.write("\n")
+
+def get_last_time_deltas():
+    if not time_delta_file.exists():
+        return []
+    with open(time_delta_file, "r") as fp:
+        sizes = []
+        for line in fp:
+            line = line.strip()
+            if re.match(r"(\d*\.\d+|\d+.?)", line):
+                if line not in sizes:
+                    sizes.append(line)
+    return sizes
+
+def add_last_time_delta(size):
+    size = str(size)
+    sizes = get_last_voxel_sizes()
+    new_sizes = [size.strip()]
+    for s in sizes:
+        if s.strip() != size.strip():
+            new_sizes.append(s.strip())
+    with open(time_delta_file, "w") as fp:
+        for s in new_sizes[:5]:
+            fp.write(s)
+            fp.write("\n")
 
 class StackSelectorTif(QtWidgets.QWidget):
     loading_process = QtCore.Signal(int, np.ndarray)
@@ -126,12 +177,16 @@ class StackSelectorTif(QtWidgets.QWidget):
 
         self.input_voxel_size = QtShortCuts.QInputString(layout_voxel, "Voxel size (xyz) (µm)", "0, 0, 0", validator=self.validator)
         self.input_voxel_size.valueChanged.connect(self.input_voxel_size_changed)
+        self.completer = QtWidgets.QCompleter(get_last_voxel_sizes(), self)
+        self.input_voxel_size.line_edit.setCompleter(self.completer)
 
         if self.use_time:
             self.input_time_dt = QtShortCuts.QInputString(layout_voxel, "Time Delta", "0",
                                                              validator=self.validator_time, type=float)
             self.input_tbar_unit = QtShortCuts.QInputChoice(self.input_time_dt.layout(), None, "s",
                                                             ["s", "min", "h"])
+            self.completer2 = QtWidgets.QCompleter(get_last_time_deltas(), self)
+            self.input_time_dt.line_edit.setCompleter(self.completer2)
 
         self.label = QtWidgets.QLabel()
         layout_voxel.addWidget(self.label)
