@@ -223,7 +223,7 @@ class QInputString(QInput):
         self.line_edit = QtWidgets.QLineEdit()
         self.layout().addWidget(self.line_edit)
         self.line_edit.editingFinished.connect(lambda: self._valueChangedEvent(self.value()))
-        if type is int or type is float:
+        if type is int or type is float or type == "exp":
             self.line_edit.setAlignment(QtCore.Qt.AlignRight)
         if unit is not None:
             self.label_unit = QtWidgets.QLabel(unit)
@@ -254,7 +254,10 @@ class QInputString(QInput):
             self.line_edit.setStyleSheet("background: #d56060")
 
     def _doSetValue(self, value):
-        self.line_edit.setText(str(value))
+        if self.type == "exp":
+            self.line_edit.setText(f"10**{np.format_float_positional(np.log10(float(value)), precision=2, unique=True, fractional=True, trim='-')}")
+        else:
+            self.line_edit.setText(str(value))
 
     def value(self):
         text = self.line_edit.text()
@@ -263,6 +266,12 @@ class QInputString(QInput):
         if self.type == int:
             return int(text)
         if self.type == float:
+            return float(text)
+        if self.type == "exp":
+            if text.startswith("1e"):
+                return 10**float(text[2:])
+            if text.startswith("10**"):
+                return 10**float(text[4:])
             return float(text)
         return text
 
