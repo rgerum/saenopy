@@ -45,10 +45,10 @@ class PipelineModule(QtWidgets.QWidget):
     current_tab_selected = False
     def tabChanged(self, tab):
         if self.tab is not None and self.tab.parent() == tab:
+            self.current_tab_selected = True
             if self.current_result_plotted is False:
                 self.update_display()
                 self.current_result_plotted = True
-            self.current_tab_selected = True
         else:
             self.current_tab_selected = False
 

@@ -6,6 +6,44 @@ from saenopy.solver import Solver
 import numpy as np
 
 
+def getVectorFieldImage(self):
+    image = self.vtk_toolbar.show_image.value()
+    if image:
+        stack = self.result.stack[self.t_slider.value() + 1]
+        im = stack[:, :, self.z_slider.value(), self.vtk_toolbar.channel_select.value()]
+        if self.vtk_toolbar.button_z_proj.value():
+        #if self.result.stack_parameter["z_project_name"] == "maximum":
+            z_range = [0, 5, 10, 1000][self.vtk_toolbar.button_z_proj.value()]
+            start = np.clip(self.z_slider.value() - z_range, 0,
+                            stack.shape[2])
+            end = np.clip(self.z_slider.value() + z_range, 0, stack.shape[2])
+            im = stack[:, :, start:end, self.vtk_toolbar.channel_select.value()]
+            im = np.max(im, axis=2)
+        else:
+            (min, max) = np.percentile(im, (1, 99))
+            im = im.astype(np.float32) - min
+            im = im.astype(np.float64) * 255 / (max - min)
+            im = np.clip(im, 0, 255).astype(np.uint8)
+
+        display_image = [im, stack.voxel_size, self.z_slider.value() - stack.shape[2] / 2]
+        if self.vtk_toolbar.show_image.value() == 2:
+            display_image[2] = -stack.shape[2] / 2
+    else:
+        display_image = None
+    return display_image
+
+def showVectorField2(self, M, points_name):
+    display_image = getVectorFieldImage(self)
+
+    try:
+        field = getattr(M, points_name)
+    except AttributeError:
+        field = M.getNodeVar(points_name)
+    showVectorField(self.plotter, M, field, points_name,
+                    scalebar_max=self.vtk_toolbar.getScaleMax(), show_nan=self.vtk_toolbar.use_nans.value(),
+                    display_image=display_image, show_grid=self.vtk_toolbar.show_grid.value())
+
+
 def showVectorField(plotter: QtInteractor, obj: Solver, field: np.ndarray, name: str, center=None, show_nan=True,
                     show_all_points=False, factor=.1, scalebar_max=None, display_image=None, show_grid=True):
     # force rendering to be disabled while updating content to prevent flickering

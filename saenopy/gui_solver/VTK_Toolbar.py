@@ -12,7 +12,7 @@ vtk_toolbars = []
 class VTK_Toolbar(QtWidgets.QWidget):
     theme_values = [pv.themes.DefaultTheme(), pv.themes.ParaViewTheme(),
                                                           pv.themes.DarkTheme(), pv.themes.DocumentTheme()]
-    def __init__(self, plotter, update_display, scalbar_type="deformation", center=False, z_slider=None, channels=None):
+    def __init__(self, plotter, update_display, scalbar_type="deformation", center=False, z_slider=None, channels=None, shared_properties=None):
         super().__init__()
         self.plotter = plotter
         self.update_display = update_display
@@ -38,6 +38,8 @@ class VTK_Toolbar(QtWidgets.QWidget):
                     QtGui.QIcon(str(Path(__file__).parent.parent / "img" / "grid3.ico")),
                 ])
             self.show_grid.valueChanged.connect(self.update_display)
+            self.show_grid.valueChanged.connect(lambda value: shared_properties.change_property("show_grid", value, self))
+            shared_properties.add_property("show_grid", self)
 
 
             self.show_image = QtShortCuts.QInputBool(None, "", True,
@@ -46,9 +48,30 @@ class VTK_Toolbar(QtWidgets.QWidget):
                     QtGui.QIcon(str(Path(__file__).parent.parent / "img" / "show_image.ico")),
                     QtGui.QIcon(str(Path(__file__).parent.parent / "img" / "show_image2.ico"))])
             self.show_image.valueChanged.connect(self.update_display)
+            self.show_image.valueChanged.connect(
+                lambda value: shared_properties.change_property("show_image", value, self))
+            shared_properties.add_property("show_image", self)
 
             self.channel_select = QtShortCuts.QInputChoice(None, "", 0, [0], [""])
             self.channel_select.valueChanged.connect(self.update_display)
+            self.channel_select.valueChanged.connect(
+                lambda value: shared_properties.change_property("channel_select", value, self))
+            shared_properties.add_property("channel_select", self)
+
+            self.button_z_proj = QtShortCuts.QInputBool(None, "", icon=[
+                QtGui.QIcon(str(Path(__file__).parent.parent / "img" / "slice0.ico")),
+                QtGui.QIcon(str(Path(__file__).parent.parent / "img" / "slice1.ico")),
+                QtGui.QIcon(str(Path(__file__).parent.parent / "img" / "slice2.ico")),
+                QtGui.QIcon(str(Path(__file__).parent.parent / "img" / "slice_all.ico")),
+            ], group=False, tooltip=["Show only the current z slice",
+                                     "Show a maximum intensity projection over +-5 z slices",
+                                     "Show a maximum intensity projection over +-10 z slices",
+                                     "Show a maximum intensity projection over all z slices"])
+            self.button_z_proj.valueChanged.connect(self.update_display)
+            #self.button_z_proj.valueChanged.connect(lambda value: self.setZProj([0, 5, 10, 1000][value]))
+            self.button_z_proj.valueChanged.connect(
+                lambda value: shared_properties.change_property("button_z_proj", value, self))
+            shared_properties.add_property("button_z_proj", self)
 
             if center is True:
                 self.use_center = QtShortCuts.QInputBool(None, "center", True,
@@ -110,6 +133,20 @@ class VTK_Toolbar(QtWidgets.QWidget):
             self.button2 = QtWidgets.QPushButton(qta.icon("mdi.floppy"), "").addToLayout()
             self.button2.setToolTip("save")
             self.button2.clicked.connect(save)
+
+    def property_changed(self, name, value):
+        if name == "show_grid":
+            self.show_grid.setValue(value)
+            self.update_display()
+        if name == "show_image":
+            self.show_image.setValue(value)
+            self.update_display()
+        if name == "channel_select":
+            self.channel_select.setValue(value)
+            self.update_display()
+        if name == "button_z_proj":
+            self.button_z_proj.setValue(value)
+            self.update_display()
 
     def scale_max_changed(self):
         self.scale_max.setDisabled(self.auto_scale.value())

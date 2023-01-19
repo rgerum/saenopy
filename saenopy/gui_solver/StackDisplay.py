@@ -53,10 +53,15 @@ class StackDisplay(PipelineModule):
                             QtGui.QIcon(str(Path(__file__).parent.parent / "img" / "slice0.ico")),
                             QtGui.QIcon(str(Path(__file__).parent.parent / "img" / "slice1.ico")),
                             QtGui.QIcon(str(Path(__file__).parent.parent / "img" / "slice2.ico")),
-                        ], group=True, tooltip=["Show only the current z slice",
+                            QtGui.QIcon(str(Path(__file__).parent.parent / "img" / "slice_all.ico")),
+                        ], group=False, tooltip=["Show only the current z slice",
                                                 "Show a maximum intensity projection over +-5 z slices",
-                                                "Show a maximum intensity projection over +-10 z slices"])
-                        self.button_z_proj.valueChanged.connect(lambda value: self.setZProj([0, 5, 10][value]))
+                                                "Show a maximum intensity projection over +-10 z slices",
+                                                "Show a maximum intensity projection over all z slices"])
+                        self.button_z_proj.valueChanged.connect(lambda value: self.setZProj([0, 5, 10, 1000][value]))
+                        self.button_z_proj.valueChanged.connect(
+                            lambda value: parent.shared_properties.change_property("button_z_proj", value, self))
+                        parent.shared_properties.add_property("button_z_proj", self)
                         QtShortCuts.QVLine()
 
                         self.contrast_enhance = QtShortCuts.QInputBool(None, "contrast enhance", False,
@@ -87,6 +92,9 @@ class StackDisplay(PipelineModule):
                     self.tab.parent().t_slider = self.t_slider
                 self.z_slider = QTimeSlider("z", self.z_slider_value_changed, "set z position",
                                             QtCore.Qt.Vertical).addToLayout()
+                self.z_slider.t_slider.valueChanged.connect(
+                    lambda value: parent.shared_properties.change_property("z_slider", value, self))
+                parent.shared_properties.add_property("z_slider", self)
 
         self.view1.link(self.view2)
         self.current_tab_selected = True
@@ -98,6 +106,7 @@ class StackDisplay(PipelineModule):
                 self.result.stack_parameter["z_project_name"] = None
             else:
                 self.result.stack_parameter["z_project_name"] = "maximum"
+            self.result.stack_parameter["z_project_range"] = value
             self.result.stack_parameter["z_project_range"] = value
             self.z_slider_value_changed()
 
@@ -151,6 +160,12 @@ class StackDisplay(PipelineModule):
         if self.check_available(self.result):
             self.scale1.setScale(self.result.stack[0].voxel_size)
             self.scale2.setScale(self.result.stack[1].voxel_size)
+
+    def property_changed(self, name, value):
+        if name == "z_slider":
+            self.z_slider.setValue(value)
+        if name == "button_z_proj":
+            self.button_z_proj.setValue(value)
 
     def setResult(self, result: Result):
         super().setResult(result)

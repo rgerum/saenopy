@@ -190,6 +190,7 @@ class Stack(Saveable):
     images_channels: list = None
 
     def __init__(self, filename, voxel_size, shape=None, channels=None):
+        print("stack", filename)
         if shape is not None:
             self._shape = shape
         self.channels = channels

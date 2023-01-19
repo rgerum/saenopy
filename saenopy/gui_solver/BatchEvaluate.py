@@ -48,6 +48,23 @@ from .ResultView import ResultView
 from .StackDisplay import StackDisplay
 
 
+class SharedProperties:
+    properties = None
+
+    def __init__(self):
+        self.properties = {}
+
+    def add_property(self, name, target):
+        if name not in self.properties:
+            self.properties[name] = []
+        self.properties[name].append(target)
+
+    def change_property(self, name, value, target):
+        for t in self.properties[name]:
+            if t != target:
+                t.property_changed(name, value)
+
+
 class BatchEvaluate(QtWidgets.QWidget):
     result_changed = QtCore.Signal(object)
     tab_changed = QtCore.Signal(object)
@@ -55,6 +72,8 @@ class BatchEvaluate(QtWidgets.QWidget):
 
     def __init__(self, parent=None):
         super().__init__(parent)
+
+        self.shared_properties = SharedProperties()
 
         self.settings = QtCore.QSettings("Saenopy", "Seanopy_deformation")
 
@@ -184,6 +203,9 @@ class BatchEvaluate(QtWidgets.QWidget):
                 new_path = new_path[0]
             else:
                 new_path = str(new_path)
+            # ensure filename ends in .py
+            if not new_path.endswith(".py"):
+                new_path += ".py"
 
             import_code = ""
             run_code = ""

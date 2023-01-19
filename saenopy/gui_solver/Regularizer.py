@@ -18,7 +18,7 @@ from typing import Tuple
 from .PipelineModule import PipelineModule
 from .QTimeSlider import QTimeSlider
 from .VTK_Toolbar import VTK_Toolbar
-from .showVectorField import showVectorField
+from .showVectorField import showVectorField, getVectorFieldImage
 from .DeformationDetector import CamPos
 
 
@@ -64,12 +64,19 @@ class Regularizer(PipelineModule):
                 else:
                     pass #self.canvas = None
 
-                self.plotter = QtInteractor(self, auto_update=False)
-                self.plotter.set_background("black")
-                self.tab.parent().plotter = self.plotter
-                layout.addWidget(self.plotter.interactor)
+                with QtShortCuts.QHBoxLayout() as layout:
+                    self.plotter = QtInteractor(self, auto_update=False)  # , theme=pv.themes.DocumentTheme())
+                    self.tab.parent().plotter = self.plotter
+                    self.plotter.set_background("black")
+                    layout.addWidget(self.plotter.interactor)
 
-                self.vtk_toolbar = VTK_Toolbar(self.plotter, self.update_display, center=True).addToLayout()
+                    self.z_slider = QTimeSlider("z", self.z_slider_value_changed, "set z position",
+                                                QtCore.Qt.Vertical).addToLayout()
+                    self.z_slider.t_slider.valueChanged.connect(
+                        lambda value: parent.shared_properties.change_property("z_slider", value, self))
+                    parent.shared_properties.add_property("z_slider", self)
+
+                self.vtk_toolbar = VTK_Toolbar(self.plotter, self.update_display, center=True, shared_properties=self.parent.shared_properties).addToLayout()
 
                 self.t_slider = QTimeSlider(connected=self.update_display).addToLayout()
                 self.tab.parent().t_slider = self.t_slider
@@ -87,6 +94,9 @@ class Regularizer(PipelineModule):
 
         self.iteration_finished.connect(self.iteration_callback)
         self.iteration_finished.emit(None, np.ones([10, 3]), 0, None)
+
+    def z_slider_value_changed(self):
+        self.update_display()
 
     def check_available(self, result: Result):
         return result is not None and result.solver is not None and self.result.solver[0] is not None
@@ -141,7 +151,28 @@ class Regularizer(PipelineModule):
                                 alpha=params["alpha"], rel_conv_crit=params["rel_conv_crit"],
                                 callback=callback, verbose=True)
 
+    def property_changed(self, name, value):
+        if name == "z_slider":
+            self.z_slider.setValue(value)
+
+    def setResult(self, result: Result):
+        super().setResult(result)
+        if result and result.stack and result.stack[0]:
+            self.z_slider.setRange(0, result.stack[0].shape[2] - 1)
+            self.z_slider.setValue(self.result.stack[0].shape[2] // 2)
+
+            if result.stack[0].channels:
+                self.vtk_toolbar.channel_select.setValues(np.arange(len(result.stack[0].channels)), result.stack[0].channels)
+                self.vtk_toolbar.channel_select.setVisible(True)
+            else:
+                self.vtk_toolbar.channel_select.setValue(0)
+                self.vtk_toolbar.channel_select.setVisible(False)
+
     def update_display(self):
+        if self.current_tab_selected is False:
+            self.current_result_plotted = False
+            return
+
         if self.check_evaluated(self.result):
             cam_pos = None
             if self.plotter.camera_position is not None and CamPos.cam_pos_initialized is True:
@@ -152,7 +183,8 @@ class Regularizer(PipelineModule):
             center = None
             if self.vtk_toolbar.use_center.value() is True:
                 center = M.getCenter(mode="Force")
-            showVectorField(self.plotter, M, -M.f * M.reg_mask[:, None], "f", center=center, factor=0.15, scalebar_max=self.vtk_toolbar.getScaleMax(), show_nan=self.vtk_toolbar.use_nans.value())
+            display_image = getVectorFieldImage(self)
+            showVectorField(self.plotter, M, -M.f * M.reg_mask[:, None], "f", center=center, factor=0.15, scalebar_max=self.vtk_toolbar.getScaleMax(), show_nan=self.vtk_toolbar.use_nans.value(), display_image=display_image, show_grid=self.vtk_toolbar.show_grid.value())
             if cam_pos is not None:
                 self.plotter.camera_position = cam_pos
             relrec = getattr(self.result.solver[self.t_slider.value()], "relrec", None)

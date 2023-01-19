@@ -17,7 +17,7 @@ from typing import Tuple
 from .PipelineModule import PipelineModule
 from .QTimeSlider import QTimeSlider
 from .VTK_Toolbar import VTK_Toolbar
-from .showVectorField import showVectorField
+from .showVectorField import showVectorField, showVectorField2
 
 
 class CamPos:
@@ -63,8 +63,11 @@ class DeformationDetector(PipelineModule):
 
                     self.z_slider = QTimeSlider("z", self.z_slider_value_changed, "set z position",
                                                 QtCore.Qt.Vertical).addToLayout()
+                    self.z_slider.t_slider.valueChanged.connect(
+                        lambda value: parent.shared_properties.change_property("z_slider", value, self))
+                    parent.shared_properties.add_property("z_slider", self)
 
-                self.vtk_toolbar = VTK_Toolbar(self.plotter, self.update_display, "deformation", z_slider=self.z_slider).addToLayout()
+                self.vtk_toolbar = VTK_Toolbar(self.plotter, self.update_display, "deformation", z_slider=self.z_slider, shared_properties=self.parent.shared_properties).addToLayout()
 
                 self.t_slider = QTimeSlider(connected=self.update_display).addToLayout()
                 self.tab.parent().t_slider = self.t_slider
@@ -86,20 +89,28 @@ class DeformationDetector(PipelineModule):
     def check_evaluated(self, result: Result) -> bool:
         return self.result is not None and self.result.mesh_piv is not None and self.result.mesh_piv[0] is not None
 
+    def property_changed(self, name, value):
+        if name == "z_slider":
+            self.z_slider.setValue(value)
+
     def setResult(self, result: Result):
         super().setResult(result)
         if result and result.stack and result.stack[0]:
             self.z_slider.setRange(0, result.stack[0].shape[2] - 1)
             self.z_slider.setValue(self.result.stack[0].shape[2] // 2)
 
-            if self.result.stack[0].channels:
-                self.vtk_toolbar.channel_select.setValues(np.arange(len(self.result.stack[0].channels)), self.result.stack[0].channels)
+            if result.stack[0].channels:
+                self.vtk_toolbar.channel_select.setValues(np.arange(len(result.stack[0].channels)), result.stack[0].channels)
                 self.vtk_toolbar.channel_select.setVisible(True)
             else:
                 self.vtk_toolbar.channel_select.setValue(0)
                 self.vtk_toolbar.channel_select.setVisible(False)
 
     def update_display(self, *, plotter=None):
+        if self.current_tab_selected is False:
+            self.current_result_plotted = False
+            return
+
         if plotter is None:
             plotter = self.plotter
         cam_pos = None
@@ -107,7 +118,10 @@ class DeformationDetector(PipelineModule):
             cam_pos = self.plotter.camera_position
         CamPos.cam_pos_initialized = True
         plotter.interactor.setToolTip("")
-        M = self.result.mesh_piv[self.t_slider.value()]
+        if self.result is None:
+            M = None
+        else:
+            M = self.result.mesh_piv[self.t_slider.value()]
 
         if M is None:
             plotter.show()
@@ -117,31 +131,33 @@ class DeformationDetector(PipelineModule):
             str(self.result.piv_parameter) + f"\nNodes {self.result.mesh_piv[0].R.shape[0]}\nTets {self.result.mesh_piv[0].T.shape[0]}")
 
         if M.hasNodeVar("U_measured"):
-            image = self.vtk_toolbar.show_image.value()
-            if image:
-                stack = self.result.stack[self.t_slider.value()+1]
-                im = stack[:, :, self.z_slider.value(), self.vtk_toolbar.channel_select.value()]
-                if self.result.stack_parameter["z_project_name"] == "maximum":
-                    start = np.clip(self.z_slider.value() - self.result.stack_parameter["z_project_range"], 0,
-                                    stack.shape[2])
-                    end = np.clip(self.z_slider.value() + self.result.stack_parameter["z_project_range"], 0, stack.shape[2])
-                    im = stack[:, :, start:end, self.vtk_toolbar.channel_select.value()]
-                    im = np.max(im, axis=2)
+            showVectorField2(self, M, "U_measured")
+            if 0:
+                image = self.vtk_toolbar.show_image.value()
+                if image:
+                    stack = self.result.stack[self.t_slider.value()+1]
+                    im = stack[:, :, self.z_slider.value(), self.vtk_toolbar.channel_select.value()]
+                    if self.result.stack_parameter["z_project_name"] == "maximum":
+                        start = np.clip(self.z_slider.value() - self.result.stack_parameter["z_project_range"], 0,
+                                        stack.shape[2])
+                        end = np.clip(self.z_slider.value() + self.result.stack_parameter["z_project_range"], 0, stack.shape[2])
+                        im = stack[:, :, start:end, self.vtk_toolbar.channel_select.value()]
+                        im = np.max(im, axis=2)
+                    else:
+                        (min, max) = np.percentile(im, (1, 99))
+                        im = im.astype(np.float32) - min
+                        im = im.astype(np.float64) * 255 / (max - min)
+                        im = np.clip(im, 0, 255).astype(np.uint8)
+
+                    display_image = [im, stack.voxel_size, self.z_slider.value()-stack.shape[2]/2]
+                    if self.vtk_toolbar.show_image.value() == 2:
+                        display_image[2] = -stack.shape[2]/2
                 else:
-                    (min, max) = np.percentile(im, (1, 99))
-                    im = im.astype(np.float32) - min
-                    im = im.astype(np.float64) * 255 / (max - min)
-                    im = np.clip(im, 0, 255).astype(np.uint8)
+                    display_image = None
 
-                display_image = [im, stack.voxel_size, self.z_slider.value()-stack.shape[2]/2]
-                if self.vtk_toolbar.show_image.value() == 2:
-                    display_image[2] = -stack.shape[2]/2
-            else:
-                display_image = None
-
-            showVectorField(plotter, M, M.getNodeVar("U_measured"), "U_measured",
-                            scalebar_max=self.vtk_toolbar.getScaleMax(), show_nan=self.vtk_toolbar.use_nans.value(),
-                            display_image=display_image, show_grid=self.vtk_toolbar.show_grid.value())
+                showVectorField(plotter, M, M.getNodeVar("U_measured"), "U_measured",
+                                scalebar_max=self.vtk_toolbar.getScaleMax(), show_nan=self.vtk_toolbar.use_nans.value(),
+                                display_image=display_image, show_grid=self.vtk_toolbar.show_grid.value())
 
         if cam_pos is not None:
             plotter.camera_position = cam_pos
