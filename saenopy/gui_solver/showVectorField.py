@@ -89,6 +89,8 @@ def showVectorField(plotter: QtInteractor, obj: Solver, field: np.ndarray, name:
 
         if getattr(plotter, "_image_mesh", None) is not None:
             plotter.remove_actor(plotter._image_mesh, render=False)
+        if getattr(plotter, "_box", None) is not None:
+            plotter.remove_actor(plotter._box, render=False)
         if display_image is not None:
             img, voxel_size, z_pos = display_image  
             # adjust the direction of the underlying image 
@@ -116,9 +118,13 @@ def showVectorField(plotter: QtInteractor, obj: Solver, field: np.ndarray, name:
         plotter.remove_bounds_axes()
 
         if show_grid == 2:
-            plotter.show_bounds(bounds=[xmin, xmax, ymin, ymax, zmin, zmax], grid='front', location='outer', all_edges=True,
-                                show_xlabels=False, show_ylabels=False, show_zlabels=False,
-                                xlabel=" ", ylabel=" ", zlabel=" ", render=False)
+            #plotter.show_bounds(bounds=[xmin, xmax, ymin, ymax, zmin, zmax], grid='front', location='outer', all_edges=True,
+            #                    show_xlabels=False, show_ylabels=False, show_zlabels=False,
+            #                    xlabel=" ", ylabel=" ", zlabel=" ", render=False)
+            corners = np.asarray([[xmin, ymin, zmin], [xmax, ymin, zmin], [xmin, ymax, zmin], [xmax, ymax, zmin],
+                                   [xmin, ymin, zmax], [xmax, ymin, zmax], [xmin, ymax, zmax], [xmax, ymax, zmax]])
+            grid = pv.ExplicitStructuredGrid(np.asarray([2, 2, 2]), corners)
+            plotter._box = plotter.add_mesh(grid, style='wireframe', render_lines_as_tubes=True, line_width=2, show_edges=True, name="border")
         elif show_grid:
             plotter.show_grid(bounds=[xmin, xmax, ymin, ymax, zmin, zmax], color=plotter._theme.font.color, render=False)
     finally:
