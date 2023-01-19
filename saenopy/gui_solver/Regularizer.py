@@ -45,7 +45,9 @@ class Regularizer(PipelineModule):
                         with QtShortCuts.QHBoxLayout(None) as layout:
                             self.input_alpha = QtShortCuts.QInputString(None, "alpha", "1e10", type="exp")
                             self.input_stepper = QtShortCuts.QInputString(None, "stepper", "0.33", type=float)
+                        with QtShortCuts.QHBoxLayout(None) as layout:
                             self.input_imax = QtShortCuts.QInputNumber(None, "i_max", 100, float=False)
+                            self.input_conv_crit = QtShortCuts.QInputNumber(None, "rel_conv_crit", 0.01, float=True)
 
                     self.input_button = QtShortCuts.QPushButton(None, "calculate forces", self.start_process)
 
@@ -80,6 +82,7 @@ class Regularizer(PipelineModule):
             "alpha": self.input_alpha,
             "stepper": self.input_stepper,
             "i_max": self.input_imax,
+            "rel_conv_crit": self.input_conv_crit,
         })
 
         self.iteration_finished.connect(self.iteration_callback)
@@ -135,7 +138,8 @@ class Regularizer(PipelineModule):
                                ))
 
             M.solve_regularized(stepper=params["stepper"], i_max=params["i_max"],
-                                alpha=params["alpha"], callback=callback, verbose=True)
+                                alpha=params["alpha"], rel_conv_crit=params["rel_conv_crit"],
+                                callback=callback, verbose=True)
 
     def update_display(self):
         if self.check_evaluated(self.result):
@@ -177,7 +181,7 @@ class Regularizer(PipelineModule):
                         params["ds"],
                     ))
                     # find the regularized force solution
-                    M.solve_regularized(stepper=params["stepper"], i_max=params["i_max"], alpha=params["alpha"], verbose=True)
+                    M.solve_regularized(stepper=params["stepper"], i_max=params["i_max"], alpha=params["alpha"], rel_conv_crit=params["rel_conv_crit"], verbose=True)
                 # save the forces
                 result.save()
 
