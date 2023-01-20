@@ -11,7 +11,7 @@ from saenopy.gui.gui_classes import CheckAbleGroup, MatplotlibWidget, Navigation
 import saenopy.getDeformations
 import saenopy.multigridHelper
 import saenopy.materials
-from saenopy.solver import Result
+from saenopy import Result
 
 from typing import Tuple
 

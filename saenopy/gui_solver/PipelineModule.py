@@ -1,7 +1,7 @@
 import qtawesome as qta
 from qtpy import QtCore, QtWidgets
 
-from saenopy.solver import Result
+from saenopy import Result
 
 from typing import Tuple
 

@@ -379,6 +379,7 @@ class StackSelector(QtWidgets.QWidget):
 
 
         main_layout = QtWidgets.QVBoxLayout(self)
+        main_layout.setContentsMargins(0, 0, 0, 0)
 
         self._open_dir = self.settings.value("_open_dir" + self.name)
         if self._open_dir is None:

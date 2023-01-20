@@ -32,7 +32,7 @@ from saenopy.gui.stack_selector import StackSelector
 from saenopy.getDeformations import getStack, Stack, format_glob
 from saenopy.multigridHelper import getScaledMesh, getNodesWithOneFace
 from saenopy.loadHelpers import Saveable
-from saenopy.solver import Result
+from saenopy import Result
 
 from typing import List, Tuple
 

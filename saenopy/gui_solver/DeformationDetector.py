@@ -10,7 +10,7 @@ from saenopy.gui.gui_classes import CheckAbleGroup, QProcess, ProcessSimple
 import saenopy.getDeformations
 import saenopy.multigridHelper
 import saenopy.materials
-from saenopy.solver import Result
+from saenopy import Result
 
 from typing import Tuple
 
@@ -167,7 +167,7 @@ class DeformationDetector(PipelineModule):
             voxel_size1 = self.result.stack[0].voxel_size
             stack_deformed = self.result.stack[0]
             overlap = 1 - (self.input_elementsize.value() / self.input_win.value())
-            stack_size = np.array(stack_deformed.shape) * voxel_size1 - self.input_win.value()
+            stack_size = np.array(stack_deformed.shape)[:3] * voxel_size1 - self.input_win.value()
             # self.label.setText(f"Deformation grid with {unit_size:.1f}μm elements.\nTotal region is {stack_size}.")
             self.label.setText(
                 f"""Overlap between neighbouring windows\n(size={self.input_win.value()}µm or {(self.input_win.value() / np.array(voxel_size1)).astype(int)} px) is choosen \n to {int(overlap * 100)}% for an elementsize of {self.input_elementsize.value():.1f}μm elements.\nTotal region is {stack_size}.""")

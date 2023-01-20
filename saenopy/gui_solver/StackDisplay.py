@@ -15,7 +15,7 @@ from saenopy.gui import QtShortCuts, QExtendedGraphicsView
 import saenopy.getDeformations
 import saenopy.multigridHelper
 import saenopy.materials
-from saenopy.solver import Result
+from saenopy import Result
 
 from typing import Tuple
 
@@ -39,7 +39,7 @@ class StackDisplay(PipelineModule):
             with QtShortCuts.QHBoxLayout() as layout:
                 with QtShortCuts.QVBoxLayout() as layout:
                     with QtShortCuts.QHBoxLayout() as layout:
-                        self.label1 = QtWidgets.QLabel("relaxed").addToLayout()
+                        self.label1 = QtWidgets.QLabel("reference").addToLayout()
                         layout.addStretch()
 
                         self.button_display_single = QtShortCuts.QInputBool(None, "", icon=[
@@ -79,7 +79,7 @@ class StackDisplay(PipelineModule):
                     self.pixmap1 = QtWidgets.QGraphicsPixmapItem(self.view1.origin)
                     self.scale1 = ModuleScaleBar(self, self.view1)
 
-                    self.label2 = QtWidgets.QLabel("deformed").addToLayout()
+                    self.label2 = QtWidgets.QLabel("active").addToLayout()
                     self.view2 = QExtendedGraphicsView.QExtendedGraphicsView().addToLayout()
                     # self.label2.setMinimumWidth(300)
                     self.pixmap2 = QtWidgets.QGraphicsPixmapItem(self.view2.origin)
@@ -88,7 +88,7 @@ class StackDisplay(PipelineModule):
                     self.views = [self.view1, self.view2]
                     self.pixmaps = [self.pixmap1, self.pixmap2]
 
-                    self.t_slider = QTimeSlider(connected=self.update_display).addToLayout()
+                    self.t_slider = QTimeSlider(connected=self.z_slider_value_changed).addToLayout()
                     self.tab.parent().t_slider = self.t_slider
                 self.z_slider = QTimeSlider("z", self.z_slider_value_changed, "set z position",
                                             QtCore.Qt.Vertical).addToLayout()
@@ -157,6 +157,7 @@ class StackDisplay(PipelineModule):
                              self.result.stack[1][:, :, self.z_slider.value()]], fps=2)
 
     def update_display(self):
+        return
         if self.check_available(self.result):
             self.scale1.setScale(self.result.stack[0].voxel_size)
             self.scale2.setScale(self.result.stack[1].voxel_size)
@@ -177,7 +178,14 @@ class StackDisplay(PipelineModule):
     def z_slider_value_changed(self):
         if self.result is not None:
             for i in range(2 - self.view_single):
-                stack = self.result.stack[self.t_slider.value() + i + self.view_single_switch]
+                if self.result.stack_reference is not None:
+                    if i == 0:
+                        stack = self.result.stack_reference
+                    else:
+                        stack = self.result.stack[self.t_slider.value() + self.view_single_switch]
+                else:
+                    stack = self.result.stack[self.t_slider.value() + i + self.view_single_switch]
+                [self.scale1, self.scale2][i].setScale(stack.voxel_size)
 
                 self.views[i].setToolTip(
                     f"stack\n{stack.description(self.z_slider.value())}")
@@ -185,10 +193,10 @@ class StackDisplay(PipelineModule):
                 if self.result.stack_parameter["z_project_name"] == "maximum":
                     start = np.clip(self.z_slider.value()-self.result.stack_parameter["z_project_range"], 0, stack.shape[2])
                     end = np.clip(self.z_slider.value()+self.result.stack_parameter["z_project_range"], 0, stack.shape[2])
-                    im = stack[:, :, start:end]
+                    im = stack[:, :, start:end, 0]
                     im = np.max(im, axis=2)
                 else:
-                    im = stack[:, :, self.z_slider.value()]
+                    im = stack[:, :, self.z_slider.value(), 0]
                 if self.contrast_enhance.value():
                     (min, max) = np.percentile(im, (1, 99))
                     im = im.astype(np.float32)-min

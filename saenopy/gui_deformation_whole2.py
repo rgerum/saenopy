@@ -8,7 +8,7 @@ import pandas as pd
 
 from saenopy.gui import QtShortCuts
 from saenopy.gui.gui_classes import QHLine, MatplotlibWidget, NavigationToolbar, execute, ListWidget
-from saenopy.solver import Result
+from saenopy import Result
 from saenopy.gui_solver.BatchEvaluate import BatchEvaluate
 
 

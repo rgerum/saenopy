@@ -1770,72 +1770,7 @@ class Solver(Saveable):
         return plotter, campos
 
 
-class Result(Saveable):
-    __save_parameters__ = ['stack', 'time_delta', 'piv_parameter', 'mesh_piv',
-                           'interpolate_parameter', 'solve_parameter', 'solver',
-                           '___save_name__', '___save_version__']
-    ___save_name__ = "Result"
-    ___save_version__ = "1.0"
-    output: str = None
-    state: False
 
-    stack: List[Stack] = None
-    stack_parameter: dict = None
-
-    piv_parameter: dict = None
-    mesh_piv: List[Mesh] = None
-
-    interpolate_parameter: dict = None
-    solve_parameter: dict = None
-    solver: List[Solver] = None
-
-    def __init__(self, output=None, stack=None, time_delta=None, **kwargs):
-        self.output = str(output)
-
-        self.stack = stack
-        if stack == None:
-            self.stack = []
-        self.stack_parameter = dict(z_project_name=None, z_project_range=0)
-
-        self.state = False
-        self.time_delta = time_delta
-
-        self.mesh_piv = [None] * (len(self.stack) - 1)
-        self.solver = [None] * (len(self.mesh_piv))
-
-        super().__init__(**kwargs)
-
-    def save(self):
-        Path(self.output).parent.mkdir(exist_ok=True, parents=True)
-        super().save(self.output)
-
-    def on_load(self, filename):
-        self.output = str(Path(filename))
-
-    def __repr__(self):
-        def filename_to_string(filename):
-            if isinstance(filename, list):
-                return str(Path(common_start(filename) + "{z}" + common_end(filename)))
-            return str(Path(filename))
-        folders = [filename_to_string(stack.filename) for stack in self.stack]
-        base_folder = common_start(folders)
-        base_folder = os.sep.join(base_folder.split(os.sep)[:-1])
-        indent = "    "
-        text = "Result(" + "\n"
-        text += indent + "output = " + self.output + "\n"
-        text += indent + "stacks = [" + "\n"
-        text += indent + indent + "base_folder = " + base_folder + "\n"
-        for stack, filename in zip(self.stack, folders):
-            text += indent + indent + filename[len(base_folder):] + " " + str(stack.voxel_size) + "\n"
-        text += indent + "]" + "\n"
-        if self.piv_parameter:
-            text += indent + "piv_parameter = " + str(self.piv_parameter) + "\n"
-        if self.interpolate_parameter:
-            text += indent + "interpolate_parameter = " + str(self.interpolate_parameter) + "\n"
-        if self.solve_parameter:
-            text += indent + "solve_parameter = " + str(self.solve_parameter) + "\n"
-        text += ")" + "\n"
-        return text
 
 
 
@@ -1847,12 +1782,7 @@ def load(filename: str) -> Solver:
     return Solver.load(filename)
 
 
-def get_channel_placeholder(filename):
-    match = re.match(r".*{c:([^}]*)}.*", filename)
-    if match:
-        filename = re.sub(r"{c:[^}]*}", "{c}", filename)
-        return filename, match.groups()[0]
-    return filename, None
+
 
 def get_channels(filename, z, c):
     original_filename = filename
@@ -1869,103 +1799,7 @@ def get_channels(filename, z, c):
         filenames_new.append(original_filename.format(z="*", c=ch))
     return list(channels), filenames_new
 
-import glob
-import re
-from pathlib import Path
-import os
-def get_stacks(filename, output_path, voxel_size, time_delta=None, exist_overwrite_callback=None):
-    results = []
-    if isinstance(filename, (list, tuple)):
-        filename[0], channel1 = get_channel_placeholder(filename[0])
-        results1, output_base = format_glob(filename[0])
 
-        filename[1], channel2 = get_channel_placeholder(filename[1])
-        results2, _ = format_glob(filename[1])
-
-        for (r1, d1), (r2, d2) in zip(results1.groupby("template").max().iterrows(),
-                                      results2.groupby("template").max().iterrows()):
-            output = Path(output_path) / os.path.relpath(r1, output_base)
-            output = output.parent / output.stem
-            output = Path(str(output).replace("*", "").replace("{c}", "{c:"+str(channel1)+"}") + ".npz")
-
-            if channel1 is not None:
-                channels1, r1 = get_channels(r1, d1.z, channel1)
-            else:
-                channels1 = None
-                r1 = r1.format(z="*")
-            if channel2 is not None:
-                channels2, r2 = get_channels(r2, d2.z, channel2)
-            else:
-                channels2 = None
-                r2 = r2.format(z="*")
-
-            if output.exists() and exist_overwrite_callback is not None:
-                mode = exist_overwrite_callback(output)
-                if mode == 0:
-                    break
-                if mode == "read":
-                    print('exists', output)
-                    data = Result.load(output)
-                    results.append(data)
-                    continue
-
-            data = Result(
-                output=output,
-                stack=[Stack(r1, voxel_size, channels=channels1), Stack(r2, voxel_size, channels=channels2)],
-            )
-            data.save()
-            results.append(data)
-    else:
-        results1, output_base = format_glob(filename)
-        if time_delta is None:
-            raise ValueError("A time series needs a time_delta, None was given.")
-
-        for template, d in results1.groupby("template"):
-            output = Path(output_path) / os.path.relpath(d.iloc[0].template, output_base)
-            output = output.parent / output.stem
-            output = Path(str(output).replace("*", "") + ".npz")
-
-            if output.exists() and exist_overwrite_callback is not None:
-                mode = exist_overwrite_callback(output)
-                if mode == 0:
-                    break
-                if mode == "read":
-                    print('exists', output)
-                    data = Result.load(output)
-                    results.append(data)
-                    continue
-
-            stacks = []
-            for t, d0 in d.groupby("t"):
-                d0 = d0.sort_values(by='z', key=natsort.natsort_keygen())
-                stacks.append(Stack(d0.filename, voxel_size))
-
-            data = Result(
-                output=output,
-                stack=stacks,
-                time_delta=time_delta,
-            )
-            data.save()
-            results.append(data)
-    return results
-
-def common_start(values):
-    if len(values) != 0:
-        start = values[0]
-        while start:
-            if all(value.startswith(start) for value in values):
-                return start
-            start = start[:-1]
-    return ""
-
-def common_end(values):
-    if len(values) != 0:
-        end = values[0]
-        while end:
-            if all(value.endswith(end) for value in values):
-                return end
-            end = end[1:]
-    return ""
 
 
 def substract_reference_state(mesh_piv, mode):

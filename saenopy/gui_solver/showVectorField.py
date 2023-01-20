@@ -9,7 +9,7 @@ import numpy as np
 def getVectorFieldImage(self):
     image = self.vtk_toolbar.show_image.value()
     if image:
-        stack = self.result.stack[self.t_slider.value() + 1]
+        stack = self.result.stack[self.t_slider.value()]
         im = stack[:, :, self.z_slider.value(), self.vtk_toolbar.channel_select.value()]
         if self.vtk_toolbar.button_z_proj.value():
         #if self.result.stack_parameter["z_project_name"] == "maximum":

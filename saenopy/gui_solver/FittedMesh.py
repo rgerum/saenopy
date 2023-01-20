@@ -3,7 +3,7 @@ from qtpy import QtCore, QtWidgets
 from pyvistaqt import QtInteractor
 from saenopy.gui import QtShortCuts
 from saenopy.gui.gui_classes import MatplotlibWidget, NavigationToolbar
-from saenopy.solver import Result
+from saenopy import Result
 
 from .PipelineModule import PipelineModule
 from .QTimeSlider import QTimeSlider

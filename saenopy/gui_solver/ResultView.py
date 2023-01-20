@@ -7,7 +7,7 @@ from pyvistaqt import QtInteractor
 
 import imageio
 from saenopy.gui import QtShortCuts
-from saenopy.solver import Result, Solver
+from saenopy import Result, Solver
 
 from .PipelineModule import PipelineModule
 from .QTimeSlider import QTimeSlider

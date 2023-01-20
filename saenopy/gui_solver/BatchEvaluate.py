@@ -33,7 +33,7 @@ from saenopy.gui.stack_selector import StackSelector
 from saenopy.getDeformations import getStack, Stack, format_glob
 from saenopy.multigridHelper import getScaledMesh, getNodesWithOneFace
 from saenopy.loadHelpers import Saveable
-from saenopy.solver import Result
+from saenopy import Result
 
 from typing import List, Tuple
 
@@ -303,6 +303,54 @@ class BatchEvaluate(QtWidgets.QWidget):
                 self.setWindowTitle("Add Files")
                 with QtShortCuts.QVBoxLayout(self) as layout:
                     with QtShortCuts.QTabWidget(layout) as self.tabs:
+                        with self.tabs.createTab("New") as self.tab:
+                            self.outputText = QtShortCuts.QInputFolder(None, "output", settings=settings,
+                                                                       settings_key="batch/wildcard2", allow_edit=True)
+                            with QtShortCuts.QHBoxLayout() as layout3:
+                                with QtShortCuts.QVBoxLayout() as layout4:
+                                    layout4.setContentsMargins(0, 0, 0, 0)
+                                    self.reference_choice = QtShortCuts.QInputChoice(None, "Reference", 0, [0, 1], ["single stack", "difference between time points"])
+                                    def ref_changed():
+                                        self.stack_reference.setVisible(self.reference_choice.value())
+                                    self.reference_choice.valueChanged.connect(ref_changed)
+                                    self.stack_reference = StackSelector(layout4, "reference")
+                                    self.stack_reference.glob_string_changed.connect \
+                                        (lambda x, y: (print("relaxed, y"), self.stack_reference_input.setText(y)))
+                                    self.stack_reference.setVisible(self.reference_choice.value())
+
+                                    self.stack_reference_input = QtWidgets.QLineEdit().addToLayout()
+                                with QtShortCuts.QVBoxLayout() as layout4b:
+                                    layout4b.setContentsMargins(0, 0, 0, 0)
+                                    self.stack_data = StackSelector(layout4b, "active stack(s)", self.stack_reference, use_time=True)
+                                    self.stack_data.glob_string_changed.connect \
+                                        (lambda x, y: (print("deformed, y") ,self.stack_data_input.setText(y)))
+                                    self.stack_data_input = QtWidgets.QLineEdit().addToLayout()
+                            with QtShortCuts.QHBoxLayout() as layout3:
+                                # self.button_clear = QtShortCuts.QPushButton(None, "clear list", self.clear_files)
+                                layout3.addStretch()
+                                self.button_addList00 = QtShortCuts.QPushButton(None, "cancel", self.reject)
+                                def accept():
+                                    self.mode = "new"
+                                    if self.reference_choice.value() == 1:
+                                        if self.stack_reference.active is None:
+                                            QtWidgets.QMessageBox.critical(self, "Deformation Detector", "Provide a stack for the reference state.")
+                                            return
+                                        if not self.stack_reference.validator():
+                                            QtWidgets.QMessageBox.critical(self, "Deformation Detector", "Enter a valid voxel size for the reference stack.")
+                                            return
+                                    if self.stack_data.active is None:
+                                        QtWidgets.QMessageBox.critical(self, "Deformation Detector", "Provide a stack for the deformed state.")
+                                        return
+                                    if not self.stack_data.validator():
+                                        QtWidgets.QMessageBox.critical(self, "Deformation Detector", "Enter a valid voxel size for the deformed stack.")
+                                        return
+                                    if "{t}" in self.stack_data_input.text() and not self.stack_data.validator_time():
+                                        QtWidgets.QMessageBox.critical(self, "Deformation Detector",
+                                                                       "Enter a valid time delta.")
+                                        return
+                                    self.accept()
+                                self.button_addList0 = QtShortCuts.QPushButton(None, "ok", accept)
+
                         with self.tabs.createTab("Pair Stacks") as self.tab:
                             self.outputText = QtShortCuts.QInputFolder(None, "output", settings=settings,
                                                                        settings_key="batch/wildcard2", allow_edit=True)
@@ -443,8 +491,33 @@ class BatchEvaluate(QtWidgets.QWidget):
         if not dialog.exec():
             return
 
-        from saenopy.solver import get_stacks
-        if dialog.mode == "pair":
+        from saenopy import get_stacks
+        if dialog.mode == "new":
+            from saenopy.gui.stack_selector_tif import add_last_voxel_size, add_last_time_delta
+            if dialog.reference_choice.value() == 1:
+                reference_stack = dialog.stack_reference_input.text()
+            else:
+                reference_stack = None
+            active_stack = dialog.stack_data_input.text()
+            if "{t}" in active_stack:
+                time_delta = dialog.stack_data.getTimeDelta()
+                add_last_time_delta(dialog.stack_data.getTimeDelta())
+            else:
+                time_delta = None
+            results = get_stacks(
+                active_stack,
+                reference_stack=reference_stack,
+                output_path=dialog.outputText.value(),
+                voxel_size=dialog.stack_data.getVoxelSize(),
+                time_delta=time_delta,
+                exist_overwrite_callback=do_overwrite,
+            )
+            add_last_voxel_size(dialog.stack_data.getVoxelSize())
+
+            for data in results:
+                self.list.addData(data.output, True, data, mpl.colors.to_hex(f"gray"))
+
+        elif dialog.mode == "pair":
             results = get_stacks(
                 [dialog.input_relaxed.text(), dialog.input_deformed.text()],
                 output_path=dialog.outputText.value(),

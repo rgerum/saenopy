@@ -149,6 +149,8 @@ class StackSelectorTif(QtWidgets.QWidget):
     stack = None
     df = None
 
+    input_time_dt = None
+
     def __init__(self, parent, use_time=False):
         super().__init__()
         self.parent = parent
@@ -180,6 +182,12 @@ class StackSelectorTif(QtWidgets.QWidget):
         self.completer = QtWidgets.QCompleter(get_last_voxel_sizes(), self)
         self.input_voxel_size.line_edit.setCompleter(self.completer)
 
+        self.label = QtWidgets.QLabel()
+        layout_voxel.addWidget(self.label)
+
+        layout_voxel = QtWidgets.QHBoxLayout()
+        main_layout.addLayout(layout_voxel)
+
         if self.use_time:
             self.input_time_dt = QtShortCuts.QInputString(layout_voxel, "Time Delta", "0",
                                                              validator=self.validator_time, type=float)
@@ -188,12 +196,11 @@ class StackSelectorTif(QtWidgets.QWidget):
             self.completer2 = QtWidgets.QCompleter(get_last_time_deltas(), self)
             self.input_time_dt.line_edit.setCompleter(self.completer2)
 
-        self.label = QtWidgets.QLabel()
-        layout_voxel.addWidget(self.label)
-
         self.stack_initialized = None
 
     def validator_time(self, value=None):
+        if getattr(self, "input_time_dt", None) and not self.input_time_dt.isEnabled():
+            True
         try:
             if value is None:
                 value = self.input_time_dt.value()
@@ -288,8 +295,8 @@ class StackSelectorTif(QtWidgets.QWidget):
         self.c_prop.setValues(["None"]+properties)
         self.c_prop.setValue("None")
         if self.use_time:
-            self.t_prop.setValues(properties)
-            self.t_prop.setValue(t_name)
+            self.t_prop.setValues(["None"]+properties)
+            self.t_prop.setValue("None")
 
         self.setVisible(True)
         self.df = df
@@ -306,7 +313,13 @@ class StackSelectorTif(QtWidgets.QWidget):
             selected_props_dict[c_prop_name] = "{c}"
         if self.use_time:
             t_prop_name = self.t_prop.value()
-            selected_props_dict[t_prop_name] = "{t}"
+            if t_prop_name != "None":
+                selected_props_dict[t_prop_name] = "{t}"
+                self.input_tbar_unit.setDisabled(False)
+                self.input_time_dt.setDisabled(False)
+            else:
+                self.input_tbar_unit.setDisabled(True)
+                self.input_time_dt.setDisabled(True)
         for prop in self.property_selectors:
             if prop.name == z_prop_name or (self.use_time and prop.name == t_prop_name):
                 prop.setEnabled(False)
