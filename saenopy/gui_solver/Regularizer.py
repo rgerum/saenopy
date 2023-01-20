@@ -47,7 +47,7 @@ class Regularizer(PipelineModule):
                             self.input_stepper = QtShortCuts.QInputString(None, "stepper", "0.33", type=float)
                         with QtShortCuts.QHBoxLayout(None) as layout:
                             self.input_imax = QtShortCuts.QInputNumber(None, "i_max", 100, float=False)
-                            self.input_conv_crit = QtShortCuts.QInputNumber(None, "rel_conv_crit", 0.01, float=True)
+                            self.input_conv_crit = QtShortCuts.QInputString(None, "rel_conv_crit", 0.01, type=float)
 
                     self.input_button = QtShortCuts.QPushButton(None, "calculate forces", self.start_process)
 
