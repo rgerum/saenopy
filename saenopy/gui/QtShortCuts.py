@@ -282,9 +282,10 @@ class QInputBool(QInput):
     icon = None
     buttons = None
 
-    def __init__(self, layout=None, name=None, value=False, icon=None, group=False, **kwargs):
+    def __init__(self, layout=None, name=None, value=False, icon=None, group=False, tooltip=None, **kwargs):
         # initialize the super widget
-        QInput.__init__(self, layout, name, **kwargs)
+        QInput.__init__(self, layout, name, tooltip=tooltip, **kwargs)
+        self.tooltip = tooltip
 
         if self.settings is not None:
             value = self.settings.value(self.settings_key, value) == "true"
@@ -297,8 +298,8 @@ class QInputBool(QInput):
                 button = QtWidgets.QPushButton()
                 button.setIcon(button_icon)
                 button.setCheckable(True)
-                if kwargs["tooltip"] and isinstance(kwargs["tooltip"], list):
-                    button.setToolTip(kwargs["tooltip"][len(self.buttons)])
+                if tooltip and isinstance(tooltip, list):
+                    button.setToolTip(tooltip[len(self.buttons)])
                 self.layout().addWidget(button)
                 #self.button_group.addButton(button)
                 self.buttons.append(button)
@@ -341,6 +342,8 @@ class QInputBool(QInput):
             self.button.setChecked(bool(value))
             if isinstance(self.icon, list):
                 self.button.setIcon(self.icon[value])
+                if isinstance(self.tooltip, list):
+                    self.button.setToolTip(self.tooltip[value])
         elif self.buttons is not None:
             self.no_signal = True
             for button in self.buttons:
