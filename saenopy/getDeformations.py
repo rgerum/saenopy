@@ -92,8 +92,9 @@ def get_displacements_from_stacks(stack_relaxed, stack_deformed, win_um, element
 
     np.testing.assert_equal(stack_deformed.shape, stack_relaxed.shape, f"The two stacks do not have the same voxel count. {stack_deformed.shape}, {stack_relaxed.shape}")
 
-    stack_deformed = np.array(stack_deformed)
-    stack_relaxed = np.array(stack_relaxed)
+    # mean over the rgb channels
+    stack_deformed = np.mean(np.array(stack_deformed), axis=2)
+    stack_relaxed = np.mean(np.array(stack_relaxed), axis=2)
     M = getDisplacementsFromStacks_old(stack_deformed, stack_relaxed, voxel_size1,
                                         win_um=win_um,
                                         fac_overlap=fac_overlap,
@@ -239,7 +240,10 @@ def to_stack(image_filenames):
 
 def load_image_files_to_nparray(image_filenames):
     if isinstance(image_filenames, str):
-        return io.imread(image_filenames)
+        im = io.imread(image_filenames)
+        if len(im.shape) == 2:
+            im = im[:, :, None]
+        return im
     else:
         return [to_stack(i) for i in image_filenames]
 
@@ -305,9 +309,10 @@ class Stack(Saveable):
         return io.imread(self.image_filenames[z][channel])
 
     def __getitem__(self, index) -> np.ndarray:
-        """ axes are y, x, z, c """
-        images = np.array(self.image_filenames)[index[2], index[3]]
-        return np.swapaxes(np.asarray(load_image_files_to_nparray(images)).T, 1, 0)[index[0], index[1]]
+        """ axes are y, x, rgb, z, c """
+        images = np.array(self.image_filenames)[index[3], index[4]]
+        images = np.asarray(load_image_files_to_nparray(images)).T
+        return np.swapaxes(images, 0, 2)[index[0], index[1], index[2]]
 
         images = self.images
         channel = 0
@@ -326,7 +331,7 @@ class Stack(Saveable):
         return im[index[0], index[1]]
 
     def __array__(self) -> np.ndarray:
-        return self[:, :, :, 0]
+        return self[:, :, :, :, 0]
         return getStack(self.images)
 
 def center_field(U, R):
@@ -411,7 +416,7 @@ if __name__ == "__main__":
                 c_indices = [""]
         return image_filenames, c_indices
 
-    if 0:
+    if 1:
         image_filenames, c_indices = template_to_array("/home/richard/.local/share/saenopy/2_DynamicalSingleCellTFM/data/Pos*_S*_t00_z{z}_ch{c:01}.tif")
         for im in image_filenames:
             print("channel")
@@ -428,15 +433,18 @@ if __name__ == "__main__":
         image_filenames = np.array(image_filenames)[0:2, 1:5]
         def to_stack(image_filenames):
             if isinstance(image_filenames, str):
-                return io.imread(image_filenames)
+                im = io.imread(image_filenames)
+                return im[:,:,None]
             else:
                 return [to_stack(i) for i in image_filenames]
-        image_stack = np.swapaxes(np.asarray(to_stack(image_filenames)).T, 1, 0)
+        image_stack = np.asarray(to_stack(image_filenames)).T
+        #image_stack = np.swapaxes(image_stack, 1, 0)
         shape = list(image_stack.shape)
+        image_stack = np.swapaxes(image_stack, 2, 0)
         shape[0]
         print(image_stack.shape)
-        print(image_filenames)
-        print(c_indices)
+        #print(image_filenames)
+        #print(c_indices)
         exit()
 
     def process_line(filename, output_path):

@@ -193,10 +193,10 @@ class StackDisplay(PipelineModule):
                 if self.result.stack_parameter["z_project_name"] == "maximum":
                     start = np.clip(self.z_slider.value()-self.result.stack_parameter["z_project_range"], 0, stack.shape[2])
                     end = np.clip(self.z_slider.value()+self.result.stack_parameter["z_project_range"], 0, stack.shape[2])
-                    im = stack[:, :, start:end, 0]
-                    im = np.max(im, axis=2)
+                    im = stack[:, :, :, start:end, 0]
+                    im = np.max(im, axis=3)
                 else:
-                    im = stack[:, :, self.z_slider.value(), 0]
+                    im = stack[:, :, :, self.z_slider.value(), 0]
                 if self.contrast_enhance.value():
                     (min, max) = np.percentile(im, (1, 99))
                     im = im.astype(np.float32)-min

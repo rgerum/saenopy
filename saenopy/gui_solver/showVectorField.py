@@ -10,15 +10,15 @@ def getVectorFieldImage(self):
     image = self.vtk_toolbar.show_image.value()
     if image:
         stack = self.result.stack[self.t_slider.value()]
-        im = stack[:, :, self.z_slider.value(), self.vtk_toolbar.channel_select.value()]
+        im = stack[:, :, :, self.z_slider.value(), self.vtk_toolbar.channel_select.value()]
         if self.vtk_toolbar.button_z_proj.value():
         #if self.result.stack_parameter["z_project_name"] == "maximum":
             z_range = [0, 5, 10, 1000][self.vtk_toolbar.button_z_proj.value()]
             start = np.clip(self.z_slider.value() - z_range, 0,
                             stack.shape[2])
             end = np.clip(self.z_slider.value() + z_range, 0, stack.shape[2])
-            im = stack[:, :, start:end, self.vtk_toolbar.channel_select.value()]
-            im = np.max(im, axis=2)
+            im = stack[:, :, :, start:end, self.vtk_toolbar.channel_select.value()]
+            im = np.max(im, axis=3)
         else:
             (min, max) = np.percentile(im, (1, 99))
             im = im.astype(np.float32) - min
@@ -34,6 +34,8 @@ def getVectorFieldImage(self):
 
 def showVectorField2(self, M, points_name):
     display_image = getVectorFieldImage(self)
+    if display_image[0].shape[2] == 1:
+        display_image[0] = display_image[0][:, :, 0]
 
     try:
         field = getattr(M, points_name)
@@ -135,7 +137,7 @@ def showVectorField(plotter: QtInteractor, obj: Solver, field: np.ndarray, name:
             # adjust the direction of the underlying image 
             # the combination of following both operations does the job
             img_adjusted = img[:, ::-1]                             # mirror the image
-            img_adjusted = np.transpose(img_adjusted, axes=[1,0])   # switch axis 
+            img_adjusted = np.swapaxes(img_adjusted, 1,0)   # switch axis
             # get coords
             xmin = (-img_adjusted.shape[1]/2)*voxel_size[0]*1e-6
             ymin = (-img_adjusted.shape[0]/2)*voxel_size[1]*1e-6
