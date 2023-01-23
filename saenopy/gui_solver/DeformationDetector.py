@@ -182,7 +182,11 @@ class DeformationDetector(PipelineModule):
         if not isinstance(result.mesh_piv, list):
             result.mesh_piv = [None] * (len(result.stack) - 1)
 
-        for i in range(len(result.stack) - 1):
+        count = len(result.stack)
+        if result.stack_reference is None:
+            count -= 1
+
+        for i in range(count):
             p = ProcessSimple(getDeformation, (i, result, params), {}, self.processing_progress)
             p.start()
             result.mesh_piv[i] = p.join()
@@ -201,10 +205,20 @@ class DeformationDetector(PipelineModule):
             for result in results:
                 # set the parameters
                 result.piv_parameter = params
+                # get count
+                count = len(result.stack)
+                if result.stack_reference is None:
+                    count -= 1
                 # iterate over all stack pairs
-                for i in range(len(result.stack) - 1):
+                for i in range(count):
+                    # get both stacks, either reference stack and one from the list
+                    if result.stack_reference is None:
+                        stack1, stack2 = result.stack[i], result.stack[i + 1]
+                    # or two consecutive stacks
+                    else:
+                        stack1, stack2 = result.stack_reference, result.stack[i]
                     # and calculate the displacement between them
-                    result.mesh_piv[i] = saenopy.get_displacements_from_stacks(result.stack[i], result.stack[i + 1],
+                    result.mesh_piv[i] = saenopy.get_displacements_from_stacks(stack1, stack2,
                                                                                params["win_um"],
                                                                                params["elementsize"],
                                                                                params["signoise_filter"],
@@ -250,7 +264,11 @@ def getDeformation(progress, i, result, params):
     #tqdm.tqdm.__new__ = lambda cls, iter: progress.put(iter)
 
     try:
-        mesh_piv = saenopy.get_displacements_from_stacks(result.stack[i], result.stack[i + 1],
+        if result.stack_reference is None:
+            stack1, stack2 = result.stack[i], result.stack[i + 1]
+        else:
+            stack1, stack2 = result.stack_reference, result.stack[i]
+        mesh_piv = saenopy.get_displacements_from_stacks(stack1, stack2,
                                                          params["win_um"],
                                                          params["elementsize"],
                                                          params["signoise_filter"],
