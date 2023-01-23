@@ -41,10 +41,11 @@ def showVectorField2(self, M, points_name):
         field = M.getNodeVar(points_name)
     showVectorField(self.plotter, M, field, points_name,
                     scalebar_max=self.vtk_toolbar.getScaleMax(), show_nan=self.vtk_toolbar.use_nans.value(),
-                    display_image=display_image, show_grid=self.vtk_toolbar.show_grid.value())
+                    display_image=display_image, show_grid=self.vtk_toolbar.show_grid.value(),
+                    stack_shape=np.array(self.result.stack[0].shape[:3])*np.array(self.result.stack[0].voxel_size))
 
 
-def showVectorField(plotter: QtInteractor, obj: Solver, field: np.ndarray, name: str, center=None, show_nan=True,
+def showVectorField(plotter: QtInteractor, obj: Solver, field: np.ndarray, name: str, center=None, show_nan=True, stack_shape=None,
                     show_all_points=False, factor=.1, scalebar_max=None, display_image=None, show_grid=True):
     # force rendering to be disabled while updating content to prevent flickering
     render = plotter.render
@@ -163,6 +164,16 @@ def showVectorField(plotter: QtInteractor, obj: Solver, field: np.ndarray, name:
                                    [xmin, ymin, zmax], [xmax, ymin, zmax], [xmin, ymax, zmax], [xmax, ymax, zmax]])
             grid = pv.ExplicitStructuredGrid(np.asarray([2, 2, 2]), corners)
             plotter._box = plotter.add_mesh(grid, style='wireframe', render_lines_as_tubes=True, line_width=2, show_edges=True, name="border")
+        elif show_grid == 3:
+            xmin, xmax = -stack_shape[0]/2*1e-6, stack_shape[0]/2*1e-6
+            print(xmin,ymin)
+            ymin, ymax = -stack_shape[1]/2*1e-6, stack_shape[1]/2*1e-6
+            zmin, zmax = -stack_shape[2]/2*1e-6, stack_shape[2]/2*1e-6
+            corners = np.asarray([[xmin, ymin, zmin], [xmax, ymin, zmin], [xmin, ymax, zmin], [xmax, ymax, zmin],
+                                  [xmin, ymin, zmax], [xmax, ymin, zmax], [xmin, ymax, zmax], [xmax, ymax, zmax]])
+            grid = pv.ExplicitStructuredGrid(np.asarray([2, 2, 2]), corners)
+            plotter._box = plotter.add_mesh(grid, style='wireframe', render_lines_as_tubes=True, line_width=2,
+                                            show_edges=True, name="border")
         elif show_grid:
             plotter.show_grid(bounds=[xmin, xmax, ymin, ymax, zmin, zmax], color=plotter._theme.font.color, render=False)
     finally:

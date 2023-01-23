@@ -160,7 +160,7 @@ class DeformationDetector(PipelineModule):
 
                 showVectorField(plotter, M, M.getNodeVar("U_measured"), "U_measured",
                                 scalebar_max=self.vtk_toolbar.getScaleMax(), show_nan=self.vtk_toolbar.use_nans.value(),
-                                display_image=display_image, show_grid=self.vtk_toolbar.show_grid.value())
+                                display_image=display_image, show_grid=self.vtk_toolbar.show_grid.value(), stack_shape=self.result.stack[0].shape[:3]*self.result.stack[0].voxel_size)
 
         if cam_pos is not None:
             plotter.camera_position = cam_pos

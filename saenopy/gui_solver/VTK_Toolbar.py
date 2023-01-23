@@ -36,6 +36,7 @@ class VTK_Toolbar(QtWidgets.QWidget):
                     QtGui.QIcon(str(Path(__file__).parent.parent / "img" / "grid.ico")),
                     QtGui.QIcon(str(Path(__file__).parent.parent / "img" / "grid2.ico")),
                     QtGui.QIcon(str(Path(__file__).parent.parent / "img" / "grid3.ico")),
+                    QtGui.QIcon(str(Path(__file__).parent.parent / "img" / "grid3.ico")),
                 ])
             self.show_grid.valueChanged.connect(self.update_display)
             self.show_grid.valueChanged.connect(lambda value: shared_properties.change_property("show_grid", value, self))
@@ -46,7 +47,8 @@ class VTK_Toolbar(QtWidgets.QWidget):
                                                    tooltip="Display the stack image in the stack or at the bottom.", icon=[
                     QtGui.QIcon(str(Path(__file__).parent.parent / "img" / "show_image3.ico")),
                     QtGui.QIcon(str(Path(__file__).parent.parent / "img" / "show_image.ico")),
-                    QtGui.QIcon(str(Path(__file__).parent.parent / "img" / "show_image2.ico"))])
+                    QtGui.QIcon(str(Path(__file__).parent.parent / "img" / "show_image2.ico")),
+                ])
             self.show_image.valueChanged.connect(self.update_display)
             self.show_image.valueChanged.connect(
                 lambda value: shared_properties.change_property("show_image", value, self))
