@@ -204,7 +204,10 @@ class Result(Saveable):
         self.time_delta = time_delta
         self.template = template
 
-        self.mesh_piv = [None] * (len(self.stack) - 1)
+        if "stack_reference" in kwargs:
+            self.mesh_piv = [None] * (len(self.stack))
+        else:
+            self.mesh_piv = [None] * (len(self.stack) - 1)
         self.solver = [None] * (len(self.mesh_piv))
 
         super().__init__(**kwargs)

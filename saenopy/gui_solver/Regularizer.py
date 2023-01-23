@@ -99,14 +99,20 @@ class Regularizer(PipelineModule):
         self.update_display()
 
     def check_available(self, result: Result):
-        return result is not None and result.solver is not None and self.result.solver[0] is not None
+        try:
+            return self.result.solver[0] is not None
+        except (AttributeError, IndexError):
+            return False
 
     def check_evaluated(self, result: Result) -> bool:
-        if self.result is not None and self.result.solver is not None:
-            relrec = getattr(self.result.solver[self.t_slider.value()], "relrec", None)
-            if relrec is not None:
-                return True
-        return self.result is not None and self.result.solver is not None and getattr(self.result.solver[0], "regularisation_results", None) is not None
+        try:
+            if self.result is not None and self.result.solver is not None:
+                relrec = getattr(self.result.solver[self.t_slider.value()], "relrec", None)
+                if relrec is not None:
+                    return True
+            return getattr(self.result.solver[0], "regularisation_results", None) is not None
+        except (AttributeError, IndexError):
+            return False
 
     def iteration_callback(self, result, relrec, i=0, imax=None):
         if imax is not None:

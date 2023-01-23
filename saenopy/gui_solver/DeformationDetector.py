@@ -87,7 +87,10 @@ class DeformationDetector(PipelineModule):
         return result is not None and result.stack is not None and len(result.stack)
 
     def check_evaluated(self, result: Result) -> bool:
-        return self.result is not None and self.result.mesh_piv is not None and self.result.mesh_piv[0] is not None
+        try:
+            return self.result.mesh_piv[0] is not None
+        except (AttributeError, IndexError):
+            return False
 
     def property_changed(self, name, value):
         if name == "z_slider":

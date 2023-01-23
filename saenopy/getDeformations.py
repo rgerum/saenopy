@@ -230,6 +230,13 @@ def template_to_array(filename):
     return image_filenames, c_indices
 
 
+def to_stack(image_filenames):
+    if isinstance(image_filenames, str):
+        return io.imread(image_filenames)
+    else:
+        return [to_stack(i) for i in image_filenames]
+
+
 def load_image_files_to_nparray(image_filenames):
     if isinstance(image_filenames, str):
         return io.imread(image_filenames)
@@ -319,6 +326,7 @@ class Stack(Saveable):
         return im[index[0], index[1]]
 
     def __array__(self) -> np.ndarray:
+        return self[:, :, :, 0]
         return getStack(self.images)
 
 def center_field(U, R):

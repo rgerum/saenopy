@@ -49,7 +49,10 @@ class FittedMesh(PipelineModule):
         return result is not None and result.solver is not None
 
     def check_evaluated(self, result: Result) -> bool:
-        return self.result is not None and self.result.solver is not None and getattr(self.result.solver[0], "regularisation_results", None) is not None
+        try:
+            return getattr(self.result.solver[0], "regularisation_results", None) is not None
+        except (AttributeError, IndexError):
+            return False
 
     def property_changed(self, name, value):
         if name == "z_slider":

@@ -551,9 +551,8 @@ class BatchEvaluate(QtWidgets.QWidget):
             import appdirs
             if dialog.mode_data == 1:
                 results = get_stacks(
-                    [str(Path(appdirs.user_data_dir("saenopy", "rgerum")) / '1_ClassicSingleCellTFM/Relaxed/Mark_and_Find_001/Pos*_S001_z{z}_ch{c:00}.tif'),
-                     str(Path(appdirs.user_data_dir("saenopy", "rgerum")) / '1_ClassicSingleCellTFM/Deformed/Mark_and_Find_001/Pos*_S001_z{z}_ch{c:00}.tif'),
-                     ],
+                    str(Path(appdirs.user_data_dir("saenopy", "rgerum")) / '1_ClassicSingleCellTFM/Deformed/Mark_and_Find_001/Pos*_S001_z{z}_ch{c:00}.tif'),
+                    reference_stack=str(Path(appdirs.user_data_dir("saenopy", "rgerum")) / '1_ClassicSingleCellTFM/Relaxed/Mark_and_Find_001/Pos*_S001_z{z}_ch{c:00}.tif'),
                     output_path=str
                         (Path(appdirs.user_data_dir("saenopy", "rgerum")) / '1_ClassicSingleCellTFM/example_output'),
                     voxel_size=[0.7211, 0.7211, 0.988],
