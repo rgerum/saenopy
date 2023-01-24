@@ -51,7 +51,7 @@ class FittedMesh(PipelineModule):
     def check_evaluated(self, result: Result) -> bool:
         try:
             return getattr(self.result.solver[0], "regularisation_results", None) is not None
-        except (AttributeError, IndexError):
+        except (AttributeError, IndexError, TypeError):
             return False
 
     def property_changed(self, name, value):

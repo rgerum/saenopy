@@ -111,7 +111,7 @@ class Regularizer(PipelineModule):
                 if relrec is not None:
                     return True
             return getattr(self.result.solver[0], "regularisation_results", None) is not None
-        except (AttributeError, IndexError):
+        except (AttributeError, IndexError, TypeError):
             return False
 
     def iteration_callback(self, result, relrec, i=0, imax=None):

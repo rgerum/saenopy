@@ -427,9 +427,31 @@ class BatchEvaluate(QtWidgets.QWidget):
                                 self.button_addList5 = QtShortCuts.QPushButton(None, "ok", accept)
 
                         with self.tabs.createTab("Examples") as self.tab4:
+                            start_time = 0
+                            import time
+                            def reporthook(count, block_size, total_size, msg=None):
+                                nonlocal start_time
+                                if msg is not None:
+                                    print(msg)
+                                    self.download_state.setText(msg)
+                                    return
+                                if count == 0:
+                                    start_time = time.time()
+                                    return
+                                duration = time.time() - start_time
+                                progress_size = int(count * block_size)
+                                speed = int(progress_size / (1024 * duration + 0.001))
+                                percent = int(count * block_size * 100 / total_size)
+                                sys.stdout.write("\r...%d%%, %d MB, %d KB/s, %d seconds passed" %
+                                                 (percent, progress_size / (1024 * 1024), speed, duration))
+                                sys.stdout.flush()
+                                self.download_state.setText("...%d%%, %d MB, %d KB/s, %d seconds passed" %
+                                                 (percent, progress_size / (1024 * 1024), speed, duration))
+                                self.download_progress.setValue(percent)
+
                             def loadexample1():
                                 import appdirs
-                                saenopy.loadExample("ClassicSingleCellTFM", appdirs.user_data_dir("saenopy", "rgerum"))
+                                saenopy.loadExample("ClassicSingleCellTFM", appdirs.user_data_dir("saenopy", "rgerum"), reporthook)
                                 self.mode = "example"
                                 self.mode_data = 1
                                 self.accept()
@@ -440,7 +462,7 @@ class BatchEvaluate(QtWidgets.QWidget):
 
                             def loadexample2():
                                 import appdirs
-                                saenopy.loadExample("DynamicalSingleCellTFM", appdirs.user_data_dir("saenopy", "rgerum"))
+                                saenopy.loadExample("DynamicalSingleCellTFM", appdirs.user_data_dir("saenopy", "rgerum"), reporthook)
                                 self.mode = "example"
                                 self.mode_data = 2
                                 self.accept()
@@ -451,6 +473,9 @@ class BatchEvaluate(QtWidgets.QWidget):
 
                                 self.button_example2 = QtShortCuts.QPushButton(None, "Open", loadexample2)
                             self.tab4.addStretch()
+                            self.download_state = QtWidgets.QLabel("").addToLayout()
+                            self.download_progress = QtWidgets.QProgressBar().addToLayout()
+                            self.download_progress.setRange(0, 100)
 
 
         class FileExistsDialog(QtWidgets.QDialog):
