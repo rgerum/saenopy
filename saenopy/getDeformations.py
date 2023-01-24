@@ -266,7 +266,6 @@ class Stack(Saveable):
         else:
             self.image_filenames = image_filenames
             self.channels = channels
-        print("stack", filename, voxel_size, shape, channels)
         if shape is not None:
             self._shape = shape
         if 0:

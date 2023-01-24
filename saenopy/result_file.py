@@ -69,6 +69,10 @@ def process_line(filename, output_path):
     return results
 
 def get_stacks(filename, output_path, voxel_size, time_delta=None, reference_stack=None, exist_overwrite_callback=None):
+    filename = str(filename)
+    output_path = str(output_path)
+    if reference_stack is not None:
+        reference_stack = str(reference_stack)
     results1 = process_line(filename, output_path)
     results = []
     if reference_stack is not None:

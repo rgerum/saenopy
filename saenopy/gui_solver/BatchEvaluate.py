@@ -46,6 +46,7 @@ from .MeshCreator import MeshCreator
 from .Regularizer import Regularizer
 from .ResultView import ResultView
 from .StackDisplay import StackDisplay
+from saenopy.examples import getExamples
 
 
 class SharedProperties:
@@ -449,29 +450,62 @@ class BatchEvaluate(QtWidgets.QWidget):
                                                  (percent, progress_size / (1024 * 1024), speed, duration))
                                 self.download_progress.setValue(percent)
 
-                            def loadexample1():
-                                import appdirs
-                                saenopy.loadExample("ClassicSingleCellTFM", appdirs.user_data_dir("saenopy", "rgerum"), reporthook)
-                                self.mode = "example"
-                                self.mode_data = 1
-                                self.accept()
-                            with QtShortCuts.QGroupBox(None, "ClassicSingleCellTFM"):
-                                QtWidgets.QLabel \
-                                    ("This example evaluates three hepatic stellate cells in 1.2mg/ml collagen with relaxed and deformed stacks.\nThe relaxed stacks were recorded with cytochalasin D treatment of the cells.").addToLayout()
-                                self.button_example1 = QtShortCuts.QPushButton(None, "Open", loadexample1)
+                            examples = getExamples()
+                            with QtShortCuts.QHBoxLayout() as lay:
+                                for example_name, properties in examples.items():
+                                    def loadexample1():
+                                        saenopy.loadExample(example_name, None, reporthook)
+                                        self.mode = "example"
+                                        self.mode_data = example_name
+                                        self.accept()
 
-                            def loadexample2():
-                                import appdirs
-                                saenopy.loadExample("DynamicalSingleCellTFM", appdirs.user_data_dir("saenopy", "rgerum"), reporthook)
-                                self.mode = "example"
-                                self.mode_data = 2
-                                self.accept()
+                                    with QtShortCuts.QGroupBox(None, example_name) as group:
+                                        print(group)
+                                        group[0].setMaximumWidth(240)
+                                        label1 = QtWidgets.QLabel \
+                                            (properties["desc"]).addToLayout()
+                                        label1 = label1.setWordWrap(True)
+                                        label = QtWidgets.QLabel().addToLayout()
+                                        pix = QtGui.QPixmap(
+                                            str(properties["img"]))
+                                        pix = pix.scaledToWidth(
+                                            int(200 * QtGui.QGuiApplication.primaryScreen().logicalDotsPerInch() / 96),
+                                            QtCore.Qt.SmoothTransformation)
+                                        label.setPixmap(pix)
+                                        label.setSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
+                                        self.button_example1 = QtShortCuts.QPushButton(None, "Open", loadexample1)
+                                lay.addStretch()
+                            if 0:
+                                def loadexample1():
+                                    import appdirs
+                                    saenopy.loadExample("ClassicSingleCellTFM", appdirs.user_data_dir("saenopy", "rgerum"), reporthook)
+                                    self.mode = "example"
+                                    self.mode_data = 1
+                                    self.accept()
+                                with QtShortCuts.QGroupBox(None, "ClassicSingleCellTFM"):
+                                    QtWidgets.QLabel \
+                                        ("This example evaluates three hepatic stellate cells in 1.2mg/ml collagen with relaxed and deformed stacks.\nThe relaxed stacks were recorded with cytochalasin D treatment of the cells.").addToLayout()
+                                    label = QtWidgets.QLabel().addToLayout()
+                                    pix = QtGui.QPixmap(str(Path(__file__).parent.parent / "img" / "examples" / "example1.png"))
+                                    pix = pix.scaledToWidth(
+                                        int(200 * QtGui.QGuiApplication.primaryScreen().logicalDotsPerInch() / 96),
+                                        QtCore.Qt.SmoothTransformation)
+                                    label.setPixmap(pix)
+                                    label.setSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
+                                    self.button_example1 = QtShortCuts.QPushButton(None, "Open", loadexample1)
 
-                            with QtShortCuts.QGroupBox(None, "DynamicalSingleCellTFM"):
-                                QtWidgets.QLabel(
-                                    "This example evaluates a single natural killer cell that migrated through 1.2mg/ml collagen, recorded for 24min.").addToLayout()
+                                def loadexample2():
+                                    import appdirs
+                                    saenopy.loadExample("DynamicalSingleCellTFM", appdirs.user_data_dir("saenopy", "rgerum"), reporthook)
+                                    self.mode = "example"
+                                    self.mode_data = 2
+                                    self.accept()
 
-                                self.button_example2 = QtShortCuts.QPushButton(None, "Open", loadexample2)
+                                with QtShortCuts.QGroupBox(None, "DynamicalSingleCellTFM"):
+                                    QtWidgets.QLabel(
+                                        "This example evaluates a single natural killer cell that migrated through 1.2mg/ml collagen, recorded for 24min.").addToLayout()
+
+                                    self.button_example2 = QtShortCuts.QPushButton(None, "Open", loadexample2)
                             self.tab4.addStretch()
                             self.download_state = QtWidgets.QLabel("").addToLayout()
                             self.download_progress = QtWidgets.QProgressBar().addToLayout()
@@ -577,29 +611,19 @@ class BatchEvaluate(QtWidgets.QWidget):
                 data = Result.load(file)
                 self.list.addData(data.output, True, data, mpl.colors.to_hex(f"gray"))
         elif dialog.mode == "example":
-            import appdirs
-            if dialog.mode_data == 1:
-                results = get_stacks(
-                    str(Path(appdirs.user_data_dir("saenopy", "rgerum")) / '1_ClassicSingleCellTFM/Deformed/Mark_and_Find_001/Pos*_S001_z{z}_ch{c:00}.tif'),
-                    reference_stack=str(Path(appdirs.user_data_dir("saenopy", "rgerum")) / '1_ClassicSingleCellTFM/Relaxed/Mark_and_Find_001/Pos*_S001_z{z}_ch{c:00}.tif'),
-                    output_path=str
-                        (Path(appdirs.user_data_dir("saenopy", "rgerum")) / '1_ClassicSingleCellTFM/example_output'),
-                    voxel_size=[0.7211, 0.7211, 0.988],
-                    exist_overwrite_callback=do_overwrite,
-                )
-                for data in results:
-                    self.list.addData(data.output, True, data, mpl.colors.to_hex(f"gray"))
-            if dialog.mode_data == 2:
-                results = get_stacks(
-                    str(Path(appdirs.user_data_dir("saenopy", "rgerum")) / '2_DynamicalSingleCellTFM/data/Pos*_S001_t{t}_z{z}_ch{c:00}.tif'),
-                    output_path=str
-                        (Path(appdirs.user_data_dir("saenopy", "rgerum")) / '2_DynamicalSingleCellTFM/example_output'),
-                    voxel_size=[0.2407, 0.2407, 1.0071],
-                    time_delta=60,
-                    exist_overwrite_callback=do_overwrite,
-                )
-                for data in results:
-                    self.list.addData(data.output, True, data, mpl.colors.to_hex(f"gray"))
+
+            example = getExamples()[dialog.mode_data]
+
+            results = get_stacks(
+                example["stack"],
+                reference_stack=example.get("reference_stack", None),
+                output_path=example["output_path"],
+                voxel_size=example["voxel_size"],
+                time_delta=example.get("time_delta", None),
+                exist_overwrite_callback=do_overwrite,
+            )
+            for data in results:
+                self.list.addData(data.output, True, data, mpl.colors.to_hex(f"gray"))
 
         self.update_icons()
         # import matplotlib as mpl
