@@ -303,7 +303,7 @@ class BatchEvaluate(QtWidgets.QWidget):
                 self.setWindowTitle("Add Files")
                 with QtShortCuts.QVBoxLayout(self) as layout:
                     with QtShortCuts.QTabWidget(layout) as self.tabs:
-                        with self.tabs.createTab("New") as self.tab:
+                        with self.tabs.createTab("New Stacks") as self.tab:
                             self.outputText = QtShortCuts.QInputFolder(None, "output", settings=settings,
                                                                        settings_key="batch/wildcard2", allow_edit=True)
                             with QtShortCuts.QHBoxLayout() as layout3:
@@ -350,65 +350,65 @@ class BatchEvaluate(QtWidgets.QWidget):
                                         return
                                     self.accept()
                                 self.button_addList0 = QtShortCuts.QPushButton(None, "ok", accept)
+                        if 0:
+                            with self.tabs.createTab("Pair Stacks") as self.tab:
+                                self.outputText = QtShortCuts.QInputFolder(None, "output", settings=settings,
+                                                                           settings_key="batch/wildcard2", allow_edit=True)
+                                with QtShortCuts.QHBoxLayout() as layout3:
+                                    self.stack_relaxed = StackSelector(layout3, "relaxed")
+                                    self.stack_relaxed.glob_string_changed.connect \
+                                        (lambda x, y: (print("relaxed, y"), self.input_relaxed.setText(y)))
+                                    self.stack_deformed = StackSelector(layout3, "deformed", self.stack_relaxed)
+                                    self.stack_deformed.glob_string_changed.connect \
+                                        (lambda x, y: (print("deformed, y") ,self.input_deformed.setText(y)))
+                                with QtShortCuts.QHBoxLayout() as layout3:
+                                    self.input_relaxed = QtWidgets.QLineEdit().addToLayout()
+                                    self.input_deformed = QtWidgets.QLineEdit().addToLayout()
+                                with QtShortCuts.QHBoxLayout() as layout3:
+                                    # self.button_clear = QtShortCuts.QPushButton(None, "clear list", self.clear_files)
+                                    layout3.addStretch()
+                                    self.button_addList2 = QtShortCuts.QPushButton(None, "cancel", self.reject)
+                                    def accept():
+                                        self.mode = "pair"
+                                        if self.stack_relaxed.active is None:
+                                            QtWidgets.QMessageBox.critical(self, "Deformation Detector", "Provide a stack for the relaxed state.")
+                                            return
+                                        if not self.stack_relaxed.validator():
+                                            QtWidgets.QMessageBox.critical(self, "Deformation Detector", "Enter a valid voxel size for the relaxed stack.")
+                                            return
+                                        if self.stack_deformed.active is None:
+                                            QtWidgets.QMessageBox.critical(self, "Deformation Detector", "Provide a stack for the deformed state.")
+                                            return
+                                        if not self.stack_deformed.validator():
+                                            QtWidgets.QMessageBox.critical(self, "Deformation Detector", "Enter a valid voxel size for the deformed stack.")
+                                            return
+                                        self.accept()
+                                    self.button_addList1 = QtShortCuts.QPushButton(None, "ok", accept)
+                            with self.tabs.createTab("Time Stacks") as self.tab2:
+                                self.outputText2 = QtShortCuts.QInputFolder(None, "output", settings=settings,
+                                                                            settings_key="batch/wildcard2", allow_edit=True)
+                                with QtShortCuts.QHBoxLayout() as layout3:
+                                    self.stack_before2 = StackSelector(layout3, "time series", use_time=True)
+                                    self.stack_before2.glob_string_changed.connect \
+                                        (lambda x, y: self.input_relaxed2.setText(y))
+                                with QtShortCuts.QHBoxLayout() as layout3:
+                                    self.input_relaxed2 = QtWidgets.QLineEdit().addToLayout()
+                                with QtShortCuts.QHBoxLayout() as layout3:
+                                    # self.button_clear = QtShortCuts.QPushButton(None, "clear list", self.clear_files)
+                                    layout3.addStretch()
+                                    self.button_addList3 = QtShortCuts.QPushButton(None, "cancel", self.reject)
+                                    def accept():
+                                        if not self.stack_before2.validator():
+                                            QtWidgets.QMessageBox.critical(self, "Deformation Detector", "Enter a valid voxel size for the stack.")
+                                            return
+                                        if not self.stack_before2.validator_time():
+                                            QtWidgets.QMessageBox.critical(self, "Deformation Detector",
+                                                                           "Enter a valid time delta.")
+                                            return
 
-                        with self.tabs.createTab("Pair Stacks") as self.tab:
-                            self.outputText = QtShortCuts.QInputFolder(None, "output", settings=settings,
-                                                                       settings_key="batch/wildcard2", allow_edit=True)
-                            with QtShortCuts.QHBoxLayout() as layout3:
-                                self.stack_relaxed = StackSelector(layout3, "relaxed")
-                                self.stack_relaxed.glob_string_changed.connect \
-                                    (lambda x, y: (print("relaxed, y"), self.input_relaxed.setText(y)))
-                                self.stack_deformed = StackSelector(layout3, "deformed", self.stack_relaxed)
-                                self.stack_deformed.glob_string_changed.connect \
-                                    (lambda x, y: (print("deformed, y") ,self.input_deformed.setText(y)))
-                            with QtShortCuts.QHBoxLayout() as layout3:
-                                self.input_relaxed = QtWidgets.QLineEdit().addToLayout()
-                                self.input_deformed = QtWidgets.QLineEdit().addToLayout()
-                            with QtShortCuts.QHBoxLayout() as layout3:
-                                # self.button_clear = QtShortCuts.QPushButton(None, "clear list", self.clear_files)
-                                layout3.addStretch()
-                                self.button_addList2 = QtShortCuts.QPushButton(None, "cancel", self.reject)
-                                def accept():
-                                    self.mode = "pair"
-                                    if self.stack_relaxed.active is None:
-                                        QtWidgets.QMessageBox.critical(self, "Deformation Detector", "Provide a stack for the relaxed state.")
-                                        return
-                                    if not self.stack_relaxed.validator():
-                                        QtWidgets.QMessageBox.critical(self, "Deformation Detector", "Enter a valid voxel size for the relaxed stack.")
-                                        return
-                                    if self.stack_deformed.active is None:
-                                        QtWidgets.QMessageBox.critical(self, "Deformation Detector", "Provide a stack for the deformed state.")
-                                        return
-                                    if not self.stack_deformed.validator():
-                                        QtWidgets.QMessageBox.critical(self, "Deformation Detector", "Enter a valid voxel size for the deformed stack.")
-                                        return
-                                    self.accept()
-                                self.button_addList1 = QtShortCuts.QPushButton(None, "ok", accept)
-                        with self.tabs.createTab("Time Stacks") as self.tab2:
-                            self.outputText2 = QtShortCuts.QInputFolder(None, "output", settings=settings,
-                                                                        settings_key="batch/wildcard2", allow_edit=True)
-                            with QtShortCuts.QHBoxLayout() as layout3:
-                                self.stack_before2 = StackSelector(layout3, "time series", use_time=True)
-                                self.stack_before2.glob_string_changed.connect \
-                                    (lambda x, y: self.input_relaxed2.setText(y))
-                            with QtShortCuts.QHBoxLayout() as layout3:
-                                self.input_relaxed2 = QtWidgets.QLineEdit().addToLayout()
-                            with QtShortCuts.QHBoxLayout() as layout3:
-                                # self.button_clear = QtShortCuts.QPushButton(None, "clear list", self.clear_files)
-                                layout3.addStretch()
-                                self.button_addList3 = QtShortCuts.QPushButton(None, "cancel", self.reject)
-                                def accept():
-                                    if not self.stack_before2.validator():
-                                        QtWidgets.QMessageBox.critical(self, "Deformation Detector", "Enter a valid voxel size for the stack.")
-                                        return
-                                    if not self.stack_before2.validator_time():
-                                        QtWidgets.QMessageBox.critical(self, "Deformation Detector",
-                                                                       "Enter a valid time delta.")
-                                        return
-
-                                    self.mode = "time"
-                                    self.accept()
-                                self.button_addList4 = QtShortCuts.QPushButton(None, "ok", accept)
+                                        self.mode = "time"
+                                        self.accept()
+                                    self.button_addList4 = QtShortCuts.QPushButton(None, "ok", accept)
 
                         with self.tabs.createTab("Existing Files") as self.tab3:
                             self.outputText3 = QtShortCuts.QInputFilename(None, "output", settings=settings, file_type="Results Files (*.npz)",
