@@ -104,6 +104,8 @@ class StackSelectorTif(QtWidgets.QWidget):
         main_layout.addWidget(self.view)
         self.pixmap = QtWidgets.QGraphicsPixmapItem(self.view.origin)
 
+        self.view.setVisible(False)
+
         layout.addWidget(self)
         self.loading_process.connect(lambda i, im: (self.progressbar.setValue(i), self.pixmap.setPixmap(QtGui.QPixmap(array2qimage(im))), self.view.setExtend(im.shape[1], im.shape[0])))
         self.loading_finished.connect(self.loadingFinished)
@@ -197,6 +199,8 @@ class StackSelectorTif(QtWidgets.QWidget):
             self.input_time_dt.line_edit.setCompleter(self.completer2)
 
         self.stack_initialized = None
+        from saenopy.getDeformations import Stack
+        self.stack_obj = []
 
     def validator_time(self, value=None):
         if getattr(self, "input_time_dt", None) and not self.input_time_dt.isEnabled():
@@ -335,6 +339,20 @@ class StackSelectorTif(QtWidgets.QWidget):
             else:
                 selected_props_dict[prop.name] = str(prop.value())
 
+        self.stack_obj = []
+        from saenopy.getDeformations import Stack
+        if not self.use_time or t_prop_name == "None":
+            d = d.sort_values(z_prop_name)
+            self.stack_obj = [Stack()]
+            self.stack_obj[0].image_filenames = [[str(f)] for f in d.filename]
+        else:
+            d = d.sort_values([t_prop_name, z_prop_name])
+            self.stack_obj = []
+            for t, dd in d.groupby(t_prop_name):
+                s = Stack()
+                s.image_filenames = [[str(f)] for f in dd.filename]
+                self.stack_obj.append(s)
+
         self.target_glob = self.format_template.format(**selected_props_dict)
         self.parent.glob_string_changed.emit('getstack', self.target_glob)
 
@@ -414,4 +432,14 @@ class StackSelectorTif(QtWidgets.QWidget):
 
     def getStack(self):
         return self.stack
+
+
+class StackObject:
+    image_filenames = []
+    def __init__(self):
+        pass
+
+    def __getitem__(self, item):
+        #image_filenames[item[3]]
+        pass
 

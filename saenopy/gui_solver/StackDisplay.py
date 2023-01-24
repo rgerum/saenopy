@@ -314,7 +314,10 @@ class ModuleScaleBar(QtWidgets.QGroupBox):
                 mu = old_v
                 break
             old_v = v
-        pixel = mu/(self.pixtomu)*self.scale
+        if np.abs(self.pixtomu) < 1e-10:
+            pixel = 0
+        else:
+            pixel = mu/(self.pixtomu)*self.scale
         self.scalebar.setRect(0, 0, -pixel, 5)
         self.scalebar_text.setPos(-pixel-20-25, -20-30)
         self.scalebar_text.setTextWidth(pixel+50)

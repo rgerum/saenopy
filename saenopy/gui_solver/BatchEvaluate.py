@@ -305,8 +305,7 @@ class BatchEvaluate(QtWidgets.QWidget):
                 with QtShortCuts.QVBoxLayout(self) as layout:
                     with QtShortCuts.QTabWidget(layout) as self.tabs:
                         with self.tabs.createTab("New Stacks") as self.tab:
-                            self.outputText = QtShortCuts.QInputFolder(None, "output", settings=settings,
-                                                                       settings_key="batch/wildcard2", allow_edit=True)
+
                             with QtShortCuts.QHBoxLayout() as layout3:
                                 with QtShortCuts.QVBoxLayout() as layout4:
                                     layout4.setContentsMargins(0, 0, 0, 0)
@@ -330,6 +329,10 @@ class BatchEvaluate(QtWidgets.QWidget):
                                     self.stack_data.glob_string_changed.connect \
                                         (lambda x, y: (print("deformed, y") ,self.stack_data_input.setText(y)))
                                     self.stack_data_input = QtWidgets.QLineEdit().addToLayout()
+                                from saenopy.gui.stack_preview import StackPreview
+                                self.stack_preview = StackPreview(layout3, self.reference_choice, self.stack_reference, self.stack_data)
+                            self.outputText = QtShortCuts.QInputFolder(None, "output", settings=settings,
+                                                                       settings_key="batch/wildcard2", allow_edit=True)
                             with QtShortCuts.QHBoxLayout() as layout3:
                                 # self.button_clear = QtShortCuts.QPushButton(None, "clear list", self.clear_files)
                                 layout3.addStretch()
@@ -418,6 +421,7 @@ class BatchEvaluate(QtWidgets.QWidget):
                         with self.tabs.createTab("Existing Files") as self.tab3:
                             self.outputText3 = QtShortCuts.QInputFilename(None, "output", settings=settings, file_type="Results Files (*.npz)",
                                                                           settings_key="batch/wildcard_existing", allow_edit=True, existing=True)
+                            self.tab3.addStretch()
                             with QtShortCuts.QHBoxLayout() as layout3:
                                 # self.button_clear = QtShortCuts.QPushButton(None, "clear list", self.clear_files)
                                 layout3.addStretch()
@@ -566,18 +570,23 @@ class BatchEvaluate(QtWidgets.QWidget):
                 add_last_time_delta(dialog.stack_data.getTimeDelta())
             else:
                 time_delta = None
-            results = get_stacks(
-                active_stack,
-                reference_stack=reference_stack,
-                output_path=dialog.outputText.value(),
-                voxel_size=dialog.stack_data.getVoxelSize(),
-                time_delta=time_delta,
-                exist_overwrite_callback=do_overwrite,
-            )
-            add_last_voxel_size(dialog.stack_data.getVoxelSize())
+            try:
+                results = get_stacks(
+                    active_stack,
+                    reference_stack=reference_stack,
+                    output_path=dialog.outputText.value(),
+                    voxel_size=dialog.stack_data.getVoxelSize(),
+                    time_delta=time_delta,
+                    exist_overwrite_callback=do_overwrite,
+                )
+            except Exception as err:
+                QtWidgets.QMessageBox.critical(self, "Load Stacks",
+                                               str(err))
+            else:
+                add_last_voxel_size(dialog.stack_data.getVoxelSize())
 
-            for data in results:
-                self.list.addData(data.output, True, data, mpl.colors.to_hex(f"gray"))
+                for data in results:
+                    self.list.addData(data.output, True, data, mpl.colors.to_hex(f"gray"))
 
         elif dialog.mode == "pair":
             results = get_stacks(

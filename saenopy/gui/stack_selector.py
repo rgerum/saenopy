@@ -407,9 +407,13 @@ class StackSelector(QtWidgets.QWidget):
         self.z_slider.valueChanged.connect(self.zValueChanged)
         self.z_slider.activeRangeChanged.connect(lambda x: self.zValueChanged(self.z_slider.value()))
 
+        self.view.setVisible(False)
+        self.z_slider.setVisible(False)
+        main_layout.addStretch()
+
         layout_image.addWidget(self.z_slider)
 
-        if self.partner is not None:
+        if self.partner is not None and 0:
             layout_link = QtWidgets.QHBoxLayout()
             layout_link.setContentsMargins(0, 0, 0, 0)
             main_layout.addLayout(layout_link)

@@ -259,9 +259,10 @@ class Stack(Saveable):
                 template = filenames_to_channel_template(filename)
             else:
                 template = filename
+        if template is not None:
             template = template.replace("*", "{z}")
         self.template = template
-        if image_filenames is None:
+        if image_filenames is None and template is not None:
             self.image_filenames, self.channels = template_to_array(template)
         else:
             self.image_filenames = image_filenames
