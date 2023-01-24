@@ -34,8 +34,10 @@ def getVectorFieldImage(self):
 
 def showVectorField2(self, M, points_name):
     display_image = getVectorFieldImage(self)
-    if display_image[0].shape[2] == 1:
+    
+    if (display_image is not None) and (display_image[0].shape[2] == 1):
         display_image[0] = display_image[0][:, :, 0]
+   
 
     try:
         field = getattr(M, points_name)
