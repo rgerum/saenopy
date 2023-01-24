@@ -310,8 +310,12 @@ class BatchEvaluate(QtWidgets.QWidget):
                                 with QtShortCuts.QVBoxLayout() as layout4:
                                     layout4.setContentsMargins(0, 0, 0, 0)
                                     self.reference_choice = QtShortCuts.QInputChoice(None, "Reference", 0, [0, 1], ["difference between time points", "single stack"])
+                                    self.place_holder_widget = QtWidgets.QWidget().addToLayout()
+                                    layout_place_holder = QtWidgets.QVBoxLayout(self.place_holder_widget)
+                                    layout_place_holder.addStretch()
                                     def ref_changed():
                                         self.stack_reference.setVisible(self.reference_choice.value())
+                                        self.place_holder_widget.setVisible(not self.reference_choice.value())
                                     self.reference_choice.valueChanged.connect(ref_changed)
                                     self.stack_reference = StackSelector(layout4, "reference")
                                     self.stack_reference.glob_string_changed.connect \
