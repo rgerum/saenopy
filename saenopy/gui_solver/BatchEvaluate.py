@@ -453,14 +453,13 @@ class BatchEvaluate(QtWidgets.QWidget):
                             examples = getExamples()
                             with QtShortCuts.QHBoxLayout() as lay:
                                 for example_name, properties in examples.items():
-                                    def loadexample1():
+                                    def loadexample1(example_name):
                                         saenopy.loadExample(example_name, None, reporthook)
                                         self.mode = "example"
                                         self.mode_data = example_name
                                         self.accept()
 
                                     with QtShortCuts.QGroupBox(None, example_name) as group:
-                                        print(group)
                                         group[0].setMaximumWidth(240)
                                         label1 = QtWidgets.QLabel \
                                             (properties["desc"]).addToLayout()
@@ -473,7 +472,7 @@ class BatchEvaluate(QtWidgets.QWidget):
                                             QtCore.Qt.SmoothTransformation)
                                         label.setPixmap(pix)
                                         label.setSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
-                                        self.button_example1 = QtShortCuts.QPushButton(None, "Open", loadexample1)
+                                        self.button_example1 = QtShortCuts.QPushButton(None, "Open", lambda *, example_name=example_name: loadexample1(example_name))
                                 lay.addStretch()
                             if 0:
                                 def loadexample1():
@@ -623,6 +622,9 @@ class BatchEvaluate(QtWidgets.QWidget):
                 exist_overwrite_callback=do_overwrite,
             )
             for data in results:
+                data.piv_parameter = example["piv_parameter"]
+                data.interpolate_parameter = example["interpolate_parameter"]
+                data.solver_parameter = example["solver_parameter"]
                 self.list.addData(data.output, True, data, mpl.colors.to_hex(f"gray"))
 
         self.update_icons()
