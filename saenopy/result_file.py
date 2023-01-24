@@ -61,7 +61,7 @@ def process_line(filename, output_path):
         # create the output path
         output = Path(output_path) / os.path.relpath(r1, output_base)
         output = output.parent / output.stem
-        output = Path(str(output).replace("*", "").replace("{c}", "{c" + str(channel1) + "}") + ".npz")
+        output = Path(str(output).replace("*", "").replace("{c}", "{c" + str(channel1) + "}").replace("{c:", "{c") + ".npz")
 
         results.append({"filename": r1, "dimensions": counts, "output": output})
         if "t" in d1.columns:
