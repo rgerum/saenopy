@@ -231,13 +231,6 @@ def template_to_array(filename):
     return image_filenames, c_indices
 
 
-def to_stack(image_filenames):
-    if isinstance(image_filenames, str):
-        return io.imread(image_filenames)
-    else:
-        return [to_stack(i) for i in image_filenames]
-
-
 def load_image_files_to_nparray(image_filenames):
     if isinstance(image_filenames, str):
         im = io.imread(image_filenames)
@@ -245,7 +238,7 @@ def load_image_files_to_nparray(image_filenames):
             im = im[:, :, None]
         return im
     else:
-        return [to_stack(i) for i in image_filenames]
+        return [load_image_files_to_nparray(i) for i in image_filenames]
 
 
 class Stack(Saveable):
@@ -312,7 +305,8 @@ class Stack(Saveable):
         """ axes are y, x, rgb, z, c """
         images = np.array(self.image_filenames)[index[3], index[4]]
         images = np.asarray(load_image_files_to_nparray(images)).T
-        return np.swapaxes(images, 0, 2)[index[0], index[1], index[2]]
+        images = np.swapaxes(images, 0, 2)
+        return images[index[0], index[1], index[2]]
 
         images = self.images
         channel = 0
