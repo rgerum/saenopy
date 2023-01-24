@@ -17,3 +17,4 @@ david/
 /.eggs/
 /docs/build/
 poetry.lock
+/docs/source/auto_examples/

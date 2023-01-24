@@ -28,7 +28,7 @@ This migration immune cell demonstrated what scientific discoveries you can achi
    regularization.ipynb
    mesh
    material.ipynb
-   examples
+   auto_examples/index.rst
    api
 
 Installation
@@ -41,6 +41,7 @@ Saenopy can be installed directly using pip:
 Now you can start the user interface with:
 
     ``saenopy``
+
 
 Citing Saenopy
 --------------
