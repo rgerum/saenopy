@@ -46,11 +46,14 @@ def showVectorField2(self, M, points_name):
     showVectorField(self.plotter, M, field, points_name,
                     scalebar_max=self.vtk_toolbar.getScaleMax(), show_nan=self.vtk_toolbar.use_nans.value(),
                     display_image=display_image, show_grid=self.vtk_toolbar.show_grid.value(),
+                    factor=0.1*self.vtk_toolbar.arrow_scale.value(),
+                    colormap=self.vtk_toolbar.colormap_chooser.value(),
                     stack_shape=np.array(self.result.stack[0].shape[:3])*np.array(self.result.stack[0].voxel_size))
 
 
 def showVectorField(plotter: QtInteractor, obj: Solver, field: np.ndarray, name: str, center=None, show_nan=True, stack_shape=None,
-                    show_all_points=False, factor=.1, scalebar_max=None, display_image=None, show_grid=True):
+                    show_all_points=False, factor=.1, scalebar_max=None, display_image=None, show_grid=True,
+                    colormap="turbo"):
     # ensure that the image is either with color channels or no channels
     if (display_image is not None) and (display_image[0].shape[2] == 1):
         display_image[0] = display_image[0][:, :, 0]
@@ -114,14 +117,14 @@ def showVectorField(plotter: QtInteractor, obj: Solver, field: np.ndarray, name:
 
         # show the points
         if show_all_points:
-            plotter.add_mesh(point_cloud, colormap="turbo", scalars=name + "_mag2", render=False)
+            plotter.add_mesh(point_cloud, colormap=colormap, scalars=name + "_mag2", render=False)
         elif show_nan:
             if R.shape[0]:
-                plotter.nan_actor = plotter.add_mesh(point_cloud2, colormap="turbo", scalars="nan",
+                plotter.nan_actor = plotter.add_mesh(point_cloud2, colormap=colormap, scalars="nan",
                                                      show_scalar_bar=False, render=False)
 
         # add the arrows
-        plotter.add_mesh(arrows, scalar_bar_args=sargs, colormap="turbo", name="arrows", render=False)
+        plotter.add_mesh(arrows, scalar_bar_args=sargs, colormap=colormap, name="arrows", render=False)
 
         # update the scalebar
         plotter.auto_value = np.nanpercentile(point_cloud[name + "_mag2"], 99.9)

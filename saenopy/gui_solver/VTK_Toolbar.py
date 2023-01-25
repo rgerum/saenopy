@@ -19,6 +19,8 @@ class VTK_Toolbar(QtWidgets.QWidget):
         self.z_slider = z_slider
         vtk_toolbars.append(self)
 
+        self.is_force_plot = center
+
         with QtShortCuts.QHBoxLayout(self) as layout0:
             layout0.setContentsMargins(0, 0, 0, 0)
             self.theme = QtShortCuts.QInputChoice(None, "Theme", value=self.theme_values[2],
@@ -36,7 +38,7 @@ class VTK_Toolbar(QtWidgets.QWidget):
             self.scale_max = QtShortCuts.QInputString(None, "", 1e-6, type=float, tooltip="Set the maximum of the color scale.")
             self.scale_max.valueChanged.connect(self.scale_max_changed)
             self.scale_max.setDisabled(self.auto_scale.value())
-            if center is True:
+            if self.is_force_plot is True:
                 self.auto_scale.valueChanged.connect(
                     lambda value: shared_properties.change_property("auto_scale_force", value, self))
                 shared_properties.add_property("auto_scale_force", self)
@@ -49,6 +51,27 @@ class VTK_Toolbar(QtWidgets.QWidget):
                 self.scale_max.valueChanged.connect(
                     lambda value: shared_properties.change_property("scale_max", value, self))
                 shared_properties.add_property("scale_max", self)
+
+            self.window_scale = QtWidgets.QWidget()
+            self.window_scale.setWindowTitle("Saenopy - Arrow Scale")
+            with QtShortCuts.QVBoxLayout(self.window_scale):
+                self.arrow_scale = QtShortCuts.QInputNumber(None, "arrow scale", 1, 0.1, 10, use_slider=True, log_slider=True)
+                self.arrow_scale.valueChanged.connect(self.update_display)
+                addition = ""
+                if self.is_force_plot:
+                    addition = "_force"
+                self.arrow_scale.valueChanged.connect(
+                    lambda value: shared_properties.change_property("arrow_scale"+addition, value, self))
+                shared_properties.add_property("arrow_scale"+addition, self)
+
+                self.colormap_chooser = QtShortCuts.QDragableColor("turbo").addToLayout()
+                self.colormap_chooser.valueChanged.connect(self.update_display)
+
+                self.colormap_chooser.valueChanged.connect(
+                    lambda value: shared_properties.change_property("colormap_chooser"+addition, value, self))
+                shared_properties.add_property("colormap_chooser"+addition, self)
+            self.button_arrow_scale = QtShortCuts.QPushButton(None, "", lambda x: self.window_scale.show())
+            self.button_arrow_scale.setIcon(QtGui.QIcon(str(Path(__file__).parent.parent / "img" / "arrowscale.ico")))
 
             self.use_nans = QtShortCuts.QInputBool(None, "", icon=[
                 QtGui.QIcon(str(Path(__file__).parent.parent / "img" / "nan0.ico")),
@@ -73,11 +96,7 @@ class VTK_Toolbar(QtWidgets.QWidget):
                     QtGui.QIcon(str(Path(__file__).parent.parent / "img" / "center0.ico")),
                     QtGui.QIcon(str(Path(__file__).parent.parent / "img" / "center1.ico")),
                 ], group=False, tooltip="Display the center of the force field.")
-                if 0:
-                    self.use_center = QtShortCuts.QInputBool(None, "center", True,
-                                                           tooltip="Display the center of the force field.")
                 self.use_center.valueChanged.connect(self.update_display)
-            self.is_force_plot = center
 
             QtShortCuts.QVLine()
 
@@ -205,26 +224,28 @@ class VTK_Toolbar(QtWidgets.QWidget):
             if value != self.contrast_enhance.value():
                 self.contrast_enhance.setValue(value)
                 self.update_display()
+
+        addition = ""
         if self.is_force_plot:
-            if name == "scale_max_force":
-                if value != self.auto_scale.value():
-                    self.auto_scale.setValue(value)
-                    self.scale_max.setDisabled(self.auto_scale.value())
-                    self.update_display()
-            if name == "scale_max_force":
-                if value != self.scale_max.value():
-                    self.scale_max.setValue(value)
-                    self.update_display()
-        else:
-            if name == "auto_scale":
-                if value != self.auto_scale.value():
-                    self.auto_scale.setValue(value)
-                    self.scale_max.setDisabled(self.auto_scale.value())
-                    self.update_display()
-            if name == "scale_max":
-                if value != self.scale_max.value():
-                    self.scale_max.setValue(value)
-                    self.update_display()
+            addition = "_force"
+
+        if name == "auto_scale"+addition:
+            if value != self.auto_scale.value():
+                self.auto_scale.setValue(value)
+                self.scale_max.setDisabled(self.auto_scale.value())
+                self.update_display()
+        if name == "scale_max"+addition:
+            if value != self.scale_max.value():
+                self.scale_max.setValue(value)
+                self.update_display()
+        if name == "colormap_chooser"+addition:
+            if value != self.colormap_chooser.value():
+                self.colormap_chooser.setValue(value)
+                self.update_display()
+        if name == "arrow_scale"+addition:
+            if value != self.arrow_scale.value():
+                self.arrow_scale.setValue(value)
+                self.update_display()
 
     def scale_max_changed(self):
         self.scale_max.setDisabled(self.auto_scale.value())
