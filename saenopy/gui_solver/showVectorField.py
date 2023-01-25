@@ -16,14 +16,14 @@ def getVectorFieldImage(self):
         else:
             im = stack[:, :, :, self.z_slider.value(), self.vtk_toolbar.channel_select.value()]
         if self.vtk_toolbar.button_z_proj.value():
-        #if self.result.stack_parameter["z_project_name"] == "maximum":
             z_range = [0, 5, 10, 1000][self.vtk_toolbar.button_z_proj.value()]
             start = np.clip(self.z_slider.value() - z_range, 0,
                             stack.shape[2])
             end = np.clip(self.z_slider.value() + z_range, 0, stack.shape[2])
             im = stack[:, :, :, start:end, self.vtk_toolbar.channel_select.value()]
             im = np.max(im, axis=3)
-        else:
+
+        if self.vtk_toolbar.contrast_enhance.value():
             (min, max) = np.percentile(im, (1, 99))
             im = im.astype(np.float32) - min
             im = im.astype(np.float64) * 255 / (max - min)

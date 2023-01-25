@@ -69,12 +69,17 @@ class StackDisplay(PipelineModule):
                         self.button_z_proj.valueChanged.connect(
                             lambda value: parent.shared_properties.change_property("button_z_proj", value, self))
                         parent.shared_properties.add_property("button_z_proj", self)
+
+                        self.contrast_enhance = QtShortCuts.QInputBool(None, "", icon=[
+                            QtGui.QIcon(str(Path(__file__).parent.parent / "img" / "contrast0.ico")),
+                            QtGui.QIcon(str(Path(__file__).parent.parent / "img" / "contrast1.ico")),
+                        ], group=False, tooltip="Toggle contrast enhancement")
+                        self.contrast_enhance.valueChanged.connect(self.z_slider_value_changed)
+                        self.contrast_enhance.valueChanged.connect(
+                            lambda value: parent.shared_properties.change_property("contrast_enhance", value, self))
+                        parent.shared_properties.add_property("contrast_enhance", self)
                         QtShortCuts.QVLine()
 
-                        self.contrast_enhance = QtShortCuts.QInputBool(None, "contrast enhance", False,
-                                                                       settings=self.parent.settings,
-                                                                       settings_key="stack_contrast_enhance")
-                        self.contrast_enhance.valueChanged.connect(self.z_slider_value_changed)
                         self.button = QtWidgets.QPushButton(qta.icon("fa5s.home"), "").addToLayout()
                         self.button.setToolTip("reset view")
                         self.button.clicked.connect(lambda x: (self.view1.fitInView(), self.view2.fitInView()))
@@ -174,19 +179,24 @@ class StackDisplay(PipelineModule):
 
     def property_changed(self, name, value):
         if name == "z_slider":
-            self.z_slider.setValue(value)
-            self.z_slider_value_changed()
+            if value != self.z_slider.value():
+                self.z_slider.setValue(value)
+                self.z_slider_value_changed()
         if name == "button_z_proj":
-            self.button_z_proj.setValue(value)
-            self.z_slider_value_changed()
+            if value != self.button_z_proj.value():
+                self.button_z_proj.setValue(value)
+                self.z_slider_value_changed()
         if name == "channel_select":
-            print("channel_select", value, self.channel_select.value_names)
-            if value < len(self.channel_select.value_names):
-                self.channel_select.setValue(value)
-            else:
-                self.channel_select.setValue(0)
-            print(self.channel_select.value())
-            self.z_slider_value_changed()
+            if value != self.channel_select.value():
+                if value < len(self.channel_select.value_names):
+                    self.channel_select.setValue(value)
+                else:
+                    self.channel_select.setValue(0)
+                self.z_slider_value_changed()
+        if name == "contrast_enhance":
+            if value != self.contrast_enhance.value():
+                self.contrast_enhance.setValue(value)
+                self.update_display()
 
     def setResult(self, result: Result):
         super().setResult(result)

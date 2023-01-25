@@ -42,6 +42,7 @@ class VTK_Toolbar(QtWidgets.QWidget):
             self.show_grid.valueChanged.connect(lambda value: shared_properties.change_property("show_grid", value, self))
             shared_properties.add_property("show_grid", self)
 
+            QtShortCuts.QVLine()
 
             self.show_image = QtShortCuts.QInputBool(None, "", True,
                                                    tooltip="Display the stack image in the stack or at the bottom.", icon=[
@@ -74,6 +75,17 @@ class VTK_Toolbar(QtWidgets.QWidget):
             self.button_z_proj.valueChanged.connect(
                 lambda value: shared_properties.change_property("button_z_proj", value, self))
             shared_properties.add_property("button_z_proj", self)
+
+            self.contrast_enhance = QtShortCuts.QInputBool(None, "", icon=[
+                QtGui.QIcon(str(Path(__file__).parent.parent / "img" / "contrast0.ico")),
+                QtGui.QIcon(str(Path(__file__).parent.parent / "img" / "contrast1.ico")),
+            ], group=False, tooltip="Toggle contrast enhancement")
+            self.contrast_enhance.valueChanged.connect(self.update_display)
+            self.contrast_enhance.valueChanged.connect(
+                lambda value: shared_properties.change_property("contrast_enhance", value, self))
+            shared_properties.add_property("contrast_enhance", self)
+
+            QtShortCuts.QVLine()
 
             if center is True:
                 self.use_center = QtShortCuts.QInputBool(None, "center", True,
@@ -155,6 +167,10 @@ class VTK_Toolbar(QtWidgets.QWidget):
         if name == "button_z_proj":
             if value != self.button_z_proj.value():
                 self.button_z_proj.setValue(value)
+                self.update_display()
+        if name == "contrast_enhance":
+            if value != self.contrast_enhance.value():
+                self.contrast_enhance.setValue(value)
                 self.update_display()
 
     def scale_max_changed(self):
