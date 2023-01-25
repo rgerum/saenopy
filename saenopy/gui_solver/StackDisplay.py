@@ -148,13 +148,16 @@ class StackDisplay(PipelineModule):
             new_path = new_path.strip(".gif").strip("_relaxed.tif").strip("_deformed.tif")
             new_path = Path(new_path)
             print(new_path.parent / (new_path.stem + "_deformed.tif"))
-            tifffile.imsave(new_path.parent / (new_path.stem + "_relaxed.tif"),
-                            self.result.stack[0][:, :, self.z_slider.value()])
-            tifffile.imsave(new_path.parent / (new_path.stem + "_deformed.tif"),
-                            self.result.stack[1][:, :, self.z_slider.value()])
-            imageio.mimsave(new_path.parent / (new_path.stem + ".gif"),
-                            [self.result.stack[0][:, :, self.z_slider.value()],
-                             self.result.stack[1][:, :, self.z_slider.value()]], fps=2)
+            t = self.t_slider.value()
+            z = self.z_slider.value()
+            c = 0
+            if self.result.stack_reference is not None:
+                stack1, stack2 = self.result.stack_reference[:, :, :, z, c], self.result.stack[t][:, :, :, z, c]
+            else:
+                stack1, stack2 = self.result.stack[t][:, :, :, z, c], self.result.stack[t + 1][:, :, :, z, c]
+            tifffile.imsave(new_path.parent / (new_path.stem + "_relaxed.tif"), stack1)
+            tifffile.imsave(new_path.parent / (new_path.stem + "_deformed.tif"), stack2)
+            imageio.mimsave(new_path.parent / (new_path.stem + ".gif"), [stack1, stack2], fps=2)
 
     def update_display(self):
         return
