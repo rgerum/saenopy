@@ -54,7 +54,7 @@ class VTK_Toolbar(QtWidgets.QWidget):
                 lambda value: shared_properties.change_property("show_image", value, self))
             shared_properties.add_property("show_image", self)
 
-            self.channel_select = QtShortCuts.QInputChoice(None, "", 0, [0], [""])
+            self.channel_select = QtShortCuts.QInputChoice(None, "", 0, [0], ["       "])
             self.channel_select.valueChanged.connect(self.update_display)
             self.channel_select.valueChanged.connect(
                 lambda value: shared_properties.change_property("channel_select", value, self))
