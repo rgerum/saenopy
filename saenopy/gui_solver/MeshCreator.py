@@ -57,8 +57,8 @@ class MeshCreator(PipelineModule):
                 with QtShortCuts.QVBoxLayout():
 
                     with QtShortCuts.QHBoxLayout() as layout2:
-                        self.input_reference = QtShortCuts.QInputChoice(None, "reference stack", "first",
-                                                                        ["first", "median", "last",  "next"])
+                        self.input_reference = QtShortCuts.QInputChoice(None, "reference stack", "next",
+                                                                        ["next", "median"])
                         self.input_reference.setEnabled(False)
                         self.input_element_size = QtShortCuts.QInputNumber(None, "mesh elem. size", 7, unit="μm")
                         #with QtShortCuts.QHBoxLayout() as layout2:
@@ -155,6 +155,13 @@ class MeshCreator(PipelineModule):
                 self.vtk_toolbar.channel_select.setValue(0)
                 self.vtk_toolbar.channel_select.setVisible(False)
 
+            if result.stack_reference is None:
+                self.input_reference.setValues(["next", "median"])
+                self.input_reference.setEnabled(True)
+            else:
+                self.input_reference.setValues(["reference stack"])
+                self.input_reference.setEnabled(False)
+
     def update_display(self):
         if self.current_tab_selected is False:
             self.current_result_plotted = False
@@ -207,7 +214,7 @@ class MeshCreator(PipelineModule):
 
         U = [M.getNodeVar("U_measured") for M in result.mesh_piv]
         # correct for the median position
-        if len(U) > 2:
+        if result.stack_reference is None:# len(U) > 2:
             xpos2 = np.cumsum(U, axis=0)  # mittlere position
             if mode == "first":
                 xpos2 -= xpos2[0]
