@@ -239,45 +239,66 @@ class StackDisplay(PipelineModule):
             self.z_slider.setToolTip(f"set z position\ncurrent position {self.z_slider.value()}")
 
     def get_code(self) -> Tuple[str, str]:
-        from saenopy.solver import common_start, common_end
-        def filename_to_string(filename, insert="{z}"):
-            if isinstance(filename, list):
-                return str(Path(common_start(filename) + insert + common_end(filename)))
-            return str(Path(filename)).replace("*", insert)
 
-        from saenopy.solver import get_stacks
         import_code = ""
         if self.result.time_delta is None:
-            def code(stack1, stack2, output, voxel_size1):
-                # load the relaxed and the contracted stack, {z} is the placeholder for the z stack
-                # use * as a placeholder to import multiple experiments at once
-                results = saenopy.get_stacks([
-                    stack1,
-                    stack2,
-                ], output, voxel_size=voxel_size1)
+            if self.result.stack_reference is not None:
+                def code(filename, reference_stack1, output1, voxel_size1):
+                    # load the relaxed and the contracted stack
+                    # {z} is the placeholder for the z stack
+                    # {c} is the placeholder for the channels
+                    # {t} is the placeholder for the time points
+                    results = saenopy.get_stacks(
+                        filename,
+                        reference_stack=reference_stack1,
+                        output_path=output1,
+                        voxel_size=voxel_size1)
 
-            data = dict(
-                stack1=filename_to_string(self.result.stack[0].filename),
-                stack2=filename_to_string(self.result.stack[1].filename),
-                output=str(Path(self.result.output).parent),
-                voxel_size1=self.result.stack[0].voxel_size,
-            )
+                data = dict(
+                    filename=self.result.template,
+                    reference_stack1=self.result.stack_reference.template,
+                    output1=str(Path(self.result.output).parent),
+                    voxel_size1=self.result.stack[0].voxel_size,
+                )
         else:
-            def code(stack1, output, voxel_size1, time_delta1):
-                # load the time series stack, {z} is the placeholder for the z stack, {t} is the placeholder for the time steps
-                # use * as a placeholder to import multiple experiments at once
-                results = saenopy.get_stacks(stack1,
-                                             output,
-                                             voxel_size=voxel_size1, time_delta=time_delta1)
+            if self.result.stack_reference is not None:
+                def code(filename, reference_stack1, output1, voxel_size1, time_delta1):
+                    # load the relaxed and the contracted stack
+                    # {z} is the placeholder for the z stack
+                    # {c} is the placeholder for the channels
+                    # {t} is the placeholder for the time points
+                    results = saenopy.get_stacks(
+                        filename,
+                        reference_stack=reference_stack1,
+                        output_path=output1,
+                        voxel_size=voxel_size1,
+                        time_delta=time_delta1)
 
-            stack_filenames = filename_to_string([filename_to_string(stack.filename) for stack in self.result.stack],
-                                                 insert="{t}")
-            data = dict(
-                stack1=stack_filenames,
-                output=str(Path(self.result.output).parent),
-                voxel_size1=self.result.stack[0].voxel_size,
-                time_delta1=self.result.time_delta,
-            )
+                data = dict(
+                    filename=self.result.template,
+                    reference_stack1=self.result.stack_reference.template,
+                    output1=str(Path(self.result.output).parent),
+                    voxel_size1=self.result.stack[0].voxel_size,
+                    time_delta1=self.result.time_delta,
+                )
+            else:
+                def code(filename, output1, voxel_size1, time_delta1):
+                    # load the relaxed and the contracted stack
+                    # {z} is the placeholder for the z stack
+                    # {c} is the placeholder for the channels
+                    # {t} is the placeholder for the time points
+                    results = saenopy.get_stacks(
+                        filename,
+                        output_path=output1,
+                        voxel_size=voxel_size1,
+                        time_delta=time_delta1)
+
+                data = dict(
+                    filename=self.result.template,
+                    output1=str(Path(self.result.output).parent),
+                    voxel_size1=self.result.stack[0].voxel_size,
+                    time_delta1=self.result.time_delta,
+                )
 
         code_lines = inspect.getsource(code).split("\n")[1:]
         indent = len(code_lines[0]) - len(code_lines[0].lstrip())

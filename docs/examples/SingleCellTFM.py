@@ -13,12 +13,15 @@ import saenopy
 # download the data
 saenopy.loadExample("ClassicSingleCellTFM")
 
-# load the relaxed and the contracted stack, {z} is the placeholder for the z stack
-# use * as a placeholder to import multiple experiments at once
-results = saenopy.get_stacks([
-    r'1_ClassicSingleCellTFM\Relaxed\Mark_and_Find_001\Pos*_S001_z{z}_ch{c:00}.tif',
-    r'1_ClassicSingleCellTFM\Deformed\Mark_and_Find_001\Pos*_S001_z{z}_ch{c:00}.tif',
-], r'1_ClassicSingleCellTFM\example_output', voxel_size=[0.7211, 0.7211, 0.988])
+# load the relaxed and the contracted stack
+# {z} is the placeholder for the z stack
+# {c} is the placeholder for the channels
+# {t} is the placeholder for the time points
+results = saenopy.get_stacks(
+    '1_ClassicSingleCellTFM/Deformed/Mark_and_Find_001/Pos*_S001_z{z}_ch{c:00}.tif',
+    reference_stack='1_ClassicSingleCellTFM/Relaxed/Mark_and_Find_001/Pos*_S001_z{z}_ch{c:00}.tif',
+    output_path='1_ClassicSingleCellTFM/example_output',
+    voxel_size=[0.7211, 0.7211, 0.988])
 
 # define the parameters for the piv deformation detection
 params = {'win_um': 35.0, 'elementsize': 14.0, 'signoise_filter': 1.3, 'drift_correction': True}

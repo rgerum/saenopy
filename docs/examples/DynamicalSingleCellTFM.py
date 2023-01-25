@@ -12,10 +12,12 @@ import saenopy
 # download the data
 saenopy.loadExample("DynamicalSingleCellTFM")
 
-# load the time series stack, {z} is the placeholder for the z stack, {t} is the placeholder for the time steps
-# use * as a placeholder to import multiple experiments at once
-results = saenopy.get_stacks(r'2_DynamicalSingleCellTFM\data\Pos*_S001_t{t}_z{z}_ch{c:00}.tif',
-                             r'2_DynamicalSingleCellTFM\example_output',
+# load the relaxed and the contracted stack
+# {z} is the placeholder for the z stack
+# {c} is the placeholder for the channels
+# {t} is the placeholder for the time points
+results = saenopy.get_stacks('2_DynamicalSingleCellTFM/data/Pos*_S001_t{t}_z{z}_ch{c:00}.tif',
+                             output_path='2_DynamicalSingleCellTFM\example_output',
                              voxel_size=[0.2407, 0.2407, 1.0071], time_delta=60)
 
 # define the parameters for the piv deformation detection
