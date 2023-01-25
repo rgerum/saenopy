@@ -72,7 +72,7 @@ class StackPreview(QtWidgets.QWidget):
             self.t_slider.setRange(0, t_count-1)
 
         if self.reference_choice.value() == 0 or len(self.stack_reference.selectors[1].stack_obj) == 0:
-            if t_count == 0 or len(self.stack_reference.selectors[1].stack_obj) == 0:
+            if t_count == 0:
                 im = self.stack.selectors[1].stack_obj[self.t_slider.value()][:, :, :, self.z_slider.value(), 0]
                 self.pixmaps[1].setPixmap(QtGui.QPixmap(array2qimage(im)))
                 self.views[1].setExtend(im.shape[0], im.shape[1])
