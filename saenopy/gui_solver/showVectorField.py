@@ -38,10 +38,6 @@ def getVectorFieldImage(self):
 
 def showVectorField2(self, M, points_name):
     display_image = getVectorFieldImage(self)
-    
-    if (display_image is not None) and (display_image[0].shape[2] == 1):
-        display_image[0] = display_image[0][:, :, 0]
-   
 
     try:
         field = getattr(M, points_name)
@@ -55,6 +51,10 @@ def showVectorField2(self, M, points_name):
 
 def showVectorField(plotter: QtInteractor, obj: Solver, field: np.ndarray, name: str, center=None, show_nan=True, stack_shape=None,
                     show_all_points=False, factor=.1, scalebar_max=None, display_image=None, show_grid=True):
+    # ensure that the image is either with color channels or no channels
+    if (display_image is not None) and (display_image[0].shape[2] == 1):
+        display_image[0] = display_image[0][:, :, 0]
+
     # force rendering to be disabled while updating content to prevent flickering
     render = plotter.render
     plotter.render = lambda *args: None
