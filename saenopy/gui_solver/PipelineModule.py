@@ -142,7 +142,6 @@ class PipelineModule(QtWidgets.QWidget):
                 widget.setValue(params_tmp[name])
             self.valueChanged()
         if self.current_tab_selected is True:
-            print(self.__class__.__name__, "Update Display")
             self.update_display()
 
     def update_display(self):

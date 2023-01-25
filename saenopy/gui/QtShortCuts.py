@@ -386,15 +386,19 @@ class QInputChoice(QInput):
             self.setValue(value)
 
     def setValues(self, new_values, value_names=None):
-        self.value_names = list(value_names) if value_names is not None else [str(v) for v in new_values]
+        self.no_signal = True
+        try:
+            self.value_names = list(value_names) if value_names is not None else [str(v) for v in new_values]
 
-        if self.values is not None:
-            for i in range(len(self.values)):
-                self.combobox.removeItem(0)
+            if self.values is not None:
+                for i in range(len(self.values)):
+                    self.combobox.removeItem(0)
 
-        self.values = list(new_values)
+            self.values = list(new_values)
 
-        self.combobox.addItems(self.value_names)
+            self.combobox.addItems(self.value_names)
+        finally:
+            self.no_signal = False
 
     def _doSetValue(self, value):
         if self.reference_by_index is True:

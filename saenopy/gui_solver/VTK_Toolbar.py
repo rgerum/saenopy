@@ -138,20 +138,24 @@ class VTK_Toolbar(QtWidgets.QWidget):
 
     def property_changed(self, name, value):
         if name == "show_grid":
-            self.show_grid.setValue(value)
-            self.update_display()
+            if value != self.show_grid.value():
+                self.show_grid.setValue(value)
+                self.update_display()
         if name == "show_image":
-            self.show_image.setValue(value)
-            self.update_display()
+            if value != self.show_image.value():
+                self.show_image.setValue(value)
+                self.update_display()
         if name == "channel_select":
-            if value < len(self.channel_select.value_names):
-                self.channel_select.setValue(value)
-            else:
-                self.channel_select.setValue(0)
-            self.update_display()
+            if value != self.channel_select.value():
+                if value < len(self.channel_select.value_names):
+                    self.channel_select.setValue(value)
+                else:
+                    self.channel_select.setValue(0)
+                self.update_display()
         if name == "button_z_proj":
-            self.button_z_proj.setValue(value)
-            self.update_display()
+            if value != self.button_z_proj.value():
+                self.button_z_proj.setValue(value)
+                self.update_display()
 
     def scale_max_changed(self):
         self.scale_max.setDisabled(self.auto_scale.value())
