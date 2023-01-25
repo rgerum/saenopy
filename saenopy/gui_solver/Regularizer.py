@@ -101,7 +101,7 @@ class Regularizer(PipelineModule):
     def check_available(self, result: Result):
         try:
             return self.result.solver[0] is not None
-        except (AttributeError, IndexError):
+        except (AttributeError, IndexError, TypeError):
             return False
 
     def check_evaluated(self, result: Result) -> bool:

@@ -144,7 +144,7 @@ class VTK_Toolbar(QtWidgets.QWidget):
             self.show_image.setValue(value)
             self.update_display()
         if name == "channel_select":
-            if value in self.channel_select.value_names:
+            if value < len(self.channel_select.value_names):
                 self.channel_select.setValue(value)
             else:
                 self.channel_select.setValue(0)

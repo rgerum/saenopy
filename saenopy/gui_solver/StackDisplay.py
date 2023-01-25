@@ -49,6 +49,13 @@ class StackDisplay(PipelineModule):
                         self.button_display_single.valueChanged.connect(self.setSingle)
                         QtShortCuts.QVLine()
 
+                        self.channel_select = QtShortCuts.QInputChoice(None, "", 0, [0], [""])
+                        self.channel_select.valueChanged.connect(self.update_display)
+                        self.channel_select.valueChanged.connect(
+                            lambda value: parent.shared_properties.change_property("channel_select", value, self))
+                        parent.shared_properties.add_property("channel_select", self)
+                        self.channel_select.valueChanged.connect(self.z_slider_value_changed)
+
                         self.button_z_proj = QtShortCuts.QInputBool(None, "", icon=[
                             QtGui.QIcon(str(Path(__file__).parent.parent / "img" / "slice0.ico")),
                             QtGui.QIcon(str(Path(__file__).parent.parent / "img" / "slice1.ico")),
@@ -150,7 +157,7 @@ class StackDisplay(PipelineModule):
             print(new_path.parent / (new_path.stem + "_deformed.tif"))
             t = self.t_slider.value()
             z = self.z_slider.value()
-            c = 0
+            c = self.channel_select.value()
             if self.result.stack_reference is not None:
                 stack1, stack2 = self.result.stack_reference[:, :, :, z, c], self.result.stack[t][:, :, :, z, c]
             else:
@@ -168,8 +175,18 @@ class StackDisplay(PipelineModule):
     def property_changed(self, name, value):
         if name == "z_slider":
             self.z_slider.setValue(value)
+            self.z_slider_value_changed()
         if name == "button_z_proj":
             self.button_z_proj.setValue(value)
+            self.z_slider_value_changed()
+        if name == "channel_select":
+            print("channel_select", value, self.channel_select.value_names)
+            if value < len(self.channel_select.value_names):
+                self.channel_select.setValue(value)
+            else:
+                self.channel_select.setValue(0)
+            print(self.channel_select.value())
+            self.z_slider_value_changed()
 
     def setResult(self, result: Result):
         super().setResult(result)
@@ -177,6 +194,14 @@ class StackDisplay(PipelineModule):
             self.z_slider.setRange(0, result.stack[0].shape[2] - 1)
             self.z_slider.setValue(self.result.stack[0].shape[2] // 2)
             self.z_slider_value_changed()
+
+            if result.stack[0].channels:
+                self.channel_select.setValues(np.arange(len(result.stack[0].channels)),
+                                                          result.stack[0].channels)
+                self.channel_select.setVisible(True)
+            else:
+                self.channel_select.setValue(0)
+                self.channel_select.setVisible(False)
 
     def z_slider_value_changed(self):
         if self.result is not None:
@@ -193,13 +218,15 @@ class StackDisplay(PipelineModule):
                 self.views[i].setToolTip(
                     f"stack\n{stack.description(self.z_slider.value())}")
 
+                c = self.channel_select.value()
+
                 if self.result.stack_parameter["z_project_name"] == "maximum":
                     start = np.clip(self.z_slider.value()-self.result.stack_parameter["z_project_range"], 0, stack.shape[2])
                     end = np.clip(self.z_slider.value()+self.result.stack_parameter["z_project_range"], 0, stack.shape[2])
-                    im = stack[:, :, :, start:end, 0]
+                    im = stack[:, :, :, start:end, c]
                     im = np.max(im, axis=3)
                 else:
-                    im = stack[:, :, :, self.z_slider.value(), 0]
+                    im = stack[:, :, :, self.z_slider.value(), c]
                 if self.contrast_enhance.value():
                     (min, max) = np.percentile(im, (1, 99))
                     im = im.astype(np.float32)-min
