@@ -23,12 +23,32 @@ class VTK_Toolbar(QtWidgets.QWidget):
             layout0.setContentsMargins(0, 0, 0, 0)
             self.theme = QtShortCuts.QInputChoice(None, "Theme", value=self.theme_values[2],
                                                   values=self.theme_values,
-                                                  value_names=["default", "paraview", "dark", "document"])
+                                                  value_names=["default", "paraview", "dark", "document"],
+                                                  tooltip="Set a color theme for the 3D view.")
 
-            self.auto_scale = QtShortCuts.QInputBool(None, "auto color", True, tooltip="Automatically choose the maximum for the color scale.")
+            self.auto_scale = QtShortCuts.QInputBool(None, "", icon=[
+                QtGui.QIcon(str(Path(__file__).parent.parent / "img" / "autoscale0.ico")),
+                QtGui.QIcon(str(Path(__file__).parent.parent / "img" / "autoscale1.ico")),
+            ], group=False, tooltip="Automatically choose the maximum for the color scale.")
+            #self.auto_scale = QtShortCuts.QInputBool(None, "auto color", True, tooltip="Automatically choose the maximum for the color scale.")
+            self.auto_scale.setValue(True)
             self.auto_scale.valueChanged.connect(self.scale_max_changed)
-            self.scale_max = QtShortCuts.QInputString(None, "max color", 1e-6, type=float, tooltip="Set the maximum of the color scale.")
+            self.scale_max = QtShortCuts.QInputString(None, "", 1e-6, type=float, tooltip="Set the maximum of the color scale.")
             self.scale_max.valueChanged.connect(self.scale_max_changed)
+            self.scale_max.setDisabled(self.auto_scale.value())
+            if center is True:
+                self.auto_scale.valueChanged.connect(
+                    lambda value: shared_properties.change_property("auto_scale_force", value, self))
+                shared_properties.add_property("auto_scale_force", self)
+                self.scale_max.valueChanged.connect(lambda value: shared_properties.change_property("scale_max_force", value, self))
+                shared_properties.add_property("scale_max_force", self)
+            else:
+                self.auto_scale.valueChanged.connect(
+                    lambda value: shared_properties.change_property("auto_scale", value, self))
+                shared_properties.add_property("auto_scale", self)
+                self.scale_max.valueChanged.connect(
+                    lambda value: shared_properties.change_property("scale_max", value, self))
+                shared_properties.add_property("scale_max", self)
 
             self.use_nans = QtShortCuts.QInputBool(None, "", icon=[
                 QtGui.QIcon(str(Path(__file__).parent.parent / "img" / "nan0.ico")),
@@ -57,6 +77,7 @@ class VTK_Toolbar(QtWidgets.QWidget):
                     self.use_center = QtShortCuts.QInputBool(None, "center", True,
                                                            tooltip="Display the center of the force field.")
                 self.use_center.valueChanged.connect(self.update_display)
+            self.is_force_plot = center
 
             QtShortCuts.QVLine()
 
@@ -71,7 +92,7 @@ class VTK_Toolbar(QtWidgets.QWidget):
                 lambda value: shared_properties.change_property("show_image", value, self))
             shared_properties.add_property("show_image", self)
 
-            self.channel_select = QtShortCuts.QInputChoice(None, "", 0, [0], ["       "])
+            self.channel_select = QtShortCuts.QInputChoice(None, "", 0, [0], ["       "], tooltip="From which channel to display the stack image.")
             self.channel_select.valueChanged.connect(self.update_display)
             self.channel_select.valueChanged.connect(
                 lambda value: shared_properties.change_property("channel_select", value, self))
@@ -184,6 +205,26 @@ class VTK_Toolbar(QtWidgets.QWidget):
             if value != self.contrast_enhance.value():
                 self.contrast_enhance.setValue(value)
                 self.update_display()
+        if self.is_force_plot:
+            if name == "scale_max_force":
+                if value != self.auto_scale.value():
+                    self.auto_scale.setValue(value)
+                    self.scale_max.setDisabled(self.auto_scale.value())
+                    self.update_display()
+            if name == "scale_max_force":
+                if value != self.scale_max.value():
+                    self.scale_max.setValue(value)
+                    self.update_display()
+        else:
+            if name == "auto_scale":
+                if value != self.auto_scale.value():
+                    self.auto_scale.setValue(value)
+                    self.scale_max.setDisabled(self.auto_scale.value())
+                    self.update_display()
+            if name == "scale_max":
+                if value != self.scale_max.value():
+                    self.scale_max.setValue(value)
+                    self.update_display()
 
     def scale_max_changed(self):
         self.scale_max.setDisabled(self.auto_scale.value())
@@ -193,6 +234,7 @@ class VTK_Toolbar(QtWidgets.QWidget):
             self.plotter.update_scalar_bar_range([0, self.plotter.auto_value])
         else:
             self.plotter.update_scalar_bar_range([0, scalebar_max])
+        self.update_display()
 
     def getScaleMax(self):
         if self.auto_scale.value():

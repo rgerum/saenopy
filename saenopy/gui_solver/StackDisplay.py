@@ -49,7 +49,7 @@ class StackDisplay(PipelineModule):
                         self.button_display_single.valueChanged.connect(self.setSingle)
                         QtShortCuts.QVLine()
 
-                        self.channel_select = QtShortCuts.QInputChoice(None, "", 0, [0], ["       "])
+                        self.channel_select = QtShortCuts.QInputChoice(None, "", 0, [0], ["       "], tooltip="From which channel to show.")
                         self.channel_select.valueChanged.connect(self.update_display)
                         self.channel_select.valueChanged.connect(
                             lambda value: parent.shared_properties.change_property("channel_select", value, self))
