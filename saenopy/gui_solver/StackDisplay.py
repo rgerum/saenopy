@@ -179,10 +179,10 @@ class StackDisplay(PipelineModule):
         if self.result is not None:
             for i in range(2 - self.view_single):
                 if self.result.stack_reference is not None:
-                    if i == 0:
+                    if i + self.view_single_switch == 0:
                         stack = self.result.stack_reference
                     else:
-                        stack = self.result.stack[self.t_slider.value() + self.view_single_switch]
+                        stack = self.result.stack[self.t_slider.value()]
                 else:
                     stack = self.result.stack[self.t_slider.value() + i + self.view_single_switch]
                 [self.scale1, self.scale2][i].setScale(stack.voxel_size)
