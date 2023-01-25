@@ -29,7 +29,12 @@ class VTK_Toolbar(QtWidgets.QWidget):
             self.auto_scale.valueChanged.connect(self.scale_max_changed)
             self.scale_max = QtShortCuts.QInputString(None, "max color", 1e-6, type=float, tooltip="Set the maximum of the color scale.")
             self.scale_max.valueChanged.connect(self.scale_max_changed)
-            self.use_nans = QtShortCuts.QInputBool(None, "nans", True, tooltip="Display nodes which do not have values associated as gray dots.")
+
+            self.use_nans = QtShortCuts.QInputBool(None, "", icon=[
+                QtGui.QIcon(str(Path(__file__).parent.parent / "img" / "nan0.ico")),
+                QtGui.QIcon(str(Path(__file__).parent.parent / "img" / "nan1.ico")),
+            ], group=False, tooltip="Display nodes which do not have values associated as gray dots.")
+
             self.use_nans.valueChanged.connect(self.update_display)
             self.show_grid = QtShortCuts.QInputBool(None, "", True,
                                                      tooltip="Display a grid or a bounding box.", icon=[
@@ -41,6 +46,17 @@ class VTK_Toolbar(QtWidgets.QWidget):
             self.show_grid.valueChanged.connect(self.update_display)
             self.show_grid.valueChanged.connect(lambda value: shared_properties.change_property("show_grid", value, self))
             shared_properties.add_property("show_grid", self)
+
+
+            if center is True:
+                self.use_center = QtShortCuts.QInputBool(None, "", icon=[
+                    QtGui.QIcon(str(Path(__file__).parent.parent / "img" / "center0.ico")),
+                    QtGui.QIcon(str(Path(__file__).parent.parent / "img" / "center1.ico")),
+                ], group=False, tooltip="Display the center of the force field.")
+                if 0:
+                    self.use_center = QtShortCuts.QInputBool(None, "center", True,
+                                                           tooltip="Display the center of the force field.")
+                self.use_center.valueChanged.connect(self.update_display)
 
             QtShortCuts.QVLine()
 
@@ -87,10 +103,6 @@ class VTK_Toolbar(QtWidgets.QWidget):
 
             QtShortCuts.QVLine()
 
-            if center is True:
-                self.use_center = QtShortCuts.QInputBool(None, "center", True,
-                                                       tooltip="Display the center of the force field.")
-                self.use_center.valueChanged.connect(self.update_display)
 
             self.theme.valueChanged.connect(lambda x: self.new_plotter(x))
 
