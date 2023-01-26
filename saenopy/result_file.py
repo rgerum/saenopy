@@ -68,7 +68,7 @@ def process_line(filename, output_path):
             results[-1]["times"] = natsort.natsorted(d1.t.unique())
     return results
 
-def get_stacks(filename, output_path, voxel_size, time_delta=None, reference_stack=None, exist_overwrite_callback=None):
+def get_stacks(filename, output_path, voxel_size, time_delta=None, reference_stack=None, exist_overwrite_callback=None, load_existing=False):
     filename = str(filename)
     output_path = str(output_path)
     if reference_stack is not None:
@@ -99,12 +99,17 @@ def get_stacks(filename, output_path, voxel_size, time_delta=None, reference_sta
                 stacks = [Stack(r1["filename"], voxel_size)]
 
             output = r1["output"]
-            if output.exists() and exist_overwrite_callback is not None:
-                mode = exist_overwrite_callback(output)
-                if mode == 0:
-                    break
-                if mode == "read":
-                    print('exists', output)
+            if output.exists():
+                if exist_overwrite_callback is not None:
+                    mode = exist_overwrite_callback(output)
+                    if mode == 0:
+                        break
+                    if mode == "read":
+                        print('exists', output)
+                        data = Result.load(output)
+                        results.append(data)
+                        continue
+                elif load_existing is True:
                     data = Result.load(output)
                     results.append(data)
                     continue
@@ -128,12 +133,17 @@ def get_stacks(filename, output_path, voxel_size, time_delta=None, reference_sta
                 stacks = [Stack(r1["filename"], voxel_size)]
 
             output = r1["output"]
-            if output.exists() and exist_overwrite_callback is not None:
-                mode = exist_overwrite_callback(output)
-                if mode == 0:
-                    break
-                if mode == "read":
-                    print('exists', output)
+            if output.exists():
+                if exist_overwrite_callback is not None:
+                    mode = exist_overwrite_callback(output)
+                    if mode == 0:
+                        break
+                    if mode == "read":
+                        print('exists', output)
+                        data = Result.load(output)
+                        results.append(data)
+                        continue
+                elif load_existing is True:
                     data = Result.load(output)
                     results.append(data)
                     continue

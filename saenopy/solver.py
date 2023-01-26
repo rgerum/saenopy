@@ -1778,8 +1778,16 @@ def save(filename: str, M: Solver):
     M.save(filename)
 
 
-def load(filename: str) -> Solver:
+def load_solver(filename: str) -> Solver:
     return Solver.load(filename)
+
+from saenopy.result_file import Result
+def load(filename: str) -> Result:
+    return Result.load(filename)
+
+def load_results(filename: str) -> List[Result]:
+    import glob
+    return [Result.load(file) for file in glob.glob(filename, recursive=True)]
 
 
 

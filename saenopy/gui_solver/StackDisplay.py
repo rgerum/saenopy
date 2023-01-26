@@ -253,61 +253,82 @@ class StackDisplay(PipelineModule):
         import_code = ""
         if self.result.time_delta is None:
             if self.result.stack_reference is not None:
-                def code(filename, reference_stack1, output1, voxel_size1):
+                def code(filename, reference_stack1, output1, voxel_size1, result_file):
                     # load the relaxed and the contracted stack
                     # {z} is the placeholder for the z stack
                     # {c} is the placeholder for the channels
                     # {t} is the placeholder for the time points
+                    # use * to load multiple stacks for batch processing
+                    # load_existing=True allows to load an existing file of these stacks if it already exists
                     results = saenopy.get_stacks(
                         filename,
                         reference_stack=reference_stack1,
                         output_path=output1,
-                        voxel_size=voxel_size1)
+                        voxel_size=voxel_size1,
+                        load_existing=True)
+                    # or if you want to explicitly load existing results files
+                    # use * to load multiple result files for batch processing
+                    # results = saenopy.load_results(result_file)
 
                 data = dict(
                     filename=self.result.template,
                     reference_stack1=self.result.stack_reference.template,
                     output1=str(Path(self.result.output).parent),
                     voxel_size1=self.result.stack[0].voxel_size,
+                    result_file=str(self.result.output),
                 )
         else:
             if self.result.stack_reference is not None:
-                def code(filename, reference_stack1, output1, voxel_size1, time_delta1):
+                def code(filename, reference_stack1, output1, voxel_size1, time_delta1, result_file):
                     # load the relaxed and the contracted stack
                     # {z} is the placeholder for the z stack
                     # {c} is the placeholder for the channels
                     # {t} is the placeholder for the time points
+                    # use * to load multiple stacks for batch processing
+                    # load_existing=True allows to load an existing file of these stacks if it already exists
                     results = saenopy.get_stacks(
                         filename,
                         reference_stack=reference_stack1,
                         output_path=output1,
                         voxel_size=voxel_size1,
-                        time_delta=time_delta1)
+                        time_delta=time_delta1,
+                        load_existing=True)
+                    # or if you want to explicitly load existing results files
+                    # use * to load multiple result files for batch processing
+                    # results = saenopy.load_results(result_file)
 
                 data = dict(
                     filename=self.result.template,
                     reference_stack1=self.result.stack_reference.template,
                     output1=str(Path(self.result.output).parent),
+                    result_file=str(self.result.output),
                     voxel_size1=self.result.stack[0].voxel_size,
                     time_delta1=self.result.time_delta,
                 )
             else:
-                def code(filename, output1, voxel_size1, time_delta1):
+                def code(filename, output1, voxel_size1, time_delta1, result_file):
                     # load the relaxed and the contracted stack
                     # {z} is the placeholder for the z stack
                     # {c} is the placeholder for the channels
                     # {t} is the placeholder for the time points
+                    # use * to load multiple stacks for batch processing
+                    # load_existing=True allows to load an existing file of these stacks if it already exists
                     results = saenopy.get_stacks(
                         filename,
                         output_path=output1,
                         voxel_size=voxel_size1,
-                        time_delta=time_delta1)
+                        time_delta=time_delta1,
+                        load_existing=True)
+                    # or if you want to explicitly load existing results files
+                    # use * to load multiple result files for batch processing
+                    # results = saenopy.load_results(result_file)
 
                 data = dict(
                     filename=self.result.template,
                     output1=str(Path(self.result.output).parent),
                     voxel_size1=self.result.stack[0].voxel_size,
                     time_delta1=self.result.time_delta,
+                    result_file=str(self.result.output),
                 )
 
         code_lines = inspect.getsource(code).split("\n")[1:]
