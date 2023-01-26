@@ -7,6 +7,7 @@
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
 import importlib.metadata
+from sphinx_gallery.sorting import FileNameSortKey
 
 project = 'saenopy'
 copyright = '2019-2022, Richard Gerum'
@@ -33,6 +34,7 @@ sphinx_gallery_conf = {
      'min_reported_time': 10,
      'plot_gallery': False,
      'remove_config_comments': True,
+     'within_subsection_order': FileNameSortKey,
 }
 
 templates_path = ['_templates']
