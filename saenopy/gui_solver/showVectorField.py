@@ -66,12 +66,19 @@ def showVectorField(plotter: QtInteractor, obj: Solver, field: np.ndarray, name:
         nan_values = np.isnan(field[:, 0])
 
         # create a point cloud
-        point_cloud = pv.PolyData(obj.R)
+        point_cloud = pv.PolyData(obj.R) 
         point_cloud.point_data[name] = field
-        point_cloud.point_data[name + "_mag"] = np.linalg.norm(field, axis=1)
-        point_cloud.point_data[name + "_mag2"] = point_cloud.point_data[name + "_mag"].copy()
+        point_cloud.point_data[name + "_mag"] = np.linalg.norm(field, axis=1) 
+        # convert to common units
+        if name == "U_measured" or name == "U_target" or name == "U":
+              # scale deformations to µN
+              point_cloud.point_data[name + "_mag2"] = 1e6*point_cloud.point_data[name + "_mag"].copy()
+        if name == "f":
+              # scale forces to pN
+              point_cloud.point_data[name + "_mag2"] = 1e12*point_cloud.point_data[name + "_mag"].copy()           
+        # hide nans      
         point_cloud.point_data[name + "_mag2"][nan_values] = 0
-
+        # show nans
         if not show_all_points and show_nan:
             R = obj.R[nan_values]
             if R.shape[0]:
@@ -98,16 +105,16 @@ def showVectorField(plotter: QtInteractor, obj: Solver, field: np.ndarray, name:
 
         # generate the arrows
         arrows = point_cloud.glyph(orient=name, scale=name + "_mag2", factor=factor)
-
+        
         title = name
         if name == "U_measured" or name == "U_target" or name == "U":
-            title = "Deformations (m)"
+            title = "Deformations (µm)"
         elif name == "f":
-            title = "Forces (N)"
-
+            title = "Forces (pN)"
+            
         sargs = dict(#position_x=0.05, position_y=0.95,
                      title_font_size=15,
-                     label_font_size=9,
+                     label_font_size=15,
                      n_labels=3,
                      title=title,
                      #italic=True,  ##height=0.25, #vertical=True,
