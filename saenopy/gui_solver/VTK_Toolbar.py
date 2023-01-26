@@ -64,12 +64,20 @@ class VTK_Toolbar(QtWidgets.QWidget):
                     lambda value: shared_properties.change_property("arrow_scale"+addition, value, self))
                 shared_properties.add_property("arrow_scale"+addition, self)
 
+                QtWidgets.QLabel("Colormap for arrows").addToLayout()
                 self.colormap_chooser = QtShortCuts.QDragableColor("turbo").addToLayout()
                 self.colormap_chooser.valueChanged.connect(self.update_display)
 
                 self.colormap_chooser.valueChanged.connect(
                     lambda value: shared_properties.change_property("colormap_chooser"+addition, value, self))
-                shared_properties.add_property("colormap_chooser"+addition, self)
+
+                QtWidgets.QLabel("Colormap for image").addToLayout()
+                self.colormap_chooser2 = QtShortCuts.QDragableColor("gray").addToLayout()
+                self.colormap_chooser2.valueChanged.connect(self.update_display)
+
+                self.colormap_chooser2.valueChanged.connect(
+                    lambda value: shared_properties.change_property("colormap_chooser2" + addition, value, self))
+                shared_properties.add_property("colormap_chooser2"+addition, self)
             self.button_arrow_scale = QtShortCuts.QPushButton(None, "", lambda x: self.window_scale.show())
             self.button_arrow_scale.setIcon(QtGui.QIcon(str(Path(__file__).parent.parent / "img" / "arrowscale.ico")))
 

@@ -976,6 +976,8 @@ class ColorMapChoose(QtWidgets.QDialog):
                      'Greys', 'Purples', 'Blues', 'Greens', 'Oranges', 'Reds',
                      'YlOrBr', 'YlOrRd', 'OrRd', 'PuRd', 'RdPu', 'BuPu',
                      'GnBu', 'PuBu', 'YlGnBu', 'PuBuGn', 'BuGn', 'YlGn']),
+                 ('Simple Colors', [
+                     'gray', 'red', 'orange', 'yellow', 'lime', 'green', 'mint', 'cyan', 'navy', 'blue', 'purple', 'magenta', 'grape']),
                  ('Sequential (2)', [
                      'binary', 'gist_yarg', 'gist_gray', 'gray', 'bone', 'pink',
                      'spring', 'summer', 'autumn', 'winter', 'cool', 'Wistia',
@@ -1112,3 +1114,22 @@ class QDragableColor(QtWidgets.QLabel):
                 color = "#%02x%02x%02x" % color.getRgb()[:3]
                 self.setColor(color)
                 self.color_changed_by_color_picker.emit(True)
+
+
+import matplotlib as mpl
+import matplotlib.pyplot as plt
+from matplotlib.colors import LinearSegmentedColormap
+mpl.colormaps.register(LinearSegmentedColormap('red', {'red': ((0,0,0),(1,1,1)), 'green': ((0,0,0),(1,0,0)), 'blue': ((0.0,  0.0, 0.0), (1,  0, 0))}))
+mpl.colormaps.register(LinearSegmentedColormap('orange', {'red': ((0,0,0),(1,1,1)), 'green': ((0,0,0),(1,0.5,0.5)), 'blue': ((0.0,  0.0, 0.0), (1,  0, 0))}))
+mpl.colormaps.register(LinearSegmentedColormap('yellow', {'red': ((0,0,0),(1,1,1)), 'green': ((0,0,0),(1,1,1)), 'blue': ((0.0,  0.0, 0.0), (1,  0, 0))}))
+mpl.colormaps.register(LinearSegmentedColormap('lime', {'red': ((0,0,0),(1,0.5,0.5)), 'green': ((0,0,0),(1,1,1)), 'blue': ((0.0,  0.0, 0.0), (1,  0, 0))}))
+mpl.colormaps.register(LinearSegmentedColormap('green', {'red': ((0,0,0),(1,0,0)), 'green': ((0,0,0),(1,1,1)), 'blue': ((0.0,  0.0, 0.0), (1,  0, 0))}))
+mpl.colormaps.register(LinearSegmentedColormap('mint', {'red': ((0,0,0),(1,0,0)), 'green': ((0,0,0),(1,1,1)), 'blue': ((0.0,  0.0, 0.0), (1,  0.5, 0.5))}))
+mpl.colormaps.register(LinearSegmentedColormap('cyan', {'red': ((0,0,0),(1,0,0)), 'green': ((0,0,0),(1,1,1)), 'blue': ((0.0,  0.0, 0.0), (1, 1, 1))}))
+mpl.colormaps.register(LinearSegmentedColormap('navy', {'red': ((0,0,0),(1,0,0)), 'green': ((0,0,0),(1,0.5,0.5)), 'blue': ((0.0,  0.0, 0.0), (1, 1, 1))}))
+mpl.colormaps.register(LinearSegmentedColormap('blue', {'red': ((0,0,0),(1,0,0)), 'green': ((0,0,0),(1,0,0)), 'blue': ((0.0,  0.0, 0.0), (1,  1, 1))}))
+mpl.colormaps.register(LinearSegmentedColormap('purple', {'red': ((0,0,0),(1,0.5,0.5)), 'green': ((0,0,0),(1,0,0)), 'blue': ((0.0,  0.0, 0.0), (1,  1, 1))}))
+mpl.colormaps.register(LinearSegmentedColormap('magenta', {'red': ((0,0,0),(1,1,1)), 'green': ((0,0,0),(1,0,0)), 'blue': ((0.0,  0.0, 0.0), (1,  1, 1))}))
+mpl.colormaps.register(LinearSegmentedColormap('grape', {'red': ((0,0,0),(1,1,1)), 'green': ((0,0,0),(1,0,0)), 'blue': ((0.0,  0.0, 0.0), (1,  0.5, 0.5))}))
+#mpl.colormaps.register(LinearSegmentedColormap('redd', {'red': ((0.0,  0.0, 0.0), (1,  1, 1))}))
+#mpl.colormaps.register(LinearSegmentedColormap('greenn', {'green': ((0.0,  0.0, 0.0), (1,  1, 1))}))

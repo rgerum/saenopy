@@ -48,12 +48,13 @@ def showVectorField2(self, M, points_name):
                     display_image=display_image, show_grid=self.vtk_toolbar.show_grid.value(),
                     factor=0.1*self.vtk_toolbar.arrow_scale.value(),
                     colormap=self.vtk_toolbar.colormap_chooser.value(),
+                    colormap2=self.vtk_toolbar.colormap_chooser2.value(),
                     stack_shape=np.array(self.result.stack[0].shape[:3])*np.array(self.result.stack[0].voxel_size))
 
 
 def showVectorField(plotter: QtInteractor, obj: Solver, field: np.ndarray, name: str, center=None, show_nan=True, stack_shape=None,
                     show_all_points=False, factor=.1, scalebar_max=None, display_image=None, show_grid=True,
-                    colormap="turbo"):
+                    colormap="turbo", colormap2=None):
     # ensure that the image is either with color channels or no channels
     if (display_image is not None) and (display_image[0].shape[2] == 1):
         display_image[0] = display_image[0][:, :, 0]
@@ -154,6 +155,12 @@ def showVectorField(plotter: QtInteractor, obj: Solver, field: np.ndarray, name:
             # the combination of following both operations does the job
             img_adjusted = img[:, ::-1]                             # mirror the image
             img_adjusted = np.swapaxes(img_adjusted, 1,0)   # switch axis
+            if len(img_adjusted.shape) == 2 and colormap2 is not None and colormap2 != "gray":
+                import matplotlib.pyplot as plt
+                cmap = plt.get_cmap(colormap2)
+                print(img_adjusted.shape, img_adjusted.dtype, img_adjusted.min(), img_adjusted.mean(), img_adjusted.max())
+                img_adjusted = (cmap(img_adjusted)*255).astype(np.uint8)[:,:, :3]
+                print(img_adjusted.shape, img_adjusted.dtype, img_adjusted.min(), img_adjusted.mean(), img_adjusted.max())
             # get coords
             xmin = (-img_adjusted.shape[1]/2)*voxel_size[0]*1e-6
             ymin = (-img_adjusted.shape[0]/2)*voxel_size[1]*1e-6
