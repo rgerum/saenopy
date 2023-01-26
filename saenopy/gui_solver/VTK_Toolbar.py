@@ -35,7 +35,7 @@ class VTK_Toolbar(QtWidgets.QWidget):
             #self.auto_scale = QtShortCuts.QInputBool(None, "auto color", True, tooltip="Automatically choose the maximum for the color scale.")
             self.auto_scale.setValue(True)
             self.auto_scale.valueChanged.connect(self.scale_max_changed)
-            self.scale_max = QtShortCuts.QInputString(None, "", 1e-6, type=float, tooltip="Set the maximum of the color scale.")
+            self.scale_max = QtShortCuts.QInputString(None, "", 1000 if self.is_force_plot else 10, type=float, tooltip="Set the maximum of the color scale.")
             self.scale_max.valueChanged.connect(self.scale_max_changed)
             self.scale_max.setDisabled(self.auto_scale.value())
             if self.is_force_plot is True:
