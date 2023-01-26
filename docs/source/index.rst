@@ -24,6 +24,7 @@ This migration immune cell demonstrated what scientific discoveries you can achi
    :caption: Contents
    :maxdepth: 2
 
+   interface
    boundarycondition.ipynb
    regularization.ipynb
    mesh
