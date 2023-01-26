@@ -98,7 +98,7 @@ class VTK_Toolbar(QtWidgets.QWidget):
                 ], group=False, tooltip="Display the center of the force field.")
                 self.use_center.valueChanged.connect(self.update_display)
 
-            QtShortCuts.QVLine()
+            layout0.addStretch()
 
             self.show_image = QtShortCuts.QInputBool(None, "", True,
                                                    tooltip="Display the stack image in the stack or at the bottom.", icon=[
@@ -143,10 +143,8 @@ class VTK_Toolbar(QtWidgets.QWidget):
 
             QtShortCuts.QVLine()
 
-
             self.theme.valueChanged.connect(lambda x: self.new_plotter(x))
 
-            layout0.addStretch()
             self.button = QtWidgets.QPushButton(qta.icon("fa5s.home"), "").addToLayout()
             self.button.setToolTip("reset view")
             self.button.clicked.connect(lambda x: self.plotter.isometric_view())

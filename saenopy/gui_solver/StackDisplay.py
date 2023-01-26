@@ -42,6 +42,31 @@ class StackDisplay(PipelineModule):
                         self.label1 = QtWidgets.QLabel("reference").addToLayout()
                         layout.addStretch()
 
+                    with QtShortCuts.QHBoxLayout() as layout:
+                        with QtShortCuts.QVBoxLayout() as layout:
+                            self.view1 = QExtendedGraphicsView.QExtendedGraphicsView().addToLayout()
+                            self.view1.setMinimumWidth(300)
+                            self.pixmap1 = QtWidgets.QGraphicsPixmapItem(self.view1.origin)
+                            self.scale1 = ModuleScaleBar(self, self.view1)
+
+                            self.label2 = QtWidgets.QLabel("active").addToLayout()
+                            self.view2 = QExtendedGraphicsView.QExtendedGraphicsView().addToLayout()
+                            # self.label2.setMinimumWidth(300)
+                            self.pixmap2 = QtWidgets.QGraphicsPixmapItem(self.view2.origin)
+                            self.scale2 = ModuleScaleBar(self, self.view2)
+
+                            self.views = [self.view1, self.view2]
+                            self.pixmaps = [self.pixmap1, self.pixmap2]
+
+                        self.z_slider = QTimeSlider("z", self.z_slider_value_changed, "set z position",
+                                                    QtCore.Qt.Vertical).addToLayout()
+                        self.z_slider.t_slider.valueChanged.connect(
+                            lambda value: parent.shared_properties.change_property("z_slider", value, self))
+                        parent.shared_properties.add_property("z_slider", self)
+
+                    with QtShortCuts.QHBoxLayout() as layout:
+                        layout.addStretch()
+
                         self.button_display_single = QtShortCuts.QInputBool(None, "", icon=[
                             QtGui.QIcon(str(Path(__file__).parent.parent / "img" / "view_two.ico")),
                             QtGui.QIcon(str(Path(__file__).parent.parent / "img" / "view_single.ico")),
@@ -86,27 +111,10 @@ class StackDisplay(PipelineModule):
                         self.button2 = QtWidgets.QPushButton(qta.icon("mdi.floppy"), "").addToLayout()
                         self.button2.setToolTip("save image")
                         self.button2.clicked.connect(self.export)
-                    self.view1 = QExtendedGraphicsView.QExtendedGraphicsView().addToLayout()
-                    self.view1.setMinimumWidth(300)
-                    self.pixmap1 = QtWidgets.QGraphicsPixmapItem(self.view1.origin)
-                    self.scale1 = ModuleScaleBar(self, self.view1)
-
-                    self.label2 = QtWidgets.QLabel("active").addToLayout()
-                    self.view2 = QExtendedGraphicsView.QExtendedGraphicsView().addToLayout()
-                    # self.label2.setMinimumWidth(300)
-                    self.pixmap2 = QtWidgets.QGraphicsPixmapItem(self.view2.origin)
-                    self.scale2 = ModuleScaleBar(self, self.view2)
-
-                    self.views = [self.view1, self.view2]
-                    self.pixmaps = [self.pixmap1, self.pixmap2]
 
                     self.t_slider = QTimeSlider(connected=self.z_slider_value_changed).addToLayout()
                     self.tab.parent().t_slider = self.t_slider
-                self.z_slider = QTimeSlider("z", self.z_slider_value_changed, "set z position",
-                                            QtCore.Qt.Vertical).addToLayout()
-                self.z_slider.t_slider.valueChanged.connect(
-                    lambda value: parent.shared_properties.change_property("z_slider", value, self))
-                parent.shared_properties.add_property("z_slider", self)
+
 
         self.view1.link(self.view2)
         self.current_tab_selected = True
