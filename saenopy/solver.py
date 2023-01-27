@@ -1837,7 +1837,14 @@ def interpolate_mesh(M, xpos2, params):
         params["mesh_size_x"] = x
         params["mesh_size_y"] = y
         params["mesh_size_z"] = z
-        
+    
+    # no thinning if no values are set
+    if "inner_region" not in params:
+        params["inner_region"] = x
+    if "thinning_factor" not in params:    
+        params["thinning_factor"] = 0
+   
+    
     points, cells = saenopy.multigridHelper.getScaledMesh(params["element_size"] * 1e-6,
                                                           params["inner_region"] * 1e-6,
                                                           np.array([params["mesh_size_x"], params["mesh_size_y"],
