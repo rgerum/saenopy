@@ -72,9 +72,9 @@ results = saenopy.get_stacks(
 # %%
 # Detecting the Deformations
 # --------------------------
-# Saenopy uses 3D particle image velocimetry (PIV) with the following parameters. 
-# Matrix deformations are calculated for the three example cells between a deformed and 
-# relaxed state
+# Saenopy uses 3D Particle Image Velocimetry (PIV) with the following parameters 
+# to calculate matrix deformations between a deformed and relaxed state 
+# for three example cells.
 #
 # +------------------+-------+
 # | Piv Parameter    | Value |
