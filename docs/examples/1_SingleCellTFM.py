@@ -119,8 +119,8 @@ for result in results:
 # %%
 # Generating the Finite Element Mesh
 # ----------------------------------
-# Interpolate the found deformations onto a new mesh which will be used for the regularisation. We use half the element
-# size of deformation detection mesh here to make the mesh finer. We keep the overall mesh size the same.
+# Interpolate the found deformations onto a new mesh which will be used for the regularisation. We use identical element
+# size of deformation detection mesh here and keep the overall mesh size the same.
 #
 # +------------------+-------+
 # | Mesh Parameter   | Value |
@@ -174,7 +174,6 @@ for result in results:
 # +--------------------------+---------+
 
 # define the parameters to generate the solver mesh and interpolate the piv mesh onto it
-params = {'k': 6062.0, 'd0': 0.0025, 'lambda_s': 0.0804, 'ds':  0.034, 'alpha': 10**10, 'stepper': 0.33, 'i_max': 400}
 
 # iterate over all the results objects
 for result in results:
@@ -188,6 +187,6 @@ for result in results:
             params["ds"],
         ))
         # find the regularized force solution
-        M.solve_regularized(stepper=params["stepper"], i_max=params["i_max"], alpha=params["alpha"], verbose=True)
+        M.solve_regularized(stepper=params["stepper"], i_max=params["i_max"],rel_conv_crit=params["rel_conv_crit"], alpha=params["alpha"], verbose=True)
     # save the forces
     result.save()
