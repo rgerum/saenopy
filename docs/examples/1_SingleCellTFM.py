@@ -129,9 +129,12 @@ for result in results:
 # +------------------+-------+
 # | mesh_size_same   | True  |
 # +------------------+-------+
+# | reference_stack  |'first'|
+# +------------------+-------+
 
 # define the parameters to generate the solver mesh and interpolate the piv mesh onto it
-params = {'element_size': 14.0, 'mesh_size_same': True}
+params = {'reference_stack': 'first', 'element_size': 14.0, 'mesh_size_same': True}
+       
 
 # iterate over all the results objects
 for result in results:
@@ -172,8 +175,11 @@ for result in results:
 # +--------------------------+---------+
 # | i_max                    |    400  |
 # +--------------------------+---------+
+# | rel_conv_crit            |  0.009  |
+# +--------------------------+---------+
 
 # define the parameters to generate the solver mesh and interpolate the piv mesh onto it
+params = {'k': 6062.0, 'd0': 0.0025, 'lambda_s': 0.0804, 'ds':  0.034, 'alpha': 10**10, 'stepper': 0.33, 'i_max': 400, 'rel_conv_crit': 0.009}
 
 # iterate over all the results objects
 for result in results:
