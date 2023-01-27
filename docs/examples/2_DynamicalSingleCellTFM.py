@@ -76,20 +76,32 @@ results = saenopy.get_stacks('2_DynamicalSingleCellTFM/data/Pos002_S001_t{t}_z{z
 # define the parameters for the piv deformation detection
 params = {'elementsize': 4.0, 'win_um': 12.0, 'signoise_filter': 1.3, 'drift_correction': True}
 
+
 # iterate over all the results objects
 for result in results:
     # set the parameters
     result.piv_parameter = params
+    # get count
+    count = len(result.stack)
+    if result.stack_reference is None:
+        count -= 1
     # iterate over all stack pairs
-    for i in range(len(result.stack) - 1):
+    for i in range(count):
+        # get both stacks, either reference stack and one from the list
+        if result.stack_reference is None:
+            stack1, stack2 = result.stack[i], result.stack[i + 1]
+        # or two consecutive stacks
+        else:
+            stack1, stack2 = result.stack_reference, result.stack[i]
         # and calculate the displacement between them
-        result.mesh_piv[i] = saenopy.get_displacements_from_stacks(result.stack[i], result.stack[i + 1],
-                                                           params["win_um"],
-                                                           params["elementsize"],
-                                                           params["signoise_filter"],
-                                                           params["drift_correction"])
+        result.mesh_piv[i] = saenopy.get_displacements_from_stacks(stack1, stack2,
+                                                                   params["win_um"],
+                                                                   params["elementsize"],
+                                                                   params["signoise_filter"],
+                                                                   params["drift_correction"])
     # save the displacements
     result.save()
+            
 
 # %%
 # Generating the Finite Element Mesh
@@ -152,7 +164,8 @@ for result in results:
 # +--------------------------+---------+
 
 # define the parameters to generate the solver mesh and interpolate the piv mesh onto it
-params = {'k': 1449.0, 'd0': 0.00215, 'lambda_s': 0.032, 'ds': 0.055, 'alpha':  10**10, 'stepper': 0.33, 'i_max': 100}
+params = {'k': 1449.0, 'd0': 0.0022, 'lambda_s': 0.032, 'ds': 0.055, 'alpha':  10**10, 'stepper': 0.33, 'i_max': 100}
+
 
 # iterate over all the results objects
 for result in results:
