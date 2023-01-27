@@ -53,7 +53,7 @@ saenopy.loadExample("ClassicSingleCellTFM")
 # ------------------
 #
 # Saenopy is very flexible in loading stacks from any filename structure.
-# Here we replace the number in the position "Pos003" with an asterisk "Pos*" to batch process all positions.
+# Here we replace the number in the position "Pos004" with an asterisk "Pos*" to batch process all positions.
 # We replace the number of the channels "ch00" with a channel placeholder "ch{c:00}" to indicate that this refers to
 # the channels and which channel to use as the first channel where the deformations should be detected.
 # We replace the number of the z slice "z000" with a z placeholder "z{z}" to indicate that this number refers to the
