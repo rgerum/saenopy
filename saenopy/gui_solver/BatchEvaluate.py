@@ -633,7 +633,7 @@ class BatchEvaluate(QtWidgets.QWidget):
             for data in results:
                 data.piv_parameter = example["piv_parameter"]
                 data.interpolate_parameter = example["interpolate_parameter"]
-                data.solver_parameter = example["solver_parameter"]
+                data.solve_parameter = example["solve_parameter"]
                 self.list.addData(data.output, True, data, mpl.colors.to_hex(f"gray"))
 
         self.update_icons()
