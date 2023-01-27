@@ -72,7 +72,9 @@ results = saenopy.get_stacks(
 # %%
 # Detecting the Deformations
 # --------------------------
-# Saenopy uses here a 3D particle image velocimetry (PIV).
+# Saenopy uses 3D particle image velocimetry (PIV) with the following parameters. 
+# Matrix deformations are calculated for the three example cells between a deformed and 
+# relaxed state
 #
 # +------------------+-------+
 # | Piv Parameter    | Value |
@@ -93,14 +95,24 @@ params = {'elementsize': 14.0, 'win_um': 35.0, 'signoise_filter': 1.3, 'drift_co
 for result in results:
     # set the parameters
     result.piv_parameter = params
+    # get count
+    count = len(result.stack)
+    if result.stack_reference is None:
+        count -= 1
     # iterate over all stack pairs
-    for i in range(len(result.stack) - 1):
+    for i in range(count):
+        # get both stacks, either reference stack and one from the list
+        if result.stack_reference is None:
+            stack1, stack2 = result.stack[i], result.stack[i + 1]
+        # or two consecutive stacks
+        else:
+            stack1, stack2 = result.stack_reference, result.stack[i]
         # and calculate the displacement between them
-        result.mesh_piv[i] = saenopy.get_displacements_from_stacks(result.stack[i], result.stack[i + 1],
-                                                           params["win_um"],
-                                                           params["elementsize"],
-                                                           params["signoise_filter"],
-                                                           params["drift_correction"])
+        result.mesh_piv[i] = saenopy.get_displacements_from_stacks(stack1, stack2,
+                                                                   params["win_um"],
+                                                                   params["elementsize"],
+                                                                   params["signoise_filter"],
+                                                                   params["drift_correction"])
     # save the displacements
     result.save()
 
