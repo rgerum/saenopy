@@ -66,6 +66,7 @@ def getExamples():
             "piv_parameter": {'win_um': 35.0, 'elementsize': 14.0, 'signoise_filter': 1.3, 'drift_correction': True},
             "interpolate_parameter": {'reference_stack': 'first', 'element_size': 14.0, 'inner_region': 200.0, 'thinning_factor': 0, 'mesh_size_same': True, 'mesh_size_x': 200.0, 'mesh_size_y': 200.0, 'mesh_size_z': 200.0},
             "solve_parameter": {'k': 6062.0, 'd0': 0.0025, 'lambda_s': 0.0804, 'ds':  0.034, 'alpha': 10**10, 'stepper': 0.33, 'i_max': 400},
+            "solve_parameter": {'k': 6062.0, 'd0': 0.0025, 'lambda_s': 0.0804, 'ds':  0.034, 'alpha': 10**10, 'stepper': 0.33, 'i_max': 400, 'rel_conv_crit': 0.009},
         },
         "DynamicalSingleCellTFM": {
             "desc": "Single natural killer cell that migrated through 1.2mg/ml collagen, recorded for 24min.\n1 example",
