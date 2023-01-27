@@ -129,8 +129,8 @@ def main():
         ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
     print(sys.argv)
     window = MainWindow()
-    if len(sys.argv) >= 2:
-        window.loadFile(sys.argv[1])
+    #if len(sys.argv) >= 2:
+    #    window.loadFile(sys.argv[1])
     window.show()
     sys.exit(app.exec_())
 

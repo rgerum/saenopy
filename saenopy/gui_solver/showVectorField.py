@@ -8,7 +8,7 @@ import numpy as np
 
 def getVectorFieldImage(self):
     image = self.vtk_toolbar.show_image.value()
-    if image:
+    if image and self.t_slider.value() < len(self.result.stack):
         stack = self.result.stack[self.t_slider.value()]
         if self.vtk_toolbar.channel_select.value() >= len(stack.channels):
             self.vtk_toolbar.channel_select.setValue(0)
@@ -43,13 +43,17 @@ def showVectorField2(self, M, points_name):
         field = getattr(M, points_name)
     except AttributeError:
         field = M.getNodeVar(points_name)
+    if len(self.result.stack):
+        stack_shape = np.array(self.result.stack[0].shape[:3])*np.array(self.result.stack[0].voxel_size)
+    else:
+        stack_shape = None
     showVectorField(self.plotter, M, field, points_name,
                     scalebar_max=self.vtk_toolbar.getScaleMax(), show_nan=self.vtk_toolbar.use_nans.value(),
                     display_image=display_image, show_grid=self.vtk_toolbar.show_grid.value(),
                     factor=0.1*self.vtk_toolbar.arrow_scale.value(),
                     colormap=self.vtk_toolbar.colormap_chooser.value(),
                     colormap2=self.vtk_toolbar.colormap_chooser2.value(),
-                    stack_shape=np.array(self.result.stack[0].shape[:3])*np.array(self.result.stack[0].voxel_size))
+                    stack_shape=None)
 
 
 def showVectorField(plotter: QtInteractor, obj: Solver, field: np.ndarray, name: str, center=None, show_nan=True, stack_shape=None,
