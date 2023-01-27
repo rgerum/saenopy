@@ -113,13 +113,13 @@ for result in results:
 # +------------------+-------+
 # | Mesh Parameter   | Value |
 # +==================+=======+
-# | element_size     |     7 |
+# | element_size     |    14 |
 # +------------------+-------+
 # | mesh_size_same   | True  |
 # +------------------+-------+
 
 # define the parameters to generate the solver mesh and interpolate the piv mesh onto it
-params = {'element_size': 7.0, 'mesh_size_same': True}
+params = {'element_size': 14.0, 'mesh_size_same': True}
 
 # iterate over all the results objects
 for result in results:
@@ -142,13 +142,13 @@ for result in results:
 # +--------------------+---------+
 # | Material Parameter | Value   |
 # +====================+=========+
-# | k                  |    1449 |
+# | k                  |    6062 |
 # +--------------------+---------+
-# | d0                 | 0.00215 |
+# | d0                 | 0.0025 |
 # +--------------------+---------+
-# | lambda_s           |  0.032  |
+# | lambda_s           |  0.0804  |
 # +--------------------+---------+
-# | ds                 | 0.055   |
+# | ds                 | 0.034  |
 # +--------------------+---------+
 #
 # +--------------------------+---------+
@@ -158,11 +158,11 @@ for result in results:
 # +--------------------------+---------+
 # | stepper                  |    0.33 |
 # +--------------------------+---------+
-# | i_max                    |    300  |
+# | i_max                    |    400  |
 # +--------------------------+---------+
 
 # define the parameters to generate the solver mesh and interpolate the piv mesh onto it
-params = {'k': 1449.0, 'd0': 0.00215, 'lambda_s': 0.032, 'ds': 0.055, 'alpha': 10**10, 'stepper': 0.33, 'i_max': 300}
+params = {'k': 6062.0, 'd0': 0.0025, 'lambda_s': 0.0804, 'ds':  0.034, 'alpha': 10**10, 'stepper': 0.33, 'i_max': 400}
 
 # iterate over all the results objects
 for result in results:
