@@ -147,7 +147,7 @@ class StackDisplay(PipelineModule):
         self.z_slider_value_changed()
 
     def check_evaluated(self, result: Result) -> bool:
-        return self.result is not None
+        return self.result is not None and result.stack is not None and len(result.stack) > 0
 
     def check_available(self, result: Result) -> bool:
         if result is not None and result.stack is not None and len(result.stack) > 0:
@@ -222,7 +222,7 @@ class StackDisplay(PipelineModule):
                 self.channel_select.setVisible(False)
 
     def z_slider_value_changed(self):
-        if self.result is not None:
+        if self.result is not None and len(self.result.stack):
             for i in range(2 - self.view_single):
                 if self.result.stack_reference is not None:
                     if i + self.view_single_switch == 0:

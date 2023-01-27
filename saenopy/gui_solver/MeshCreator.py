@@ -120,7 +120,11 @@ class MeshCreator(PipelineModule):
 
     def deformation_detector_mesh_size_changed(self):
         if self.input_mesh_size_same.value():
-            if self.result is not None and self.result.mesh_piv is not None and self.result.mesh_piv[0] is not None:
+            try:
+                valid = self.result.mesh_piv[0] is not None
+            except (AttributeError, IndexError, TypeError):
+                valid = False
+            if valid:
                 x, y, z = (self.result.mesh_piv[0].R.max(axis=0) - self.result.mesh_piv[0].R.min(axis=0))*1e6
                 self.input_mesh_size_x.setValue(x)
                 self.setParameter("mesh_size_x", x)
