@@ -14,7 +14,7 @@ import saenopy
 # %%
 # Downloading the example data files
 # ----------------------------------
-# The folder structure is as follows. There are three positions recorded in the gel (Pos003, Pos004, Pos005) and three
+# The folder structure is as follows. There are three cells recorded at different positions in the gel (Pos004, Pos007, Pos008) and three
 # channels (ch00, ch01, ch02). The stack has 376 z positions (z000-z375). All positions are recorded once in the active
 # state ("Deformed") and once after relaxation with Cyto D as the reference state ("Relaxed").
 #
@@ -23,25 +23,25 @@ import saenopy
 #    1_ClassicSingleCellTFM
 #    ├── Deformed
 #    │   └── Mark_and_Find_001
-#    │       ├── Pos003_S001_z000_ch00.tif
-#    │       ├── Pos003_S001_z000_ch01.tif
-#    │       ├── Pos003_S001_z000_ch02.tif
-#    │       ├── Pos003_S001_z001_ch02.tif
+#    │       ├── Pos004_S001_z000_ch00.tif
+#    │       ├── Pos004_S001_z000_ch01.tif
+#    │       ├── Pos004_S001_z000_ch02.tif
+#    │       ├── Pos004_S001_z001_ch02.tif
 #    │       ├── ...
-#    │       ├── Pos004_S001_z001_ch00.tif
+#    │       ├── Pos007_S001_z001_ch00.tif
 #    │       ├── ...
-#    │       ├── Pos005_S001_z001_ch02.tif
+#    │       ├── Pos008_S001_z001_ch02.tif
 #    │       └── ...
 #    └── Relaxed
 #        └── Mark_and_Find_001
-#            ├── Pos003_S001_z000_ch00.tif
-#            ├── Pos003_S001_z000_ch01.tif
-#            ├── Pos003_S001_z000_ch02.tif
-#            ├── Pos003_S001_z001_ch02.tif
+#            ├── Pos004_S001_z000_ch00.tif
+#            ├── Pos004_S001_z000_ch01.tif
+#            ├── Pos004_S001_z000_ch02.tif
+#            ├── Pos004_S001_z001_ch02.tif
 #            ├── ...
-#            ├── Pos004_S001_z001_ch00.tif
+#            ├── Pos007_S001_z001_ch00.tif
 #            ├── ...
-#            ├── Pos005_S001_z001_ch02.tif
+#            ├── Pos008_S001_z001_ch02.tif
 #            └── ...
 #
 
