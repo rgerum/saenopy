@@ -7,7 +7,7 @@ This example evaluates a single natural killer cell that migrated through 1.2mg/
 This example can also be evaluated with the graphical user interface.
 
 
-.. image:: ../source/images/Dynamical_nk.gif
+.. figure:: ../source/images/Dynamical_nk.gif
 
 
 """
