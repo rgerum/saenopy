@@ -8,9 +8,6 @@ This example can also be evaluated with the graphical user interface.
 
 
 .. figure:: ../source/images/Gif_nk_dynamic_example.gif
-   :width: 300px
-   :height: 450px
-
 
 """
 # sphinx_gallery_thumbnail_path = '../../saenopy/img/examples/example2.png'
