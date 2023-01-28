@@ -6,10 +6,11 @@ This example evaluates a single natural killer cell that migrated through 1.2mg/
 
 This example can also be evaluated with the graphical user interface.
 
- .. figure:: ../../saenopy/img/examples/Gif_nk_dynamic_example.gif
+ .. figure:: img_example/Gif_nk_dynamic_example.gif
   :width: 300px
   :height: auto
  
+_caption_
  
 """
 # sphinx_gallery_thumbnail_path = '../../saenopy/img/examples/example2.png'
