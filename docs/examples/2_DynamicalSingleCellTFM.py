@@ -11,7 +11,7 @@ This example can also be evaluated with the graphical user interface.
 # sphinx_gallery_thumbnail_path = '../../saenopy/img/examples/example2.png'
 
 
-# .. figure:: ../../saenopy/img/examples/Gif_nk_dynamic_example.gif
+# .. figure:: '..//..//saenopy//img//examples//Gif_nk_dynamic_example.*'
 
 
 
