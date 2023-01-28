@@ -4,12 +4,16 @@ Dynamical Single Cell TFM
 
 This example evaluates a single natural killer cell that migrated through 1.2mg/ml collagen, recorded for 24min.
 
+
+
+ .. figure:: img_example/Gif_nk_dynamic_example.*
+
+
+
+
 This example can also be evaluated with the graphical user interface.
 
 
- .. figure:: img_example/Gif_nk_dynamic_example.gif
-
- 
 """
 # sphinx_gallery_thumbnail_path = '../../saenopy/img/examples/example2.png'
 
