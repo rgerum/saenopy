@@ -6,7 +6,7 @@ This example evaluates a single natural killer cell that migrated through 1.2mg/
 
 
 
- .. figure:: ../source/images/images/Gif_nk_dynamic_example.gif
+ .. figure:: ../source/images/images/fiber.png
 
 
 This example can also be evaluated with the graphical user interface.
