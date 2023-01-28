@@ -87,7 +87,7 @@ def cache_results():
 
 @cache_results()
 def sato_filter(data, sigma_sato=None):
-    if sigma_sato is None:
+    if sigma_sato is None or sigma_sato == 0:
         return data.astype(np.float64)
     fiber = np.zeros_like(data, dtype=np.float64)
     for z in range(data.shape[-1]):
@@ -145,7 +145,7 @@ def zoom_z(scaled_data, factor):
 
 @cache_results()
 def smooth(zoomed_data, sigma_gauss):
-    if sigma_gauss is not None:
+    if sigma_gauss is not None or sigma_gauss == 0:
         smoothed_data = gaussian_filter(zoomed_data, sigma=sigma_gauss, truncate=2.0)
     else:
         smoothed_data = zoomed_data
@@ -229,15 +229,17 @@ class FiberViewer(PipelineModule):
                     self.input_cropz1 = QtShortCuts.QInputNumber(None, "crop z", 0, float=False)
                     self.input_cropz2 = QtShortCuts.QInputNumber(None, "", 100, float=False)
                 with QtShortCuts.QHBoxLayout() as layout:
+                    self.input_sato = QtShortCuts.QInputNumber(None, "sato filter", 2, min=0, max=7, float=False)
+                    self.input_gauss = QtShortCuts.QInputNumber(None, "gauss filter", 0, min=0, max=20, float=False)
                     self.input_percentile1 = QtShortCuts.QInputNumber(None, "percentile_min", 0.01)
                     self.input_percentile2 = QtShortCuts.QInputNumber(None, "percentile_max", 99.6)
-
+                with QtShortCuts.QHBoxLayout() as layout:
                     self.input_alpha1 = QtShortCuts.QInputNumber(None, "alpha1", 0.065, min=0, max=0.3, step=0.01, decimals=3)
                     self.input_alpha2 = QtShortCuts.QInputNumber(None, "alpha2", 0.2491, min=0, max=1, step=0.01)
                     self.input_alpha3 = QtShortCuts.QInputNumber(None, "alpha3", 1, min=0, max=1, step=0.1)
                     self.input_cmap = QtShortCuts.QDragableColor("pink").addToLayout()
 
-                    for widget in [self.input_percentile1, self.input_percentile2,
+                    for widget in [self.input_sato, self.input_gauss, self.input_percentile1, self.input_percentile2,
                                    self.input_alpha1, self.input_alpha2, self.input_alpha3,
                                    self.input_cmap]:
                         widget.valueChanged.connect(self.update_display)
@@ -279,7 +281,8 @@ class FiberViewer(PipelineModule):
             for widged in [self.input_cropx1, self.input_cropx2, self.input_cropy1, self.input_cropy2, self.input_cropz1, self.input_cropz2]:
                 crops.append(widged.value())
             t = time.time()
-            stack_data1 = process_stack(self.result.stack[0], 0, sigma_sato=2, crops=crops,
+            stack_data1 = process_stack(self.result.stack[0], 0, sigma_sato=self.input_sato.value(), sigma_gauss=self.input_gauss.value(),
+                                        crops=crops,
                                         percentiles=(self.input_percentile1.value(), self.input_percentile2.value()),
                                         alpha=(self.input_alpha1.value(), self.input_alpha2.value(), self.input_alpha3.value()),
                                         cmap=self.input_cmap.value())
