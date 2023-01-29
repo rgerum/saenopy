@@ -211,9 +211,9 @@ for result in results:
 #
 # .. figure:: ../images/Liver_Fibroblast_workflow.png
 #   
-# The reconstructed forces (right) generates a reconstructed deformation field (middle)
-# that is in agreement with the measured matrix deformations (left). The overall cell contractility is 
-# calculated as all forces components pointing to the force center.
+# The reconstructed force field (right) generates a reconstructed deformation field (middle)
+# that recapitulates the measured matrix deformation field (left). The overall cell contractility is 
+# calculated as all forcecomponents pointing to the force epicenter.
 #
   
  
