@@ -54,11 +54,11 @@ def loadExample(name, target_folder=None, progress_callback=None):
 
 def getExamples():
     example_path = Path(appdirs.user_data_dir("saenopy", "rgerum"))
-    image_path = Path(__file__).parent / "img" / "examples"
+    image_path = Path(__file__).parent / "img" / "thumbnails"
     return {
         "ClassicSingleCellTFM": {
             "desc": "Hepatic stellate cells in 1.2mg/ml collagen with relaxed and deformed stacks.\nRelaxed state induced with cytochalasin D.\n3 examples",
-            "img": image_path / "example1.png",
+            "img": image_path / "liver_fibroblast_icon.png",
             "voxel_size": [0.7211, 0.7211, 0.988],
             "stack": example_path / '1_ClassicSingleCellTFM/Deformed/Mark_and_Find_001/Pos*_S001_z{z}_ch{c:00}.tif',
             "reference_stack": example_path / '1_ClassicSingleCellTFM/Relaxed/Mark_and_Find_001/Pos*_S001_z{z}_ch{c:00}.tif',
