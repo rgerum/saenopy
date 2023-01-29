@@ -7,7 +7,7 @@ This example can also be evaluated with the graphical user interface.
 
  .. figure:: ../images/Liver_fibroblasts.png
  
- 
+
 """
 
 import saenopy
@@ -202,3 +202,18 @@ for result in results:
         M.solve_regularized(stepper=params["stepper"], i_max=params["i_max"],rel_conv_crit=params["rel_conv_crit"], alpha=params["alpha"], verbose=True)
     # save the forces
     result.save()
+    
+    
+
+# %%
+# Display Results
+# ----------------------
+#
+# .. figure:: ../images/Liver_Fibroblast_workflow.png
+#   
+# The reconstructed forces (right) generates a reconstructed deformation field (middle)
+# that is in agreement with the measured matrix deformations (left). The overall cell contractility is 
+# calculated as all forces components pointing to the force center.
+#
+  
+ 
