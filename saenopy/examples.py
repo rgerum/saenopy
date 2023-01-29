@@ -69,7 +69,7 @@ def getExamples():
         },
         "DynamicalSingleCellTFM": {
             "desc": "Single natural killer cell that migrated through 1.2mg/ml collagen, recorded for 24min.\n1 example",
-            "img": image_path / "example2.png",
+            "img": image_path / "Dynamic_icon.png",
             "voxel_size": [0.2407, 0.2407, 1.0071],
             "time_delta": 60,
             "stack": example_path / '2_DynamicalSingleCellTFM/data/Pos*_S001_t{t}_z{z}_ch{c:00}.tif',
