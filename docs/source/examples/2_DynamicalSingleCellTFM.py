@@ -15,7 +15,7 @@ This example can also be evaluated with the graphical user interface.
 """
 
 
-# sphinx_gallery_thumbnail_path = '../../../saenopy/img/thumbnails/Dynamic_icon.png'
+# sphinx_gallery_thumbnail_path = '../../saenopy/img/thumbnails/Dynamic_icon.png'
 
 
 import saenopy
