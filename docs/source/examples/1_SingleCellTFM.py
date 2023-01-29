@@ -7,7 +7,7 @@ This example can also be evaluated with the graphical user interface.
 
 import saenopy
 
-# sphinx_gallery_thumbnail_path = '../../saenopy/img/examples/example1.png'
+# sphinx_gallery_thumbnail_path = '../images/icon_examples/liver_fibroblast_icon.png'
 
 # %%
 # Downloading the example data files

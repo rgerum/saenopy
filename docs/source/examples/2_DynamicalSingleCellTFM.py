@@ -13,6 +13,8 @@ This example can also be evaluated with the graphical user interface.
 
 
 """
+
+
 # sphinx_gallery_thumbnail_path = '../images/icon_examples/Dynamic_icon.png'
 
 

@@ -15,7 +15,7 @@ Images of microbeads (channel 'ch01') between a relaxed and deformed stacks are 
 
 import saenopy
 
-# sphinx_gallery_thumbnail_path = '../../saenopy/img/examples/Bead_example.png'
+# sphinx_gallery_thumbnail_path = '../images/icon_examples/Bead_example_icon.png'
 
 
 
