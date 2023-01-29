@@ -85,6 +85,7 @@ results = saenopy.get_stacks(
 # +------------------+-------+
 # | drift_correction | True  |
 # +------------------+-------+
+#
 
 # define the parameters for the piv deformation detection
 params = {'elementsize': 14.0, 'win_um': 35.0, 'signoise_filter': 1.3, 'drift_correction': True}
@@ -129,6 +130,7 @@ for result in results:
 # +------------------+-------+
 # | reference_stack  |'first'|
 # +------------------+-------+
+#
 
 # define the parameters to generate the solver mesh and interpolate the piv mesh onto it
 params = {'reference_stack': 'first', 'element_size': 14.0, 'mesh_size_same': True}
@@ -175,6 +177,7 @@ for result in results:
 # +--------------------------+---------+
 # | rel_conv_crit            |  0.009  |
 # +--------------------------+---------+
+#
 
 # define the parameters to generate the solver mesh and interpolate the piv mesh onto it
 params = {'k': 6062.0, 'd0': 0.0025, 'lambda_s': 0.0804, 'ds':  0.034, 'alpha': 10**10, 'stepper': 0.33, 'i_max': 400, 'rel_conv_crit': 0.009}

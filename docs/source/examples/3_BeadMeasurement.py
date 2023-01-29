@@ -57,6 +57,7 @@ results = saenopy.get_stacks(
 # +------------------+-------+
 # | drift_correction | True  |
 # +------------------+-------+
+#
 
 # define the parameters for the piv deformation detection
 params = {'elementsize': 5.0, 'win_um': 25.0, 'signoise_filter': 1.1, 'drift_correction': True}

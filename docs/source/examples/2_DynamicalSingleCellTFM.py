@@ -89,7 +89,7 @@ results = saenopy.get_stacks(r'2_DynamicalSingleCellTFM\data\Pos*_S001_t{t}_z{z}
 # +------------------+-------+
 # | drift_correction | True  |
 # +------------------+-------+
-
+#
 
 # define the parameters for the piv deformation detection
 params = {'elementsize': 4.0, 'win_um': 12.0, 'signoise_filter': 1.3, 'drift_correction': True}
@@ -144,6 +144,7 @@ for result in results:
 # +------------------+--------+
 # | mesh_size_same   | True   |
 # +------------------+--------+
+#
 
 # define the parameters to generate the solver mesh and interpolate the piv mesh onto it
 params = {'reference_stack': 'median', 'element_size': 4.0, 'mesh_size_same': True}
@@ -187,6 +188,7 @@ for result in results:
 # +--------------------------+---------+
 # | i_max                    |    100  |
 # +--------------------------+---------+
+#
 
 # define the parameters to generate the solver mesh and interpolate the piv mesh onto it
 params = {'k': 1449.0, 'd0': 0.0022, 'lambda_s': 0.032, 'ds': 0.055, 'alpha':  10**10, 'stepper': 0.33, 'i_max': 100}
