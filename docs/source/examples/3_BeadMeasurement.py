@@ -1,8 +1,8 @@
 """
 Microbeads to Detect Matrix Deformations
 =======================
-This example calculates matrix deformations around a Human Umbilical Vein Endothelial Cells (HUVECs) that invades in a polyethylene glycol 841
-(PEG) hydrogel cell  as measured and described in `[Jorge Barrasa-Fano et al., 2021] <https://www.sciencedirect.com/science/article/pii/S2352711021000625>`_.                                                
+This example calculates matrix deformations around a Human Umbilical Vein Endothelial Cells (HUVECs) that invades in a polyethylene glycol (PEG) hydrogel cell
+ as measured and described in `[Jorge Barrasa-Fano et al., 2021] <https://www.sciencedirect.com/science/article/pii/S2352711021000625>`_.                                                
 The data is available from the authors website `here <https://www.mech.kuleuven.be/en/bme/research/mechbio/lab/tfmlab>`_.
 Here images of microbeads (channel 'ch01') between a relaxed and deformed stacks are used to calculate matrix deformations (image on the right).
 
