@@ -163,7 +163,11 @@ class MainWindow(QtWidgets.QMainWindow):
                 url = url[len("file:///"):]
             if url.startswith("file:"):
                 url = url[len("file:"):]
-            self.loadFile(url)
+            try:
+                self.loadFile(url)
+            except:
+                self.loadFileOld(url)
+                
 
 
     def openLoadDialog(self):
@@ -224,7 +228,47 @@ class MainWindow(QtWidgets.QMainWindow):
             Tets = {self.M.T.shape[0]}
             """)
         self.replot()
+    
+    def loadFileOld(self, filename):
+        print("Loading", filename)
+        self.set_path(Path(filename))
+        self.M = saenopy.Solver.load_old(saenopy.Solver(),filename)
+         
+        def scale(m):
+            vmin, vmax = np.nanpercentile(m, [1, 99.9])
+            return np.clip((m-vmin)/(vmax-vmin), 0, 1)*(vmax-vmin)
 
+        R = self.M.R
+        minR = np.min(R, axis=0)
+        maxR = np.max(R, axis=0)
+        
+        if self.M.reg_mask is None: 
+            border = (R[:, 0] < minR[0] + 0.5e-6) | (R[:, 0] > maxR[0] - 0.5e-6) | \
+                     (R[:, 1] < minR[1] + 0.5e-6) | (R[:, 1] > maxR[1] - 0.5e-6) | \
+                     (R[:, 2] < minR[2] + 0.5e-6) | (R[:, 2] > maxR[2] - 0.5e-6)
+            self.M.reg_mask = ~border 
+                 
+
+        self.point_cloud = pv.PolyData(self.M.R)
+        self.point_cloud.point_arrays["f"] = -self.M.f*self.M.reg_mask[:, None]
+        self.point_cloud["f_mag"] = np.linalg.norm(self.M.f*self.M.reg_mask[:, None], axis=1)
+        self.point_cloud.point_arrays["U"] = self.M.U
+        self.point_cloud["U_mag"] = np.linalg.norm(self.M.U, axis=1)
+        self.point_cloud.point_arrays["U_target"] = self.M.U_target
+        self.point_cloud["U_target_mag"] = np.linalg.norm(self.M.U_target, axis=1)
+
+        self.point_cloud2 = None
+
+        self.offset = np.min(self.M.R, axis=0)
+        if 0:
+            self.stats_label.setText(f"""
+            Nodes = {self.M.R.shape[0]}
+            Tets = {self.M.T.shape[0]}
+            """)
+        self.replot()   
+        
+        
+        
     def calculateStiffness(self):
         self.point_cloud2 = pv.PolyData(np.mean(self.M.R[self.M.T], axis=1))
         from saenopy.materials import SemiAffineFiberMaterial
