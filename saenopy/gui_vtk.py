@@ -231,8 +231,12 @@ class MainWindow(QtWidgets.QMainWindow):
     
     def loadFileOld(self, filename):
         print("Loading", filename)
+        from saenopy.solver import load_solver 
         self.set_path(Path(filename))
-        self.M = saenopy.Solver.load_old(saenopy.Solver(),filename)
+        # load in solver object
+        self.M = load_solver(filename)
+        # alternative way
+        # self.M = saenopy.Solver.load_old(saenopy.Solver(),filename)
          
         def scale(m):
             vmin, vmax = np.nanpercentile(m, [1, 99.9])
