@@ -49,7 +49,9 @@ def loadExample(name, target_folder=None, progress_callback=None):
         downloadFiles("https://github.com/rgerum/saenopy/releases/download/v0.7.4/1_ClassicSingleCellTFM.zip", target_folder, progress_callback=progress_callback)
     if name == "DynamicalSingleCellTFM":
         downloadFiles("https://github.com/rgerum/saenopy/releases/download/v0.7.4/2_DynamicalSingleCellTFM.zip", target_folder, progress_callback=progress_callback)
-
+    if name == "OrganoidTFM":
+        downloadFiles("https://github.com/rgerum/saenopy/releases/download/v0.7.4/4_OrganoidTFM.zip", target_folder, progress_callback=progress_callback)
+    
 
 
 def getExamples():
@@ -78,4 +80,17 @@ def getExamples():
             "interpolate_parameter": {'reference_stack': 'median', 'element_size': 4.0, 'inner_region': 100.0, 'thinning_factor': 0, 'mesh_size_same': True, 'mesh_size_x': 200.0, 'mesh_size_y': 200.0, 'mesh_size_z': 200.0},
             "solve_parameter": {'k': 1449.0, 'd0': 0.0022, 'lambda_s': 0.032, 'ds': 0.055, 'alpha':  10**10, 'stepper': 0.33, 'i_max': 100},
         },
+        "OrganoidTFM": {
+            "desc": "Intestinal organoid in 1.2mg/ml collagen",
+            "img": image_path / "StainedOrganoid_icon.png",
+            "voxel_size": [1.444, 1.444, 1.976],
+            "stack": example_path / '4_OrganoidTFM/Pos007_S001_t50_z{z}_ch00.tif',
+            "reference_stack": example_path / '4_OrganoidTFM/Pos007_S001_t6_z{z}_ch00.tif',
+            "output_path": example_path / '4_OrganoidTFM/example_output',
+            "piv_parameter": {'win_um': 40.0, 'elementsize': 30.0, 'signoise_filter': 1.3, 'drift_correction': True},
+            "interpolate_parameter": {'reference_stack': 'first', 'element_size': 30, 'inner_region': 100.0, 'thinning_factor': 0, 'mesh_size_same': False, 'mesh_size_x': 900.0, 'mesh_size_y': 900.0, 'mesh_size_z': 900.0},
+            "solve_parameter": {'k': 6062.0, 'd0': 0.0025, 'lambda_s': 0.0804, 'ds':  0.034, 'alpha':  10**10, 'stepper': 0.33, 'i_max': 500,  'rel_conv_crit': 0.00003},
+    }
+    
+
     }
