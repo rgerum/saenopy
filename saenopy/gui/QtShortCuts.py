@@ -130,6 +130,51 @@ class QInput(QtWidgets.QWidget):
         # dummy method to be overloaded by child classes
         pass
 
+class QRangeSlider(QInput):
+    def __init__(self, layout, name, min, max, **kwargs):
+        # initialize the super widget
+        QInput.__init__(self, layout, name, **kwargs)
+
+        self.input_min = QtWidgets.QSpinBox()
+        self.input_min.setRange(min, max)
+        self.input_min.valueChanged.connect(self._inputBoxChange)
+        self.layout().addWidget(self.input_min)
+
+        from qtrangeslider import QRangeSlider
+        self.slider = QRangeSlider(QtCore.Qt.Horizontal).addToLayout()
+        self.slider.setRange(min, max)
+        self.slider.valueChanged.connect(self._valueChangedEvent)
+        self.layout().addWidget(self.slider)
+
+        self.input_max = QtWidgets.QSpinBox()
+        self.input_max.setRange(min, max)
+        self.input_max.valueChanged.connect(self._inputBoxChange)
+        self.layout().addWidget(self.input_max)
+
+    def _inputBoxChange(self):
+        self.setValue((self.input_min.value(), self.input_max.value()))
+        self._emitSignal()
+
+    def _valueChangedEvent(self, value):
+        if self.no_signal:
+            return
+        self.setValue(value)
+        self._emitSignal()
+
+    def _doSetValue(self, value):
+        self.slider.setValue(value)
+        self.input_min.setValue(value[0])
+        self.input_max.setValue(value[1])
+
+    def value(self):
+        return self.slider.value()
+
+    def setRange(self, min, max):
+        self.input_min.setRange(min, max)
+        self.input_max.setRange(min, max)
+        self.slider.setRange(min, max)
+
+
 cast_float = float
 class QInputNumber(QInput):
     slider_dragged = False

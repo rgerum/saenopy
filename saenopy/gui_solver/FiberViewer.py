@@ -66,19 +66,27 @@ def get_cache(data):
             cache_obj = caches[id(data)]
         caches[id(data)] = cache_obj
     return cache_obj
+
+
 def cache_results():
     def wrapper(function):
-        def apply(data, *params):
+        def apply(data, **params):
+            cache_name = f"_saved_{function}"
+            if "channel" in params:
+                cache_name = f"_saved_{function}_{params['channel']}"
+                print("channel", cache_name)
+            else:
+                print(cache_name, params)
             t = time.time()
             cache_obj = get_cache(data)
-            cached = getattr(cache_obj, f"_saved_{function}", None)
-            cached_params = getattr(cache_obj, f"_saved_{function}_params", None)
+            cached = getattr(cache_obj, cache_name, None)
+            cached_params = getattr(cache_obj, f"{cache_name}_params", None)
             if cached is not None and cached_params == params:
                 print("cache", function, "cached", params, f"{time.time()-t:.3f}s")
                 return cached
-            result = function(data, *params)
-            setattr(cache_obj, f"_saved_{function}", result)
-            setattr(cache_obj, f"_saved_{function}_params", params)
+            result = function(data, **params)
+            setattr(cache_obj, cache_name, result)
+            setattr(cache_obj, f"{cache_name}_params", params)
             print("cache", function, "apply", params, f"{time.time()-t:.3f}s")
             return result
         return apply
@@ -108,7 +116,8 @@ def get_transparency(a, b, alpha):
 
 
 @cache_results()
-def get_stack_images(stack, channel, minx, maxx, miny, maxy, minz, maxz):
+def get_stack_images(stack, channel, crops):
+    minx, maxx, miny, maxy, minz, maxz = crops
     # get the stack as a numpy array for the given imaging channel
     data = stack[minx:maxx, miny:maxy, :, minz:maxz, channel]
     # make sure the stack data has onlz one color channel
@@ -120,8 +129,8 @@ def get_stack_images(stack, channel, minx, maxx, miny, maxy, minz, maxz):
 
 
 @cache_results()
-def scale_intensity(data, *percentile):
-    return exposure.rescale_intensity(data, in_range=tuple(np.percentile(data, percentile)))
+def scale_intensity(data, percentile):
+    return exposure.rescale_intensity(data, in_range=tuple(np.percentile(data, list(percentile))))
 
 
 @cache_results()
@@ -164,15 +173,15 @@ def rescale(smoothed_data):
 
 def process_stack(stack, channel, crops=None, sigma_sato=None, sigma_gauss=None, percentiles=(0.01, 99.6), alpha=(1.3, 3.86, 1),
                   cmap="gray"):
-    data = get_stack_images(stack, channel, *crops)
+    data = get_stack_images(stack, channel=channel, crops=crops)
 
-    filtered_data = sato_filter(data, sigma_sato)
+    filtered_data = sato_filter(data, sigma_sato=sigma_sato)
 
-    scaled_data = scale_intensity(filtered_data, *percentiles)
+    scaled_data = scale_intensity(filtered_data, percentile=percentiles)
 
-    zoomed_data = zoom_z(scaled_data, stack.voxel_size[2] / stack.voxel_size[1])
+    zoomed_data = zoom_z(scaled_data,  factor=stack.voxel_size[2] / stack.voxel_size[1])
 
-    smoothed_data = smooth(zoomed_data, sigma_gauss)
+    smoothed_data = smooth(zoomed_data, sigma_gauss=sigma_gauss)
 
     combined1 = rescale(smoothed_data)
 
@@ -196,6 +205,35 @@ def join_stacks(stack_data1, stack_data2, thres_cell=1):
     newcmp = ListedColormap(newcolors)
     opacity = np.r_[stack_data1["opacity"], stack_data2["opacity"]]
     return {"data": combined, "opacity": opacity, "cmap": newcmp}
+
+
+class ChannelProperties(QtWidgets.QWidget):
+    valueChanged = QtCore.Signal()
+    def __init__(self):
+        super().__init__()
+        with QtShortCuts.QHBoxLayout() as layout:
+            self.input_show = QtShortCuts.QInputBool(None, "show", True)
+            layout.addStretch()
+        with QtShortCuts.QHBoxLayout() as layout:
+            self.input_sato = QtShortCuts.QInputNumber(None, "sato filter", 2, min=0, max=7, float=False)
+            self.input_gauss = QtShortCuts.QInputNumber(None, "gauss filter", 0, min=0, max=20, float=False)
+            self.input_percentile1 = QtShortCuts.QInputNumber(None, "percentile_min", 0.01)
+            self.input_percentile2 = QtShortCuts.QInputNumber(None, "percentile_max", 99.6)
+        with QtShortCuts.QHBoxLayout() as layout:
+            self.input_alpha1 = QtShortCuts.QInputNumber(None, "alpha1", 0.065, min=0, max=0.3, step=0.01, decimals=3)
+            self.input_alpha2 = QtShortCuts.QInputNumber(None, "alpha2", 0.2491, min=0, max=1, step=0.01)
+            self.input_alpha3 = QtShortCuts.QInputNumber(None, "alpha3", 1, min=0, max=1, step=0.1)
+            self.input_cmap = QtShortCuts.QDragableColor("pink").addToLayout()
+        for widget in [self.input_sato, self.input_gauss, self.input_percentile1, self.input_percentile2,
+                       self.input_alpha1, self.input_alpha2, self.input_alpha3,
+                       self.input_cmap, self.input_show]:
+            widget.valueChanged.connect(self.valueChanged)
+
+    def value(self):
+        return dict(sigma_sato=self.input_sato.value(), sigma_gauss=self.input_gauss.value(),
+                    percentiles=(self.input_percentile1.value(), self.input_percentile2.value()),
+                    alpha=(self.input_alpha1.value(), self.input_alpha2.value(), self.input_alpha3.value()),
+                    cmap=self.input_cmap.value())
 
 
 class FiberViewer(PipelineModule):
@@ -222,27 +260,20 @@ class FiberViewer(PipelineModule):
                 self.vtk_toolbar = VTK_Toolbar(self.plotter, self.update_display, shared_properties=self.parent.shared_properties).addToLayout()
 
                 with QtShortCuts.QHBoxLayout() as layout:
-                    self.input_cropx1 = QtShortCuts.QInputNumber(None, "crop x", 0, float=False)
-                    self.input_cropx2 = QtShortCuts.QInputNumber(None, "", 100, float=False)
-                    self.input_cropy1 = QtShortCuts.QInputNumber(None, "crop y", 0, float=False)
-                    self.input_cropy2 = QtShortCuts.QInputNumber(None, "", 100, float=False)
-                    self.input_cropz1 = QtShortCuts.QInputNumber(None, "crop z", 0, float=False)
-                    self.input_cropz2 = QtShortCuts.QInputNumber(None, "", 100, float=False)
-                with QtShortCuts.QHBoxLayout() as layout:
-                    self.input_sato = QtShortCuts.QInputNumber(None, "sato filter", 2, min=0, max=7, float=False)
-                    self.input_gauss = QtShortCuts.QInputNumber(None, "gauss filter", 0, min=0, max=20, float=False)
-                    self.input_percentile1 = QtShortCuts.QInputNumber(None, "percentile_min", 0.01)
-                    self.input_percentile2 = QtShortCuts.QInputNumber(None, "percentile_max", 99.6)
-                with QtShortCuts.QHBoxLayout() as layout:
-                    self.input_alpha1 = QtShortCuts.QInputNumber(None, "alpha1", 0.065, min=0, max=0.3, step=0.01, decimals=3)
-                    self.input_alpha2 = QtShortCuts.QInputNumber(None, "alpha2", 0.2491, min=0, max=1, step=0.01)
-                    self.input_alpha3 = QtShortCuts.QInputNumber(None, "alpha3", 1, min=0, max=1, step=0.1)
-                    self.input_cmap = QtShortCuts.QDragableColor("pink").addToLayout()
-
-                    for widget in [self.input_sato, self.input_gauss, self.input_percentile1, self.input_percentile2,
-                                   self.input_alpha1, self.input_alpha2, self.input_alpha3,
-                                   self.input_cmap]:
-                        widget.valueChanged.connect(self.update_display)
+                    self.input_cropx = QtShortCuts.QRangeSlider(None, "crop x", 0, 200)
+                    self.input_cropy = QtShortCuts.QRangeSlider(None, "y", 0, 200)
+                    self.input_cropz = QtShortCuts.QRangeSlider(None, "z", 0, 200)
+                self.channel0_properties = ChannelProperties().addToLayout()
+                self.channel0_properties.valueChanged.connect(self.update_display)
+                self.channel1_properties = ChannelProperties().addToLayout()
+                self.channel1_properties.valueChanged.connect(self.update_display)
+                self.channel1_properties.input_cmap.setValue("Greens")
+                self.channel1_properties.input_sato.setValue(0)
+                self.channel1_properties.input_gauss.setValue(7)
+                self.channel1_properties.input_percentile1.setValue(10)
+                self.channel1_properties.input_percentile2.setValue(100)
+                self.input_thresh = QtShortCuts.QInputNumber(None, "thresh", 1, float=True, min=0, max=2, step=0.1)
+                self.input_thresh.valueChanged.connect(self.update_display)
                 self.canvas = MatplotlibWidget(self).addToLayout()
 
                 self.t_slider = QTimeSlider(connected=self.update_display).addToLayout()
@@ -258,12 +289,13 @@ class FiberViewer(PipelineModule):
         super().setResult(result)
         if result and result.stack and result.stack[0]:
             shape = result.stack[0].shape
-            self.input_cropx1.setValue(shape[1]//2-100)
-            self.input_cropx2.setValue(shape[1]//2+100)
-            self.input_cropy1.setValue(shape[0]//2-100)
-            self.input_cropy2.setValue(shape[0]//2+100)
-            self.input_cropz1.setValue(shape[2]//2-25)
-            self.input_cropz2.setValue(shape[2]//2+25)
+            self.input_cropx.setRange(0, shape[1])
+            self.input_cropx.setValue((shape[1] // 2 - 100, shape[1] // 2 + 100))
+            self.input_cropy.setRange(0, shape[0])
+            self.input_cropy.setValue((shape[0] // 2 - 100, shape[0] // 2 + 100))
+            self.input_cropz.setRange(0, shape[2])
+            self.input_cropz.setValue((shape[2] // 2 - 25, shape[2] // 2 + 25))
+
 
 
     def update_display(self):
@@ -278,16 +310,29 @@ class FiberViewer(PipelineModule):
             CamPos.cam_pos_initialized = True
             #self.plotter.interactor.setToolTip(str(self.result.interpolate_parameter)+f"\nNodes {self.result.solver[self.t_slider.value()].R.shape[0]}\nTets {self.result.solver[self.t_slider.value()].T.shape[0]}")
             crops = []
-            for widged in [self.input_cropx1, self.input_cropx2, self.input_cropy1, self.input_cropy2, self.input_cropz1, self.input_cropz2]:
-                crops.append(widged.value())
+            for widged in [self.input_cropx, self.input_cropy, self.input_cropz]:
+                crops.extend(widged.value())
             t = time.time()
-            stack_data1 = process_stack(self.result.stack[0], 0, sigma_sato=self.input_sato.value(), sigma_gauss=self.input_gauss.value(),
-                                        crops=crops,
-                                        percentiles=(self.input_percentile1.value(), self.input_percentile2.value()),
-                                        alpha=(self.input_alpha1.value(), self.input_alpha2.value(), self.input_alpha3.value()),
-                                        cmap=self.input_cmap.value())
-            stack_data = stack_data1
-            if self.canvas is not None:
+            stack_data = None
+            if self.channel0_properties.input_show.value():
+                stack_data1 = process_stack(self.result.stack[0], 0,
+                                            crops=crops,
+                                            **self.channel0_properties.value())
+                stack_data = stack_data1
+            else:
+                stack_data1 = None
+            if self.channel1_properties.input_show.value():
+                stack_data2 = process_stack(self.result.stack[0], 1,
+                                            crops=crops,
+                                            **self.channel1_properties.value())
+                if stack_data1 is not None:
+                    stack_data = join_stacks(stack_data1, stack_data2, self.input_thresh.value())
+                else:
+                    stack_data = stack_data2
+            else:
+                stack_data2 = None
+            #stack_data = stack_data1
+            if self.canvas is not None and stack_data is not None:
                 self.canvas.figure.axes[0].cla()
                 self.canvas.figure.axes[0].plot(np.linspace(0, 1, len(stack_data["opacity"])), stack_data["opacity"])
                 self.canvas.figure.axes[0].spines["top"].set_visible(False)
