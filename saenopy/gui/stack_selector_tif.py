@@ -62,89 +62,6 @@ def add_last_time_delta(size):
             fp.write(s)
             fp.write("\n")
 
-class StackSelectorTif(QtWidgets.QWidget):
-    loading_process = QtCore.Signal(int, np.ndarray)
-    loading_finished = QtCore.Signal()
-
-    def __init__(self, layout):
-        super().__init__()
-
-        self.settings = QtCore.QSettings("Saenopy", "Seanopy")
-
-        main_layout = QtWidgets.QVBoxLayout(self)
-        return
-
-        #self.name = name
-
-        self._open_dir = self.settings.value("_open_dir"+self.name)
-        if self._open_dir is None:
-            self._open_dir = ""
-
-        self.button_load = QtWidgets.QPushButton("load")
-        main_layout.addWidget(self.button_load)
-        def doLoad():
-            self.window = StackSelectorWindow(self)
-            self.window.show()
-        self.button_load.clicked.connect(doLoad)
-
-        self.input_filename = QtShortCuts.QInputFilename(main_layout, name, self._open_dir, existing=True,
-                                                         file_type="images (*.tif *.jpg *.png)")
-        self.input_filename.line.setEnabled(True)
-        self.input_filename.button_load = QtWidgets.QPushButton("load")
-        self.input_filename.layout().addWidget(self.input_filename.button_load)
-        self.input_filename.button_load.clicked.connect(self.load)
-        self.input_label = QtWidgets.QLabel("")
-        main_layout.addWidget(self.input_label)
-
-        self.progressbar = QtWidgets.QProgressBar()
-        self.progressbar.setOrientation(QtCore.Qt.Horizontal)
-        main_layout.addWidget(self.progressbar)
-
-        self.view = QExtendedGraphicsView.QExtendedGraphicsView(self)
-        main_layout.addWidget(self.view)
-        self.pixmap = QtWidgets.QGraphicsPixmapItem(self.view.origin)
-
-        self.view.setVisible(False)
-
-        layout.addWidget(self)
-        self.loading_process.connect(lambda i, im: (self.progressbar.setValue(i), self.pixmap.setPixmap(QtGui.QPixmap(array2qimage(im))), self.view.setExtend(im.shape[1], im.shape[0])))
-        self.loading_finished.connect(self.loadingFinished)
-
-    def checkAcceptFilename(self, filename):
-        return filename.endswith(".tif")
-
-    def load(self):
-        self.settings.setValue("_open_dir"+self.name, self.input_filename.value())
-        self.settings.sync()
-
-        self.files = glob.glob(self.input_filename.value())
-
-        self.progressbar.setRange(0, len(self.files))
-        self.thread = threading.Thread(target=self.loading)
-        self.thread.start()
-
-        self.input_filename.button_load.setEnabled(False)
-
-    def loading(self):
-        self.input_label.setText(f"{len(self.files)} images")
-        images = []
-        for i, file in enumerate(self.files):
-            im = imageio.mimread(file)
-            if len(im[0].shape) == 3:
-                im[0] = im[0][:, :, 0]
-            images.extend(im)
-            self.loading_process.emit(i+1, images[-1])
-        self.images = np.array(images, images[0].dtype)
-        self.loading_finished.emit()
-
-    def loadingFinished(self):
-        self.input_label.setText(f"{self.images.shape} images")
-        self.input_filename.button_load.setEnabled(True)
-
-    def getStack(self):
-        return self.images
-
-
 
 class StackSelectorTif(QtWidgets.QWidget):
     no_update = False
@@ -156,47 +73,48 @@ class StackSelectorTif(QtWidgets.QWidget):
     def __init__(self, parent, use_time=False):
         super().__init__()
         self.parent = parent
-        main_layout = QtWidgets.QVBoxLayout(self)
-        main_layout.setContentsMargins(0, 0, 0, 0)
-        self.setVisible(False)
 
-        self.property_selectors = []
-        self.property_layout = QtWidgets.QVBoxLayout()
-        self.property_layout.setContentsMargins(0, 0, 0, 0)
-        main_layout.addLayout(self.property_layout)
+        with QtShortCuts.QVBoxLayout(self) as main_layout:
+            main_layout.setContentsMargins(0, 0, 0, 0)
+            self.setVisible(False)
 
-        self.z_prop = QtShortCuts.QInputChoice(main_layout, "property to use for z")
-        self.z_prop.valueChanged.connect(self.propertiesChanged)
+            self.property_selectors = []
+            with QtShortCuts.QVBoxLayout() as self.property_layout:
+                self.property_layout.setContentsMargins(0, 0, 0, 0)
 
-        self.c_prop = QtShortCuts.QInputChoice(main_layout, "property to use for channel")
-        self.c_prop.valueChanged.connect(self.propertiesChanged)
+            QtShortCuts.QHLine()
 
-        self.use_time = use_time
-        if use_time is True:
-            self.t_prop = QtShortCuts.QInputChoice(main_layout, "property to use for t")
-            self.t_prop.valueChanged.connect(self.propertiesChanged)
+            self.z_prop = QtShortCuts.QInputChoice(None, "property to use for z")
+            self.z_prop.valueChanged.connect(self.propertiesChanged)
 
-        layout_voxel = QtWidgets.QHBoxLayout()
-        main_layout.addLayout(layout_voxel)
+            self.input_voxel_size = QtShortCuts.QInputString(None, "Voxel size (xyz) (µm)", "0, 0, 0", validator=self.validator)
+            self.input_voxel_size.valueChanged.connect(self.input_voxel_size_changed)
+            self.completer = QtWidgets.QCompleter(get_last_voxel_sizes(), self)
+            #self.completer.setCompletionMode(QtWidgets.QCompleter.UnfilteredPopupCompletion)
+            self.input_voxel_size.line_edit.setCompleter(self.completer)
 
-        self.input_voxel_size = QtShortCuts.QInputString(layout_voxel, "Voxel size (xyz) (µm)", "0, 0, 0", validator=self.validator)
-        self.input_voxel_size.valueChanged.connect(self.input_voxel_size_changed)
-        self.completer = QtWidgets.QCompleter(get_last_voxel_sizes(), self)
-        self.input_voxel_size.line_edit.setCompleter(self.completer)
+            with QtShortCuts.QHBoxLayout():
+                self.label = QtWidgets.QLabel().addToLayout()
+                self.label2 = QtWidgets.QLabel().addToLayout()
 
-        self.label = QtWidgets.QLabel()
-        layout_voxel.addWidget(self.label)
+            QtShortCuts.QHLine()
 
-        layout_voxel = QtWidgets.QHBoxLayout()
-        main_layout.addLayout(layout_voxel)
+            self.c_prop = QtShortCuts.QInputChoice(None, "property to use for channel")
+            self.c_prop.valueChanged.connect(self.propertiesChanged)
 
-        if self.use_time:
-            self.input_time_dt = QtShortCuts.QInputString(layout_voxel, "Time Delta", "0",
-                                                             validator=self.validator_time, type=float)
-            self.input_tbar_unit = QtShortCuts.QInputChoice(self.input_time_dt.layout(), None, "s",
-                                                            ["s", "min", "h"])
-            self.completer2 = QtWidgets.QCompleter(get_last_time_deltas(), self)
-            self.input_time_dt.line_edit.setCompleter(self.completer2)
+            self.use_time = use_time
+            if use_time is True:
+                QtShortCuts.QHLine()
+                self.t_prop = QtShortCuts.QInputChoice(None, "property to use for t")
+                self.t_prop.valueChanged.connect(self.propertiesChanged)
+
+                with QtShortCuts.QHBoxLayout(main_layout):
+                    self.input_time_dt = QtShortCuts.QInputString(None, "Time Delta", "0",
+                                                                     validator=self.validator_time, type=float)
+                    self.input_tbar_unit = QtShortCuts.QInputChoice(self.input_time_dt.layout(), None, "s",
+                                                                    ["s", "min", "h"])
+                    self.completer2 = QtWidgets.QCompleter(get_last_time_deltas(), self)
+                    self.input_time_dt.line_edit.setCompleter(self.completer2)
 
         self.stack_initialized = None
         from saenopy.getDeformations import Stack
@@ -378,7 +296,7 @@ class StackSelectorTif(QtWidgets.QWidget):
         im = self.im
         shape = (im.shape[1], im.shape[0], self.parent.z_count)
         shape2 = np.array(shape) * np.array(voxel_size)
-        self.label.setText(f"{shape2}µm")
+        self.label2.setText(f"{shape2}µm")
 
     def check_initialized(self, index):
         if self.stack_initialized is False:
@@ -413,7 +331,7 @@ class StackSelectorTif(QtWidgets.QWidget):
             im = self.stack[:, :, self.parent.getZ()]
             self.parent.setImage(im)
         self.im = im
-        self.label.setText(f"({im.shape[1]}, {im.shape[0]}, {self.parent.z_count})px")
+        self.label.setText(f"Stack: ({im.shape[1]}, {im.shape[0]}, {self.parent.z_count})px")
         self.input_voxel_size_changed()
         #self.label.setText(f"Voxel {self.im.scale[0]:.3}µm x {self.im.scale[1]:.3}µm x {self.im.scale[2]:.3}µm ({im.shape[1]}, {im.shape[0]}, {self.im.nz})")
 

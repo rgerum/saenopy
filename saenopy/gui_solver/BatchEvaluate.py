@@ -306,38 +306,47 @@ class BatchEvaluate(QtWidgets.QWidget):
                 self.setWindowTitle("Add Files")
                 with QtShortCuts.QVBoxLayout(self) as layout:
                     with QtShortCuts.QTabWidget(layout) as self.tabs:
-                        with self.tabs.createTab("New Stacks") as self.tab:
+                        with self.tabs.createTab("New Measurement") as self.tab:
+                            with QtShortCuts.QHBoxLayout():
+                                with QtShortCuts.QVBoxLayout():
+                                    with QtShortCuts.QHBoxLayout():
+                                        self.reference_choice = QtShortCuts.QInputChoice(None, "Reference", 0, [0, 1],
+                                                                                         ["difference between time points",
+                                                                                          "single stack"])
+                                        QtShortCuts.current_layout.addStretch()
+                                    with QtShortCuts.QHBoxLayout():
+                                        with QtShortCuts.QHBoxLayout():
+                                            with QtShortCuts.QVBoxLayout():
+                                                QtShortCuts.current_layout.setContentsMargins(0, 0, 0, 0)
+                                                self.place_holder_widget = QtWidgets.QWidget().addToLayout()
+                                                layout_place_holder = QtWidgets.QVBoxLayout(self.place_holder_widget)
+                                                layout_place_holder.addStretch()
+                                                def ref_changed():
+                                                    self.stack_reference.setVisible(self.reference_choice.value())
+                                                    self.place_holder_widget.setVisible(not self.reference_choice.value())
+                                                self.reference_choice.valueChanged.connect(ref_changed)
+                                                self.stack_reference = StackSelector(QtShortCuts.current_layout, "reference")
+                                                self.stack_reference.glob_string_changed.connect \
+                                                    (lambda x, y: (print("relaxed, y"), self.stack_reference_input.setText(y)))
+                                                self.stack_reference.setVisible(self.reference_choice.value())
 
-                            with QtShortCuts.QHBoxLayout() as layout3:
-                                with QtShortCuts.QVBoxLayout() as layout4:
-                                    layout4.setContentsMargins(0, 0, 0, 0)
-                                    self.reference_choice = QtShortCuts.QInputChoice(None, "Reference", 0, [0, 1], ["difference between time points", "single stack"])
-                                    self.place_holder_widget = QtWidgets.QWidget().addToLayout()
-                                    layout_place_holder = QtWidgets.QVBoxLayout(self.place_holder_widget)
-                                    layout_place_holder.addStretch()
-                                    def ref_changed():
-                                        self.stack_reference.setVisible(self.reference_choice.value())
-                                        self.place_holder_widget.setVisible(not self.reference_choice.value())
-                                    self.reference_choice.valueChanged.connect(ref_changed)
-                                    self.stack_reference = StackSelector(layout4, "reference")
-                                    self.stack_reference.glob_string_changed.connect \
-                                        (lambda x, y: (print("relaxed, y"), self.stack_reference_input.setText(y)))
-                                    self.stack_reference.setVisible(self.reference_choice.value())
-
-                                    self.stack_reference_input = QtWidgets.QLineEdit().addToLayout()
-                                with QtShortCuts.QVBoxLayout() as layout4b:
-                                    layout4b.setContentsMargins(0, 0, 0, 0)
-                                    self.stack_data = StackSelector(layout4b, "active stack(s)", self.stack_reference, use_time=True)
-                                    self.stack_data.glob_string_changed.connect \
-                                        (lambda x, y: (print("deformed, y") ,self.stack_data_input.setText(y)))
-                                    self.stack_data_input = QtWidgets.QLineEdit().addToLayout()
+                                                self.stack_reference_input = QtWidgets.QLineEdit().addToLayout()
+                                            with QtShortCuts.QVBoxLayout():
+                                                QtShortCuts.current_layout.setContentsMargins(0, 0, 0, 0)
+                                                self.stack_data = StackSelector(QtShortCuts.current_layout, "active stack(s)", self.stack_reference, use_time=True)
+                                                self.stack_data.setMinimumWidth(300)
+                                                self.stack_reference.setMinimumWidth(300)
+                                                self.place_holder_widget.setMinimumWidth(300)
+                                                self.stack_data.glob_string_changed.connect \
+                                                    (lambda x, y: (print("deformed, y") ,self.stack_data_input.setText(y)))
+                                                self.stack_data_input = QtWidgets.QLineEdit().addToLayout()
                                 from saenopy.gui.stack_preview import StackPreview
-                                self.stack_preview = StackPreview(layout3, self.reference_choice, self.stack_reference, self.stack_data)
+                                self.stack_preview = StackPreview(QtShortCuts.current_layout, self.reference_choice, self.stack_reference, self.stack_data)
                             self.outputText = QtShortCuts.QInputFolder(None, "output", settings=settings,
                                                                        settings_key="batch/wildcard2", allow_edit=True)
-                            with QtShortCuts.QHBoxLayout() as layout3:
+                            with QtShortCuts.QHBoxLayout():
                                 # self.button_clear = QtShortCuts.QPushButton(None, "clear list", self.clear_files)
-                                layout3.addStretch()
+                                QtShortCuts.current_layout.addStretch()
                                 self.button_addList00 = QtShortCuts.QPushButton(None, "cancel", self.reject)
                                 def accept():
                                     self.mode = "new"
@@ -420,7 +429,7 @@ class BatchEvaluate(QtWidgets.QWidget):
                                         self.accept()
                                     self.button_addList4 = QtShortCuts.QPushButton(None, "ok", accept)
 
-                        with self.tabs.createTab("Existing Files") as self.tab3:
+                        with self.tabs.createTab("Existing Measurement") as self.tab3:
                             self.outputText3 = QtShortCuts.QInputFilename(None, "output", settings=settings, file_type="Results Files (*.npz)",
                                                                           settings_key="batch/wildcard_existing", allow_edit=True, existing=True)
                             self.tab3.addStretch()
