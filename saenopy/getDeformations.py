@@ -259,6 +259,8 @@ class Stack(Saveable):
     channels: list = None
     images_channels: list = None
 
+    leica_file = None
+
     def __init__(self, template=None, voxel_size=None, filename=None, shape=None, channels=None, image_filenames=None, crop=None):
         if template is None:
             if isinstance(filename, list):
@@ -270,7 +272,17 @@ class Stack(Saveable):
         self.template = template
         self.crop = crop
         if image_filenames is None and template is not None:
-            self.image_filenames, self.channels = template_to_array(template, crop)
+            match = re.match(r"(.*)\{f\:(\d*)\}\{c\:(\d*)\}(?:\{t\:(\d*)\})?.lif", template)
+            if match:
+                from saenopy.gui.lif_reader import LifFile
+                if len(match.groups()) == 3:
+                    self.leica_filename, self.leica_folder, self.leica_channel = match.groups()
+                    self.leica_time = 0
+                else:
+                    self.leica_filename, self.leica_folder, self.leica_channel, self.leica_time = match.groups()
+                self.leica_file = LifFile(self.leica_filename+".lif").get_image(self.leica_folder)
+            else:
+                self.image_filenames, self.channels = template_to_array(template, crop)
         else:
             self.image_filenames = image_filenames
             self.channels = channels
@@ -295,11 +307,13 @@ class Stack(Saveable):
     def description(self, z):
         try:
             return f"shape {self.shape}px\nsize {np.array(self.shape[:3])*np.array(self.voxel_size)}μm\nvoxel size {self.voxel_size}μm\n{self.image_filenames[z][0]}"
-        except IndexError:
+        except (IndexError, TypeError):
             return ""
 
     @property
     def shape(self) -> tuple:
+        if self.leica_file is not None:
+            return (self.leica_file.dims.y, self.leica_file.dims.x, self.leica_file.dims.z, 1)
         if self._shape is None:
             im = io.imread(self.image_filenames[0][0])
             if self.crop is not None and "x" in self.crop:
@@ -314,6 +328,27 @@ class Stack(Saveable):
 
     def __getitem__(self, index) -> np.ndarray:
         """ axes are y, x, rgb, z, c """
+        if self.leica_file is not None:
+            if isinstance(index[3], slice):
+                z_min = 0
+                if index[3].start is not None:
+                    z_min = index[3].start
+                z_max = self.shape[3]
+                if index[3].end is not None:
+                    z_max = index[3].end
+            else:
+                z_min = index[3]
+                z_max = z_min + 1
+            images = []
+            for z in range(z_min, z_max):
+                im = np.asarray(self.leica_file.get_frame(z, t=self.leica_time, c=self.leica_channel))
+                images.append(im)
+            images = np.asarray(images)
+            #np.asarray([self.leica_file.get_frame(z) for z in range(z_min, z_max)])
+            images = images.transpose(1, 2, 0)[:, :, None, :]
+            if isinstance(index[3], int):
+                images = images[:, :, :, 0]
+            return images[index[0], index[1], index[2]]
         images = np.array(self.image_filenames)[index[3], index[4]]
         images = np.asarray(load_image_files_to_nparray(images, self.crop)).T
         images = np.swapaxes(images, 0, 2)

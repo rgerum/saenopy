@@ -30,6 +30,30 @@ def get_iterator(values, name="", iter=None):
 
 def process_line(filename, output_path):
     results = []
+
+    if filename.endswith(".lif"):
+        match = re.match(r"(.*)\{f\:(\d*)\}\{c\:(\d*)\}.lif", filename)
+        filename, folder, channel = match.groups()
+        files = glob.glob(filename+".lif", recursive=True)
+
+        output_base = filename
+        while "*" in str(output_base):
+            output_base = Path(output_base).parent
+
+        for file in files:
+            relative = os.path.relpath(file, output_base)
+            counts = {}
+            from saenopy.gui.lif_reader import LifFile
+            leica_file = LifFile(file).get_image(folder)
+            counts["z"] = leica_file.dims.z
+            counts["c"] = leica_file.channels
+            if leica_file.dims.t > 1:
+                counts["t"] = leica_file.dims.t
+            results.append({"filename": f"{file[:-4]}{{f:{folder}}}{{c:{channel}}}.lif", "dimensions": counts, "output": Path(output_path) / relative})
+            if leica_file.dims.t > 1:
+                import numpy as np
+                results[-1]["times"] = np.arange(counts["t"])
+        return results
     filename, channel1 = get_channel_placeholder(filename)
     results1, output_base = format_glob(filename)
     for (r1, d1) in results1.groupby("template"):
@@ -137,7 +161,10 @@ def get_stacks(filename, output_path, voxel_size, time_delta=None, reference_sta
                 if "t" in crop:
                     times = times[slice(*crop["t"])]
                 for t in times:
-                    stacks.append(Stack(r1["filename"].replace("{t}", t), voxel_size, crop=crop))
+                    if r1["filename"].endswith(".lif"):
+                        stacks.append(Stack(r1["filename"].replace(".lif", f"{{t:{t}}}.lif"), voxel_size, crop=crop))
+                    else:
+                        stacks.append(Stack(r1["filename"].replace("{t}", t), voxel_size, crop=crop))
             else:
                 stacks = [Stack(r1["filename"], voxel_size, crop=crop)]
 
