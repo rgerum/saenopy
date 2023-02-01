@@ -179,9 +179,9 @@ def process_stack(stack, channel, crops=None, sigma_sato=None, sigma_gauss=None,
 
     scaled_data = scale_intensity(filtered_data, percentile=percentiles)
 
-    zoomed_data = zoom_z(scaled_data,  factor=stack.voxel_size[2] / stack.voxel_size[1])
+    #zoomed_data = zoom_z(scaled_data,  factor=stack.voxel_size[2] / stack.voxel_size[1])
 
-    smoothed_data = smooth(zoomed_data, sigma_gauss=sigma_gauss)
+    smoothed_data = smooth(scaled_data, sigma_gauss=sigma_gauss)
 
     combined1 = rescale(smoothed_data)
 
@@ -341,7 +341,7 @@ class FiberViewer(PipelineModule):
                 self.canvas.figure.axes[0].set_ylim(0, 1)
                 self.canvas.draw()
 
-            vol = self.plotter.add_volume(stack_data["data"], cmap=stack_data["cmap"], opacity=stack_data["opacity"],
+            vol = self.plotter.add_volume(stack_data["data"], resolution=np.array(self.result.stack[0].voxel_size)*1e-6, cmap=stack_data["cmap"], opacity=stack_data["opacity"],
                                      blending="composite", name="fiber")  # 1.0*x
             print("plot time", f"{time.time()-t:.3f}s")
             # plotter.remove_scalar_bar()
