@@ -56,7 +56,12 @@ class StackSelectorLeica(QtWidgets.QWidget):
             return
 
         im = self.get_image(0, 0, 0)
-        self.label.setText(f"Voxel {self.im.scale[0]:.3}µm x {self.im.scale[1]:.3}µm x {self.im.scale[2]:.3}µm ({im.shape[1]}, {im.shape[0]}, {self.im.nz})")
+        # if there is no z channel
+        if self.im.scale[2] is None:
+            self.label.setText(
+                f"Voxel {self.im.scale[0]:.3}µm x {self.im.scale[1]:.3}µm x {0}µm ({im.shape[1]}, {im.shape[0]}, {self.im.dims.z})")
+        else:
+            self.label.setText(f"Voxel {self.im.scale[0]:.3}µm x {self.im.scale[1]:.3}µm x {self.im.scale[2]:.3}µm ({im.shape[1]}, {im.shape[0]}, {self.im.dims.z})")
 
     def getVoxelSize(self):
         return self.im.scale[0:2]

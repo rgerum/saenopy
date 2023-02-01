@@ -366,7 +366,7 @@ class LifImage:
         t_requested = t_offset * t
 
         # Hack-y fix for channel as the second dim
-        if self.channel_as_second_dim is False:
+        if self.channel_as_second_dim:
             z_requested = z
 
             c_offset = self.nz
@@ -652,6 +652,7 @@ class LifFile:
                     cytes_inc_z = int(dims[2].attrib["BytesInc"])
 
                     channel_as_second_dim = bytes_inc_channel > cytes_inc_z
+                    channel_as_second_dim = False  # EDIT this check did not work for my example files. Disabling it for now
 
                 else:
                     channel_as_second_dim = False
