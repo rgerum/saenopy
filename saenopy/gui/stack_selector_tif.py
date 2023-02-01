@@ -71,7 +71,7 @@ class StackSelectorTif(QtWidgets.QWidget):
 
     input_time_dt = None
 
-    def __init__(self, parent, use_time=False):
+    def __init__(self, parent: "StackSelector", use_time=False):
         super().__init__()
         self.parent_selector = parent
 
@@ -129,6 +129,7 @@ class StackSelectorTif(QtWidgets.QWidget):
                 self.input_cropt.setRange(0, 1)
                 self.input_cropt.setValue((0, 1))
                 self.input_cropt.initialized = False
+                self.input_cropt.valueChanged.connect(self.z_moved)
             else:
                 self.input_cropt = None
 
@@ -262,7 +263,7 @@ class StackSelectorTif(QtWidgets.QWidget):
         return crop
 
     def z_moved(self):
-        print(self.get_crop())
+        self.parent_selector.stack_changed.emit()
         return
         def value(widget, index):
             if widget.value()[index] != widget.range()[index]:
@@ -361,7 +362,7 @@ class StackSelectorTif(QtWidgets.QWidget):
         self.z_moved()
         self.parent_selector.glob_string_changed.emit('getstack', self.target_glob)
 
-        self.parent_selector.setZCount(len(d))
+        #self.parent_selector.setZCount(len(d))
         self.d = d
         if str(d.iloc[0].filename).endswith(".tif"):
             im = tifffile.imread(str(d.iloc[0].filename))
@@ -380,8 +381,8 @@ class StackSelectorTif(QtWidgets.QWidget):
         if not self.validator(None):
             return
         voxel_size = self.getVoxelSize()
-        im = self.im
-        shape = (im.shape[1], im.shape[0], self.parent_selector.z_count)
+        im = self.get_image(0, 0, 0)
+        shape = (im.shape[1], im.shape[0], self.get_z_count())
         shape2 = np.array(shape) * np.array(voxel_size)
         self.label2.setText(f"{shape2}µm")
 
@@ -408,17 +409,8 @@ class StackSelectorTif(QtWidgets.QWidget):
         if self.no_update is True or self.stack is None:
             return
 
-        #d = d[d[z_prop_name] == self.parent_selector.getZ()]
-        if self.parent_selector.z_slider.active_range != 0:
-            self.check_initialized(self.parent_selector.getZRange())
-            im = np.max(self.stack[:, :, self.parent_selector.getZRange()], axis=2)
-            self.parent_selector.setImage(im)
-        else:
-            self.check_initialized(self.parent_selector.getZ())
-            im = self.stack[:, :, self.parent_selector.getZ()]
-            self.parent_selector.setImage(im)
-        self.im = im
-        self.label.setText(f"Stack: ({im.shape[1]}, {im.shape[0]}, {self.parent_selector.z_count})px")
+        im = self.get_image(0, 0, 0)
+        self.label.setText(f"Stack: ({im.shape[1]}, {im.shape[0]}, {self.get_z_count()})px")
         self.input_voxel_size_changed()
         #self.label.setText(f"Voxel {self.im.scale[0]:.3}µm x {self.im.scale[1]:.3}µm x {self.im.scale[2]:.3}µm ({im.shape[1]}, {im.shape[0]}, {self.im.nz})")
 
@@ -438,13 +430,13 @@ class StackSelectorTif(QtWidgets.QWidget):
     def getStack(self):
         return self.stack
 
+    def get_image(self, t, z, c=0):
+        return self.stack_obj[t][:, :, :, z, c]
 
-class StackObject:
-    image_filenames = []
-    def __init__(self):
-        pass
+    def get_t_count(self):
+        t_count = len(self.stack_obj)
+        return t_count
 
-    def __getitem__(self, item):
-        #image_filenames[item[3]]
-        pass
-
+    def get_z_count(self):
+        z_count = np.array(self.stack_obj[0].image_filenames).shape[0]
+        return z_count

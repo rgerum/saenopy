@@ -31,39 +31,31 @@ class StackSelectorLeica(QtWidgets.QWidget):
         return filename.endswith(".lif")
 
     def setImage(self, filename):
-        from readlif.reader import LifFile
-        from saenopy.gui import patch_lifreader
+        from .lif_reader import LifFile
+        #from saenopy.gui import patch_lifreader
         new = LifFile(filename)
         self.new = new
         print([(im.info["path"], im.info["name"], im.channels, im.dims) for im in new.get_iter_image()])
         self.setVisible(True)
         self.input_folder.setValues(list(np.arange(new.num_images)), [im.info["path"]+ im.info["name"] for im in new.get_iter_image()])
+        self.setFolder(0)
 
     def setFolder(self, index):
-        print("setFolder")
         self.im = self.new.get_image(index)
         try:
             self.no_update = True
             self.channel.setValues(list(np.arange(self.im.channels)))
             self.time.setValues(list(np.arange(self.im.nt)))
-            self.parent.setZCount(self.im.nz)
         finally:
             self.no_update = False
-        print("showImage")
         self.showImage()
 
     def showImage(self):
-        print("showing Image", self.no_update)
+        self.parent.stack_changed.emit()
         if self.no_update is True:
             return
 
-        if self.parent.z_slider.active_range != 0:
-            im = np.max(self.im[self.time.value(), self.parent.getZRange(), self.channel.value()], axis=0)
-            self.parent.setImage(im)
-        else:
-            im = self.im[self.time.value(), self.parent.getZ(), self.channel.value()]
-            self.parent.setImage(im)
-
+        im = self.get_image(0, 0, 0)
         self.label.setText(f"Voxel {self.im.scale[0]:.3}µm x {self.im.scale[1]:.3}µm x {self.im.scale[2]:.3}µm ({im.shape[1]}, {im.shape[0]}, {self.im.nz})")
 
     def getVoxelSize(self):
@@ -71,3 +63,15 @@ class StackSelectorLeica(QtWidgets.QWidget):
 
     def getStack(self):
         return self.im[self.time.value(), :, self.channel.value()].transpose(1, 2, 0)
+
+    def get_image(self, t, z, c=0):
+        return np.asarray(self.im.get_frame(z, t, self.channel.value()))
+
+    def get_t_count(self):
+        return self.im.dims.t
+
+    def get_z_count(self):
+        return self.im.dims.z
+
+    def get_crop(self):
+        return {}
