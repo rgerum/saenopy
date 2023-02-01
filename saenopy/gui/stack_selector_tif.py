@@ -67,12 +67,13 @@ class StackSelectorTif(QtWidgets.QWidget):
     no_update = False
     stack = None
     df = None
+    target_glob = ""
 
     input_time_dt = None
 
     def __init__(self, parent, use_time=False):
         super().__init__()
-        self.parent = parent
+        self.parent_selector = parent
 
         with QtShortCuts.QVBoxLayout(self) as main_layout:
             main_layout.setContentsMargins(0, 0, 0, 0)
@@ -86,6 +87,14 @@ class StackSelectorTif(QtWidgets.QWidget):
 
             self.z_prop = QtShortCuts.QInputChoice(None, "property to use for z")
             self.z_prop.valueChanged.connect(self.propertiesChanged)
+
+            self.input_cropx = QtShortCuts.QRangeSlider(None, "crop x", 0, 200)
+            self.input_cropy = QtShortCuts.QRangeSlider(None, "crop y", 0, 200)
+            self.input_cropz = QtShortCuts.QRangeSlider(None, "crop z", 0, 200)
+            self.input_cropx.valueChanged.connect(self.z_moved)
+            self.input_cropy.valueChanged.connect(self.z_moved)
+            self.input_cropz.valueChanged.connect(self.z_moved)
+            self.input_cropz.initialized = False
 
             self.input_voxel_size = QtShortCuts.QInputString(None, "Voxel size (xyz) (µm)", "0, 0, 0", validator=self.validator)
             self.input_voxel_size.valueChanged.connect(self.input_voxel_size_changed)
@@ -115,6 +124,13 @@ class StackSelectorTif(QtWidgets.QWidget):
                                                                     ["s", "min", "h"])
                     self.completer2 = QtWidgets.QCompleter(get_last_time_deltas(), self)
                     self.input_time_dt.line_edit.setCompleter(self.completer2)
+
+                self.input_cropt = QtShortCuts.QRangeSlider(None, "crop t", 0, 200)
+                self.input_cropt.setRange(0, 1)
+                self.input_cropt.setValue((0, 1))
+                self.input_cropt.initialized = False
+            else:
+                self.input_cropt = None
 
         self.stack_initialized = None
         from saenopy.getDeformations import Stack
@@ -224,6 +240,59 @@ class StackSelectorTif(QtWidgets.QWidget):
         self.df = df
         self.propertiesChanged()
 
+    def get_crop(self):
+        def value(widget, index):
+            if widget.value()[index] != widget.range()[index]:
+                return widget.value()[index]
+            return None
+
+        crop = {}
+        for name, widget in {
+            "x": self.input_cropx,
+            "y": self.input_cropy,
+            "z": self.input_cropz,
+            "t": self.input_cropt,
+        }.items():
+            if (widget is None) or (name == "t" and widget.isEnabled() is False):
+                continue
+            a, b = value(widget, 0), value(widget, 1)
+            if a != None or b != None:
+                crop[name] = (a, b)
+
+        return crop
+
+    def z_moved(self):
+        print(self.get_crop())
+        return
+        def value(widget, index):
+            if widget.value()[index] != widget.range()[index]:
+                return widget.value()[index]
+            return ""
+
+        x1, x2 = value(self.input_cropx, 0), value(self.input_cropx, 1)
+        y1, y2 = value(self.input_cropy, 0), value(self.input_cropy, 1)
+        z1, z2 = value(self.input_cropz, 0), value(self.input_cropz, 1)
+        if 0:
+            if self.input_cropz.value() != self.input_cropz.range():
+                a, b = self.input_cropz.value()
+                self.target_glob = re.sub(r"\{z(?::\d+-\d+)?\}", f"{{z:{a}-{b}}}", self.target_glob)
+                self.parent_selector.glob_string_changed.emit('getstack', self.target_glob)
+            else:
+                self.target_glob = re.sub(r"\{z(?::\d+-\d+)?\}", "{z}", self.target_glob)
+                self.parent_selector.glob_string_changed.emit('getstack', self.target_glob)
+
+        if x1 == "" and x2 == "" and y1 == "" and y2 == "" and z1 == "" and z2 == "":
+            self.target_glob = re.sub(f"\.tif(?:\[\d*:\d*,\s*\d*:\d*,\s*\d*:\d*\])?$", ".tif", self.target_glob)
+        else:
+            self.target_glob = re.sub(f"\.tif(?:\[\d*:\d*,\s*\d*:\d*,\s*\d*:\d*\])?$", f".tif[{y1}:{y2},{x1}:{x2},{z1}:{z2}]", self.target_glob)
+        if self.use_time:
+            t1, t2 = value(self.input_cropt, 0), value(self.input_cropt, 1)
+            if t1 == "" and t2 == "":
+                self.target_glob = re.sub(r"\{t(?:\[\d*:\d*\])?\}", "{t}", self.target_glob)
+            else:
+                self.target_glob = re.sub(r"\{t(?:\[\d*:\d*\])?\}", f"{{t[{t1}:{t2}]}}", self.target_glob)
+        self.parent_selector.glob_string_changed.emit('getstack', self.target_glob)
+
     def propertiesChanged(self):
         if self.df is None:
             return
@@ -239,9 +308,11 @@ class StackSelectorTif(QtWidgets.QWidget):
                 selected_props_dict[t_prop_name] = "{t}"
                 self.input_tbar_unit.setDisabled(False)
                 self.input_time_dt.setDisabled(False)
+                self.input_cropt.setDisabled(False)
             else:
                 self.input_tbar_unit.setDisabled(True)
                 self.input_time_dt.setDisabled(True)
+                self.input_cropt.setDisabled(True)
         for prop in self.property_selectors:
             if prop.name == z_prop_name or (self.use_time and prop.name == t_prop_name):
                 prop.setEnabled(False)
@@ -270,11 +341,27 @@ class StackSelectorTif(QtWidgets.QWidget):
                 s = Stack()
                 s.image_filenames = [[str(f)] for f in dd.filename]
                 self.stack_obj.append(s)
+        self.input_cropz.setRange(0, len(self.stack_obj[0].image_filenames))
+        if self.input_cropz.initialized != z_prop_name:
+            im = tifffile.TiffFile(d.iloc[0].filename).pages[0].shape
+            self.input_cropx.setRange(0, im[1])
+            self.input_cropy.setRange(0, im[0])
+
+            self.input_cropz.setValue((0, len(self.stack_obj[0].image_filenames)))
+            self.input_cropx.setValue((0, im[1]))
+            self.input_cropy.setValue((0, im[0]))
+            self.input_cropz.initialized = z_prop_name
+        if self.use_time and self.input_cropt.initialized != t_prop_name and t_prop_name != "None":
+            self.input_cropt.setRange(0, len(self.stack_obj))
+            self.input_cropt.setValue((0, len(self.stack_obj)))
+            self.input_cropt.initialized = t_prop_name
+
 
         self.target_glob = self.format_template.format(**selected_props_dict)
-        self.parent.glob_string_changed.emit('getstack', self.target_glob)
+        self.z_moved()
+        self.parent_selector.glob_string_changed.emit('getstack', self.target_glob)
 
-        self.parent.setZCount(len(d))
+        self.parent_selector.setZCount(len(d))
         self.d = d
         if str(d.iloc[0].filename).endswith(".tif"):
             im = tifffile.imread(str(d.iloc[0].filename))
@@ -294,7 +381,7 @@ class StackSelectorTif(QtWidgets.QWidget):
             return
         voxel_size = self.getVoxelSize()
         im = self.im
-        shape = (im.shape[1], im.shape[0], self.parent.z_count)
+        shape = (im.shape[1], im.shape[0], self.parent_selector.z_count)
         shape2 = np.array(shape) * np.array(voxel_size)
         self.label2.setText(f"{shape2}µm")
 
@@ -321,17 +408,17 @@ class StackSelectorTif(QtWidgets.QWidget):
         if self.no_update is True or self.stack is None:
             return
 
-        #d = d[d[z_prop_name] == self.parent.getZ()]
-        if self.parent.z_slider.active_range != 0:
-            self.check_initialized(self.parent.getZRange())
-            im = np.max(self.stack[:, :, self.parent.getZRange()], axis=2)
-            self.parent.setImage(im)
+        #d = d[d[z_prop_name] == self.parent_selector.getZ()]
+        if self.parent_selector.z_slider.active_range != 0:
+            self.check_initialized(self.parent_selector.getZRange())
+            im = np.max(self.stack[:, :, self.parent_selector.getZRange()], axis=2)
+            self.parent_selector.setImage(im)
         else:
-            self.check_initialized(self.parent.getZ())
-            im = self.stack[:, :, self.parent.getZ()]
-            self.parent.setImage(im)
+            self.check_initialized(self.parent_selector.getZ())
+            im = self.stack[:, :, self.parent_selector.getZ()]
+            self.parent_selector.setImage(im)
         self.im = im
-        self.label.setText(f"Stack: ({im.shape[1]}, {im.shape[0]}, {self.parent.z_count})px")
+        self.label.setText(f"Stack: ({im.shape[1]}, {im.shape[0]}, {self.parent_selector.z_count})px")
         self.input_voxel_size_changed()
         #self.label.setText(f"Voxel {self.im.scale[0]:.3}µm x {self.im.scale[1]:.3}µm x {self.im.scale[2]:.3}µm ({im.shape[1]}, {im.shape[0]}, {self.im.nz})")
 

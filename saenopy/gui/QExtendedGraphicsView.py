@@ -127,6 +127,7 @@ class QExtendedGraphicsView(QtWidgets.QGraphicsView):
         self.fitted = 1
         self.rotation = 0
         self.setStyleSheet("border-width: 0px; border-style: outset;")
+        self.scene.setBackgroundBrush(QtCore.Qt.gray)
         # self.setContentsMargins(0, 0, 0, 0)
 
     def setExtend(self, width, height):

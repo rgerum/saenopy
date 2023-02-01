@@ -136,20 +136,19 @@ class QRangeSlider(QInput):
         QInput.__init__(self, layout, name, **kwargs)
 
         self.input_min = QtWidgets.QSpinBox()
-        self.input_min.setRange(min, max)
         self.input_min.valueChanged.connect(self._inputBoxChange)
         self.layout().addWidget(self.input_min)
 
         from qtrangeslider import QRangeSlider
         self.slider = QRangeSlider(QtCore.Qt.Horizontal).addToLayout()
-        self.slider.setRange(min, max)
         self.slider.valueChanged.connect(self._valueChangedEvent)
         self.layout().addWidget(self.slider)
 
         self.input_max = QtWidgets.QSpinBox()
-        self.input_max.setRange(min, max)
         self.input_max.valueChanged.connect(self._inputBoxChange)
         self.layout().addWidget(self.input_max)
+
+        self.setRange(min, max)
 
     def _inputBoxChange(self):
         self.setValue((self.input_min.value(), self.input_max.value()))
@@ -173,6 +172,10 @@ class QRangeSlider(QInput):
         self.input_min.setRange(min, max)
         self.input_max.setRange(min, max)
         self.slider.setRange(min, max)
+        self._range = (min, max)
+
+    def range(self):
+        return self._range
 
 
 cast_float = float

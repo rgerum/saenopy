@@ -7,6 +7,23 @@ from saenopy.gui import QtShortCuts, QExtendedGraphicsView
 from saenopy.gui_solver.QTimeSlider import QTimeSlider
 from saenopy.gui_solver.StackDisplay import ModuleScaleBar
 
+def crop(im, minx, maxx, miny, maxy, z, minz, maxz, t, mint, maxt):
+    if len(im.shape) == 2:
+        im = im[:, :, None]
+    if im.shape[2] == 1:
+        im = np.tile(im, (1, 1, 4))
+        im[:, :, 3] = 255
+    if im.shape[2] == 3:
+        im = np.tile(im, (1, 1, 4))
+        im = np.dstack([im[:, :, 0], im[:, :, 1], im[:, :, 2], np.ones_like(im[:, :, 2])*255])
+    if minz <= z < maxz and mint <= t < maxt:
+        im[:, :minx, 3] = 128
+        im[:, maxx:, 3] = 128
+        im[:miny, :, 3] = 128
+        im[maxy:, :, 3] = 128
+    else:
+        im[:, :, 3] = 128
+    return im
 
 class StackPreview(QtWidgets.QWidget):
     view_single = False
@@ -55,8 +72,11 @@ class StackPreview(QtWidgets.QWidget):
         self.stack.glob_string_changed.connect(self.update)
         self.stack_reference.glob_string_changed.connect(self.update)
         self.reference_choice.valueChanged.connect(self.update)
+        self.stack.selectors[1].input_cropx.valueChanged.connect(self.update)
+        self.stack.selectors[1].input_cropy.valueChanged.connect(self.update)
+        self.stack.selectors[1].input_cropz.valueChanged.connect(self.update)
 
-    def update(self, x, y):
+    def update(self, x, y=None):
         try:
             z_count = np.array(self.stack.selectors[1].stack_obj[0].image_filenames).shape[0]
             t_count = len(self.stack.selectors[1].stack_obj)
@@ -71,41 +91,54 @@ class StackPreview(QtWidgets.QWidget):
         if self.t_slider.t_slider.maximum() != t_count-1:
             self.t_slider.setRange(0, t_count-1)
 
+        z = self.z_slider.value()
+        t = self.t_slider.value()
         if self.reference_choice.value() == 0 or len(self.stack_reference.selectors[1].stack_obj) == 0:
-            if t_count == 0:
+            minx, maxx = self.stack.selectors[1].input_cropx.value()
+            miny, maxy = self.stack.selectors[1].input_cropy.value()
+            minz, maxz = self.stack.selectors[1].input_cropz.value()
+            mint, maxt = self.stack.selectors[1].input_cropt.value()
+            if t_count <= 1:
                 im = self.stack.selectors[1].stack_obj[self.t_slider.value()][:, :, :, self.z_slider.value(), 0]
-                self.pixmaps[1].setPixmap(QtGui.QPixmap(array2qimage(im)))
+                self.pixmaps[1].setPixmap(QtGui.QPixmap(array2qimage(crop(im, minx, maxx, miny, maxy, z, minz, maxz, t, mint, maxt))))
                 self.views[1].setExtend(im.shape[0], im.shape[1])
 
                 im = np.zeros([im.shape[0], im.shape[1], 3])
                 im[:, :, 0] = 255
                 im[:, :, 2] = 255
-                self.pixmaps[0].setPixmap(QtGui.QPixmap(array2qimage(im)))
+                self.pixmaps[0].setPixmap(QtGui.QPixmap(array2qimage(crop(im, minx, maxx, miny, maxy, z, minz, maxz, t, mint, maxt))))
                 self.views[0].setExtend(im.shape[0], im.shape[1])
             else:
 
-                im = self.stack.selectors[1].stack_obj[self.t_slider.value()][:, :, :, self.z_slider.value(), 0]
-                self.pixmaps[0].setPixmap(QtGui.QPixmap(array2qimage(im)))
+                im = self.stack.selectors[1].stack_obj[self.t_slider.value()][:, :, :, z, 0]
+                self.pixmaps[0].setPixmap(QtGui.QPixmap(array2qimage(crop(im, minx, maxx, miny, maxy, z, minz, maxz, t, mint, maxt))))
                 self.views[0].setExtend(im.shape[0], im.shape[1])
 
-                im = self.stack.selectors[1].stack_obj[self.t_slider.value()+1][:, :, :, self.z_slider.value(), 0]
-                self.pixmaps[1].setPixmap(QtGui.QPixmap(array2qimage(im)))
+                im = self.stack.selectors[1].stack_obj[self.t_slider.value()+1][:, :, :, z, 0]
+                self.pixmaps[1].setPixmap(QtGui.QPixmap(array2qimage(crop(im, minx, maxx, miny, maxy, z, minz, maxz, t+1, mint, maxt))))
                 self.views[1].setExtend(im.shape[0], im.shape[1])
 
             self.scale1.setScale(self.stack.selectors[1].getVoxelSize())
             self.scale2.setScale(self.stack.selectors[1].getVoxelSize())
         else:
-            im = self.stack_reference.selectors[1].stack_obj[0][:, :, :, self.z_slider.value(), 0]
-            self.pixmaps[0].setPixmap(QtGui.QPixmap(array2qimage(im)))
+            minx, maxx = self.stack_reference.selectors[1].input_cropx.value()
+            miny, maxy = self.stack_reference.selectors[1].input_cropy.value()
+            minz, maxz = self.stack_reference.selectors[1].input_cropz.value()
+            im = self.stack_reference.selectors[1].stack_obj[0][:, :, :, z, 0]
+            self.pixmaps[0].setPixmap(QtGui.QPixmap(array2qimage(crop(im, minx, maxx, miny, maxy, z, minz, maxz, 0, 0, 1))))
             self.views[0].setExtend(im.shape[0], im.shape[1])
 
+            minx, maxx = self.stack.selectors[1].input_cropx.value()
+            miny, maxy = self.stack.selectors[1].input_cropy.value()
+            minz, maxz = self.stack.selectors[1].input_cropz.value()
+            mint, maxt = self.stack.selectors[1].input_cropt.value()
             if len(self.stack.selectors[1].stack_obj) == 0:
                 im = np.zeros([im.shape[0], im.shape[1], 3])
                 im[:, :, 0] = 255
                 im[:, :, 2] = 255
             else:
-                im = self.stack.selectors[1].stack_obj[self.t_slider.value()][:, :, :, self.z_slider.value(), 0]
-            self.pixmaps[1].setPixmap(QtGui.QPixmap(array2qimage(im)))
+                im = self.stack.selectors[1].stack_obj[t][:, :, :, z, 0]
+            self.pixmaps[1].setPixmap(QtGui.QPixmap(array2qimage(crop(im, minx, maxx, miny, maxy, z, minz, maxz, t, mint, maxt))))
             self.views[1].setExtend(im.shape[0], im.shape[1])
 
             self.scale1.setScale(self.stack_reference.selectors[1].getVoxelSize())

@@ -208,12 +208,14 @@ def filenames_to_channel_template(filenames):
     return template
 
 
-def template_to_array(filename):
+def template_to_array(filename, crop):
     from saenopy.result_file import get_channel_placeholder
     filename, channel1 = get_channel_placeholder(filename)
     results1, output_base = format_glob(filename)
     for (template, d1) in results1.groupby("template"):
         z_indices = natsort.natsorted(d1.z.unique())
+        if crop is not None and "z" in crop:
+            z_indices = z_indices[slice(*crop["z"])]
         if channel1 is not None:
             c_indices = natsort.natsorted(d1.c.unique())
             c_indices.remove(channel1)
@@ -231,18 +233,22 @@ def template_to_array(filename):
     return image_filenames, c_indices
 
 
-def load_image_files_to_nparray(image_filenames):
+def load_image_files_to_nparray(image_filenames, crop=None):
     if isinstance(image_filenames, str):
         im = io.imread(image_filenames)
         if len(im.shape) == 2:
             im = im[:, :, None]
+        if crop is not None and "x" in crop:
+            im = im[:, slice(*crop["x"])]
+        if crop is not None and "y" in crop:
+            im = im[slice(*crop["y"])]
         return im
     else:
-        return [load_image_files_to_nparray(i) for i in image_filenames]
+        return [load_image_files_to_nparray(i, crop) for i in image_filenames]
 
 
 class Stack(Saveable):
-    __save_parameters__ = ['template', 'image_filenames', 'filename', 'voxel_size', 'shape', 'channels']
+    __save_parameters__ = ['template', 'image_filenames', 'filename', 'voxel_size', 'shape', 'channels', 'crop']
     template: str = None
     image_filenames: list = None
 
@@ -253,7 +259,7 @@ class Stack(Saveable):
     channels: list = None
     images_channels: list = None
 
-    def __init__(self, template=None, voxel_size=None, filename=None, shape=None, channels=None, image_filenames=None):
+    def __init__(self, template=None, voxel_size=None, filename=None, shape=None, channels=None, image_filenames=None, crop=None):
         if template is None:
             if isinstance(filename, list):
                 template = filenames_to_channel_template(filename)
@@ -262,8 +268,9 @@ class Stack(Saveable):
         if template is not None:
             template = template.replace("*", "{z}")
         self.template = template
+        self.crop = crop
         if image_filenames is None and template is not None:
-            self.image_filenames, self.channels = template_to_array(template)
+            self.image_filenames, self.channels = template_to_array(template, crop)
         else:
             self.image_filenames = image_filenames
             self.channels = channels
@@ -295,6 +302,10 @@ class Stack(Saveable):
     def shape(self) -> tuple:
         if self._shape is None:
             im = io.imread(self.image_filenames[0][0])
+            if self.crop is not None and "x" in self.crop:
+                im = im[:, slice(*self.crop["x"])]
+            if self.crop is not None and "y" in self.crop:
+                im = im[slice(*self.crop["y"])]
             self._shape = tuple(list(im.shape[:2]) + list(np.array(self.image_filenames).shape))
         return self._shape
 
@@ -304,7 +315,7 @@ class Stack(Saveable):
     def __getitem__(self, index) -> np.ndarray:
         """ axes are y, x, rgb, z, c """
         images = np.array(self.image_filenames)[index[3], index[4]]
-        images = np.asarray(load_image_files_to_nparray(images)).T
+        images = np.asarray(load_image_files_to_nparray(images, self.crop)).T
         images = np.swapaxes(images, 0, 2)
         return images[index[0], index[1], index[2]]
 

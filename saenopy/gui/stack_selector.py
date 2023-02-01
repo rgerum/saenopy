@@ -559,5 +559,8 @@ class StackSelector(QtWidgets.QWidget):
     def getTimeDelta(self):
         return self.active.getTimeDelta()
 
+    def get_crop(self):
+        return self.active.get_crop()
+
     def getStackParameters(self):
         return []

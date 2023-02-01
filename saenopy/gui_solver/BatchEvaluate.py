@@ -337,8 +337,7 @@ class BatchEvaluate(QtWidgets.QWidget):
                                                 self.stack_data.setMinimumWidth(300)
                                                 self.stack_reference.setMinimumWidth(300)
                                                 self.place_holder_widget.setMinimumWidth(300)
-                                                self.stack_data.glob_string_changed.connect \
-                                                    (lambda x, y: (print("deformed, y") ,self.stack_data_input.setText(y)))
+                                                self.stack_data.glob_string_changed.connect(lambda x, y: self.stack_data_input.setText(y))
                                                 self.stack_data_input = QtWidgets.QLineEdit().addToLayout()
                                 from saenopy.gui.stack_preview import StackPreview
                                 self.stack_preview = StackPreview(QtShortCuts.current_layout, self.reference_choice, self.stack_reference, self.stack_data)
@@ -588,6 +587,7 @@ class BatchEvaluate(QtWidgets.QWidget):
                     output_path=dialog.outputText.value(),
                     voxel_size=dialog.stack_data.getVoxelSize(),
                     time_delta=time_delta,
+                    crop=dialog.stack_data.get_crop(),
                     exist_overwrite_callback=do_overwrite,
                 )
             except Exception as err:

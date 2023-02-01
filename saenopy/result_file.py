@@ -68,7 +68,10 @@ def process_line(filename, output_path):
             results[-1]["times"] = natsort.natsorted(d1.t.unique())
     return results
 
-def get_stacks(filename, output_path, voxel_size, time_delta=None, reference_stack=None, exist_overwrite_callback=None, load_existing=False):
+def get_stacks(filename, output_path, voxel_size, time_delta=None, reference_stack=None,
+               crop=None,
+               exist_overwrite_callback=None,
+               load_existing=False):
     filename = str(filename)
     output_path = str(output_path)
     if reference_stack is not None:
@@ -93,10 +96,13 @@ def get_stacks(filename, output_path, voxel_size, time_delta=None, reference_sta
 
             if "t" in r1["dimensions"]:
                 stacks = []
-                for t in r1["times"]:
-                    stacks.append(Stack(r1["filename"].replace("{t}", t), voxel_size))
+                times = r1["times"]
+                if "t" in crop:
+                    times = times[slice(*crop["t"])]
+                for t in times:
+                    stacks.append(Stack(r1["filename"].replace("{t}", t), voxel_size, crop=crop))
             else:
-                stacks = [Stack(r1["filename"], voxel_size)]
+                stacks = [Stack(r1["filename"], voxel_size, crop=crop)]
 
             output = r1["output"]
             if output.exists():
@@ -118,7 +124,7 @@ def get_stacks(filename, output_path, voxel_size, time_delta=None, reference_sta
                 output=output,
                 template=r1["filename"],
                 stack=stacks,
-                stack_reference=Stack(r2["filename"], voxel_size),
+                stack_reference=Stack(r2["filename"], voxel_size, crop=crop),
                 time_delta=time_delta,
             )
             data.save()
@@ -127,10 +133,13 @@ def get_stacks(filename, output_path, voxel_size, time_delta=None, reference_sta
         for r1 in results1:
             if "t" in r1["dimensions"]:
                 stacks = []
-                for t in r1["times"]:
-                    stacks.append(Stack(r1["filename"].replace("{t}", t), voxel_size))
+                times = r1["times"]
+                if "t" in crop:
+                    times = times[slice(*crop["t"])]
+                for t in times:
+                    stacks.append(Stack(r1["filename"].replace("{t}", t), voxel_size, crop=crop))
             else:
-                stacks = [Stack(r1["filename"], voxel_size)]
+                stacks = [Stack(r1["filename"], voxel_size, crop=crop)]
 
             output = r1["output"]
             if output.exists():
