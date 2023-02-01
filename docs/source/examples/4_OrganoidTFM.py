@@ -19,9 +19,23 @@ import saenopy
 # Downloading the example data files
 # ----------------------------------
 # An individual intestinal organoid is recorded at one positions (Pos07) in collagen 1.2 mg/ml.  
-# Images are recorded in confocal reflection channel (channels (ch00, ch00) after ~23h in collagen (t50) and after drug relaxation approx. 2 hours later (t6).
+# Images are recorded in confocal reflection channel (ch00) after ~23h in collagen (t50) and after drug relaxation
+# approx. 2 hours later (t6).
 # The lower time index t6 is due of the start of a new image series and refers to the image AFTER relaxation. 
-# The stack has 52z positions (z00-z51). T
+# The stack has 52 z positions (z00-z51). T
+#
+# ::
+#
+#    4_OrganoidTFM
+#    ├── Pos007_S001_t50_z00_ch00.tif
+#    ├── Pos007_S001_t50_z01_ch00.tif
+#    ├── Pos007_S001_t50_z02_ch00.tif
+#    ├── ...
+#    ├── Pos007_S001_t6_z00_ch00.tif
+#    ├── Pos007_S001_t6_z01_ch00.tif
+#    ├── Pos007_S001_t6_z02_ch00.tif
+#    └── ...
+#
 
 
 # download the data
@@ -32,10 +46,9 @@ saenopy.loadExample("OrganoidTFM")
 # ------------------
 #
 # Saenopy is very flexible in loading stacks from any filename structure.
-# Here we replace the number in the position "Pos004" with an asterisk "Pos*" to batch process all positions.
-# We replace the number of the channels "ch00" with a channel placeholder "ch{c:00}" to indicate that this refers to
-# the channels and which channel to use as the first channel where the deformations should be detected.
-# We replace the number of the z slice "z000" with a z placeholder "z{z}" to indicate that this number refers to the
+# Here we do not have multiple positions, so we do not need to use and asterisk * for batch processing.
+# We do not have multiple channels, so we do not need a channel placeholder.
+# We replace the number of the z slice "z00" with a z placeholder "z{z}" to indicate that this number refers to the
 # z slice. We do the same for the deformed state and for the reference stack.
 
 # load the relaxed and the contracted stack

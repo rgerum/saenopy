@@ -51,7 +51,7 @@ saenopy.loadExample("DynamicalSingleCellTFM")
 # ------------------
 #
 # Saenopy is very flexible in loading stacks from any filename structure.
-# Here we do not have multiple positions so we do not need to use and asterisk * for batch processing.
+# Here we do not have multiple positions, so we do not need to use and asterisk * for batch processing.
 # We replace the number of the channels "ch00" with a channel placeholder "ch{c:00}" to indicate that this refers to
 # the channels and which channel to use as the first channel where the deformations should be detected.
 # We replace the number of the z slice "z000" with a z placeholder "z{z}" to indicate that this number refers to the
