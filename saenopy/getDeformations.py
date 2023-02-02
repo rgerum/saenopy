@@ -275,11 +275,12 @@ class Stack(Saveable):
             match = re.match(r"(.*)\{f\:(\d*)\}\{c\:(\d*)\}(?:\{t\:(\d*)\})?.lif", template)
             if match:
                 from saenopy.gui.lif_reader import LifFile
-                if len(match.groups()) == 3:
-                    self.leica_filename, self.leica_folder, self.leica_channel = match.groups()
+                self.leica_filename, self.leica_folder, self.leica_channel, self.leica_time = match.groups()
+                if self.leica_time is None:
                     self.leica_time = 0
                 else:
-                    self.leica_filename, self.leica_folder, self.leica_channel, self.leica_time = match.groups()
+                    self.leica_time = int(self.leica_time)
+                self.leica_channel = int(self.leica_channel)
                 self.leica_file = LifFile(self.leica_filename+".lif").get_image(self.leica_folder)
             else:
                 self.image_filenames, self.channels = template_to_array(template, crop)
