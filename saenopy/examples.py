@@ -79,6 +79,7 @@ def getExamples():
             "piv_parameter": {'win_um': 12.0, 'elementsize': 4.0, 'signoise_filter': 1.3, 'drift_correction': True},
             "interpolate_parameter": {'reference_stack': 'median', 'element_size': 4.0, 'inner_region': 100.0, 'thinning_factor': 0, 'mesh_size_same': True, 'mesh_size_x': 200.0, 'mesh_size_y': 200.0, 'mesh_size_z': 200.0},
             "solve_parameter": {'k': 1449.0, 'd0': 0.0022, 'lambda_s': 0.032, 'ds': 0.055, 'alpha':  10**10, 'stepper': 0.33, 'i_max': 100},
+            "crop": {"z": (11, None)},
         },
         "OrganoidTFM": {
             "desc": "Intestinal organoid in 1.2mg/ml collagen",

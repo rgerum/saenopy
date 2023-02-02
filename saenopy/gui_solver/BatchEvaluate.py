@@ -639,6 +639,7 @@ class BatchEvaluate(QtWidgets.QWidget):
                 output_path=example["output_path"],
                 voxel_size=example["voxel_size"],
                 time_delta=example.get("time_delta", None),
+                crop=example.get("crop", None),
                 exist_overwrite_callback=do_overwrite,
             )
             for data in results:
