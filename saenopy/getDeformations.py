@@ -281,7 +281,11 @@ class Stack(Saveable):
                 else:
                     self.leica_time = int(self.leica_time)
                 self.leica_channel = int(self.leica_channel)
-                self.leica_file = LifFile(self.leica_filename+".lif").get_image(self.leica_folder)
+                self.leica_file = LifFile(self.leica_filename + ".lif").get_image(self.leica_folder)
+                self.channels = [str(self.leica_channel)]
+                for i in range(0, self.leica_file.channels):
+                    if i != self.leica_channel:
+                        self.channels.append(str(i))
             else:
                 self.image_filenames, self.channels = template_to_array(template, crop)
         else:
@@ -335,14 +339,14 @@ class Stack(Saveable):
                 if index[3].start is not None:
                     z_min = index[3].start
                 z_max = self.shape[3]
-                if index[3].end is not None:
-                    z_max = index[3].end
+                if index[3].stop is not None:
+                    z_max = index[3].stop
             else:
                 z_min = index[3]
                 z_max = z_min + 1
             images = []
             for z in range(z_min, z_max):
-                im = np.asarray(self.leica_file.get_frame(z, t=self.leica_time, c=self.leica_channel))
+                im = np.asarray(self.leica_file.get_frame(z, t=self.leica_time, c=int(self.channels[index[4]])))
                 images.append(im)
             images = np.asarray(images)
             #np.asarray([self.leica_file.get_frame(z) for z in range(z_min, z_max)])
