@@ -341,7 +341,8 @@ class FiberViewer(PipelineModule):
                 self.canvas.figure.axes[0].set_ylim(0, 1)
                 self.canvas.draw()
 
-            vol = self.plotter.add_volume(stack_data["data"], resolution=np.array(self.result.stack[0].voxel_size)*1e-6, cmap=stack_data["cmap"], opacity=stack_data["opacity"],
+            vol = self.plotter.add_volume(stack_data["data"], resolution=np.array(self.result.stack[0].voxel_size),
+                                          cmap=stack_data["cmap"], opacity=stack_data["opacity"],
                                      blending="composite", name="fiber")  # 1.0*x
             print("plot time", f"{time.time()-t:.3f}s")
             # plotter.remove_scalar_bar()
