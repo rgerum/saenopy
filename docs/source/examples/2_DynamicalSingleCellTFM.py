@@ -58,6 +58,12 @@ saenopy.loadExample("DynamicalSingleCellTFM")
 # z slice.
 # We replace the number of the time step "t00" with a time placeholder "t{t}" to indicate that this number refers to the
 # time step.
+# Due to technical reasons and the soft nature of collagen hydrogels, 
+# acquiring fast image stacks  with our galvo stage (within 10 seconds) can cause external motion 
+# in the upper and lower region the image stack, as the stage accelerates and
+# decelerates here. Therefore, we always acquire a larger stack in z-direction and then discard 
+# the upper and lower regions (20 images here).
+
 
 # load the relaxed and the contracted stack
 # {z} is the placeholder for the z stack
@@ -66,7 +72,10 @@ saenopy.loadExample("DynamicalSingleCellTFM")
 
 results = saenopy.get_stacks(r'2_DynamicalSingleCellTFM\data\Pos*_S001_t{t}_z{z}_ch{c:00}.tif',
                              r'2_DynamicalSingleCellTFM\example_output',
-                             voxel_size=[0.2407, 0.2407, 1.0071], time_delta=60)
+                             voxel_size=[0.2407, 0.2407, 1.0071], 
+                             time_delta=60,
+                             crop =  {"z": (20, -20)}
+                             )
 
 
 # %%
