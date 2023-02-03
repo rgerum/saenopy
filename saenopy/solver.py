@@ -542,7 +542,7 @@ class Solver(Saveable):
         if self.connections_valid is False:
             self._computeConnections()
 
-    def solve_boundarycondition(self, stepper: float = 0.066, i_max: int = 300, rel_conv_crit: float = 0.01, relrecname: str = None, verbose: bool = False, callback: callable = None):
+    def solve_boundarycondition(self, stepper: float = 0.066, i_max: int = 300, i_min: int = 12, rel_conv_crit: float = 0.01, relrecname: str = None, verbose: bool = False, callback: callable = None):
         """
         Solve the displacement of the free nodes constraint to the boundary conditions.
 
@@ -552,6 +552,8 @@ class Solver(Saveable):
             How much of the displacement of each conjugate gradient step to apply. Default 0.066
         i_max : int, optional
             The maximal number of iterations for the relaxation. Default 300
+        i_min : int, optional
+            The minimal number of iterations for the relaxation. Minimum value is 6. Default is 12
         rel_conv_crit : float, optional
             If the relative standard deviation of the last 6 energy values is below this threshold, finish the iteration.
             Default 0.01
@@ -600,9 +602,9 @@ class Solver(Saveable):
                 np.savetxt(relrecname, relrec)
             if callback is not None:
                 callback(self, relrec)
-
-            # if we have passed 6 iterations calculate average and std
-            if i > 6:
+                
+            # if we have passed i_min iterations we calculate average and std of the last 6 iteration
+            if i > i_min:
                 # calculate the average energy over the last 6 iterations
                 last_Es = np.array(relrec)[:-6:-1, 1]
                 Emean = np.mean(last_Es)
@@ -754,8 +756,8 @@ class Solver(Saveable):
         if relrecname is not None:
             np.savetxt(relrecname, relrec)
 
-    def solve_regularized(self, stepper: float = 0.33, solver_precision: float = 1e-18, i_max: int = 100,
-                          rel_conv_crit: float = 0.01, alpha: float = 1e10, method: str = "huber",
+    def solve_regularized(self, stepper: float = 0.33, solver_precision: float = 1e-18, i_max: int = 300,
+                          i_min: int = 12, rel_conv_crit: float = 0.01, alpha: float = 1e10, method: str = "huber",
                           relrecname: str = None, verbose: bool = False, callback: callable = None):
         """
         Fit the provided displacements. Displacements can be provided with
@@ -768,7 +770,9 @@ class Solver(Saveable):
         solver_precision : float, optional
             The tolerance for the conjugate gradient step. Will be multiplied by the number of nodes. Default 1e-18.
         i_max : int, optional
-            The maximal number of iterations for the regularisation. Default 100
+            The maximal number of iterations for the regularisation. Default 300
+        i_min : int, optional
+            The minimal number of iterations for the relaxation. Minimum value is 6. Default is 12.
         rel_conv_crit :  float, optional
             If the relative standard deviation of the last 6 energy values is below this threshold, finish the iteration.
             Default 0.01
@@ -848,8 +852,8 @@ class Solver(Saveable):
             if callback is not None:
                 callback(self, relrec, i, i_max)
 
-            # if we have passed 6 iterations calculate average and std
-            if i > 6:
+            # if we have passed i_min iterations we calculate average and std of the last 6 iteration
+            if i > i_min:
                 # calculate the average energy over the last 6 iterations
                 last_Ls = np.array(relrec)[:-6:-1, 1]
                 Lmean = np.mean(last_Ls)
