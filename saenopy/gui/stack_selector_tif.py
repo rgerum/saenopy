@@ -27,17 +27,23 @@ def get_last_voxel_sizes():
     return sizes
 
 def add_last_voxel_size(size):
+    if not voxel_size_file.exists():
+        return []
+  
     size = ", ".join(str(s) for s in size)
     sizes = get_last_voxel_sizes()
     new_sizes = [size.strip()]
+   
     for s in sizes:
         if s.strip() != size.strip():
             new_sizes.append(s.strip())
+
     with open(voxel_size_file, "w") as fp:
         for s in new_sizes[:5]:
             fp.write(s)
             fp.write("\n")
-
+          
+                
 def get_last_time_deltas():
     if not time_delta_file.exists():
         return []
