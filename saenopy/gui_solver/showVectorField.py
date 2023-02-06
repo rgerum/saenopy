@@ -43,6 +43,7 @@ def showVectorField2(self, M, points_name):
         field = getattr(M, points_name)
     except AttributeError:
         field = M.getNodeVar(points_name)
+
     if len(self.result.stack):
         stack_shape = np.array(self.result.stack[0].shape[:3])*np.array(self.result.stack[0].voxel_size)
     else:
@@ -53,7 +54,7 @@ def showVectorField2(self, M, points_name):
                     factor=0.1*self.vtk_toolbar.arrow_scale.value(),
                     colormap=self.vtk_toolbar.colormap_chooser.value(),
                     colormap2=self.vtk_toolbar.colormap_chooser2.value(),
-                    stack_shape=None)
+                    stack_shape=stack_shape)
 
 
 def showVectorField(plotter: QtInteractor, obj: Solver, field: np.ndarray, name: str, center=None, show_nan=True, stack_shape=None,
@@ -70,8 +71,11 @@ def showVectorField(plotter: QtInteractor, obj: Solver, field: np.ndarray, name:
         # get positions of nan values
         nan_values = np.isnan(field[:, 0])
 
+        obj_R = obj.R*1e6
+        scale = 1  # 1e-6
+
         # create a point cloud
-        point_cloud = pv.PolyData(obj.R) 
+        point_cloud = pv.PolyData(obj_R)
         point_cloud.point_data[name] = field
         point_cloud.point_data[name + "_mag"] = np.linalg.norm(field, axis=1) 
         # convert to common units
@@ -85,10 +89,10 @@ def showVectorField(plotter: QtInteractor, obj: Solver, field: np.ndarray, name:
         point_cloud.point_data[name + "_mag2"][nan_values] = 0
         # show nans
         if not show_all_points and show_nan:
-            R = obj.R[nan_values]
+            R = obj_R[nan_values]
             if R.shape[0]:
                 point_cloud2 = pv.PolyData(R)
-                point_cloud2.point_data["nan"] = obj.R[nan_values, 0] * np.nan
+                point_cloud2.point_data["nan"] = obj_R[nan_values, 0] * np.nan
 
         # remove a previous nan_actor if present
         if getattr(plotter, "nan_actor", None) is not None:
@@ -102,7 +106,7 @@ def showVectorField(plotter: QtInteractor, obj: Solver, field: np.ndarray, name:
         plotter.renderer.remove_bounding_box()
 
         # scalebar scaling factor
-        norm_stack_size = np.abs(np.max(obj.R) - np.min(obj.R))
+        norm_stack_size = np.abs(np.max(obj_R) - np.min(obj_R))
         if scalebar_max is None:
             factor = factor * norm_stack_size / np.nanmax(point_cloud[name + "_mag2"])#np.nanpercentile(point_cloud[name + "_mag2"], 99.9)
         else:
@@ -162,16 +166,16 @@ def showVectorField(plotter: QtInteractor, obj: Solver, field: np.ndarray, name:
             if len(img_adjusted.shape) == 2 and colormap2 is not None and colormap2 != "gray":
                 import matplotlib.pyplot as plt
                 cmap = plt.get_cmap(colormap2)
-                print(img_adjusted.shape, img_adjusted.dtype, img_adjusted.min(), img_adjusted.mean(), img_adjusted.max())
+                #print(img_adjusted.shape, img_adjusted.dtype, img_adjusted.min(), img_adjusted.mean(), img_adjusted.max())
                 img_adjusted = (cmap(img_adjusted)*255).astype(np.uint8)[:,:, :3]
-                print(img_adjusted.shape, img_adjusted.dtype, img_adjusted.min(), img_adjusted.mean(), img_adjusted.max())
+                #print(img_adjusted.shape, img_adjusted.dtype, img_adjusted.min(), img_adjusted.mean(), img_adjusted.max())
             # get coords
-            xmin = (-img_adjusted.shape[1]/2)*voxel_size[0]*1e-6
-            ymin = (-img_adjusted.shape[0]/2)*voxel_size[1]*1e-6
+            xmin = (-img_adjusted.shape[1]/2)*voxel_size[0]*scale
+            ymin = (-img_adjusted.shape[0]/2)*voxel_size[1]*scale
             x = np.linspace(xmin, -xmin, 10)
             y = np.linspace(ymin, -ymin, 10)
             x, y = np.meshgrid(x, y)
-            z = z_pos*voxel_size[2]*1e-6+0*x
+            z = z_pos*voxel_size[2]*scale+0*x
             # structureGrid
             curvsurf = pv.StructuredGrid(x, y, z)
             # Map the curved surface to a plane - use best fitting plane
@@ -181,8 +185,8 @@ def showVectorField(plotter: QtInteractor, obj: Solver, field: np.ndarray, name:
             mesh = plotter.add_mesh(curvsurf, texture=tex)
             plotter._image_mesh = mesh
 
-        xmin, ymin, zmin = obj.R.min(axis=0)
-        xmax, ymax, zmax = obj.R.max(axis=0)
+        xmin, ymin, zmin = obj_R.min(axis=0)
+        xmax, ymax, zmax = obj_R.max(axis=0)
         plotter.remove_bounds_axes()
 
         if show_grid == 2:
@@ -193,11 +197,11 @@ def showVectorField(plotter: QtInteractor, obj: Solver, field: np.ndarray, name:
                                    [xmin, ymin, zmax], [xmax, ymin, zmax], [xmin, ymax, zmax], [xmax, ymax, zmax]])
             grid = pv.ExplicitStructuredGrid(np.asarray([2, 2, 2]), corners)
             plotter._box = plotter.add_mesh(grid, style='wireframe', render_lines_as_tubes=True, line_width=2, show_edges=True, name="border")
-        elif show_grid == 3:
-            xmin, xmax = -stack_shape[0]/2*1e-6, stack_shape[0]/2*1e-6
-            print(xmin,ymin)
-            ymin, ymax = -stack_shape[1]/2*1e-6, stack_shape[1]/2*1e-6
-            zmin, zmax = -stack_shape[2]/2*1e-6, stack_shape[2]/2*1e-6
+        elif show_grid == 3 and stack_shape is not None:
+            xmin, xmax = -stack_shape[0]/2*scale, stack_shape[0]/2*scale
+            #print(xmin,ymin)
+            ymin, ymax = -stack_shape[1]/2*scale, stack_shape[1]/2*scale
+            zmin, zmax = -stack_shape[2]/2*scale, stack_shape[2]/2*scale
             corners = np.asarray([[xmin, ymin, zmin], [xmax, ymin, zmin], [xmin, ymax, zmin], [xmax, ymax, zmin],
                                   [xmin, ymin, zmax], [xmax, ymin, zmax], [xmin, ymax, zmax], [xmax, ymax, zmax]])
             grid = pv.ExplicitStructuredGrid(np.asarray([2, 2, 2]), corners)
