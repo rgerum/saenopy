@@ -108,11 +108,13 @@ class StackPreview(QtWidgets.QWidget):
 
         z = self.z_slider.value()
         t = self.t_slider.value()
-        print("self.stack_reference.get_t_count()", self.stack_reference.get_t_count(), self.stack.get_t_count())
+
         if self.reference_choice.value() == 0 or self.stack_reference.get_t_count() == 0:
             cropped = self.stack.get_crop()
             if t_count <= 1:
                 im = self.stack.get_image(t, z, 0)
+                if im is None:
+                    return
                 self.pixmaps[1].setPixmap(QtGui.QPixmap(array2qimage(crop(im, z, t, cropped))))
                 self.views[1].setExtend(im.shape[0], im.shape[1])
 
@@ -131,15 +133,12 @@ class StackPreview(QtWidgets.QWidget):
                 self.pixmaps[1].setPixmap(QtGui.QPixmap(array2qimage(crop(im, z, t+1, cropped))))
                 self.views[1].setExtend(im.shape[0], im.shape[1])
 
-            self.scale1.setScale(self.stack.getVoxelSize())
-            self.scale2.setScale(self.stack.getVoxelSize())
         else:
-            cropped = self.stack_reference.get_crop()
+            cropped = self.stack.get_crop()
             im = self.stack_reference.get_image(0, z, 0)
             self.pixmaps[0].setPixmap(QtGui.QPixmap(array2qimage(crop(im, z, t+1, cropped))))
             self.views[0].setExtend(im.shape[0], im.shape[1])
 
-            cropped = self.stack.get_crop()
             if self.stack.get_t_count() == 0:
                 im = np.zeros([im.shape[0], im.shape[1], 3])
                 im[:, :, 0] = 255
@@ -149,8 +148,13 @@ class StackPreview(QtWidgets.QWidget):
             self.pixmaps[1].setPixmap(QtGui.QPixmap(array2qimage(crop(im, z, t, cropped))))
             self.views[1].setExtend(im.shape[0], im.shape[1])
 
-            self.scale1.setScale(self.stack_reference.getVoxelSize())
-            self.scale2.setScale(self.stack.getVoxelSize())
+        self.scale1.setScale(self.stack.getVoxelSize())
+        self.scale2.setScale(self.stack.getVoxelSize())
+
+        if t_count <= 1:
+            self.label2.setText(f"active")
+        else:
+            self.label2.setText(f"active ({t * self.stack.getTimeDelta()}s)")
 
     def z_slider_value_changed(self):
         return self.update(0, 0)

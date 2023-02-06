@@ -18,6 +18,7 @@ from numpy import float64, int32, ndarray
 
 class StackSelector(QtWidgets.QWidget):
     active = None
+    stack_crop = None
     stack_changed = QtCore.Signal()
     glob_string_changed = QtCore.Signal(str, object)
 
@@ -86,29 +87,25 @@ class StackSelector(QtWidgets.QWidget):
     def getStack(self):
         return self.active.getStack()
 
-    def validator(self):
-        return self.active.validator()
-
-    def validator_time(self):
-        return self.active.validator_time()
-
     def getVoxelSize(self):
-        if self.active is None:
+        if self.stack_crop is None:
             return None
-        return self.active.getVoxelSize()
+        return self.stack_crop.getVoxelSize()
 
     def getTimeDelta(self):
-        return self.active.getTimeDelta()
+        return self.stack_crop.getTimeDelta()
 
     def get_crop(self):
-        if self.active is None:
+        if self.stack_crop is None:
             return {}
-        return self.active.get_crop()
+        return self.stack_crop.get_crop()
 
     def getStackParameters(self):
         return []
 
     def get_image(self, t, z, c=0):
+        if self.active is None:
+            return None
         return self.active.get_image(t, z, c)
 
     def get_t_count(self):

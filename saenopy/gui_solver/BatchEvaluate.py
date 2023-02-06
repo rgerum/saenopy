@@ -339,6 +339,9 @@ class BatchEvaluate(QtWidgets.QWidget):
                                                 self.place_holder_widget.setMinimumWidth(300)
                                                 self.stack_data.glob_string_changed.connect(lambda x, y: self.stack_data_input.setText(y))
                                                 self.stack_data_input = QtWidgets.QLineEdit().addToLayout()
+                                    from saenopy.gui.stack_selector_crop import StackSelectorCrop
+                                    self.stack_crop = StackSelectorCrop(self.stack_data, self.stack_reference).addToLayout()
+                                    self.stack_data.stack_crop = self.stack_crop
                                 from saenopy.gui.stack_preview import StackPreview
                                 self.stack_preview = StackPreview(QtShortCuts.current_layout, self.reference_choice, self.stack_reference, self.stack_data)
                             self.outputText = QtShortCuts.QInputFolder(None, "output", settings=settings,
@@ -353,16 +356,16 @@ class BatchEvaluate(QtWidgets.QWidget):
                                         if self.stack_reference.active is None:
                                             QtWidgets.QMessageBox.critical(self, "Deformation Detector", "Provide a stack for the reference state.")
                                             return
-                                        if not self.stack_reference.validator():
-                                            QtWidgets.QMessageBox.critical(self, "Deformation Detector", "Enter a valid voxel size for the reference stack.")
-                                            return
                                     if self.stack_data.active is None:
                                         QtWidgets.QMessageBox.critical(self, "Deformation Detector", "Provide a stack for the deformed state.")
                                         return
-                                    if not self.stack_data.validator():
-                                        QtWidgets.QMessageBox.critical(self, "Deformation Detector", "Enter a valid voxel size for the deformed stack.")
+                                    if self.stack_data.get_t_count() <= 1 and self.stack_reference.active is None:
+                                        QtWidgets.QMessageBox.critical(self, "Deformation Detector", "Provide either a reference stack for a time sequence.")
                                         return
-                                    if "{t}" in self.stack_data_input.text() and not self.stack_data.validator_time():
+                                    if not self.stack_crop.validator():
+                                        QtWidgets.QMessageBox.critical(self, "Deformation Detector", "Enter a valid voxel size.")
+                                        return
+                                    if "{t}" in self.stack_data_input.text() and not self.stack_crop.validator_time():
                                         QtWidgets.QMessageBox.critical(self, "Deformation Detector",
                                                                        "Enter a valid time delta.")
                                         return
