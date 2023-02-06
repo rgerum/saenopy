@@ -10,15 +10,19 @@ from qtpy import QtWidgets, QtCore, QtGui
 from saenopy.gui import QtShortCuts
 from saenopy.gui.stack_selector_leica import StackSelectorLeica
 import appdirs
+from typing import List
 
 
 voxel_size_file = Path(appdirs.user_data_dir("saenopy", "rgerum")) / 'voxel_sizes.txt'
 time_delta_file = Path(appdirs.user_data_dir("saenopy", "rgerum")) / 'time_deltas.txt'
-def get_last_voxel_sizes():
+def get_last_voxel_sizes() -> List:
+    # if the file does not exist we have no recent voxel sizes
     if not voxel_size_file.exists():
         return []
+    # read the file
     with open(voxel_size_file, "r") as fp:
         sizes = []
+        # collect the voxel sizes of each line
         for line in fp:
             line = line.strip()
             if re.match(r"(\d*\.\d+|\d+.?),\s*(\d*\.\d+|\d+.?),\s*(\d*\.\d+|\d+.?)", line):
@@ -26,25 +30,32 @@ def get_last_voxel_sizes():
                     sizes.append(line)
     return sizes
 
-def add_last_voxel_size(size):
-    if not voxel_size_file.exists():
-        return []
-  
+
+def add_last_voxel_size(size: List) -> None:
+    # convert voxel size to string
     size = ", ".join(str(s) for s in size)
+
+    # get the last voxel sizes
     sizes = get_last_voxel_sizes()
+
+    # create a list of the 5 most recent distinct voxel sizes, starting with this one
     new_sizes = [size.strip()]
-   
     for s in sizes:
+        # avoid having the same voxel size twice in the list
         if s.strip() != size.strip():
             new_sizes.append(s.strip())
 
+    # make sure the folder exists
+    Path(voxel_size_file).parent.mkdir(parents=True, exist_ok=True)
+
+    # write the file with the last 5 voxel sizes
     with open(voxel_size_file, "w") as fp:
         for s in new_sizes[:5]:
             fp.write(s)
             fp.write("\n")
           
                 
-def get_last_time_deltas():
+def get_last_time_deltas() -> List:
     if not time_delta_file.exists():
         return []
     with open(time_delta_file, "r") as fp:
@@ -56,13 +67,18 @@ def get_last_time_deltas():
                     sizes.append(line)
     return sizes
 
-def add_last_time_delta(size):
+def add_last_time_delta(size: float) -> None:
     size = str(size)
     sizes = get_last_voxel_sizes()
     new_sizes = [size.strip()]
     for s in sizes:
         if s.strip() != size.strip():
             new_sizes.append(s.strip())
+
+    # make sure the folder exists
+    Path(time_delta_file).parent.mkdir(parents=True, exist_ok=True)
+
+    # write the file with the last 5 time deltas
     with open(time_delta_file, "w") as fp:
         for s in new_sizes[:5]:
             fp.write(s)
