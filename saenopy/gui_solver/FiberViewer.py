@@ -211,23 +211,30 @@ class ChannelProperties(QtWidgets.QWidget):
     valueChanged = QtCore.Signal()
     def __init__(self):
         super().__init__()
-        with QtShortCuts.QHBoxLayout() as layout:
-            self.input_show = QtShortCuts.QInputBool(None, "show", True)
-            layout.addStretch()
-        with QtShortCuts.QHBoxLayout() as layout:
-            self.input_sato = QtShortCuts.QInputNumber(None, "sato filter", 2, min=0, max=7, float=False)
-            self.input_gauss = QtShortCuts.QInputNumber(None, "gauss filter", 0, min=0, max=20, float=False)
-            self.input_percentile1 = QtShortCuts.QInputNumber(None, "percentile_min", 0.01)
-            self.input_percentile2 = QtShortCuts.QInputNumber(None, "percentile_max", 99.6)
-        with QtShortCuts.QHBoxLayout() as layout:
-            self.input_alpha1 = QtShortCuts.QInputNumber(None, "alpha1", 0.065, min=0, max=0.3, step=0.01, decimals=3)
-            self.input_alpha2 = QtShortCuts.QInputNumber(None, "alpha2", 0.2491, min=0, max=1, step=0.01)
-            self.input_alpha3 = QtShortCuts.QInputNumber(None, "alpha3", 1, min=0, max=1, step=0.1)
-            self.input_cmap = QtShortCuts.QDragableColor("pink").addToLayout()
+        with QtShortCuts.QHBoxLayout(self) as layout:
+            with QtShortCuts.QVBoxLayout() as layout:
+                with QtShortCuts.QHBoxLayout() as layout:
+                    self.input_show = QtShortCuts.QInputBool(None, "show", True)
+                    layout.addStretch()
+                with QtShortCuts.QHBoxLayout() as layout:
+                    self.input_sato = QtShortCuts.QInputNumber(None, "sato filter", 2, min=0, max=7, float=False)
+                    self.input_gauss = QtShortCuts.QInputNumber(None, "gauss filter", 0, min=0, max=20, float=False)
+                    self.input_percentile1 = QtShortCuts.QInputNumber(None, "percentile_min", 0.01)
+                    self.input_percentile2 = QtShortCuts.QInputNumber(None, "percentile_max", 99.6)
+                with QtShortCuts.QHBoxLayout() as layout:
+                    self.input_alpha1 = QtShortCuts.QInputNumber(None, "alpha1", 0.065, min=0, max=0.3, step=0.01, decimals=3)
+                    self.input_alpha2 = QtShortCuts.QInputNumber(None, "alpha2", 0.2491, min=0, max=1, step=0.01)
+                    self.input_alpha3 = QtShortCuts.QInputNumber(None, "alpha3", 1, min=0, max=1, step=0.1)
+                    self.input_cmap = QtShortCuts.QDragableColor("pink").addToLayout()
+            from saenopy.gui.sigmoid_widget import SigmoidWidget
+            self.sigmoid = SigmoidWidget().addToLayout()
+            self.input_cmap.valueChanged.connect(lambda x: self.sigmoid.p.set_cmap(x))
+            self.sigmoid.valueChanged.connect(lambda x1, x2, x3: (self.input_alpha1.setValue(x1), self.input_alpha2.setValue(x2), self.input_alpha3.setValue(x3)))
         for widget in [self.input_sato, self.input_gauss, self.input_percentile1, self.input_percentile2,
                        self.input_alpha1, self.input_alpha2, self.input_alpha3,
                        self.input_cmap, self.input_show]:
             widget.valueChanged.connect(self.valueChanged)
+        self.sigmoid.editFinished.connect(self.valueChanged)
 
     def value(self):
         return dict(sigma_sato=self.input_sato.value(), sigma_gauss=self.input_gauss.value(),
@@ -274,7 +281,7 @@ class FiberViewer(PipelineModule):
                 self.channel1_properties.input_percentile2.setValue(100)
                 self.input_thresh = QtShortCuts.QInputNumber(None, "thresh", 1, float=True, min=0, max=2, step=0.1)
                 self.input_thresh.valueChanged.connect(self.update_display)
-                self.canvas = MatplotlibWidget(self).addToLayout()
+                #self.canvas = MatplotlibWidget(self).addToLayout()
 
                 self.t_slider = QTimeSlider(connected=self.update_display).addToLayout()
                 self.tab.parent().t_slider = self.t_slider
@@ -332,7 +339,7 @@ class FiberViewer(PipelineModule):
             else:
                 stack_data2 = None
             #stack_data = stack_data1
-            if self.canvas is not None and stack_data is not None:
+            if 0:#self.canvas is not None and stack_data is not None:
                 self.canvas.figure.axes[0].cla()
                 self.canvas.figure.axes[0].plot(np.linspace(0, 1, len(stack_data["opacity"])), stack_data["opacity"])
                 self.canvas.figure.axes[0].spines["top"].set_visible(False)
