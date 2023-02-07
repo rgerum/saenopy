@@ -245,9 +245,7 @@ class SigmoidWidget(QtWidgets.QWidget):
         self.layout().setContentsMargins(0, 0, 0, 0)
         self.canvas.figure.axes[0].set_position([0, 0, 1, 1])
         self.canvas.figure.axes[0].set_facecolor("none")
-        im = plt.imread("/home/richard/.local/share/saenopy/1_ClassicSingleCellTFM/Deformed/Mark_and_Find_001/Pos004_S001_z000_ch00.tif")
         self.p = PolygonInteractor(self, self.canvas.figure.axes[0])
-        self.p.set_im(im)
         #self.canvas.
 
     def new_values(self, a1, a2, a3, minx, maxx):
