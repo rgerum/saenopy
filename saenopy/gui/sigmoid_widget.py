@@ -34,6 +34,8 @@ class PolygonInteractor:
         self.a1 = 0.1
         self.a2 = 0.5
         self.a3 = 1
+        self.minx = 0
+        self.maxx = 1
         canvas = ax.figure.canvas
         self.cmap = "Reds"
         ax.spines[["left", "bottom", "right", "top"]].set_visible(False)
@@ -53,12 +55,41 @@ class PolygonInteractor:
         self.line2c, = ax.plot([0, 1], [1, 1], 'o--k', lw=0.8, ms=3)
         self.line2_hover, = ax.plot([0, 1], [1, 1], 'o-k', lw=2, ms=5)
 
+        self.line_hist, = ax.step([0, 1], [1, 1], '-', color="gray", lw=1, alpha=0.5)
+        self.line_hist_grabber1, = ax.step([0], [-0.05], "C3", marker=9, lw=2, ms=5)
+        self.line_hist_grabber2, = ax.step([1], [-0.05], "C3", marker=8, lw=2, ms=5)
+        self.im2 = ax.imshow(np.arange(0, 255)[None, :], cmap="gray", extent=[0, 1, -0.08, -0.02], zorder=1)
+        self.hist_bins = np.arange(0, 1, 10)
+
         canvas.mpl_connect('button_press_event', self.on_button_press)
         canvas.mpl_connect('button_release_event', self.on_button_release)
         canvas.mpl_connect('motion_notify_event', self.on_mouse_move)
         self.canvas = canvas
+
         self.update_line()
         self.set_cmap("pink")
+
+    original_min = 0
+    original_max = 1
+    def set_im(self, im):
+        self.original_min = im.min()
+        self.original_max = im.max()
+        bins = np.linspace(self.original_min, self.original_max, 128)
+        hist, bins = np.histogram(im, bins)
+        hist = np.arcsinh(hist)
+        self.hist = hist
+        self.hist_bins = np.linspace(0, 1, 128-1)
+        self.im2.set_data(hist[None]*255/np.max(hist))
+
+        self.line_hist.set_data([
+            self.hist_bins, hist/np.max(hist),
+        ])
+        self.update_line()
+
+    def get_range(self):
+        return self.original_min + (self.original_max - self.original_min) * self.minx, \
+               self.original_min + (self.original_max - self.original_min) * self.maxx
+
 
     def set_cmap(self, color):
         self.im.set_cmap(color)
@@ -103,6 +134,12 @@ class PolygonInteractor:
             ])
         if self.hovered == 0:
             self.line2_hover.set_data([[], []])
+
+        self.line_hist_grabber1.set_xdata([self.minx])
+        self.line_hist_grabber1.set_markersize(8 if self.hovered == 10 else 5)
+        self.line_hist_grabber2.set_xdata([self.maxx])
+        self.line_hist_grabber2.set_markersize(8 if self.hovered == 11 else 5)
+        self.line_hist.set_xdata((self.hist_bins-self.minx)/(self.maxx-self.minx))
         self.canvas.draw()
 
     def on_button_press(self, event):
@@ -116,6 +153,17 @@ class PolygonInteractor:
     def get_clicked(self, event):
         if event.xdata is None:
             return 0
+        if event.ydata < 0:
+            if event.xdata < 0.5:
+                if abs(self.maxx - event.xdata) < 0.04:
+                    return 11
+                if abs(self.minx - event.xdata) < 0.04:
+                    return 10
+            else:
+                if abs(self.minx - event.xdata) < 0.04:
+                    return 10
+                if abs(self.maxx - event.xdata) < 0.04:
+                    return 11
         m = 1 / (4 * self.a1 / self.a3)
         t = 0.5 * self.a3 - m * self.a2
         if dist_line_to_point([0, t], [1, m + t], [event.xdata, event.ydata]) < 0.04:
@@ -147,17 +195,27 @@ class PolygonInteractor:
                 m = dy / dx
                 self.a1 = 1 / (4 * m / self.a3)
                 self.a1 = np.clip(self.a1, 1e-3, 1e6)
-            self.parent.new_values(self.a1, self.a2, self.a3)
+            self.parent.new_values(self.a1, self.a2, self.a3, self.minx, self.maxx)
             self.update_line()
         if self.grabbed == 3:
             if event.ydata:
                 self.a3 = np.clip(event.ydata, 0, 1)
-                self.parent.new_values(self.a1, self.a2, self.a3)
+                self.parent.new_values(self.a1, self.a2, self.a3, self.minx, self.maxx)
                 self.update_line()
         if self.grabbed == 2:
             if event.xdata:
                 self.a2 = np.clip(event.xdata, 0, 1)
-                self.parent.new_values(self.a1, self.a2, self.a3)
+                self.parent.new_values(self.a1, self.a2, self.a3, self.minx, self.maxx)
+                self.update_line()
+        if self.grabbed == 10:
+            if event.xdata:
+                self.minx = np.clip(event.xdata, 0, self.maxx-0.05)
+                self.parent.new_values(self.a1, self.a2, self.a3, self.minx, self.maxx)
+                self.update_line()
+        if self.grabbed == 11:
+            if event.xdata:
+                self.maxx = np.clip(event.xdata, self.minx+0.05, 1)
+                self.parent.new_values(self.a1, self.a2, self.a3, self.minx, self.maxx)
                 self.update_line()
         if self.grabbed == 0 and self.get_clicked(event) != self.hovered:
             self.hovered = self.get_clicked(event)
@@ -166,26 +224,35 @@ class PolygonInteractor:
 from qtpy import QtWidgets, QtCore, QtGui
 from saenopy.gui.gui_classes import MatplotlibWidget
 class SigmoidWidget(QtWidgets.QWidget):
-    valueChanged = QtCore.Signal(float, float, float)
+    valueChanged = QtCore.Signal(float, float, float, float, float)
     editFinished = QtCore.Signal()
+    minx = 0
+    maxx = 1
+    a1 = 0.1
+    a2 = 0.5
+    a3 = 1
 
     def __init__(self, parent=None):
         super().__init__(parent)
         self.canvas = MatplotlibWidget(self)
         QtWidgets.QHBoxLayout(self)
-        self.setMinimumWidth(80)
-        self.setMaximumWidth(80)
-        self.setMinimumHeight(80)
-        self.setMaximumHeight(80)
+        size = 100
+        #self.setMinimumWidth(size)
+        self.setMaximumWidth(size)
+        #self.setMinimumHeight(size)
+        self.setMaximumHeight(size)
         self.layout().addWidget(self.canvas)
         self.layout().setContentsMargins(0, 0, 0, 0)
         self.canvas.figure.axes[0].set_position([0, 0, 1, 1])
         self.canvas.figure.axes[0].set_facecolor("none")
+        im = plt.imread("/home/richard/.local/share/saenopy/1_ClassicSingleCellTFM/Deformed/Mark_and_Find_001/Pos004_S001_z000_ch00.tif")
         self.p = PolygonInteractor(self, self.canvas.figure.axes[0])
+        self.p.set_im(im)
+        #self.canvas.
 
-    def new_values(self, a1, a2, a3):
-        self.a1, self.a2, self.a3 = a1, a2, a3
-        self.valueChanged.emit(a1, a2, a3)
+    def new_values(self, a1, a2, a3, minx, maxx):
+        self.a1, self.a2, self.a3, self.minx, self.maxx = a1, a2, a3, minx, maxx
+        self.valueChanged.emit(a1, a2, a3, self.p.get_range()[0], self.p.get_range()[1])
 
 
 if __name__ == '__main__':

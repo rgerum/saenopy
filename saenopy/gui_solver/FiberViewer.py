@@ -129,7 +129,8 @@ def get_stack_images(stack, channel, crops):
 
 
 @cache_results()
-def scale_intensity(data, percentile):
+def scale_intensity(data, percentile, range):
+    return exposure.rescale_intensity(data, in_range=tuple(range))
     return exposure.rescale_intensity(data, in_range=tuple(np.percentile(data, list(percentile))))
 
 
@@ -171,13 +172,13 @@ def rescale(smoothed_data):
     return combined1.astype(np.uint8)
 
 
-def process_stack(stack, channel, crops=None, sigma_sato=None, sigma_gauss=None, percentiles=(0.01, 99.6), alpha=(1.3, 3.86, 1),
+def process_stack(stack, channel, crops=None, sigma_sato=None, sigma_gauss=None, range=range, percentiles=(0.01, 99.6), alpha=(1.3, 3.86, 1),
                   cmap="gray"):
     data = get_stack_images(stack, channel=channel, crops=crops)
 
     filtered_data = sato_filter(data, sigma_sato=sigma_sato)
 
-    scaled_data = scale_intensity(filtered_data, percentile=percentiles)
+    scaled_data = scale_intensity(filtered_data, percentile=percentiles, range=range)
 
     #zoomed_data = zoom_z(scaled_data,  factor=stack.voxel_size[2] / stack.voxel_size[1])
 
@@ -186,7 +187,7 @@ def process_stack(stack, channel, crops=None, sigma_sato=None, sigma_gauss=None,
     combined1 = rescale(smoothed_data)
 
     opacity = get_transparency(*alpha)
-    return {"data": combined1, "opacity": opacity, "cmap": cmap}
+    return {"data": combined1, "opacity": opacity, "cmap": cmap, "original": filtered_data}
 
 
 def join_stacks(stack_data1, stack_data2, thres_cell=1):
@@ -211,6 +212,7 @@ class ChannelProperties(QtWidgets.QWidget):
     valueChanged = QtCore.Signal()
     def __init__(self):
         super().__init__()
+        self.setMaximumHeight(100)
         with QtShortCuts.QHBoxLayout(self) as layout:
             with QtShortCuts.QVBoxLayout() as layout:
                 with QtShortCuts.QHBoxLayout() as layout:
@@ -219,27 +221,30 @@ class ChannelProperties(QtWidgets.QWidget):
                 with QtShortCuts.QHBoxLayout() as layout:
                     self.input_sato = QtShortCuts.QInputNumber(None, "sato filter", 2, min=0, max=7, float=False)
                     self.input_gauss = QtShortCuts.QInputNumber(None, "gauss filter", 0, min=0, max=20, float=False)
-                    self.input_percentile1 = QtShortCuts.QInputNumber(None, "percentile_min", 0.01)
-                    self.input_percentile2 = QtShortCuts.QInputNumber(None, "percentile_max", 99.6)
+                    #self.input_percentile1 = QtShortCuts.QInputNumber(None, "percentile_min", 0.01)
+                    #self.input_percentile2 = QtShortCuts.QInputNumber(None, "percentile_max", 99.6)
                 with QtShortCuts.QHBoxLayout() as layout:
-                    self.input_alpha1 = QtShortCuts.QInputNumber(None, "alpha1", 0.065, min=0, max=0.3, step=0.01, decimals=3)
-                    self.input_alpha2 = QtShortCuts.QInputNumber(None, "alpha2", 0.2491, min=0, max=1, step=0.01)
-                    self.input_alpha3 = QtShortCuts.QInputNumber(None, "alpha3", 1, min=0, max=1, step=0.1)
+                    #self.input_alpha1 = QtShortCuts.QInputNumber(None, "alpha1", 0.065, min=0, max=0.3, step=0.01, decimals=3)
+                    #self.input_alpha2 = QtShortCuts.QInputNumber(None, "alpha2", 0.2491, min=0, max=1, step=0.01)
+                    #self.input_alpha3 = QtShortCuts.QInputNumber(None, "alpha3", 1, min=0, max=1, step=0.1)
                     self.input_cmap = QtShortCuts.QDragableColor("pink").addToLayout()
+                QtShortCuts.current_layout.addStretch()
             from saenopy.gui.sigmoid_widget import SigmoidWidget
             self.sigmoid = SigmoidWidget().addToLayout()
             self.input_cmap.valueChanged.connect(lambda x: self.sigmoid.p.set_cmap(x))
-            self.sigmoid.valueChanged.connect(lambda x1, x2, x3: (self.input_alpha1.setValue(x1), self.input_alpha2.setValue(x2), self.input_alpha3.setValue(x3)))
-        for widget in [self.input_sato, self.input_gauss, self.input_percentile1, self.input_percentile2,
-                       self.input_alpha1, self.input_alpha2, self.input_alpha3,
+            #self.sigmoid.valueChanged.connect(lambda x1, x2, x3, *args: (self.input_alpha1.setValue(x1), self.input_alpha2.setValue(x2), self.input_alpha3.setValue(x3)))
+        for widget in [self.input_sato, self.input_gauss, #self.input_percentile1, self.input_percentile2,
+                       #self.input_alpha1, self.input_alpha2, self.input_alpha3,
                        self.input_cmap, self.input_show]:
             widget.valueChanged.connect(self.valueChanged)
         self.sigmoid.editFinished.connect(self.valueChanged)
 
     def value(self):
         return dict(sigma_sato=self.input_sato.value(), sigma_gauss=self.input_gauss.value(),
-                    percentiles=(self.input_percentile1.value(), self.input_percentile2.value()),
-                    alpha=(self.input_alpha1.value(), self.input_alpha2.value(), self.input_alpha3.value()),
+                    percentiles=(0, 1),#(self.input_percentile1.value(), self.input_percentile2.value()),
+                    range=self.sigmoid.p.get_range(),
+                    #alpha=(self.input_alpha1.value(), self.input_alpha2.value(), self.input_alpha3.value()),
+                    alpha=(self.sigmoid.a1, self.sigmoid.a2, self.sigmoid.a3),
                     cmap=self.input_cmap.value())
 
 
@@ -270,15 +275,16 @@ class FiberViewer(PipelineModule):
                     self.input_cropx = QtShortCuts.QRangeSlider(None, "crop x", 0, 200)
                     self.input_cropy = QtShortCuts.QRangeSlider(None, "y", 0, 200)
                     self.input_cropz = QtShortCuts.QRangeSlider(None, "z", 0, 200)
-                self.channel0_properties = ChannelProperties().addToLayout()
-                self.channel0_properties.valueChanged.connect(self.update_display)
-                self.channel1_properties = ChannelProperties().addToLayout()
-                self.channel1_properties.valueChanged.connect(self.update_display)
+                with QtShortCuts.QHBoxLayout() as layout:
+                    self.channel0_properties = ChannelProperties().addToLayout()
+                    self.channel0_properties.valueChanged.connect(self.update_display)
+                    self.channel1_properties = ChannelProperties().addToLayout()
+                    self.channel1_properties.valueChanged.connect(self.update_display)
                 self.channel1_properties.input_cmap.setValue("Greens")
                 self.channel1_properties.input_sato.setValue(0)
                 self.channel1_properties.input_gauss.setValue(7)
-                self.channel1_properties.input_percentile1.setValue(10)
-                self.channel1_properties.input_percentile2.setValue(100)
+                #self.channel1_properties.input_percentile1.setValue(10)
+                #self.channel1_properties.input_percentile2.setValue(100)
                 self.input_thresh = QtShortCuts.QInputNumber(None, "thresh", 1, float=True, min=0, max=2, step=0.1)
                 self.input_thresh.valueChanged.connect(self.update_display)
                 #self.canvas = MatplotlibWidget(self).addToLayout()
@@ -326,12 +332,15 @@ class FiberViewer(PipelineModule):
                                             crops=crops,
                                             **self.channel0_properties.value())
                 stack_data = stack_data1
+                self.channel0_properties.sigmoid.p.set_im(stack_data1["original"])
+
             else:
                 stack_data1 = None
             if self.channel1_properties.input_show.value():
                 stack_data2 = process_stack(self.result.stack[0], 1,
                                             crops=crops,
                                             **self.channel1_properties.value())
+                self.channel1_properties.sigmoid.p.set_im(stack_data2["original"])
                 if stack_data1 is not None:
                     stack_data = join_stacks(stack_data1, stack_data2, self.input_thresh.value())
                 else:

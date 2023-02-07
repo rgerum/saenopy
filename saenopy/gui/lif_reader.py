@@ -383,7 +383,6 @@ class LifImage:
         item_requested = t_requested + z_requested + c_requested + m_requested
         if item_requested > total_items:
             raise ValueError("The requested item is after the end of the image")
-        print(item_requested)
         return self._get_item(item_requested)
 
     def get_iter_t(self, z=0, c=0, m=0):
