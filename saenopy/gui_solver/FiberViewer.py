@@ -130,6 +130,10 @@ def get_stack_images(stack, channel, crops):
 
 @cache_results()
 def scale_intensity(data, percentile, range):
+    original_min = data.min()
+    original_max = data.max()
+    range = (original_min + (original_max - original_min) * range[0],
+            original_min + (original_max - original_min) * range[1])
     return exposure.rescale_intensity(data, in_range=tuple(range))
     return exposure.rescale_intensity(data, in_range=tuple(np.percentile(data, list(percentile))))
 

@@ -87,6 +87,7 @@ class PolygonInteractor:
         self.update_line()
 
     def get_range(self):
+        return self.minx, self.maxx
         return self.original_min + (self.original_max - self.original_min) * self.minx, \
                self.original_min + (self.original_max - self.original_min) * self.maxx
 
