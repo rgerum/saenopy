@@ -121,9 +121,11 @@ class BatchEvaluate(QtWidgets.QWidget):
                     self.sub_module_regularize = Regularizer(self, layout0)
                     self.sub_module_view = ResultView(self, layout0)
                     self.sub_module_fiber = FiberViewer(self, layout0)
+                    self.sub_module_export = ExportViewer(self, layout0)
                     layout0.addStretch()
                     self.button_start_all = QtShortCuts.QPushButton(None, "run all", self.run_all)
                     self.button_code = QtShortCuts.QPushButton(None, "export code", self.generate_code)
+                    self.button_export = QtShortCuts.QPushButton(None, "export images", lambda x: self.sub_module_export.export_window.show())
 
         self.data = []
         self.list.setData(self.data)
