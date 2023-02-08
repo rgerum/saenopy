@@ -535,13 +535,14 @@ class BatchEvaluate(QtWidgets.QWidget):
                 # self.setMinimumHeight(600)
                 self.setWindowTitle("File Exists")
                 with QtShortCuts.QVBoxLayout(self) as layout:
-                    self.label = QtWidgets.QLabel(f"A file with the name {filename} already exists.").addToLayout()
+                    self.label = QtShortCuts.SuperQLabel(f"A file with the name {filename} already exists.").addToLayout()
+                    self.label.setWordWrap(True)
                     with QtShortCuts.QHBoxLayout() as layout3:
-                        layout3.addStretch()
+                        #layout3.addStretch()
                         self.use_for_all = QtShortCuts.QInputBool(None, "remember decision for all files", False)
                     with QtShortCuts.QHBoxLayout() as layout3:
                         # self.button_clear = QtShortCuts.QPushButton(None, "clear list", self.clear_files)
-                        layout3.addStretch()
+                        #layout3.addStretch()
                         self.button_addList2 = QtShortCuts.QPushButton(None, "cancel", self.reject)
                         def accept():
                             self.mode = "overwrite"

@@ -1193,3 +1193,24 @@ mpl.colormaps.register(LinearSegmentedColormap('magenta', {'red': ((0,0,0),(1,1,
 mpl.colormaps.register(LinearSegmentedColormap('grape', {'red': ((0,0,0),(1,1,1)), 'green': ((0,0,0),(1,0,0)), 'blue': ((0.0,  0.0, 0.0), (1,  0.5, 0.5))}))
 #mpl.colormaps.register(LinearSegmentedColormap('redd', {'red': ((0.0,  0.0, 0.0), (1,  1, 1))}))
 #mpl.colormaps.register(LinearSegmentedColormap('greenn', {'green': ((0.0,  0.0, 0.0), (1,  1, 1))}))
+
+
+class SuperQLabel(QtWidgets.QLabel):
+    def __init__(self, *args, **kwargs):
+        super(SuperQLabel, self).__init__(*args, **kwargs)
+
+        self.textalignment = QtCore.Qt.AlignLeft | QtCore.Qt.TextWrapAnywhere
+        self.isTextLabel = True
+        self.align = None
+
+    def paintEvent(self, event):
+
+        opt = QtWidgets.QStyleOption()
+        opt.initFrom(self)
+        painter = QtGui.QPainter(self)
+
+        self.style().drawPrimitive(QtWidgets.QStyle.PE_Widget, opt, painter, self)
+
+        self.style().drawItemText(painter, self.rect(),
+                                  self.textalignment, self.palette(), True, self.text())
+
