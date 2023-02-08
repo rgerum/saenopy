@@ -303,7 +303,6 @@ class FiberViewer(PipelineModule):
         return self.result is not None and result.stack is not None and len(result.stack) > 0
 
     def setResult(self, result: Result):
-        super().setResult(result)
         if result and result.stack and result.stack[0]:
             shape = result.stack[0].shape
             self.input_cropx.setRange(0, shape[1])
@@ -313,7 +312,12 @@ class FiberViewer(PipelineModule):
             self.input_cropz.setRange(0, shape[2])
             self.input_cropz.setValue((shape[2] // 2 - 25, shape[2] // 2 + 25))
 
-
+            if result.stack[0].shape[-1] == 1:
+                self.channel1_properties.input_show.setValue(False)
+                self.channel1_properties.setDisabled(True)
+            else:
+                self.channel1_properties.setDisabled(False)
+        super().setResult(result)
 
     def update_display(self):
         if self.current_tab_selected is False:
@@ -361,11 +365,12 @@ class FiberViewer(PipelineModule):
                 self.canvas.figure.axes[0].set_ylim(0, 1)
                 self.canvas.draw()
 
-            vol = self.plotter.add_volume(stack_data["data"], resolution=np.array(self.result.stack[0].voxel_size),
+            if stack_data is not None:
+                vol = self.plotter.add_volume(stack_data["data"], resolution=np.array(self.result.stack[0].voxel_size),
                                           cmap=stack_data["cmap"], opacity=stack_data["opacity"],
                                      blending="composite", name="fiber")  # 1.0*x
             print("plot time", f"{time.time()-t:.3f}s")
-            # plotter.remove_scalar_bar()
+            self.plotter.remove_scalar_bar()
             self.plotter.render()
 
             if cam_pos is not None:
