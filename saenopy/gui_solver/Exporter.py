@@ -102,8 +102,8 @@ class ExportViewer(PipelineModule):
                 with QtShortCuts.QGroupBox(None, "camera") as layout:
                     with QtShortCuts.QHBoxLayout() as layout:
                         self.input_elevation = QtShortCuts.QInputNumber(None, "elevation", 0, min=-360, max=360, use_slider=True)
-                        self.input_azimuth = QtShortCuts.QInputNumber(None, "elevation", 0, min=-360, max=360, use_slider=True)
-                        self.input_zoom = QtShortCuts.QInputNumber(None, "zoom", 1, min=0, max=2, use_slider=True, float=True)
+                        self.input_azimuth = QtShortCuts.QInputNumber(None, "azimuth", 0, min=-360, max=360, use_slider=True)
+                        #self.input_zoom = QtShortCuts.QInputNumber(None, "zoom", 1, min=0, max=2, use_slider=True, float=True)
 
 
                         self.input_elevation.valueChanged.connect(self.update_display)
@@ -395,7 +395,7 @@ class ExportViewer(PipelineModule):
                 self.plotter.reset_camera()
                 self.plotter.camera.azimuth = self.input_azimuth.value()
                 self.plotter.camera.elevation = self.input_elevation.value()
-                self.plotter.camera.zoom(self.input_zoom.value())
+                #self.plotter.camera.zoom(self.input_zoom.value())
             finally:
                 self.plotter.render = render
                 #self.plotter.render()
