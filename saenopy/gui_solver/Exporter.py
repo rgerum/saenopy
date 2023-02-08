@@ -551,7 +551,7 @@ class ExportViewer(PipelineModule):
                                 colormap2=self.vtk_toolbar.colormap_chooser2.value(),
                                 scalebar_max=scale_max,
                                 show_nan=self.vtk_toolbar.use_nans.value(),
-                                display_image=display_image, show_grid=self.vtk_toolbar2.show_grid.value(),
+                                display_image=display_image, show_grid=self.vtk_toolbar.show_grid.value(),
                                 stack_shape=stack_shape)
 
                 if stack_data is not None:
@@ -600,6 +600,8 @@ def render_image(params, result):
         exporter = ExportViewer(None, None)
     exporter.set_parameters(params)
     exporter.setResult(result)
+    exporter.set_parameters(params)
+    exporter.update_display()
     return exporter.im
 
 
