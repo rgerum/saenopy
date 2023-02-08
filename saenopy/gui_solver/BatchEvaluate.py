@@ -47,6 +47,7 @@ from .Regularizer import Regularizer
 from .ResultView import ResultView
 from .StackDisplay import StackDisplay
 from .FiberViewer import FiberViewer
+from .Exporter import ExportViewer
 from saenopy.examples import getExamples
 
 
