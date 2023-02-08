@@ -333,10 +333,11 @@ class FiberViewer(PipelineModule):
             crops = []
             for widged in [self.input_cropx, self.input_cropy, self.input_cropz]:
                 crops.extend(widged.value())
-            t = time.time()
+            t = self.t_slider.value()
+            t_start = time.time()
             stack_data = None
             if self.channel0_properties.input_show.value():
-                stack_data1 = process_stack(self.result.stack[0], 0,
+                stack_data1 = process_stack(self.result.stack[t], 0,
                                             crops=crops,
                                             **self.channel0_properties.value())
                 stack_data = stack_data1
@@ -345,7 +346,7 @@ class FiberViewer(PipelineModule):
             else:
                 stack_data1 = None
             if self.channel1_properties.input_show.value():
-                stack_data2 = process_stack(self.result.stack[0], 1,
+                stack_data2 = process_stack(self.result.stack[t], 1,
                                             crops=crops,
                                             **self.channel1_properties.value())
                 self.channel1_properties.sigmoid.p.set_im(stack_data2["original"])
@@ -365,13 +366,18 @@ class FiberViewer(PipelineModule):
                 self.canvas.figure.axes[0].set_ylim(0, 1)
                 self.canvas.draw()
 
-            if stack_data is not None:
-                vol = self.plotter.add_volume(stack_data["data"], resolution=np.array(self.result.stack[0].voxel_size),
-                                          cmap=stack_data["cmap"], opacity=stack_data["opacity"],
-                                     blending="composite", name="fiber")  # 1.0*x
-            print("plot time", f"{time.time()-t:.3f}s")
-            self.plotter.remove_scalar_bar()
-            self.plotter.render()
+            render = self.plotter.render
+            self.plotter.render = lambda *args: None
+            try:
+                if stack_data is not None:
+                    vol = self.plotter.add_volume(stack_data["data"], resolution=np.array(self.result.stack[0].voxel_size),
+                                              cmap=stack_data["cmap"], opacity=stack_data["opacity"],
+                                         blending="composite", name="fiber", render=False)  # 1.0*x
+                print("plot time", f"{time.time()-t_start:.3f}s")
+                self.plotter.remove_scalar_bar()
+            finally:
+                self.plotter.render = render
+                self.plotter.render()
 
             if cam_pos is not None:
                 self.plotter.camera_position = cam_pos
