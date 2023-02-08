@@ -218,6 +218,7 @@ class ChannelProperties(QtWidgets.QWidget):
         super().__init__()
         self.setMaximumHeight(100)
         with QtShortCuts.QHBoxLayout(self) as layout:
+            QtShortCuts.current_layout.setContentsMargins(0, 0, 0, 0)
             with QtShortCuts.QVBoxLayout() as layout:
                 with QtShortCuts.QHBoxLayout() as layout:
                     self.input_show = QtShortCuts.QInputBool(None, "show", True)

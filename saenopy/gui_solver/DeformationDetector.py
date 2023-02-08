@@ -100,7 +100,7 @@ class DeformationDetector(PipelineModule):
         super().setResult(result)
         if result and result.stack and result.stack[0]:
             self.z_slider.setRange(0, result.stack[0].shape[2] - 1)
-            self.z_slider.setValue(self.result.stack[0].shape[2] // 2)
+            self.z_slider.setValue(result.stack[0].shape[2] // 2)
 
             if result.stack[0].channels:
                 value = self.vtk_toolbar.channel_select.value()

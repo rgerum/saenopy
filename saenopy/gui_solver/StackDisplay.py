@@ -251,7 +251,7 @@ class StackDisplay(PipelineModule):
                     im = im.astype(np.float64) * 255 / (max-min)
                     im = np.clip(im, 0, 255).astype(np.uint8)
                 self.pixmaps[i].setPixmap(QtGui.QPixmap(array2qimage(im)))
-                self.views[i].setExtend(im.shape[0], im.shape[0])
+                self.views[i].setExtend(im.shape[1], im.shape[0])
                 self.parent.display_image = (im, stack.voxel_size)
 
             self.z_slider.setToolTip(f"set z position\ncurrent position {self.z_slider.value()}")
