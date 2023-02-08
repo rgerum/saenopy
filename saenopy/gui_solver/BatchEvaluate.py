@@ -63,9 +63,10 @@ class SharedProperties:
         self.properties[name].append(target)
 
     def change_property(self, name, value, target):
-        for t in self.properties[name]:
-            if t != target:
-                t.property_changed(name, value)
+        if name in self.properties:
+            for t in self.properties[name]:
+                if t != target:
+                    t.property_changed(name, value)
 
 
 class BatchEvaluate(QtWidgets.QWidget):

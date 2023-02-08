@@ -125,7 +125,15 @@ class ExportViewer(PipelineModule):
     def __init__(self, parent: "BatchEvaluate", layout):
         super().__init__(parent, layout)
         self.export_window = QtWidgets.QWidget()
-        #self.export_window.show()
+
+        if parent is None:
+            class Null:
+                pass
+            self.parent = Null()
+            self.parent.shared_properties = Null()
+            self.parent.shared_properties.add_property = lambda *args: None
+            self.parent.shared_properties.change_property = lambda *args: None
+            #self.export_window.show()
 
         with QtShortCuts.QHBoxLayout(self.export_window) as layout:
 
@@ -256,10 +264,69 @@ class ExportViewer(PipelineModule):
                 #self.tab.parent().t_slider = self.t_slider
                 QtShortCuts.current_layout.addStretch()
 
+        self.parameter_map = {
+            "image": {
+                "width": self.input_width,
+                "height": self.input_height,
+            },
+
+            "camera": {
+                "elevation": self.input_elevation,
+                "azimuth": self.input_azimuth,
+            },
+
+            #"theme": self.vtk_toolbar.theme,
+            "show_grid": self.vtk_toolbar.show_grid,
+            "use_nans": self.vtk_toolbar.use_nans,
+
+            "arrows": self.input_arrows,
+
+            "deformation_arrows": {
+                "autoscale": self.vtk_toolbar.auto_scale,
+                "scale_max": self.vtk_toolbar.scale_max,
+                "colormap": self.vtk_toolbar.colormap_chooser,
+                "arrow_scale": self.vtk_toolbar.arrow_scale,
+            },
+
+            "force_arrows": {
+                "autoscale": self.vtk_toolbar2.auto_scale,
+                "scale_max": self.vtk_toolbar2.scale_max,
+                "use_center": self.vtk_toolbar2.use_center,
+                "colormap": self.vtk_toolbar.colormap_chooser,
+                "arrow_scale": self.vtk_toolbar.arrow_scale,
+            },
+
+            "stack": {
+                "image": self.vtk_toolbar.show_image,
+                "channel": self.vtk_toolbar.channel_select,
+                "z_proj": self.vtk_toolbar.button_z_proj,
+                "contrast_enhance": self.vtk_toolbar.contrast_enhance,
+                "colormap": self.vtk_toolbar.colormap_chooser2,
+                "z": self.z_slider,
+            },
+
+            "crop": {
+                "x": self.input_cropx,
+                "y": self.input_cropy,
+                "z": self.input_cropz,
+            },
+
+            "channel0": self.channel0_properties,
+            "channel1": self.channel1_properties,
+
+            "channel_thresh": self.input_thresh,
+
+            "time": {
+                "t": self.t_slider,
+                "format": self.time_format,
+                "display": self.time_check,
+                "fontsize": self.time_size,
+            },
+        }
         self.setParameterMapping(None, {})
+        self.no_update = False
 
     def do_export(self):
-        print(self.t_slider.t_slider.maximum())
         filename_base = self.outputText3.value()
         writer = None
         if self.t_slider.t_slider.maximum() > 0:
@@ -326,7 +393,38 @@ class ExportViewer(PipelineModule):
         super().setResult(result)
         self.update_display()
 
+    def get_parameters(self):
+        def get_params(parameter_map):
+            params = {}
+            for name, widget in parameter_map.items():
+                if isinstance(widget, dict):
+                    params[name] = get_params(widget)
+                else:
+                    params[name] = widget.value()
+            return params
+        params = get_params(self.parameter_map)
+        return params
+
+    no_update = True
+    def set_parameters(self, params):
+
+        def set_params(params, parameter_map):
+            for name, widget in parameter_map.items():
+                if isinstance(widget, dict):
+                    set_params(params[name], widget)
+                else:
+                    widget.setValue(params[name])
+
+        self.no_update = True
+        try:
+            set_params(params, self.parameter_map)
+        finally:
+            self.no_update = False
+
     def update_display(self):
+        if self.no_update:
+            return
+        #self.set_parameters(self.get_parameters())
         #if self.current_tab_selected is False:
         #    self.current_result_plotted = False
         #    return
@@ -476,10 +574,9 @@ class ExportViewer(PipelineModule):
                 self.plotter.render = render
                 #self.plotter.render()
                 im = self.plotter.show(screenshot="tmp.png", return_img=True, auto_close=False, window_size=(self.input_width.value(), self.input_height.value()))
-                print(im)
+
                 im = plt.imread("tmp.png")
                 im = (im * 255).astype(np.uint8)
-                print(im.shape, im.dtype, im.min(), im.max())
 
                 self.pixmap1.setPixmap(QtGui.QPixmap(array2qimage(im)))
                 self.view1.setExtend(im.shape[1], im.shape[0])
@@ -491,3 +588,18 @@ class ExportViewer(PipelineModule):
         else:
             pass
             #self.plotter.interactor.setToolTip("")
+
+
+app = None
+exporter = None
+def render_image(params, result):
+    global app, exporter
+    if app is None:
+        app = QtWidgets.QApplication([])
+    if exporter is None:
+        exporter = ExportViewer(None, None)
+    exporter.set_parameters(params)
+    exporter.setResult(result)
+    return exporter.im
+
+

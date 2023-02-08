@@ -252,6 +252,17 @@ class ChannelProperties(QtWidgets.QWidget):
                     alpha=(self.sigmoid.a1, self.sigmoid.a2, self.sigmoid.a3),
                     cmap=self.input_cmap.value())
 
+    def setValue(self, params):
+        self.input_sato.setValue(params["sigma_sato"])
+        self.input_gauss.setValue(params["sigma_gauss"])
+        self.sigmoid.p.minx = params["range"][0]
+        self.sigmoid.p.maxx = params["range"][1]
+        self.sigmoid.p.a1 = params["alpha"][0]
+        self.sigmoid.p.a2 = params["alpha"][1]
+        self.sigmoid.p.a3 = params["alpha"][2]
+        self.sigmoid.p.update_line()
+        self.input_cmap.setValue(params["cmap"])
+
 
 class FiberViewer(PipelineModule):
 

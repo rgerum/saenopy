@@ -20,6 +20,8 @@ class PipelineModule(QtWidgets.QWidget):
         super().__init__()
         if layout is not None:
             layout.addWidget(self)
+        if parent is None:
+            return
         self.parent = parent
         self.settings = self.parent.settings
 

@@ -66,7 +66,7 @@ def showVectorField(plotter: QtInteractor, obj: Solver, field: np.ndarray, name:
     # ensure that the image is either with color channels or no channels
     if (display_image is not None) and (display_image[0].shape[2] == 1):
         display_image[0] = display_image[0][:, :, 0]
-    print("vector field", factor)
+
     # force rendering to be disabled while updating content to prevent flickering
     render = plotter.render
     plotter.render = lambda *args: None
