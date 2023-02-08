@@ -275,7 +275,7 @@ class ExportViewer(PipelineModule):
                 "azimuth": self.input_azimuth,
             },
 
-            #"theme": self.vtk_toolbar.theme,
+            "theme": self.vtk_toolbar.theme,
             "show_grid": self.vtk_toolbar.show_grid,
             "use_nans": self.vtk_toolbar.use_nans,
 
@@ -400,7 +400,10 @@ class ExportViewer(PipelineModule):
                 if isinstance(widget, dict):
                     params[name] = get_params(widget)
                 else:
-                    params[name] = widget.value()
+                    if isinstance(widget, QtShortCuts.QInputChoice) and widget.value_names:
+                        params[name] = widget.valueName()
+                    else:
+                        params[name] = widget.value()
             return params
         params = get_params(self.parameter_map)
         return params
@@ -424,6 +427,7 @@ class ExportViewer(PipelineModule):
     def update_display(self):
         if self.no_update:
             return
+        print(self.get_parameters())
         #self.set_parameters(self.get_parameters())
         #if self.current_tab_selected is False:
         #    self.current_result_plotted = False
@@ -601,6 +605,11 @@ def render_image(params, result):
     exporter.set_parameters(params)
     exporter.setResult(result)
     exporter.set_parameters(params)
+
+    if "theme" in params:
+        exporter.plotter.theme = exporter.vtk_toolbar.theme.value()
+        exporter.plotter.set_background(exporter.plotter._theme.background)
+
     exporter.update_display()
     return exporter.im
 

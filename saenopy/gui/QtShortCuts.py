@@ -476,6 +476,14 @@ class QInputChoice(QInput):
                 return None
             return self.values[self.combobox.currentIndex()]
 
+    def valueName(self):
+        if self.reference_by_index is True:
+            return self.combobox.currentIndex()
+        else:
+            if self.values is None:
+                return None
+            return self.value_names[self.combobox.currentIndex()]
+
 
 class QInputColor(QInput):
 
