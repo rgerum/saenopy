@@ -420,6 +420,7 @@ class ExportViewer(PipelineModule):
                         field = M.U
                         factor = 0.1*self.vtk_toolbar.arrow_scale.value()
                         name = "U"
+                        colormap = self.vtk_toolbar.colormap_chooser.value()
                 elif self.input_arrows.value() == "fitted forces":
                     M = self.result.solver[self.t_slider.value()]
                     if M is not None:
