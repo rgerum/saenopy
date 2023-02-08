@@ -56,6 +56,68 @@ import matplotlib
 from saenopy.gui.gui_classes import CheckAbleGroup, MatplotlibWidget, NavigationToolbar
 from saenopy.gui_solver.FiberViewer import ChannelProperties, process_stack, join_stacks
 import time
+import datetime
+
+
+
+def formatTimedelta(t: datetime.timedelta, fmt: str) -> str:
+    sign = 1
+    if t.total_seconds() < 0:
+        sign = -1
+        t = -t
+    seconds = t.seconds
+    hours = seconds // 3600
+    minutes = (seconds % 3600) // 60
+    seconds = seconds % 60
+    parts = {"d": t.days, "H": hours, "M": minutes, "S": seconds,
+             "s": t.total_seconds(), "m": t.microseconds // 1000, "f": t.microseconds}
+
+    max_level = None
+    if fmt.find("%d") != -1:
+        max_level = "d"
+    elif fmt.find("%H") != -1:
+        max_level = "H"
+    elif fmt.find("%M") != -1:
+        max_level = "M"
+    elif fmt.find("%S") != -1:
+        max_level = "S"
+    elif fmt.find("%m") != -1:
+        max_level = "m"
+    elif fmt.find("%f") != -1:
+        max_level = "f"
+
+    fmt = fmt.replace("%d", str(parts["d"]))
+    if max_level == "H":
+        fmt = fmt.replace("%H", "%d" % (parts["H"] + parts["d"] * 24))
+    else:
+        fmt = fmt.replace("%H", "%02d" % parts["H"])
+    if max_level == "M":
+        fmt = fmt.replace("%M", "%2d" % (parts["M"] + parts["H"] * 60 + parts["d"] * 60 * 24))
+    else:
+        fmt = fmt.replace("%M", "%02d" % parts["M"])
+
+    if max_level == "S":
+        fmt = fmt.replace("%S", "%d" % parts["s"])
+    else:
+        fmt = fmt.replace("%S", "%02d" % parts["S"])
+
+    if max_level == "m":
+        fmt = fmt.replace("%m", "%3d" % (parts["m"] + parts["s"] * 1000))
+    else:
+        fmt = fmt.replace("%m", "%03d" % parts["m"])
+    if max_level == "f":
+        fmt = fmt.replace("%f", "%6d" % (parts["f"] + parts["s"] * 1000 * 1000))
+    else:
+        fmt = fmt.replace("%f", "%06d" % parts["f"])
+    if sign == -1:
+        for i in range(len(fmt)):
+            if fmt[i] != " ":
+                break
+        if i == 0:
+            fmt = "-" + fmt
+        else:
+            fmt = fmt[:i - 1] + "-" + fmt[i:]
+    return fmt
 
 
 class ExportViewer(PipelineModule):
@@ -174,13 +236,22 @@ class ExportViewer(PipelineModule):
                     self.input_thresh.valueChanged.connect(self.update_display)
                     #self.canvas = MatplotlibWidget(self).addToLayout()
 
-                self.t_slider = QTimeSlider(connected=self.update_display).addToLayout()
+                with QtShortCuts.QHBoxLayout():
+                    self.t_slider = QTimeSlider(connected=self.update_display).addToLayout()
+                    self.time_format = QtShortCuts.QInputString(None, "", "%d:%H:%M")
+                    self.time_check = QtShortCuts.QInputBool(None, "", True)
+                    self.time_size = QtShortCuts.QInputNumber(None, "", 18, float=False)
+
+                    self.time_format.valueChanged.connect(self.update_display)
+                    self.time_check.valueChanged.connect(self.update_display)
+                    self.time_size.valueChanged.connect(self.update_display)
 
                 with QtShortCuts.QHBoxLayout():
                     self.outputText3 = QtShortCuts.QInputFilename(None, "output",
                                                                   file_type="Image Files (*.png, *.jpf, *.tiff, *.avi, *.mp4, *.gif)",
                                                                   settings_key="export/exportfilename",
                                                                   allow_edit=True, existing=False)
+                    self.input_fps = QtShortCuts.QInputNumber(None, "fps", 1)
                     self.button_export = QtShortCuts.QPushButton(None, "export", self.do_export)
                 #self.tab.parent().t_slider = self.t_slider
                 QtShortCuts.current_layout.addStretch()
@@ -197,11 +268,11 @@ class ExportViewer(PipelineModule):
                     filename_base = filename_base[:-4] + "_{t}" + filename_base[-4:]
             else:
                 if filename_base.endswith(".gif"):
-                    writer = imageio.get_writer(filename_base)
+                    writer = imageio.get_writer(filename_base, fps=self.input_fps.value())
                 if filename_base.endswith(".avi"):
-                    writer = imageio.get_writer(filename_base, format='FFMPEG', mode='I', codec='h264_x264')
+                    writer = imageio.get_writer(filename_base, fps=self.input_fps.value(), format='FFMPEG', mode='I', codec='h264_x264')
                 if filename_base.endswith(".mp4"):
-                    writer = imageio.get_writer(filename_base, format='FFMPEG', mode='I', codec='h264_x264')
+                    writer = imageio.get_writer(filename_base, fps=self.input_fps.value(), format='FFMPEG', mode='I', codec='h264_x264')
         else:
             if not (filename_base.endswith(".png") or filename_base.endswith(".jpg")):
                 raise ValueError("wrong file ending for a still image")
@@ -395,6 +466,10 @@ class ExportViewer(PipelineModule):
                 self.plotter.reset_camera()
                 self.plotter.camera.azimuth = self.input_azimuth.value()
                 self.plotter.camera.elevation = self.input_elevation.value()
+                if self.result is not None and self.result.time_delta is not None and self.time_check.value():
+                    self.plotter.add_text(formatTimedelta(datetime.timedelta(seconds=float(self.t_slider.value()*self.result.time_delta)), self.time_format.value()), name="time_text", font_size=self.time_size.value())
+                else:
+                    self.plotter.remove_actor("time_text")
                 #self.plotter.camera.zoom(self.input_zoom.value())
             finally:
                 self.plotter.render = render
