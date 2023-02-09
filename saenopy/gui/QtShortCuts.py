@@ -131,6 +131,8 @@ class QInput(QtWidgets.QWidget):
         pass
 
 class QRangeSlider(QInput):
+    editingFinished = QtCore.Signal()
+
     def __init__(self, layout, name, min, max, **kwargs):
         # initialize the super widget
         QInput.__init__(self, layout, name, **kwargs)
@@ -149,6 +151,10 @@ class QRangeSlider(QInput):
         self.layout().addWidget(self.input_max)
 
         self.setRange(min, max)
+
+        self.input_min.editingFinished.connect(self.editingFinished)
+        self.input_max.editingFinished.connect(self.editingFinished)
+        self.slider.sliderReleased.connect(self.editingFinished)
 
     def _inputBoxChange(self):
         self.setValue((self.input_min.value(), self.input_max.value()))

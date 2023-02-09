@@ -226,9 +226,9 @@ class ExportViewer(PipelineModule):
                         self.input_cropx = QtShortCuts.QRangeSlider(None, "crop x", 0, 200)
                         self.input_cropy = QtShortCuts.QRangeSlider(None, "crop y", 0, 200)
                         self.input_cropz = QtShortCuts.QRangeSlider(None, "crop z", 0, 200)
-                        self.input_cropx.valueChanged.connect(self.update_display)
-                        self.input_cropy.valueChanged.connect(self.update_display)
-                        self.input_cropz.valueChanged.connect(self.update_display)
+                        self.input_cropx.editingFinished.connect(self.update_display)
+                        self.input_cropy.editingFinished.connect(self.update_display)
+                        self.input_cropz.editingFinished.connect(self.update_display)
                     with QtShortCuts.QHBoxLayout() as layout:
                         QtShortCuts.current_layout.setContentsMargins(0, 0, 0, 0)
                         self.channel0_properties = ChannelProperties().addToLayout()
