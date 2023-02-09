@@ -177,7 +177,7 @@ def rescale(smoothed_data):
 
 
 def process_stack(stack, channel, crops=None, sigma_sato=None, sigma_gauss=None, range=range, percentiles=(0.01, 99.6), alpha=(1.3, 3.86, 1),
-                  cmap="gray"):
+                  cmap="gray", show=None):
     data = get_stack_images(stack, channel=channel, crops=crops)
 
     center = -np.array(stack.shape[:3]) / 2
@@ -250,7 +250,7 @@ class ChannelProperties(QtWidgets.QWidget):
         self.sigmoid.editFinished.connect(self.valueChanged)
 
     def value(self):
-        return dict(sigma_sato=self.input_sato.value(), sigma_gauss=self.input_gauss.value(),
+        return dict(show=self.input_show.value(), sigma_sato=self.input_sato.value(), sigma_gauss=self.input_gauss.value(),
                     percentiles=(0, 1),#(self.input_percentile1.value(), self.input_percentile2.value()),
                     range=self.sigmoid.p.get_range(),
                     #alpha=(self.input_alpha1.value(), self.input_alpha2.value(), self.input_alpha3.value()),
@@ -258,6 +258,7 @@ class ChannelProperties(QtWidgets.QWidget):
                     cmap=self.input_cmap.value())
 
     def setValue(self, params):
+        self.input_show.setValue(params["show"])
         self.input_sato.setValue(params["sigma_sato"])
         self.input_gauss.setValue(params["sigma_gauss"])
         self.sigmoid.p.minx = params["range"][0]

@@ -449,7 +449,7 @@ class ExportViewer(PipelineModule):
             t = self.t_slider.value()
             t_start = time.time()
             stack_data = None
-            if self.channel0_properties.input_show.value():
+            if self.channel0_properties.input_show.value() and crops[0] != crops[1] and crops[2] != crops[3] and crops[4] != crops[5]:
                 stack_data1 = process_stack(self.result.stack[t], 0,
                                             crops=crops,
                                             **self.channel0_properties.value())
@@ -458,7 +458,7 @@ class ExportViewer(PipelineModule):
 
             else:
                 stack_data1 = None
-            if self.channel1_properties.input_show.value():
+            if self.channel1_properties.input_show.value() and crops[0] != crops[1] and crops[2] != crops[3] and crops[4] != crops[5]:
                 stack_data2 = process_stack(self.result.stack[t], 1,
                                             crops=crops,
                                             **self.channel1_properties.value())
