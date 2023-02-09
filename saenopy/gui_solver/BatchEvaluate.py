@@ -181,7 +181,7 @@ class BatchEvaluate(QtWidgets.QWidget):
                 "interpolate_parameter" in data and \
                 "solve_parameter" in data:
                 return True
-        except ValueError:
+        except (ValueError, TypeError):
             return False
         return False
 

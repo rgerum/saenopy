@@ -99,7 +99,7 @@ class PlottingWindow(QtWidgets.QWidget):
                 json.dump(list_new, fp, indent=2)
 
     def load(self):
-        new_path = QtWidgets.QFileDialog.getOpenFileName(None, "Save Session", os.getcwd(), "JSON File (*.json)")
+        new_path = QtWidgets.QFileDialog.getOpenFileName(None, "Load Session", os.getcwd(), "JSON File (*.json)")
         if new_path:
             if isinstance(new_path, tuple):
                 new_path = new_path[0]

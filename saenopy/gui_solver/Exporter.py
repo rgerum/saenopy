@@ -161,6 +161,11 @@ class ExportViewer(PipelineModule):
                 self.vtk_toolbar = VTK_Toolbar(self.plotter, self.update_display, shared_properties=self.parent.shared_properties)#.addToLayout()
                 self.vtk_toolbar2 = VTK_Toolbar(self.plotter, self.update_display, center=True, shared_properties=self.parent.shared_properties)#.addToLayout()
 
+                with QtShortCuts.QHBoxLayout() as layout:
+                    QtShortCuts.QPushButton(None, "save parameters", self.save_parameters)
+                    QtShortCuts.QPushButton(None, "load parameters", self.load_parameters)
+                    QtShortCuts.QPushButton(None, "copy to clipboard parameters", self.copy_parameters)
+
                 with QtShortCuts.QGroupBox(None, "image dimensions") as layout:
                     with QtShortCuts.QHBoxLayout() as layout:
                         self.input_width = QtShortCuts.QInputNumber(None, "width", 1024, float=False)
@@ -329,6 +334,36 @@ class ExportViewer(PipelineModule):
         self.setParameterMapping(None, {})
         self.no_update = False
 
+    def save_parameters(self):
+        new_path = QtWidgets.QFileDialog.getSaveFileName(None, "Save Parameters", os.getcwd(), "JSON File (*.json)")
+        if new_path:
+            if isinstance(new_path, tuple):
+                new_path = new_path[0]
+            else:
+                new_path = str(new_path)
+            if not new_path.endswith(".json"):
+                new_path += ".json"
+            import json
+            with open(new_path, "w") as fp:
+                json.dump(self.get_parameters(), fp, indent=2)
+
+    def load_parameters(self):
+        new_path = QtWidgets.QFileDialog.getOpenFileName(None, "Load Parameters", os.getcwd(), "JSON File (*.json)")
+        if new_path:
+            if isinstance(new_path, tuple):
+                new_path = new_path[0]
+            else:
+                new_path = str(new_path)
+            import json
+            with open(new_path, "r") as fp:
+                self.set_parameters(json.load(fp))
+            self.update_display()
+
+    def copy_parameters(self):
+        text = repr(self.get_parameters())
+        cb = QtGui.QGuiApplication.clipboard()
+        cb.setText(text, mode=cb.Clipboard)
+
     def do_export(self):
         filename_base = self.outputText3.value()
         writer = None
@@ -361,7 +396,6 @@ class ExportViewer(PipelineModule):
                 imageio.imwrite(filename_base, self.im)
         if writer is not None:
             writer.close()
-
 
     def check_evaluated(self, result: Result) -> bool:
         return self.result is not None and result.stack is not None and len(result.stack) > 0
@@ -425,6 +459,10 @@ class ExportViewer(PipelineModule):
         self.no_update = True
         try:
             set_params(params, self.parameter_map)
+
+            if "theme" in params:
+                self.plotter.theme = self.vtk_toolbar.theme.value()
+                self.plotter.set_background(self.plotter._theme.background)
         finally:
             self.no_update = False
 
@@ -604,10 +642,6 @@ def render_image(params, result):
     exporter.set_parameters(params)
     exporter.setResult(result, no_update_display=True)
     exporter.set_parameters(params)
-
-    if "theme" in params:
-        exporter.plotter.theme = exporter.vtk_toolbar.theme.value()
-        exporter.plotter.set_background(exporter.plotter._theme.background)
 
     exporter.update_display()
     return exporter.im
