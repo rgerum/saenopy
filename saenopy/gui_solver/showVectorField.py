@@ -7,40 +7,40 @@ import numpy as np
 
 
 def getVectorFieldImage(self):
-    image = self.vtk_toolbar.show_image.value()
-    if image and self.t_slider.value() < len(self.result.stack):
-        stack = self.result.stack[self.t_slider.value()]
-        if self.vtk_toolbar.channel_select.value() >= len(stack.channels):
-            self.vtk_toolbar.channel_select.setValue(0)
-            im = stack[:, :, :, self.z_slider.value(), 0]
+    try:
+        image = self.vtk_toolbar.show_image.value()
+        if image and self.t_slider.value() < len(self.result.stack):
+            stack = self.result.stack[self.t_slider.value()]
+            if self.vtk_toolbar.channel_select.value() >= len(stack.channels):
+                self.vtk_toolbar.channel_select.setValue(0)
+                im = stack[:, :, :, self.z_slider.value(), 0]
+            else:
+                im = stack[:, :, :, self.z_slider.value(), self.vtk_toolbar.channel_select.value()]
+            if self.vtk_toolbar.button_z_proj.value():
+                z_range = [0, 5, 10, 1000][self.vtk_toolbar.button_z_proj.value()]
+                start = np.clip(self.z_slider.value() - z_range, 0,
+                                stack.shape[2])
+                end = np.clip(self.z_slider.value() + z_range, 0, stack.shape[2])
+                im = stack[:, :, :, start:end, self.vtk_toolbar.channel_select.value()]
+                im = np.max(im, axis=3)
+
+            if self.vtk_toolbar.contrast_enhance.value():
+                (min, max) = np.percentile(im, (1, 99))
+                im = im.astype(np.float32) - min
+                im = im.astype(np.float64) * 255 / (max - min)
+                im = np.clip(im, 0, 255).astype(np.uint8)
+
+            display_image = [im, stack.voxel_size, self.z_slider.value() - stack.shape[2] / 2]
+            if self.vtk_toolbar.show_image.value() == 2:
+                display_image[2] = -stack.shape[2] / 2
         else:
-            im = stack[:, :, :, self.z_slider.value(), self.vtk_toolbar.channel_select.value()]
-        if self.vtk_toolbar.button_z_proj.value():
-            z_range = [0, 5, 10, 1000][self.vtk_toolbar.button_z_proj.value()]
-            start = np.clip(self.z_slider.value() - z_range, 0,
-                            stack.shape[2])
-            end = np.clip(self.z_slider.value() + z_range, 0, stack.shape[2])
-            im = stack[:, :, :, start:end, self.vtk_toolbar.channel_select.value()]
-            im = np.max(im, axis=3)
-
-        if self.vtk_toolbar.contrast_enhance.value():
-            (min, max) = np.percentile(im, (1, 99))
-            im = im.astype(np.float32) - min
-            im = im.astype(np.float64) * 255 / (max - min)
-            im = np.clip(im, 0, 255).astype(np.uint8)
-
-        display_image = [im, stack.voxel_size, self.z_slider.value() - stack.shape[2] / 2]
-        if self.vtk_toolbar.show_image.value() == 2:
-            display_image[2] = -stack.shape[2] / 2
-    else:
+            display_image = None
+    except FileNotFoundError:
         display_image = None
     return display_image
 
 def showVectorField2(self, M, points_name):
-    try:
-        display_image = getVectorFieldImage(self)
-    except FileNotFoundError:
-        display_image = None
+    display_image = getVectorFieldImage(self)
 
     try:
         field = getattr(M, points_name)

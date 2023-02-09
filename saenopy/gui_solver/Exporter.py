@@ -482,10 +482,7 @@ class ExportViewer(PipelineModule):
             self.plotter.render = lambda *args: None
             try:
                 #if self.input_arrows = QtShortCuts.QInputChoice("arrows", "piv", values=["None", "piv", "target deformations", "fitted deformations", "fitted forces"])
-                try:
-                    display_image = getVectorFieldImage(self)
-                except FileNotFoundError:
-                    display_image = None
+                display_image = getVectorFieldImage(self)
                 if len(self.result.stack) and display_image is not None:
                     stack_shape = np.array(self.result.stack[0].shape[:3]) * np.array(
                         self.result.stack[0].voxel_size)
@@ -537,21 +534,6 @@ class ExportViewer(PipelineModule):
                         name = "f"
                         colormap = self.vtk_toolbar2.colormap_chooser.value()
                         scale_max = self.vtk_toolbar2.getScaleMax()
-                    if 0:
-                        display_image = getVectorFieldImage(self)
-                        if len(self.result.stack):
-                            stack_shape = np.array(self.result.stack[0].shape[:3]) * np.array(
-                                self.result.stack[0].voxel_size)
-                        else:
-                            stack_shape = None
-                        showVectorField(self.plotter, M, -M.f * M.reg_mask[:, None], "f", center=center,
-                                        factor=0.15 * self.vtk_toolbar2.arrow_scale.value(),
-                                        colormap=self.vtk_toolbar2.colormap_chooser.value(),
-                                        colormap2=self.vtk_toolbar2.colormap_chooser2.value(),
-                                        scalebar_max=self.vtk_toolbar2.getScaleMax(),
-                                        show_nan=self.vtk_toolbar2.use_nans.value(),
-                                        display_image=display_image, show_grid=self.vtk_toolbar2.show_grid.value(),
-                                        stack_shape=stack_shape)
                 showVectorField(self.plotter, M, field, name, center=center,
                                 factor=factor,
                                 colormap=colormap,
