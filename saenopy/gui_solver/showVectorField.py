@@ -75,10 +75,6 @@ def showVectorField(plotter: QtInteractor, obj: Solver, field: np.ndarray, name:
         if getattr(plotter, "nan_actor", None) is not None:
             plotter.remove_actor(plotter.nan_actor, render=False)
 
-        # remove a previous center_actor if present
-        if getattr(plotter, "center_actor", None) is not None:
-            plotter.remove_actor(plotter.center_actor, render=False)
-
         plotter.renderer.remove_bounds_axes()
         plotter.renderer.remove_bounding_box()
 
@@ -159,7 +155,9 @@ def showVectorField(plotter: QtInteractor, obj: Solver, field: np.ndarray, name:
 
         # plot center points if desired
         if center is not None:
-            plotter.center_actor = plotter.add_points(np.array([center]), color='m', point_size=10, render=False)
+            plotter.add_points(np.array([center])*1e6, color='m', point_size=10, render=False, name="center")
+        else:
+            plotter.remove_actor("center")
 
         if getattr(plotter, "_image_mesh", None) is not None:
             plotter.remove_actor(plotter._image_mesh, render=False)
