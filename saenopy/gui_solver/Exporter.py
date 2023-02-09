@@ -567,10 +567,15 @@ class ExportViewer(PipelineModule):
                 #self.plotter.camera.zoom(self.input_zoom.value())
             finally:
                 self.plotter.render = render
-                #self.plotter.render()
-                im = self.plotter.show(screenshot="tmp.png", return_img=True, auto_close=False, window_size=(self.input_width.value(), self.input_height.value()))
 
-                im = plt.imread("tmp.png")
+                import appdirs
+                target_folder = Path(appdirs.user_data_dir("saenopy", "rgerum"))
+                target_folder.mkdir(parents=True, exist_ok=True)
+                tmp_file = str(target_folder/"tmp.png")
+                #self.plotter.render()
+                im = self.plotter.show(screenshot=tmp_file, return_img=True, auto_close=False, window_size=(self.input_width.value(), self.input_height.value()))
+
+                im = plt.imread(tmp_file)
                 im = (im * 255).astype(np.uint8)
 
                 self.pixmap1.setPixmap(QtGui.QPixmap(array2qimage(im)))
