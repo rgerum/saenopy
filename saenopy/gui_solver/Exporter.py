@@ -366,7 +366,7 @@ class ExportViewer(PipelineModule):
     def check_evaluated(self, result: Result) -> bool:
         return self.result is not None and result.stack is not None and len(result.stack) > 0
 
-    def setResult(self, result: Result):
+    def setResult(self, result: Result, no_update_display=False):
         if result and result.stack and result.stack[0]:
             self.z_slider.setRange(0, result.stack[0].shape[2] - 1)
             self.z_slider.setValue(result.stack[0].shape[2] // 2)
@@ -394,7 +394,8 @@ class ExportViewer(PipelineModule):
             else:
                 self.channel1_properties.setDisabled(False)
         super().setResult(result)
-        self.update_display()
+        if not no_update_display:
+            self.update_display()
 
     def get_parameters(self):
         def get_params(parameter_map):
@@ -574,6 +575,8 @@ class ExportViewer(PipelineModule):
                 tmp_file = str(target_folder/"tmp.png")
                 #self.plotter.render()
                 im = self.plotter.show(screenshot=tmp_file, return_img=True, auto_close=False, window_size=(self.input_width.value(), self.input_height.value()))
+                # render again to prevent potential shifts
+                im = self.plotter.show(screenshot=tmp_file, return_img=True, auto_close=False, window_size=(self.input_width.value(), self.input_height.value()))
 
                 im = plt.imread(tmp_file)
                 im = (im * 255).astype(np.uint8)
@@ -599,7 +602,7 @@ def render_image(params, result):
     if exporter is None:
         exporter = ExportViewer(None, None)
     exporter.set_parameters(params)
-    exporter.setResult(result)
+    exporter.setResult(result, no_update_display=True)
     exporter.set_parameters(params)
 
     if "theme" in params:
