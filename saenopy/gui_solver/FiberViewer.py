@@ -172,13 +172,18 @@ def rescale(smoothed_data):
     max_int = np.max(combined1)
     combined1 = combined1 / max_int * 255
     combined1[combined1 < 0] = 0
-    combined1 = np.rot90(combined1)
+    #combined1 = np.rot90(combined1)
     return combined1.astype(np.uint8)
 
 
 def process_stack(stack, channel, crops=None, sigma_sato=None, sigma_gauss=None, range=range, percentiles=(0.01, 99.6), alpha=(1.3, 3.86, 1),
                   cmap="gray"):
     data = get_stack_images(stack, channel=channel, crops=crops)
+
+    center = -np.array(stack.shape[:3]) / 2
+    center += np.array([crops[0], crops[2], crops[4]])
+    center *= np.array(stack.voxel_size)
+    resolution = np.array(stack.voxel_size)
 
     filtered_data = sato_filter(data, sigma_sato=sigma_sato)
 
@@ -191,7 +196,7 @@ def process_stack(stack, channel, crops=None, sigma_sato=None, sigma_gauss=None,
     combined1 = rescale(smoothed_data)
 
     opacity = get_transparency(*alpha)
-    return {"data": combined1, "opacity": opacity, "cmap": cmap, "original": filtered_data}
+    return {"data": combined1, "opacity": opacity, "cmap": cmap, "original": filtered_data, "center": tuple(center), "resolution": tuple(resolution)}
 
 
 def join_stacks(stack_data1, stack_data2, thres_cell=1):
@@ -209,7 +214,7 @@ def join_stacks(stack_data1, stack_data2, thres_cell=1):
     newcolors = np.r_[cfib(np.linspace(0, 1, 128)), ccell(np.linspace(0.5, 1, 128))]
     newcmp = ListedColormap(newcolors)
     opacity = np.r_[stack_data1["opacity"], stack_data2["opacity"]]
-    return {"data": combined, "opacity": opacity, "cmap": newcmp}
+    return {"data": combined, "opacity": opacity, "cmap": newcmp, "center": stack_data1["center"], "resolution": stack_data1["resolution"]}
 
 
 class ChannelProperties(QtWidgets.QWidget):

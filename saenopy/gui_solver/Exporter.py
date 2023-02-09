@@ -226,6 +226,9 @@ class ExportViewer(PipelineModule):
                         self.input_cropx = QtShortCuts.QRangeSlider(None, "crop x", 0, 200)
                         self.input_cropy = QtShortCuts.QRangeSlider(None, "crop y", 0, 200)
                         self.input_cropz = QtShortCuts.QRangeSlider(None, "crop z", 0, 200)
+                        self.input_cropx.valueChanged.connect(self.update_display)
+                        self.input_cropy.valueChanged.connect(self.update_display)
+                        self.input_cropz.valueChanged.connect(self.update_display)
                     with QtShortCuts.QHBoxLayout() as layout:
                         QtShortCuts.current_layout.setContentsMargins(0, 0, 0, 0)
                         self.channel0_properties = ChannelProperties().addToLayout()
@@ -440,7 +443,7 @@ class ExportViewer(PipelineModule):
             CamPos.cam_pos_initialized = True
             #self.plotter.interactor.setToolTip(str(self.result.interpolate_parameter)+f"\nNodes {self.result.solver[self.t_slider.value()].R.shape[0]}\nTets {self.result.solver[self.t_slider.value()].T.shape[0]}")
             crops = []
-            for widged in [self.input_cropx, self.input_cropy, self.input_cropz]:
+            for widged in [self.input_cropy, self.input_cropx, self.input_cropz]:
                 crops.extend(widged.value())
             t = self.t_slider.value()
             t_start = time.time()
@@ -559,7 +562,13 @@ class ExportViewer(PipelineModule):
                                 stack_shape=stack_shape)
 
                 if stack_data is not None:
-                    vol = self.plotter.add_volume(stack_data["data"], resolution=np.array(self.result.stack[0].voxel_size),
+                    dataset = stack_data["data"]
+                    mesh = pyvista.UniformGrid(dimensions=dataset.shape, spacing=stack_data["resolution"],
+                                               origin=stack_data["center"])
+                    mesh['values'] = dataset.ravel(order='F')
+                    mesh.active_scalars_name = 'values'
+
+                    vol = self.plotter.add_volume(mesh,# resolution=np.array(self.result.stack[0].voxel_size),
                                               cmap=stack_data["cmap"], opacity=stack_data["opacity"],
                                          blending="composite", name="fiber", render=False)  # 1.0*x
                     self.plotter.remove_scalar_bar("values")
