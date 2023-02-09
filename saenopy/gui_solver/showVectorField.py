@@ -71,10 +71,6 @@ def showVectorField(plotter: QtInteractor, obj: Solver, field: np.ndarray, name:
     render = plotter.render
     plotter.render = lambda *args: None
     try:
-        # remove a previous nan_actor if present
-        if getattr(plotter, "nan_actor", None) is not None:
-            plotter.remove_actor(plotter.nan_actor, render=False)
-
         plotter.renderer.remove_bounds_axes()
         plotter.renderer.remove_bounding_box()
 
@@ -133,12 +129,13 @@ def showVectorField(plotter: QtInteractor, obj: Solver, field: np.ndarray, name:
                          font_family="arial")
 
             # show the points
+            plotter.remove_actor("nans")
             if show_all_points:
                 plotter.add_mesh(point_cloud, colormap=colormap, scalars=name + "_mag2", render=False)
             elif show_nan:
                 if R.shape[0]:
-                    plotter.nan_actor = plotter.add_mesh(point_cloud2, colormap=colormap, scalars="nan",
-                                                         show_scalar_bar=False, render=False)
+                    plotter.add_mesh(point_cloud2, colormap=colormap, scalars="nan",
+                                                         show_scalar_bar=False, render=False, name="nans")
 
             # add the arrows
             plotter.add_mesh(arrows, scalar_bar_args=sargs, colormap=colormap, name="arrows", render=False)
@@ -151,7 +148,6 @@ def showVectorField(plotter: QtInteractor, obj: Solver, field: np.ndarray, name:
                 plotter.update_scalar_bar_range([0, scalebar_max])
         else:
             plotter.remove_actor("arrows")
-            plotter.remove_actor("arrows")
 
         # plot center points if desired
         if center is not None:
@@ -159,10 +155,6 @@ def showVectorField(plotter: QtInteractor, obj: Solver, field: np.ndarray, name:
         else:
             plotter.remove_actor("center")
 
-        if getattr(plotter, "_image_mesh", None) is not None:
-            plotter.remove_actor(plotter._image_mesh, render=False)
-        if getattr(plotter, "_box", None) is not None:
-            plotter.remove_actor(plotter._box, render=False)
         if display_image is not None:
             img, voxel_size, z_pos = display_image  
             # adjust the direction of the underlying image 
@@ -188,8 +180,9 @@ def showVectorField(plotter: QtInteractor, obj: Solver, field: np.ndarray, name:
             curvsurf.texture_map_to_plane(inplace=True)   
             tex = pv.numpy_to_texture(img_adjusted)
             # add image below arrow field            
-            mesh = plotter.add_mesh(curvsurf, texture=tex)
-            plotter._image_mesh = mesh
+            mesh = plotter.add_mesh(curvsurf, texture=tex, name="image_mesh")
+        else:
+            plotter.remove_actor("image_mesh")
 
         plotter.remove_bounds_axes()
 
@@ -202,7 +195,7 @@ def showVectorField(plotter: QtInteractor, obj: Solver, field: np.ndarray, name:
             corners = np.asarray([[xmin, ymin, zmin], [xmax, ymin, zmin], [xmin, ymax, zmin], [xmax, ymax, zmin],
                                    [xmin, ymin, zmax], [xmax, ymin, zmax], [xmin, ymax, zmax], [xmax, ymax, zmax]])
             grid = pv.ExplicitStructuredGrid(np.asarray([2, 2, 2]), corners)
-            plotter._box = plotter.add_mesh(grid, style='wireframe', render_lines_as_tubes=True, line_width=2, show_edges=True, name="border")
+            plotter.add_mesh(grid, style='wireframe', render_lines_as_tubes=True, line_width=2, show_edges=True, name="border")
         elif show_grid == 3 and stack_shape is not None:
             xmin, xmax = -stack_shape[0]/2*scale, stack_shape[0]/2*scale
             #print(xmin,ymin)
@@ -211,9 +204,11 @@ def showVectorField(plotter: QtInteractor, obj: Solver, field: np.ndarray, name:
             corners = np.asarray([[xmin, ymin, zmin], [xmax, ymin, zmin], [xmin, ymax, zmin], [xmax, ymax, zmin],
                                   [xmin, ymin, zmax], [xmax, ymin, zmax], [xmin, ymax, zmax], [xmax, ymax, zmax]])
             grid = pv.ExplicitStructuredGrid(np.asarray([2, 2, 2]), corners)
-            plotter._box = plotter.add_mesh(grid, style='wireframe', render_lines_as_tubes=True, line_width=2,
+            plotter.add_mesh(grid, style='wireframe', render_lines_as_tubes=True, line_width=2,
                                             show_edges=True, name="border")
-        elif show_grid == 1 and field is not None:
+        else:
+            plotter.remove_actor("border")
+        if show_grid == 1 and field is not None:
             xmin, ymin, zmin = obj_R.min(axis=0)
             xmax, ymax, zmax = obj_R.max(axis=0)
             plotter.show_grid(bounds=[xmin, xmax, ymin, ymax, zmin, zmax], color=plotter._theme.font.color, render=False)
