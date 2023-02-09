@@ -297,6 +297,9 @@ class FiberViewer(PipelineModule):
                     self.input_cropx = QtShortCuts.QRangeSlider(None, "crop x", 0, 200)
                     self.input_cropy = QtShortCuts.QRangeSlider(None, "y", 0, 200)
                     self.input_cropz = QtShortCuts.QRangeSlider(None, "z", 0, 200)
+                    self.input_cropx.editingFinished.connect(self.update_display)
+                    self.input_cropy.editingFinished.connect(self.update_display)
+                    self.input_cropz.editingFinished.connect(self.update_display)
                 with QtShortCuts.QHBoxLayout() as layout:
                     self.channel0_properties = ChannelProperties().addToLayout()
                     self.channel0_properties.valueChanged.connect(self.update_display)
