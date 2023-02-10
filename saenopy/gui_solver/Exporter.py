@@ -205,6 +205,8 @@ class ExportViewer(PipelineModule):
                         self.vtk_toolbar.theme.addToLayout()
                         self.vtk_toolbar.show_grid.addToLayout()
                         self.vtk_toolbar.use_nans.addToLayout()
+                        self.input_reference_stack = QtShortCuts.QInputBool(None, "show reference stack", False)
+                        self.input_reference_stack.valueChanged.connect(self.update_display)
                         QtShortCuts.current_layout.addStretch()
 
                 with QtShortCuts.QHBoxLayout() as layout:
@@ -337,6 +339,7 @@ class ExportViewer(PipelineModule):
                 "contrast_enhance": self.vtk_toolbar.contrast_enhance_values,
                 "colormap": self.vtk_toolbar.colormap_chooser2,
                 "z": self.z_slider,
+                "use_reference_stack": self.input_reference_stack,
             },
 
             "crop": {
@@ -480,6 +483,8 @@ class ExportViewer(PipelineModule):
 
         def set_params(params, parameter_map):
             for name, widget in parameter_map.items():
+                if name not in params:
+                    continue
                 if isinstance(widget, dict):
                     set_params(params[name], widget)
                 else:
@@ -516,8 +521,11 @@ class ExportViewer(PipelineModule):
             t = self.t_slider.value()
             t_start = time.time()
             stack_data = None
+            stack = self.result.stack[t]
+            if self.input_reference_stack.value():
+                stack = self.result.stack_reference
             if self.channel0_properties.input_show.value() and crops[0] != crops[1] and crops[2] != crops[3] and crops[4] != crops[5]:
-                stack_data1 = process_stack(self.result.stack[t], 0,
+                stack_data1 = process_stack(stack, 0,
                                             crops=crops,
                                             **self.channel0_properties.value())
                 stack_data = stack_data1
@@ -526,7 +534,7 @@ class ExportViewer(PipelineModule):
             else:
                 stack_data1 = None
             if self.channel1_properties.input_show.value() and crops[0] != crops[1] and crops[2] != crops[3] and crops[4] != crops[5]:
-                stack_data2 = process_stack(self.result.stack[t], 1,
+                stack_data2 = process_stack(stack, 1,
                                             crops=crops,
                                             **self.channel1_properties.value())
                 self.channel1_properties.sigmoid.p.set_im(stack_data2["original"])
