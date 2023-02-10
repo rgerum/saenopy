@@ -211,6 +211,8 @@ class ExportViewer(PipelineModule):
                         with QtShortCuts.QHBoxLayout() as layout:
                             self.vtk_toolbar.auto_scale.addToLayout()
                             self.vtk_toolbar.scale_max.addToLayout()
+                            self.input_arrow_opacity = QtShortCuts.QInputNumber(None, "opacity", 1, min=0, max=1, float=True, step=0.1)
+                            self.input_arrow_opacity.valueChanged.connect(self.update_display)
                         self.vtk_toolbar.colormap_chooser.addToLayout()
                         self.vtk_toolbar.arrow_scale.addToLayout()
                         #QtShortCuts.current_layout.addStretch()
@@ -220,6 +222,9 @@ class ExportViewer(PipelineModule):
                             self.vtk_toolbar2.auto_scale.addToLayout()
                             self.vtk_toolbar2.scale_max.addToLayout()
                             self.vtk_toolbar2.use_center.addToLayout()
+                            self.input_arrow_opacity2 = QtShortCuts.QInputNumber(None, "opacity", 1, min=0, max=1,
+                                                                                float=True, step=0.1)
+                            self.input_arrow_opacity2.valueChanged.connect(self.update_display)
                         self.vtk_toolbar2.colormap_chooser.addToLayout()
                         self.vtk_toolbar2.arrow_scale.addToLayout()
                         #QtShortCuts.current_layout.addStretch()
@@ -304,6 +309,7 @@ class ExportViewer(PipelineModule):
                 "scale_max": self.vtk_toolbar.scale_max,
                 "colormap": self.vtk_toolbar.colormap_chooser,
                 "arrow_scale": self.vtk_toolbar.arrow_scale,
+                "arrow_opacity": self.input_arrow_opacity,
             },
 
             "force_arrows": {
@@ -312,6 +318,7 @@ class ExportViewer(PipelineModule):
                 "use_center": self.vtk_toolbar2.use_center,
                 "colormap": self.vtk_toolbar.colormap_chooser,
                 "arrow_scale": self.vtk_toolbar.arrow_scale,
+                "arrow_opacity": self.input_arrow_opacity2,
             },
 
             "stack": {
@@ -609,7 +616,8 @@ class ExportViewer(PipelineModule):
                                 scalebar_max=scale_max,
                                 show_nan=self.vtk_toolbar.use_nans.value(),
                                 display_image=display_image, show_grid=self.vtk_toolbar.show_grid.value(),
-                                stack_shape=stack_shape, stack_min_max=stack_min_max)
+                                stack_shape=stack_shape, stack_min_max=stack_min_max,
+                                arrow_opacity=self.input_arrow_opacity.value() if self.input_arrows.value() != "fitted forces" else self.input_arrow_opacity2.value())
 
                 if stack_data is not None:
                     dataset = stack_data["data"]

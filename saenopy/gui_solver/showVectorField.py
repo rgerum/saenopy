@@ -66,7 +66,7 @@ def showVectorField2(self, M, points_name):
 
 def showVectorField(plotter: QtInteractor, obj: Solver, field: np.ndarray, name: str, center=None, show_nan=True, stack_shape=None,
                     show_all_points=False, factor=.1, scalebar_max=None, display_image=None, show_grid=True,
-                    colormap="turbo", colormap2=None, stack_min_max=None):
+                    colormap="turbo", colormap2=None, stack_min_max=None, arrow_opacity=1):
     # ensure that the image is either with color channels or no channels
     if (display_image is not None) and (display_image[0].shape[2] == 1):
         display_image[0] = display_image[0][:, :, 0]
@@ -142,7 +142,7 @@ def showVectorField(plotter: QtInteractor, obj: Solver, field: np.ndarray, name:
                                                          show_scalar_bar=False, render=False, name="nans")
 
             # add the arrows
-            plotter.add_mesh(arrows, scalar_bar_args=sargs, colormap=colormap, name="arrows", render=False)
+            plotter.add_mesh(arrows, scalar_bar_args=sargs, colormap=colormap, name="arrows", opacity=arrow_opacity, render=False)
 
             # update the scalebar
             plotter.auto_value = np.nanpercentile(point_cloud[name + "_mag2"], 99.9)
