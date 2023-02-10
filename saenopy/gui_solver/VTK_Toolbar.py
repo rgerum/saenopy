@@ -7,6 +7,16 @@ from pyvistaqt import QtInteractor
 from saenopy.gui import QtShortCuts
 from .ResultView import result_view
 
+class SetValuePseudoWidget:
+    def __init__(self, value=None):
+        self._value = value
+
+    def value(self):
+        return self._value
+
+    def setValue(self, value):
+        self._value = value
+
 
 vtk_toolbars = []
 class VTK_Toolbar(QtWidgets.QWidget):
@@ -147,6 +157,8 @@ class VTK_Toolbar(QtWidgets.QWidget):
             self.contrast_enhance.valueChanged.connect(self.update_display)
             self.contrast_enhance.valueChanged.connect(
                 lambda value: shared_properties.change_property("contrast_enhance", value, self))
+            self.contrast_enhance.valueChanged.connect(lambda x: self.contrast_enhance_values.setValue(None))
+            self.contrast_enhance_values = SetValuePseudoWidget()
             shared_properties.add_property("contrast_enhance", self)
 
             QtShortCuts.QVLine()

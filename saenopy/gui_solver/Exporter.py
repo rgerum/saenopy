@@ -318,7 +318,7 @@ class ExportViewer(PipelineModule):
                 "image": self.vtk_toolbar.show_image,
                 "channel": self.vtk_toolbar.channel_select,
                 "z_proj": self.vtk_toolbar.button_z_proj,
-                "contrast_enhance": self.vtk_toolbar.contrast_enhance,
+                "contrast_enhance": self.vtk_toolbar.contrast_enhance_values,
                 "colormap": self.vtk_toolbar.colormap_chooser2,
                 "z": self.z_slider,
             },
@@ -533,7 +533,7 @@ class ExportViewer(PipelineModule):
             self.plotter.render = lambda *args: None
             try:
                 #if self.input_arrows = QtShortCuts.QInputChoice("arrows", "piv", values=["None", "piv", "target deformations", "fitted deformations", "fitted forces"])
-                display_image = getVectorFieldImage(self)
+                display_image = getVectorFieldImage(self, use_fixed_contrast_if_available=True)
                 if len(self.result.stack) and display_image is not None:
                     stack_shape = np.array(self.result.stack[0].shape[:3]) * np.array(
                         self.result.stack[0].voxel_size)

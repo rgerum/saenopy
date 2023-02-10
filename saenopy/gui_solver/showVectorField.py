@@ -6,7 +6,7 @@ from saenopy.solver import Solver
 import numpy as np
 
 
-def getVectorFieldImage(self):
+def getVectorFieldImage(self, use_fixed_contrast_if_available=False):
     try:
         image = self.vtk_toolbar.show_image.value()
         if image and self.t_slider.value() < len(self.result.stack):
@@ -25,7 +25,11 @@ def getVectorFieldImage(self):
                 im = np.max(im, axis=3)
 
             if self.vtk_toolbar.contrast_enhance.value():
-                (min, max) = np.percentile(im, (1, 99))
+                if use_fixed_contrast_if_available and self.vtk_toolbar.contrast_enhance_values.value():
+                    (min, max) = self.vtk_toolbar.contrast_enhance_values.value()
+                else:
+                    (min, max) = np.percentile(im, (1, 99))
+                    self.vtk_toolbar.contrast_enhance_values.setValue((min, max))
                 im = im.astype(np.float32) - min
                 im = im.astype(np.float64) * 255 / (max - min)
                 im = np.clip(im, 0, 255).astype(np.uint8)
