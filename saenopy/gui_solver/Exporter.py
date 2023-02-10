@@ -373,7 +373,7 @@ class ExportViewer(PipelineModule):
                     filename_base = filename_base[:-4] + "_{t}" + filename_base[-4:]
             else:
                 if filename_base.endswith(".gif"):
-                    writer = imageio.get_writer(filename_base, fps=self.input_fps.value())
+                    writer = imageio.get_writer(filename_base, fps=self.input_fps.value(), quantizer=2)
                 if filename_base.endswith(".avi"):
                     writer = imageio.get_writer(filename_base, fps=self.input_fps.value(), format='FFMPEG', mode='I', codec='h264_x264')
                 if filename_base.endswith(".mp4"):
