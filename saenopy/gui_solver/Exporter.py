@@ -685,7 +685,8 @@ class ExportViewer(PipelineModule):
                 #                       window_size=(self.input_width.value(), self.input_height.value()))
                 #self.plotter.camera.elevation = 30
                 if self.result is not None and self.result.time_delta is not None and self.time_check.value():
-                    self.plotter.add_text(formatTimedelta(datetime.timedelta(seconds=float(self.t_slider.value()*self.result.time_delta)), self.time_format.value()), name="time_text", font_size=self.time_size.value())
+                    self.plotter.add_text(formatTimedelta(datetime.timedelta(seconds=float(self.t_slider.value()*self.result.time_delta)), self.time_format.value()), name="time_text", font_size=self.time_size.value(),
+                                          position=(20, self.input_height.value()-20-self.time_size.value()*2))
                 else:
                     self.plotter.remove_actor("time_text")
                 #self.plotter.camera.zoom(self.input_zoom.value())
