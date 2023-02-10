@@ -264,7 +264,7 @@ class ExportViewer(PipelineModule):
 
                 with QtShortCuts.QHBoxLayout():
                     self.outputText3 = QtShortCuts.QInputFilename(None, "output",
-                                                                  file_type="Image Files (*.png, *.jpf, *.tiff, *.avi, *.mp4, *.gif)",
+                                                                  file_type="Image Files (*.png, *.jpf, *.tif, *.avi, *.mp4, *.gif)",
                                                                   settings_key="export/exportfilename",
                                                                   allow_edit=True, existing=False)
                     self.input_fps = QtShortCuts.QInputNumber(None, "fps", 1)
@@ -365,21 +365,23 @@ class ExportViewer(PipelineModule):
         cb.setText(text, mode=cb.Clipboard)
 
     def do_export(self):
-        filename_base = self.outputText3.value()
+        filename_base = Path(self.outputText3.value())
         writer = None
         if self.t_slider.t_slider.maximum() > 0:
-            if filename_base.endswith(".png") or filename_base.endswith(".jpg"):
+            if filename_base.suffix in [".png", ".jpg", ".jpeg", ".tif", ".tiff"]:
                 if "{t}" not in filename_base:
-                    filename_base = filename_base[:-4] + "_{t}" + filename_base[-4:]
+                    filename_base = Path(str(filename_base.with_suffix("")) + "_{t}" + filename_base.suffix)
             else:
-                if filename_base.endswith(".gif"):
+                if filename_base.suffix == ".gif":
                     writer = imageio.get_writer(filename_base, fps=self.input_fps.value(), quantizer=2)
-                if filename_base.endswith(".avi"):
+                elif filename_base.suffix == ".avi":
                     writer = imageio.get_writer(filename_base, fps=self.input_fps.value(), format='FFMPEG', mode='I', codec='h264_x264')
-                if filename_base.endswith(".mp4"):
+                elif filename_base.suffix == ".mp4":
                     writer = imageio.get_writer(filename_base, fps=self.input_fps.value(), format='FFMPEG', mode='I', codec='h264_x264')
+                else:
+                    ValueError("invalid suffix")
         else:
-            if not (filename_base.endswith(".png") or filename_base.endswith(".jpg")):
+            if filename_base.suffix in [".avi", ".mp4"]:
                 raise ValueError("wrong file ending for a still image")
         for t in range(self.t_slider.t_slider.maximum()+1):
             self.t_slider.setValue(t)
