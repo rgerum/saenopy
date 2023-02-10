@@ -176,9 +176,9 @@ class ExportViewer(PipelineModule):
 
                 with QtShortCuts.QGroupBox(None, "camera") as layout:
                     with QtShortCuts.QHBoxLayout() as layout:
-                        self.input_elevation = QtShortCuts.QInputNumber(None, "elevation", 35, min=-90, max=90, use_slider=True)
-                        self.input_azimuth = QtShortCuts.QInputNumber(None, "azimuth", 45, min=-180, max=180, use_slider=True)
-                        self.input_distance = QtShortCuts.QInputNumber(None, "distance", 0, min=0, float=False)
+                        self.input_elevation = QtShortCuts.QInputNumber(None, "elevation", 35, min=-90, max=90, use_slider=True, step=10)
+                        self.input_azimuth = QtShortCuts.QInputNumber(None, "azimuth", 45, min=-180, max=180, use_slider=True, step=10)
+                        self.input_distance = QtShortCuts.QInputNumber(None, "distance", 0, min=0, float=False, step=100)
 
                         self.input_elevation.valueChanged.connect(self.update_display)
                         self.input_azimuth.valueChanged.connect(self.update_display)
@@ -193,7 +193,13 @@ class ExportViewer(PipelineModule):
                             self.update_display()
 
                         QtShortCuts.QPushButton(None, "", connect=reset, icon=qta.icon("fa5s.home"), tooltip="reset view")
-
+                    with QtShortCuts.QHBoxLayout() as layout:
+                        self.input_offset_x = QtShortCuts.QInputNumber(None, "offset x", 0, float=False, step=10)
+                        self.input_offset_y = QtShortCuts.QInputNumber(None, "offset y", 0, float=False, step=10)
+                        self.input_roll = QtShortCuts.QInputNumber(None, "roll", 0, float=False, step=10)
+                        self.input_offset_x.valueChanged.connect(self.update_display)
+                        self.input_offset_y.valueChanged.connect(self.update_display)
+                        self.input_roll.valueChanged.connect(self.update_display)
                 with QtShortCuts.QGroupBox(None, "general") as layout:
                     with QtShortCuts.QHBoxLayout() as layout:
                         self.vtk_toolbar.theme.addToLayout()
@@ -296,6 +302,9 @@ class ExportViewer(PipelineModule):
                 "elevation": self.input_elevation,
                 "azimuth": self.input_azimuth,
                 "distance": self.input_distance,
+                "offset_x": self.input_offset_x,
+                "offset_y": self.input_offset_y,
+                "roll": self.input_roll,
             },
 
             "theme": self.vtk_toolbar.theme,
@@ -643,12 +652,25 @@ class ExportViewer(PipelineModule):
                     self.input_distance.setValue(distance)
                 #self.plotter.camera_position = "yz"
                 #distance = self.plotter.camera.position[0]
-                self.plotter.camera.position = (self.input_distance.value(), 0, 0)
-                self.plotter.camera.focal_point = (0, 0, 0)
+                #self.plotter.camera.position = (self.input_distance.value(), 0, 10)
+                def rotate(pos, angle):
+                    x, y = pos
+                    angle = np.deg2rad(angle)
+                    s, c = np.sin(angle), np.cos(angle)
+                    return x*c + y*s, -x*s + y*c
+                dx = self.input_offset_x.value()
+                dz = self.input_offset_y.value()
+                dx, dz = rotate((dx, dz), self.input_roll.value())
+                dx, dy = rotate((dx, 0), self.input_azimuth.value())
+                self.plotter.camera.position = (self.input_distance.value()-dy, -dx, -dz)
+                self.plotter.camera.focal_point = (0-dy, -dx, -dz)
                 #print(self.plotter.camera_position)
-                #im = self.plotter.show(screenshot="test.png", return_img=True, auto_close=False, window_size=(self.input_width.value(), self.input_height.value()))
                 self.plotter.camera.azimuth = self.input_azimuth.value()
                 self.plotter.camera.elevation = self.input_elevation.value()
+                self.plotter.camera.roll += self.input_roll.value()
+                print("roll", self.plotter.camera.roll)
+                #im = self.plotter.show(screenshot="test.png", return_img=True, auto_close=False,
+                #                       window_size=(self.input_width.value(), self.input_height.value()))
                 #self.plotter.camera.elevation = 30
                 if self.result is not None and self.result.time_delta is not None and self.time_check.value():
                     self.plotter.add_text(formatTimedelta(datetime.timedelta(seconds=float(self.t_slider.value()*self.result.time_delta)), self.time_format.value()), name="time_text", font_size=self.time_size.value())
