@@ -535,7 +535,7 @@ class ExportViewer(PipelineModule):
             try:
                 #if self.input_arrows = QtShortCuts.QInputChoice("arrows", "piv", values=["None", "piv", "target deformations", "fitted deformations", "fitted forces"])
                 display_image = getVectorFieldImage(self, use_fixed_contrast_if_available=True)
-                if len(self.result.stack) and display_image is not None:
+                if len(self.result.stack):
                     stack_shape = np.array(self.result.stack[0].shape[:3]) * np.array(
                         self.result.stack[0].voxel_size)
                 else:
@@ -547,6 +547,7 @@ class ExportViewer(PipelineModule):
                 colormap = None
                 factor = None
                 scale_max = self.vtk_toolbar.getScaleMax()
+                stack_min_max = None
                 if self.input_arrows.value() == "piv":
                     if self.result is None:
                         M = None
@@ -560,6 +561,7 @@ class ExportViewer(PipelineModule):
                             factor = 0.1*self.vtk_toolbar.arrow_scale.value()
                             name = "U_measured"
                             colormap = self.vtk_toolbar.colormap_chooser.value()
+                            stack_min_max = [M.R.min(axis=0)*1e6, M.R.max(axis=0)*1e6]
                 elif self.input_arrows.value() == "target deformations":
                     M = self.result.solver[self.t_slider.value()]
                     #showVectorField2(self, M, "U_target")
@@ -568,6 +570,7 @@ class ExportViewer(PipelineModule):
                         factor = 0.1*self.vtk_toolbar.arrow_scale.value()
                         name = "U_target"
                         colormap = self.vtk_toolbar.colormap_chooser.value()
+                        stack_min_max = [M.R.min(axis=0)*1e6, M.R.max(axis=0)*1e6]
                 elif self.input_arrows.value() == "fitted deformations":
                     M = self.result.solver[self.t_slider.value()]
                     if M is not None:
@@ -575,6 +578,7 @@ class ExportViewer(PipelineModule):
                         factor = 0.1*self.vtk_toolbar.arrow_scale.value()
                         name = "U"
                         colormap = self.vtk_toolbar.colormap_chooser.value()
+                        stack_min_max = [M.R.min(axis=0)*1e6, M.R.max(axis=0)*1e6]
                 elif self.input_arrows.value() == "fitted forces":
                     M = self.result.solver[self.t_slider.value()]
                     if M is not None:
@@ -586,6 +590,18 @@ class ExportViewer(PipelineModule):
                         name = "f"
                         colormap = self.vtk_toolbar2.colormap_chooser.value()
                         scale_max = self.vtk_toolbar2.getScaleMax()
+                        stack_min_max = [M.R.min(axis=0)*1e6, M.R.max(axis=0)*1e6]
+                else:
+                    # get min/max of stack
+                    M = self.result.solver[self.t_slider.value()]
+                    if M is not None:
+                        stack_min_max = [M.R.min(axis=0)*1e6, M.R.max(axis=0)*1e6]
+                    else:
+                        M = self.result.mesh_piv[self.t_slider.value()]
+                        if M is not None:
+                            stack_min_max = [M.R.min(axis=0)*1e6, M.R.max(axis=0)*1e6]
+                        else:
+                            stack_min_max = None
                 showVectorField(self.plotter, M, field, name, center=center,
                                 factor=factor,
                                 colormap=colormap,
@@ -593,7 +609,7 @@ class ExportViewer(PipelineModule):
                                 scalebar_max=scale_max,
                                 show_nan=self.vtk_toolbar.use_nans.value(),
                                 display_image=display_image, show_grid=self.vtk_toolbar.show_grid.value(),
-                                stack_shape=stack_shape)
+                                stack_shape=stack_shape, stack_min_max=stack_min_max)
 
                 if stack_data is not None:
                     dataset = stack_data["data"]

@@ -66,7 +66,7 @@ def showVectorField2(self, M, points_name):
 
 def showVectorField(plotter: QtInteractor, obj: Solver, field: np.ndarray, name: str, center=None, show_nan=True, stack_shape=None,
                     show_all_points=False, factor=.1, scalebar_max=None, display_image=None, show_grid=True,
-                    colormap="turbo", colormap2=None):
+                    colormap="turbo", colormap2=None, stack_min_max=None):
     # ensure that the image is either with color channels or no channels
     if (display_image is not None) and (display_image[0].shape[2] == 1):
         display_image[0] = display_image[0][:, :, 0]
@@ -190,9 +190,12 @@ def showVectorField(plotter: QtInteractor, obj: Solver, field: np.ndarray, name:
 
         plotter.remove_bounds_axes()
 
-        if show_grid == 2 and field is not None:
-            xmin, ymin, zmin = obj_R.min(axis=0)
-            xmax, ymax, zmax = obj_R.max(axis=0)
+        if show_grid == 2 and (field is not None or stack_min_max is not None):
+            if field is not None:
+                xmin, ymin, zmin = obj_R.min(axis=0)
+                xmax, ymax, zmax = obj_R.max(axis=0)
+            else:
+                ((xmin, ymin, zmin), (xmax, ymax, zmax)) = stack_min_max
             #plotter.show_bounds(bounds=[xmin, xmax, ymin, ymax, zmin, zmax], grid='front', location='outer', all_edges=True,
             #                    show_xlabels=False, show_ylabels=False, show_zlabels=False,
             #                    xlabel=" ", ylabel=" ", zlabel=" ", render=False)
@@ -212,9 +215,12 @@ def showVectorField(plotter: QtInteractor, obj: Solver, field: np.ndarray, name:
                                             show_edges=True, name="border")
         else:
             plotter.remove_actor("border")
-        if show_grid == 1 and field is not None:
-            xmin, ymin, zmin = obj_R.min(axis=0)
-            xmax, ymax, zmax = obj_R.max(axis=0)
+        if show_grid == 1 and (field is not None or stack_min_max is not None):
+            if field is not None:
+                xmin, ymin, zmin = obj_R.min(axis=0)
+                xmax, ymax, zmax = obj_R.max(axis=0)
+            else:
+                ((xmin, ymin, zmin), (xmax, ymax, zmax)) = stack_min_max
             plotter.show_grid(bounds=[xmin, xmax, ymin, ymax, zmin, zmax], color=plotter._theme.font.color, render=False)
     finally:
         plotter.render = render
