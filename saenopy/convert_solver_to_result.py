@@ -3,6 +3,48 @@ from saenopy.getDeformations import getStack, Stack
 from saenopy.solver import load
 import natsort
 
+
+"""
+Option for newer saenopy version
+"""
+ 
+import os
+from saenopy import Solver
+from saenopy.solver import Result,Mesh
+from glob import glob
+
+liste = glob(r"../Amp*_dist*.npz")
+
+for d in liste: 
+    M = Solver.load(d)
+    # add PIV deformations to mesh if applicable
+    if M.U_target is not None:
+        piv_mesh = Mesh(M.R,M.T, node_vars={"U_target":M.U_target})   
+        Result("Converted_"+os.path.basename(d),
+                        mesh_piv=[piv_mesh], 
+                        solver=[M]).save()
+        
+    else:
+        #piv_mesh = Mesh(M.R,M.T, node_vars={"U_target":np.zeros_like(M.)})   
+        M.U_target = M.U
+        piv_mesh = Mesh(M.R,M.T, node_vars={"U_target":M.U})   ## overwrites now.. 
+        Result("Converted_"+os.path.basename(d),   
+                       mesh_piv=[piv_mesh], 
+                      solver=[M]).save()
+
+        print ("No PIV found")
+  
+    
+
+
+
+"""
+older approaches
+"""
+ 
+
+
+
 filename = r"{folder}\Mark_and_Find_001\median_corrected_regularized\Pos{pos}_t{t}_mesh4um_alpha_10.npz"
 stack = r"{folder}\Mark_and_Find_001\Pos{pos}_S001_t{t}_z{z}_ch00.tif"
 
@@ -40,7 +82,7 @@ for (folder, pos), datab in data.groupby(["folder", "pos_int"]):
 
 
 """
-Option 2
+Option B
 """
 
 # Basic approach that does not incluse all information
@@ -60,13 +102,3 @@ for d in liste:
     Result("Converted_"+os.path.basename(d),   
                    mesh_piv=[piv_mesh], 
                   solver=[M]).save()
-    
-
-  
-
-
-
-
-
-
-
