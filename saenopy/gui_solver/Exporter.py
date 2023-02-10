@@ -379,7 +379,7 @@ class ExportViewer(PipelineModule):
         writer = None
         if self.t_slider.t_slider.maximum() > 0:
             if filename_base.suffix in [".png", ".jpg", ".jpeg", ".tif", ".tiff"]:
-                if "{t}" not in filename_base:
+                if "{t}" not in str(filename_base):
                     filename_base = Path(str(filename_base.with_suffix("")) + "_{t}" + filename_base.suffix)
             else:
                 if filename_base.suffix == ".gif":
@@ -393,6 +393,7 @@ class ExportViewer(PipelineModule):
         else:
             if filename_base.suffix in [".avi", ".mp4"]:
                 raise ValueError("wrong file ending for a still image")
+        filename_base = str(filename_base)
         for t in range(self.t_slider.t_slider.maximum()+1):
             self.t_slider.setValue(t)
             self.update_display()
