@@ -1,6 +1,6 @@
 """
 Microbeads to Detect Matrix Deformations
-=======================
+==============================================
 
 This example calculates matrix deformations around a Human Umbilical Vein Endothelial Cells (HUVECs) that invades 
 in a polyethylene glycol (PEG) hydrogel cell as measured and described in `[Jorge Barrasa-Fano et al., 2021] <https://www.sciencedirect.com/science/article/pii/S2352711021000625>`_.                                                
@@ -49,7 +49,7 @@ results = saenopy.get_stacks(
 # +------------------+-------+
 # | Piv Parameter    | Value |
 # +==================+=======+
-# | elementsize      |    5 |
+# | elementsize      |    5  |
 # +------------------+-------+
 # | win_mu           |    25 |
 # +------------------+-------+

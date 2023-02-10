@@ -1,6 +1,6 @@
 """
 Multicellular TFM (intestinal organoids)
-=======================
+==============================================
 
 This example evaluates contractile forces of an individual intestinal organoid embedded in 1.2mg/ml collagen imaged with confocal reflection microscopy. 
 The relaxed stacks were recorded after Triton x-100 treatment. We evaluate the contraction between ~23h in collagen compared 
