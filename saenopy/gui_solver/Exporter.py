@@ -7,6 +7,7 @@ from qtpy import QtCore, QtWidgets, QtGui
 import numpy as np
 import pyvista as pv
 from pyvistaqt import QtInteractor
+from PIL import Image
 
 import imageio
 from qimage2ndarray import array2qimage
@@ -170,9 +171,11 @@ class ExportViewer(PipelineModule):
                     with QtShortCuts.QHBoxLayout() as layout:
                         self.input_width = QtShortCuts.QInputNumber(None, "width", 1024, float=False)
                         self.input_height = QtShortCuts.QInputNumber(None, "height", 768, float=False)
+                        self.input_logosize = QtShortCuts.QInputNumber(None, "logo size", 200, float=False, step=10)
 
                         self.input_width.valueChanged.connect(self.update_display)
                         self.input_height.valueChanged.connect(self.update_display)
+                        self.input_logosize.valueChanged.connect(self.update_display)
 
                 with QtShortCuts.QGroupBox(None, "camera") as layout:
                     with QtShortCuts.QHBoxLayout() as layout:
@@ -298,6 +301,7 @@ class ExportViewer(PipelineModule):
             "image": {
                 "width": self.input_width,
                 "height": self.input_height,
+                "logo_size": self.input_logosize,
             },
 
             "camera": {
@@ -692,14 +696,22 @@ class ExportViewer(PipelineModule):
                 target_folder = Path(appdirs.user_data_dir("saenopy", "rgerum"))
                 target_folder.mkdir(parents=True, exist_ok=True)
                 tmp_file = str(target_folder/"tmp.png")
-                #self.plotter.render()
+
                 im = self.plotter.show(screenshot=tmp_file, return_img=True, auto_close=False, window_size=(self.input_width.value(), self.input_height.value()))
                 # render again to prevent potential shifts
                 im = self.plotter.show(screenshot=tmp_file, return_img=True, auto_close=False, window_size=(self.input_width.value(), self.input_height.value()))
+                im = Image.open(tmp_file).convert("RGBA")
+                if self.input_logosize.value() >= 10:
+                    if self.vtk_toolbar.theme.valueName() == "dark":
+                        im_logo = Image.open(Path(__file__).parent / "../img/Logo_black.png")
+                    else:
+                        im_logo = Image.open(Path(__file__).parent / "../img/Logo.png")
+                    scale = self.input_logosize.value()/im_logo.width#im.width/400*0.2
+                    im_logo = im_logo.resize([int(400*scale), int(200*scale)])
+                    padding = int(im_logo.width*0.1)
+                    im.alpha_composite(im_logo, dest=(im.width-im_logo.width-padding, padding))
 
-                im = plt.imread(tmp_file)
-                im = (im * 255).astype(np.uint8)
-
+                im = np.asarray(im)
                 self.pixmap1.setPixmap(QtGui.QPixmap(array2qimage(im)))
                 self.view1.setExtend(im.shape[1], im.shape[0])
                 self.view1.fitInView()
