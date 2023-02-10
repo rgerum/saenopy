@@ -7,7 +7,8 @@ The relaxed stacks were recorded after Triton x-100 treatment. We evaluate the c
 to the state after drug relaxation (indicated at the end of the video). This example can also be evaluated with the graphical user interface.
 
  .. figure:: ../images/Gif_organoid.gif
- 
+    :scale: 50%
+    :align: center
 
 """
 

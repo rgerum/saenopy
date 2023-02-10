@@ -7,7 +7,8 @@ This example evaluates a single natural killer cell that migrated through 1.2mg/
 
 
  .. figure:: ../images/Gif_nk_dynamic_example.gif
-
+    :scale: 40%
+    :align: center
 
 This example can also be evaluated with the graphical user interface.
 
@@ -135,6 +136,19 @@ for result in results:
                                                                     params["drift_correction"])
     # save the displacements
     result.save()
+
+
+# %%
+# Visualizing Results
+# ----------------------------------
+# You can save the resulting 3D fields by simply usinge the **export image** dialog.
+# Here we underlay a brightfield image of the cell for a better overview 
+# and export a **.gif** file
+# 
+# .. figure:: ../images/nk_dynamic_piv_export_4fps.gif   
+#   :scale: 40%
+#   :align: center
+#
             
 
 # %%
