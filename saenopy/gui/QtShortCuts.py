@@ -665,13 +665,17 @@ class QInputFolder(QInput):
         return self.line.text()
 
 class QPushButton(QtWidgets.QPushButton):
-    def __init__(self, layout, name, connect=None):
+    def __init__(self, layout, name, connect=None, icon=None, tooltip=None):
         super().__init__(name)
         if layout is None and current_layout is not None:
             layout = current_layout
         layout.addWidget(self)
         if connect is not None:
             self.clicked.connect(connect)
+        if icon is not None:
+            self.setIcon(icon)
+        if tooltip is not None:
+            self.setToolTip(tooltip)
 
 class QGroupBox(QtWidgets.QGroupBox):
     def __init__(self, layout, name):
