@@ -172,10 +172,13 @@ class ExportViewer(PipelineModule):
                         self.input_width = QtShortCuts.QInputNumber(None, "width", 1024, float=False)
                         self.input_height = QtShortCuts.QInputNumber(None, "height", 768, float=False)
                         self.input_logosize = QtShortCuts.QInputNumber(None, "logo size", 200, float=False, step=10)
+                        self.input_use2D = QtShortCuts.QInputBool(None, "2D", False)
 
                         self.input_width.valueChanged.connect(self.update_display)
                         self.input_height.valueChanged.connect(self.update_display)
                         self.input_logosize.valueChanged.connect(self.update_display)
+
+                        self.input_use2D.valueChanged.connect(self.update_display)
 
                 with QtShortCuts.QGroupBox(None, "camera") as layout:
                     with QtShortCuts.QHBoxLayout() as layout:
@@ -504,6 +507,10 @@ class ExportViewer(PipelineModule):
         finally:
             self.no_update = False
 
+    def get_time_text(self):
+        return formatTimedelta(datetime.timedelta(seconds=float(self.t_slider.value() * self.result.time_delta)),
+                        self.time_format.value())
+
     def update_display(self):
         if self.no_update:
             return
@@ -514,6 +521,68 @@ class ExportViewer(PipelineModule):
         #    return
 
         if self.check_evaluated(self.result):
+            if self.input_use2D.value():
+                display_image = getVectorFieldImage(self, use_fixed_contrast_if_available=True)
+                if display_image is None:
+                    return
+                im = np.squeeze(display_image[0])
+                colormap2 = self.vtk_toolbar.colormap_chooser2.value()
+                if len(im.shape) == 2 and colormap2 is not None and colormap2 != "gray":
+                    import matplotlib.pyplot as plt
+                    cmap = plt.get_cmap(colormap2)
+                    # print(img_adjusted.shape, img_adjusted.dtype, img_adjusted.min(), img_adjusted.mean(), img_adjusted.max())
+                    im = (cmap(im) * 255).astype(np.uint8)[:, :, :3]
+                    # print(img_adjusted.shape, img_adjusted.dtype, img_adjusted.min(), img_adjusted.mean(), img_adjusted.max())
+
+                def getBarParameters(pixtomu, scale=1):
+                    mu = 200 * pixtomu / scale
+                    values = [1, 5, 10, 25, 50, 75, 100, 150, 200, 250, 500, 1000, 1500, 2000, 2500, 5000, 10000]
+                    old_v = mu
+                    for v in values:
+                        if mu < v:
+                            mu = old_v
+                            break
+                        old_v = v
+                    pixel = mu / pixtomu * scale
+                    return pixel, mu
+                pixel, mu = getBarParameters(display_image[1][0])
+
+                if self.input_arrows.value() == "piv":
+                    if self.result is None:
+                        M = None
+                    else:
+                        M = self.result.mesh_piv[self.t_slider.value()]
+
+                    if M is not None:
+                        if M.hasNodeVar("U_measured"):
+                            #showVectorField2(self, M, "U_measured")
+                            field = M.getNodeVar("U_measured")
+                            index = (M.R[:, 2] < 10e-6) & (M.R[:, 2] > -10e-6)
+                            scale = 1e6/display_image[1][0]
+                            offset = np.array(display_image[0].shape[0:2]) / 2
+                            im = add_quiver(im, (M.R[index, :2]*scale+offset)[:, ::-1], field[index, :2][:, ::-1]*scale*self.vtk_toolbar.arrow_scale.value(), cmap=self.vtk_toolbar.colormap_chooser.value(), alpha=self.input_arrow_opacity.value())
+                im = add_scalebar(im, scale=1, image_scale=1, width=5, xpos=15, ypos=10, fontsize=18, pixel_width=pixel, size_in_um=mu, color="w", unit="µm")
+
+                if self.result is not None and self.result.time_delta is not None and self.time_check.value():
+                    im = add_text(im, self.get_time_text(), position=(10, 10))
+
+                im = Image.fromarray(im).convert("RGBA")
+                if self.input_logosize.value() >= 10:
+                    if self.vtk_toolbar.theme.valueName() == "dark":
+                        im_logo = Image.open(Path(__file__).parent / "../img/Logo_black.png")
+                    else:
+                        im_logo = Image.open(Path(__file__).parent / "../img/Logo.png")
+                    scale = self.input_logosize.value() / im_logo.width  # im.width/400*0.2
+                    im_logo = im_logo.resize([int(400 * scale), int(200 * scale)])
+                    padding = int(im_logo.width * 0.1)
+                    im.alpha_composite(im_logo, dest=(im.width - im_logo.width - padding, padding))
+
+                im = np.asarray(im)
+                self.pixmap1.setPixmap(QtGui.QPixmap(array2qimage(im)))
+                self.view1.setExtend(im.shape[1], im.shape[0])
+                self.view1.fitInView()
+                self.im = im
+                return
             cam_pos = None
             if self.plotter.camera_position is not None and CamPos.cam_pos_initialized is True:
                 cam_pos = self.plotter.camera_position
@@ -685,7 +754,7 @@ class ExportViewer(PipelineModule):
                 #                       window_size=(self.input_width.value(), self.input_height.value()))
                 #self.plotter.camera.elevation = 30
                 if self.result is not None and self.result.time_delta is not None and self.time_check.value():
-                    self.plotter.add_text(formatTimedelta(datetime.timedelta(seconds=float(self.t_slider.value()*self.result.time_delta)), self.time_format.value()), name="time_text", font_size=self.time_size.value(),
+                    self.plotter.add_text(self.get_time_text(), name="time_text", font_size=self.time_size.value(),
                                           position=(20, self.input_height.value()-20-self.time_size.value()*2))
                 else:
                     self.plotter.remove_actor("time_text")
@@ -741,3 +810,110 @@ def render_image(params, result):
     return exporter.im
 
 
+
+from PIL import Image, ImageDraw, ImageFont
+def add_quiver(im, R, vec, cmap, alpha=1):
+    cmap = plt.get_cmap(cmap)
+    pil_image = Image.fromarray(np.squeeze(im)).convert("RGB")
+    image = ImageDraw.ImageDraw(pil_image, "RGBA")
+    def getarrow(length, width=2, headlength=5, headheight=5):
+        if length < headlength:
+            headheight = headheight*length/headlength
+            headlength = length
+            return [(length - headlength, headheight / 2),
+                    (length, 0),
+                    (length - headlength, -headheight / 2)]
+        return [(0, width/2), (length-headlength, width/2), (length-headlength, headheight/2), (length, 0),
+                (length-headlength, -headheight/2), (length-headlength, -width/2), (0, -width/2)]
+
+    def get_offset(arrow, pos, angle):
+        arrow = np.array(arrow)
+        rot = [[np.cos(np.deg2rad(angle)), np.sin(np.deg2rad(angle))], [-np.sin(np.deg2rad(angle)), np.cos(np.deg2rad(angle))]]
+        arrow = arrow @ rot
+        r = np.array(arrow) + np.array(pos)
+        return [tuple(i) for i in r]
+
+    lengths = np.linalg.norm(vec, axis=1)
+    max_length = np.nanmax(lengths)
+    for i in range(len(R)):
+        angle = np.arctan2(vec[i, 0], vec[i, 1])
+        length = lengths[i]
+        color = tuple((np.asarray(cmap(length/max_length))*255).astype(np.uint8))
+        color = (color[0], color[1], color[2], int(alpha*255))
+        print(length, R[i], angle, color, alpha, cmap(length*255/max_length), cmap(length/max_length), length/max_length, max_length)
+        image.polygon(get_offset(getarrow(length), R[i], np.rad2deg(angle)), fill=color, outline=color)
+    return np.asarray(pil_image)
+def add_text(im, text, position, fontsize=18):
+    pil_image = Image.fromarray(np.squeeze(im))
+    image = ImageDraw.ImageDraw(pil_image)
+    font_size = int(round(fontsize * 4 / 3))  # the 4/3 appears to be a factor of "converting" screel dpi to image dpi
+    try:
+        font = ImageFont.truetype("arial", font_size)  # ImageFont.truetype("tahoma.ttf", font_size)
+    except IOError:
+        font = ImageFont.truetype("times", font_size)
+
+    length_number = image.textsize(text, font=font)
+    x, y = position
+    print("text pos", x, y, length_number)
+    if x < 0:
+        x = pil_image.width + x - length_number[0]
+    if y < 0:
+        y = -y#pil_image.height + y - length_number[1]
+    color = tuple((matplotlib.colors.to_rgba_array("w")[0, :3] * 255).astype("uint8"))
+    print("pil_image.mode", pil_image.mode)
+    if pil_image.mode != "RGB":
+        color = int(np.mean(color))
+
+    image.text((x, y), text, color, font=font)
+    print("text pos", x, y, length_number, text, font, color, pil_image.mode)
+    return np.asarray(pil_image)
+
+def add_scalebar(im, scale, image_scale, width, xpos, ypos, fontsize, pixel_width, size_in_um, color="w", unit="µm"):
+    print(im.shape,im.dtype, im.max())
+    pil_image = Image.fromarray(im)
+    image = ImageDraw.ImageDraw(pil_image)
+    pixel_height = width
+    pixel_offset_x = xpos
+    pixel_offset_y = ypos
+    pixel_offset2 = 3
+    font_size = int(round(fontsize*scale*4/3))  # the 4/3 appears to be a factor of "converting" screel dpi to image dpi
+
+    #pixel_width, size_in_um = self.getBarParameters(1)
+    pixel_width *= image_scale
+    color = tuple((matplotlib.colors.to_rgba_array(color)[0, :3]*255).astype("uint8"))
+    print("pil_image.mode", pil_image.mode)
+    if pil_image.mode != "RGB":
+        color = int(np.mean(color))
+
+    if pixel_offset_x > 0:
+        image.rectangle([pil_image.size[0] -pixel_offset_x - pixel_width, pil_image.size[1] -pixel_offset_y - pixel_height, pil_image.size[0] -pixel_offset_x, pil_image.size[1] -pixel_offset_y], color)
+    else:
+        image.rectangle([-pixel_offset_x,
+                         pil_image.size[1] - pixel_offset_y - pixel_height,
+                         -pixel_offset_x + pixel_width,
+                         pil_image.size[1] - pixel_offset_y], color)
+    if True:
+        # get the font
+        try:
+            font = ImageFont.truetype("arial", font_size)#ImageFont.truetype("tahoma.ttf", font_size)
+        except IOError:
+            font = ImageFont.truetype("times", font_size)
+        # width and height of text elements
+        text = "%d" % size_in_um
+        length_number = image.textsize(text, font=font)[0]
+        length_space = 0.5*image.textsize(" ", font=font)[0] # here we emulate a half-sized whitespace
+        length_unit = image.textsize(unit, font=font)[0]
+        height_number = image.textsize(text+unit, font=font)[1]
+
+        total_length = length_number + length_space + length_unit
+
+        # find the position for the text to have it centered and bottom aligned
+        if pixel_offset_x > 0:
+            x = pil_image.size[0] - pixel_offset_x - pixel_width * 0.5 - total_length * 0.5
+        else:
+            x = - pixel_offset_x + pixel_width * 0.5 - total_length * 0.5
+        y = pil_image.size[1] - pixel_offset_y - pixel_offset2 - pixel_height - height_number
+        # draw the text for the number and the unit
+        image.text((x, y), text, color, font=font)
+        image.text((x+length_number+length_space, y), unit, color, font=font)
+        return np.asarray(pil_image)

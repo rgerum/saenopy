@@ -10,7 +10,7 @@ def getVectorFieldImage(self, use_fixed_contrast_if_available=False):
     try:
         image = self.vtk_toolbar.show_image.value()
         if image and self.t_slider.value() < len(self.result.stack):
-            if getattr(self, "input_reference_stack") and self.input_reference_stack.value() and self.result.stack_reference:
+            if getattr(self, "input_reference_stack", None) and self.input_reference_stack.value() and self.result.stack_reference:
                 stack = self.result.stack_reference
             else:
                 stack = self.result.stack[self.t_slider.value()]
