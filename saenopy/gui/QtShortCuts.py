@@ -248,6 +248,16 @@ class QInputNumber(QInput):
 
         self.setValue(value)
 
+    def setRange(self, min, max):
+        self.spin_box.setMinimum(min)
+        self.spin_box.setMaximum(max)
+        if self.slider:
+            if self.log_slider:
+                self.slider.setRange(int(np.log10(min) * self.decimal_factor), int(np.log10(max) * self.decimal_factor))
+                self.slider.valueChanged.connect(lambda x: self._valueChangedEvent(10 ** (x / self.decimal_factor)))
+            else:
+                self.slider.setRange(int(min * self.decimal_factor), int(max * self.decimal_factor))
+
     def _setSliderDragged(self, value):
         self.slider_dragged = value
         if value is False:

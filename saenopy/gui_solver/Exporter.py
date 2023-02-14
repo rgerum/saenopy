@@ -229,6 +229,8 @@ class ExportViewer(PipelineModule):
                             self.input_arrow_opacity.valueChanged.connect(self.update_display)
                         self.vtk_toolbar.colormap_chooser.addToLayout()
                         self.vtk_toolbar.arrow_scale.addToLayout()
+                        self.input_average_range = QtShortCuts.QInputNumber(None, "averaging z thickness", min=0, max=0, step=10)
+                        self.input_average_range.valueChanged.connect(self.update_display)
                         #QtShortCuts.current_layout.addStretch()
 
                     with QtShortCuts.QGroupBox(None, "force arrows") as layout:
@@ -466,6 +468,9 @@ class ExportViewer(PipelineModule):
                 self.channel1_properties.setDisabled(True)
             else:
                 self.channel1_properties.setDisabled(False)
+
+            self.input_average_range.setRange(0, shape[2]*result.stack[0].voxel_size[2])
+            self.input_average_range.setValue(10)
         super().setResult(result)
         if not no_update_display:
             self.update_display()
@@ -511,6 +516,71 @@ class ExportViewer(PipelineModule):
         return formatTimedelta(datetime.timedelta(seconds=float(self.t_slider.value() * self.result.time_delta)),
                         self.time_format.value())
 
+    def get_current_arrow_data(self):
+        M = None
+        field = None
+        center = None
+        name = ""
+        colormap = None
+        factor = None
+        scale_max = self.vtk_toolbar.getScaleMax()
+        stack_min_max = None
+        if self.input_arrows.value() == "piv":
+            if self.result is None:
+                M = None
+            else:
+                M = self.result.mesh_piv[self.t_slider.value()]
+
+            if M is not None:
+                if M.hasNodeVar("U_measured"):
+                    # showVectorField2(self, M, "U_measured")
+                    field = M.getNodeVar("U_measured")
+                    factor = 0.1 * self.vtk_toolbar.arrow_scale.value()
+                    name = "U_measured"
+                    colormap = self.vtk_toolbar.colormap_chooser.value()
+                    stack_min_max = [M.R.min(axis=0) * 1e6, M.R.max(axis=0) * 1e6]
+        elif self.input_arrows.value() == "target deformations":
+            M = self.result.solver[self.t_slider.value()]
+            # showVectorField2(self, M, "U_target")
+            if M is not None:
+                field = M.U_target
+                factor = 0.1 * self.vtk_toolbar.arrow_scale.value()
+                name = "U_target"
+                colormap = self.vtk_toolbar.colormap_chooser.value()
+                stack_min_max = [M.R.min(axis=0) * 1e6, M.R.max(axis=0) * 1e6]
+        elif self.input_arrows.value() == "fitted deformations":
+            M = self.result.solver[self.t_slider.value()]
+            if M is not None:
+                field = M.U
+                factor = 0.1 * self.vtk_toolbar.arrow_scale.value()
+                name = "U"
+                colormap = self.vtk_toolbar.colormap_chooser.value()
+                stack_min_max = [M.R.min(axis=0) * 1e6, M.R.max(axis=0) * 1e6]
+        elif self.input_arrows.value() == "fitted forces":
+            M = self.result.solver[self.t_slider.value()]
+            if M is not None:
+                center = None
+                if self.vtk_toolbar2.use_center.value() is True:
+                    center = M.getCenter(mode="Force")
+                field = -M.f * M.reg_mask[:, None]
+                factor = 0.15 * self.vtk_toolbar2.arrow_scale.value()
+                name = "f"
+                colormap = self.vtk_toolbar2.colormap_chooser.value()
+                scale_max = self.vtk_toolbar2.getScaleMax()
+                stack_min_max = [M.R.min(axis=0) * 1e6, M.R.max(axis=0) * 1e6]
+        else:
+            # get min/max of stack
+            M = self.result.solver[self.t_slider.value()]
+            if M is not None:
+                stack_min_max = [M.R.min(axis=0) * 1e6, M.R.max(axis=0) * 1e6]
+            else:
+                M = self.result.mesh_piv[self.t_slider.value()]
+                if M is not None:
+                    stack_min_max = [M.R.min(axis=0) * 1e6, M.R.max(axis=0) * 1e6]
+                else:
+                    stack_min_max = None
+        return M, field, center, name, colormap, factor, scale_max, stack_min_max
+
     def update_display(self):
         if self.no_update:
             return
@@ -522,6 +592,9 @@ class ExportViewer(PipelineModule):
 
         if self.check_evaluated(self.result):
             if self.input_use2D.value():
+                stack = self.result.stack[self.t_slider.value()]
+                if self.input_reference_stack.value():
+                    stack = self.result.stack_reference
                 display_image = getVectorFieldImage(self, use_fixed_contrast_if_available=True)
                 if display_image is None:
                     return
@@ -547,20 +620,31 @@ class ExportViewer(PipelineModule):
                     return pixel, mu
                 pixel, mu = getBarParameters(display_image[1][0])
 
-                if self.input_arrows.value() == "piv":
-                    if self.result is None:
-                        M = None
-                    else:
-                        M = self.result.mesh_piv[self.t_slider.value()]
+                def project_data(R, field, skip=1):
+                    length = np.linalg.norm(field, axis=1)
+                    angle = np.arctan(field[:, 0], field[:, 1])
+                    data = pd.DataFrame(np.hstack((R, length[:, None], angle[:, None])),
+                                        columns=["x", "y", "length", "angle"])
+                    data = data.sort_values(by="length", ascending=False)
+                    d2 = data.groupby(["x", "y"]).first()
+                    # optional slice
+                    if skip > 1:
+                        d2 = d2.loc[(slice(None, None, skip), slice(None, None, skip)), :]
+                    return np.array([i for i in d2.index]), d2[["length", "angle"]]
 
-                    if M is not None:
-                        if M.hasNodeVar("U_measured"):
-                            #showVectorField2(self, M, "U_measured")
-                            field = M.getNodeVar("U_measured")
-                            index = (M.R[:, 2] < 10e-6) & (M.R[:, 2] > -10e-6)
-                            scale = 1e6/display_image[1][0]
-                            offset = np.array(display_image[0].shape[0:2]) / 2
-                            im = add_quiver(im, (M.R[index, :2]*scale+offset)[:, ::-1], field[index, :2][:, ::-1]*scale*self.vtk_toolbar.arrow_scale.value(), cmap=self.vtk_toolbar.colormap_chooser.value(), alpha=self.input_arrow_opacity.value())
+                M, field, center, name, colormap, factor, scale_max, stack_min_max = self.get_current_arrow_data()
+                if field is not None:
+                    z_center = (self.z_slider.value() - stack.shape[2] / 2) * display_image[1][2] * 1e-6
+                    z_min = z_center - self.input_average_range.value()*1e-6
+                    z_max = z_center + self.input_average_range.value()*1e-6
+
+                    index = (z_min < M.R[:, 2]) & (M.R[:, 2] < z_max)
+                    scale = 1e6/display_image[1][0]
+                    offset = np.array(display_image[0].shape[0:2]) / 2
+                    R = M.R[index, :2]*scale+offset
+                    field = field[index, :2][:, ::-1]*scale*self.vtk_toolbar.arrow_scale.value()
+                    R, field = project_data(R, field)
+                    im = add_quiver(im, R, field.length, field.angle, cmap=colormap, alpha=self.input_arrow_opacity.value() if self.input_arrows.value() != "fitted forces" else self.input_arrow_opacity2.value())
                 im = add_scalebar(im, scale=1, image_scale=1, width=5, xpos=15, ypos=10, fontsize=18, pixel_width=pixel, size_in_um=mu, color="w", unit="µm")
 
                 if self.result is not None and self.result.time_delta is not None and self.time_check.value():
@@ -637,68 +721,8 @@ class ExportViewer(PipelineModule):
                         self.result.stack[0].voxel_size)
                 else:
                     stack_shape = None
-                M = None
-                field = None
-                center = None
-                name = ""
-                colormap = None
-                factor = None
-                scale_max = self.vtk_toolbar.getScaleMax()
-                stack_min_max = None
-                if self.input_arrows.value() == "piv":
-                    if self.result is None:
-                        M = None
-                    else:
-                        M = self.result.mesh_piv[self.t_slider.value()]
 
-                    if M is not None:
-                        if M.hasNodeVar("U_measured"):
-                            #showVectorField2(self, M, "U_measured")
-                            field = M.getNodeVar("U_measured")
-                            factor = 0.1*self.vtk_toolbar.arrow_scale.value()
-                            name = "U_measured"
-                            colormap = self.vtk_toolbar.colormap_chooser.value()
-                            stack_min_max = [M.R.min(axis=0)*1e6, M.R.max(axis=0)*1e6]
-                elif self.input_arrows.value() == "target deformations":
-                    M = self.result.solver[self.t_slider.value()]
-                    #showVectorField2(self, M, "U_target")
-                    if M is not None:
-                        field = M.U_target
-                        factor = 0.1*self.vtk_toolbar.arrow_scale.value()
-                        name = "U_target"
-                        colormap = self.vtk_toolbar.colormap_chooser.value()
-                        stack_min_max = [M.R.min(axis=0)*1e6, M.R.max(axis=0)*1e6]
-                elif self.input_arrows.value() == "fitted deformations":
-                    M = self.result.solver[self.t_slider.value()]
-                    if M is not None:
-                        field = M.U
-                        factor = 0.1*self.vtk_toolbar.arrow_scale.value()
-                        name = "U"
-                        colormap = self.vtk_toolbar.colormap_chooser.value()
-                        stack_min_max = [M.R.min(axis=0)*1e6, M.R.max(axis=0)*1e6]
-                elif self.input_arrows.value() == "fitted forces":
-                    M = self.result.solver[self.t_slider.value()]
-                    if M is not None:
-                        center = None
-                        if self.vtk_toolbar2.use_center.value() is True:
-                            center = M.getCenter(mode="Force")
-                        field = -M.f * M.reg_mask[:, None]
-                        factor = 0.15 * self.vtk_toolbar2.arrow_scale.value()
-                        name = "f"
-                        colormap = self.vtk_toolbar2.colormap_chooser.value()
-                        scale_max = self.vtk_toolbar2.getScaleMax()
-                        stack_min_max = [M.R.min(axis=0)*1e6, M.R.max(axis=0)*1e6]
-                else:
-                    # get min/max of stack
-                    M = self.result.solver[self.t_slider.value()]
-                    if M is not None:
-                        stack_min_max = [M.R.min(axis=0)*1e6, M.R.max(axis=0)*1e6]
-                    else:
-                        M = self.result.mesh_piv[self.t_slider.value()]
-                        if M is not None:
-                            stack_min_max = [M.R.min(axis=0)*1e6, M.R.max(axis=0)*1e6]
-                        else:
-                            stack_min_max = None
+                M, field, center, name, colormap, factor, scale_max, stack_min_max = self.get_current_arrow_data()
                 showVectorField(self.plotter, M, field, name, center=center,
                                 factor=factor,
                                 colormap=colormap,
@@ -749,7 +773,6 @@ class ExportViewer(PipelineModule):
                 self.plotter.camera.azimuth = self.input_azimuth.value()
                 self.plotter.camera.elevation = self.input_elevation.value()
                 self.plotter.camera.roll += self.input_roll.value()
-                print("roll", self.plotter.camera.roll)
                 #im = self.plotter.show(screenshot="test.png", return_img=True, auto_close=False,
                 #                       window_size=(self.input_width.value(), self.input_height.value()))
                 #self.plotter.camera.elevation = 30
@@ -812,7 +835,7 @@ def render_image(params, result):
 
 
 from PIL import Image, ImageDraw, ImageFont
-def add_quiver(im, R, vec, cmap, alpha=1):
+def add_quiver(im, R, lengths, angles, cmap, alpha=1):
     cmap = plt.get_cmap(cmap)
     pil_image = Image.fromarray(np.squeeze(im)).convert("RGB")
     image = ImageDraw.ImageDraw(pil_image, "RGBA")
@@ -833,14 +856,12 @@ def add_quiver(im, R, vec, cmap, alpha=1):
         r = np.array(arrow) + np.array(pos)
         return [tuple(i) for i in r]
 
-    lengths = np.linalg.norm(vec, axis=1)
     max_length = np.nanmax(lengths)
     for i in range(len(R)):
-        angle = np.arctan2(vec[i, 0], vec[i, 1])
-        length = lengths[i]
+        angle = angles.iloc[i]
+        length = lengths.iloc[i]
         color = tuple((np.asarray(cmap(length/max_length))*255).astype(np.uint8))
         color = (color[0], color[1], color[2], int(alpha*255))
-        print(length, R[i], angle, color, alpha, cmap(length*255/max_length), cmap(length/max_length), length/max_length, max_length)
         image.polygon(get_offset(getarrow(length), R[i], np.rad2deg(angle)), fill=color, outline=color)
     return np.asarray(pil_image)
 def add_text(im, text, position, fontsize=18):
@@ -854,22 +875,19 @@ def add_text(im, text, position, fontsize=18):
 
     length_number = image.textsize(text, font=font)
     x, y = position
-    print("text pos", x, y, length_number)
+
     if x < 0:
         x = pil_image.width + x - length_number[0]
     if y < 0:
-        y = -y#pil_image.height + y - length_number[1]
+        y = pil_image.height + y - length_number[1]
     color = tuple((matplotlib.colors.to_rgba_array("w")[0, :3] * 255).astype("uint8"))
-    print("pil_image.mode", pil_image.mode)
     if pil_image.mode != "RGB":
         color = int(np.mean(color))
 
     image.text((x, y), text, color, font=font)
-    print("text pos", x, y, length_number, text, font, color, pil_image.mode)
     return np.asarray(pil_image)
 
 def add_scalebar(im, scale, image_scale, width, xpos, ypos, fontsize, pixel_width, size_in_um, color="w", unit="µm"):
-    print(im.shape,im.dtype, im.max())
     pil_image = Image.fromarray(im)
     image = ImageDraw.ImageDraw(pil_image)
     pixel_height = width
@@ -881,7 +899,6 @@ def add_scalebar(im, scale, image_scale, width, xpos, ypos, fontsize, pixel_widt
     #pixel_width, size_in_um = self.getBarParameters(1)
     pixel_width *= image_scale
     color = tuple((matplotlib.colors.to_rgba_array(color)[0, :3]*255).astype("uint8"))
-    print("pil_image.mode", pil_image.mode)
     if pil_image.mode != "RGB":
         color = int(np.mean(color))
 
