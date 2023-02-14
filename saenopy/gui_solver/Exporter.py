@@ -278,6 +278,15 @@ class ExportViewer(PipelineModule):
                         self.input_scalebar_fontsize = QtShortCuts.QInputNumber(None, "fontsize", 18, min=0, max=100)
                         self.input_scalebar_fontsize.valueChanged.connect(self.update_display)
 
+                with QtShortCuts.QGroupBox(None, "2D arrrows") as layout:
+                    with QtShortCuts.QHBoxLayout() as layout:
+                        self.input_2darrow_width = QtShortCuts.QInputNumber(None, "width", 2, min=0, max=100)
+                        self.input_2darrow_width.valueChanged.connect(self.update_display)
+                        self.input_2darrow_headlength = QtShortCuts.QInputNumber(None, "head length", 5, min=0, max=100)
+                        self.input_2darrow_headlength.valueChanged.connect(self.update_display)
+                        self.input_2darrow_headwidth = QtShortCuts.QInputNumber(None, "head width", 5, min=0, max=100)
+                        self.input_2darrow_headwidth.valueChanged.connect(self.update_display)
+
                 with QtShortCuts.QGroupBox(None, "fiber display") as layout:
                     with QtShortCuts.QVBoxLayout() as layout:
                         QtShortCuts.current_layout.setContentsMargins(0, 0, 0, 0)
@@ -689,7 +698,8 @@ class ExportViewer(PipelineModule):
                     R = R[index]
                     field = field[index]
                     R, field = project_data(R, field, skip=self.input_arrow_skip.value())
-                    pil_image = add_quiver(pil_image, R, field.length, field.angle, max_length=max_length, cmap=colormap, alpha=self.input_arrow_opacity.value() if self.input_arrows.value() != "fitted forces" else self.input_arrow_opacity2.value(), scale=im_scale*aa_scale)
+                    pil_image = add_quiver(pil_image, R, field.length, field.angle, max_length=max_length, cmap=colormap, alpha=self.input_arrow_opacity.value() if self.input_arrows.value() != "fitted forces" else self.input_arrow_opacity2.value(), scale=im_scale*aa_scale,
+                                           width=self.input_2darrow_width.value(), headlength=self.input_2darrow_headlength.value(), headheight=self.input_2darrow_headwidth.value())
                 if aa_scale == 2:
                     pil_image = pil_image.resize([pil_image.width//2, pil_image.height//2])
                     aa_scale = 1
@@ -1023,7 +1033,7 @@ def getarrow(length, angle, scale=1, width=2, headlength=5, headheight=5, offset
     return arrows
 
 
-def add_quiver(pil_image, R, lengths, angles, max_length, cmap, alpha=1, scale=1):
+def add_quiver(pil_image, R, lengths, angles, max_length, cmap, alpha=1, scale=1, width=2, headlength=5, headheight=5):
     # get the colormap
     cmap = plt.get_cmap(cmap)
     # calculate the colors of the arrows
@@ -1034,7 +1044,7 @@ def add_quiver(pil_image, R, lengths, angles, max_length, cmap, alpha=1, scale=1
     colors = (colors*255).astype(np.uint8)
 
     # get the arrows
-    arrows = getarrow(lengths, angles, scale=scale, width=2, headlength=5, headheight=5, offset=R*scale)
+    arrows = getarrow(lengths, angles, scale=scale, width=width, headlength=headlength, headheight=headheight, offset=R*scale)
 
     # draw the arrows
     image = ImageDraw.ImageDraw(pil_image, "RGBA")
