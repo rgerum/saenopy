@@ -231,6 +231,8 @@ class ExportViewer(PipelineModule):
                         self.vtk_toolbar.arrow_scale.addToLayout()
                         self.input_average_range = QtShortCuts.QInputNumber(None, "averaging z thickness", min=0, max=0, step=10)
                         self.input_average_range.valueChanged.connect(self.update_display)
+                        self.input_arrow_skip = QtShortCuts.QInputNumber(None, "skip", 1, min=1, max=10)
+                        self.input_arrow_skip.valueChanged.connect(self.update_display)
                         #QtShortCuts.current_layout.addStretch()
 
                     with QtShortCuts.QGroupBox(None, "force arrows") as layout:
@@ -254,6 +256,13 @@ class ExportViewer(PipelineModule):
                         self.vtk_toolbar.colormap_chooser2.addToLayout()
                         self.z_slider = QTimeSlider("z", self.update_display, "set z position").addToLayout()
                         #QtShortCuts.current_layout.addStretch()
+
+                with QtShortCuts.QGroupBox(None, "fiber display") as layout:
+                    with QtShortCuts.QVBoxLayout() as layout:
+                        self.input_scale = QtShortCuts.QInputNumber(None, "scale", 1, min=0.1, max=10, log_slider=True)
+                        self.input_scale.valueChanged.connect(self.update_display)
+                        self.input_antialiase = QtShortCuts.QInputBool(None, "antialiasing", True)
+                        self.input_antialiase.valueChanged.connect(self.update_display)
 
                 with QtShortCuts.QGroupBox(None, "fiber display") as layout:
                     with QtShortCuts.QVBoxLayout() as layout:
@@ -598,7 +607,11 @@ class ExportViewer(PipelineModule):
                 display_image = getVectorFieldImage(self, use_fixed_contrast_if_available=True)
                 if display_image is None:
                     return
+                im_scale = self.input_scale.value()
+                aa_scale = self.input_antialiase.value() + 1
+
                 im = np.squeeze(display_image[0])
+
                 colormap2 = self.vtk_toolbar.colormap_chooser2.value()
                 if len(im.shape) == 2 and colormap2 is not None and colormap2 != "gray":
                     import matplotlib.pyplot as plt
@@ -607,6 +620,10 @@ class ExportViewer(PipelineModule):
                     im = (cmap(im) * 255).astype(np.uint8)[:, :, :3]
                     # print(img_adjusted.shape, img_adjusted.dtype, img_adjusted.min(), img_adjusted.mean(), img_adjusted.max())
 
+                pil_image = Image.fromarray(im).convert("RGB")
+                print("scale", im_scale)
+                pil_image = pil_image.resize([int(pil_image.width*im_scale*aa_scale), int(pil_image.height*im_scale*aa_scale)])
+                #im = np.asarray(im)
                 def getBarParameters(pixtomu, scale=1):
                     mu = 200 * pixtomu / scale
                     values = [1, 5, 10, 25, 50, 75, 100, 150, 200, 250, 500, 1000, 1500, 2000, 2500, 5000, 10000]
@@ -634,34 +651,48 @@ class ExportViewer(PipelineModule):
 
                 M, field, center, name, colormap, factor, scale_max, stack_min_max = self.get_current_arrow_data()
                 if field is not None:
+                    # rescale and offset
+                    scale = 1e6 / display_image[1][0]
+                    offset = np.array(display_image[0].shape[0:2]) / 2
+                    R = M.R[:, :2][:, ::-1] * scale + offset
+                    field = field[:, :2][:, ::-1] * scale * self.vtk_toolbar.arrow_scale.value()#factor
+
+                    if scale_max is None:
+                        max_length = np.nanmax(np.linalg.norm(field, axis=1))
+                    else:
+                        max_length = scale_max
+
                     z_center = (self.z_slider.value() - stack.shape[2] / 2) * display_image[1][2] * 1e-6
                     z_min = z_center - self.input_average_range.value()*1e-6
                     z_max = z_center + self.input_average_range.value()*1e-6
 
                     index = (z_min < M.R[:, 2]) & (M.R[:, 2] < z_max)
-                    scale = 1e6/display_image[1][0]
-                    offset = np.array(display_image[0].shape[0:2]) / 2
-                    R = M.R[index, :2]*scale+offset
-                    field = field[index, :2][:, ::-1]*scale*self.vtk_toolbar.arrow_scale.value()
-                    R, field = project_data(R, field)
-                    im = add_quiver(im, R, field.length, field.angle, cmap=colormap, alpha=self.input_arrow_opacity.value() if self.input_arrows.value() != "fitted forces" else self.input_arrow_opacity2.value())
-                im = add_scalebar(im, scale=1, image_scale=1, width=5, xpos=15, ypos=10, fontsize=18, pixel_width=pixel, size_in_um=mu, color="w", unit="µm")
+
+                    R = R[index]
+                    field = field[index]
+                    R, field = project_data(R, field, skip=self.input_arrow_skip.value())
+                    pil_image = add_quiver(pil_image, R, field.length, field.angle, max_length=max_length, cmap=colormap, alpha=self.input_arrow_opacity.value() if self.input_arrows.value() != "fitted forces" else self.input_arrow_opacity2.value(), scale=im_scale*aa_scale)
+                if aa_scale == 2:
+                    pil_image = pil_image.resize([pil_image.width//2, pil_image.height//2])
+                    aa_scale = 1
+                pil_image = add_scalebar(pil_image, scale=1, image_scale=im_scale*aa_scale, width=5*aa_scale, xpos=15*aa_scale, ypos=10*aa_scale, fontsize=18*aa_scale, pixel_width=pixel, size_in_um=mu, color="w", unit="µm")
 
                 if self.result is not None and self.result.time_delta is not None and self.time_check.value():
-                    im = add_text(im, self.get_time_text(), position=(10, 10))
+                    pil_image = add_text(pil_image, self.get_time_text(), position=(10, 10))
 
-                im = Image.fromarray(im).convert("RGBA")
                 if self.input_logosize.value() >= 10:
                     if self.vtk_toolbar.theme.valueName() == "dark":
                         im_logo = Image.open(Path(__file__).parent / "../img/Logo_black.png")
                     else:
                         im_logo = Image.open(Path(__file__).parent / "../img/Logo.png")
                     scale = self.input_logosize.value() / im_logo.width  # im.width/400*0.2
-                    im_logo = im_logo.resize([int(400 * scale), int(200 * scale)])
+                    im_logo = im_logo.resize([int(400 * scale * aa_scale), int(200 * scale * aa_scale)])
                     padding = int(im_logo.width * 0.1)
-                    im.alpha_composite(im_logo, dest=(im.width - im_logo.width - padding, padding))
+                    print("pil_image", pil_image.mode)
+                    pil_image = pil_image.convert("RGBA")
+                    pil_image.alpha_composite(im_logo, dest=(pil_image.width - im_logo.width - padding, padding))
 
-                im = np.asarray(im)
+                im = np.asarray(pil_image)
                 self.pixmap1.setPixmap(QtGui.QPixmap(array2qimage(im)))
                 self.view1.setExtend(im.shape[1], im.shape[0])
                 self.view1.fitInView()
@@ -835,11 +866,15 @@ def render_image(params, result):
 
 
 from PIL import Image, ImageDraw, ImageFont
-def add_quiver(im, R, lengths, angles, cmap, alpha=1):
+def add_quiver(pil_image, R, lengths, angles, max_length, cmap, alpha=1, scale=1):
     cmap = plt.get_cmap(cmap)
-    pil_image = Image.fromarray(np.squeeze(im)).convert("RGB")
     image = ImageDraw.ImageDraw(pil_image, "RGBA")
     def getarrow(length, width=2, headlength=5, headheight=5):
+        length *= scale
+        width *= scale
+        headlength *= scale
+        headheight *= scale
+        print("scale", scale, length)
         if length < headlength:
             headheight = headheight*length/headlength
             headlength = length
@@ -853,19 +888,18 @@ def add_quiver(im, R, lengths, angles, cmap, alpha=1):
         arrow = np.array(arrow)
         rot = [[np.cos(np.deg2rad(angle)), np.sin(np.deg2rad(angle))], [-np.sin(np.deg2rad(angle)), np.cos(np.deg2rad(angle))]]
         arrow = arrow @ rot
-        r = np.array(arrow) + np.array(pos)
+        r = np.array(arrow) + np.array(pos)*scale
         return [tuple(i) for i in r]
 
-    max_length = np.nanmax(lengths)
+    #max_length = np.nanmax(lengths)
     for i in range(len(R)):
         angle = angles.iloc[i]
         length = lengths.iloc[i]
         color = tuple((np.asarray(cmap(length/max_length))*255).astype(np.uint8))
         color = (color[0], color[1], color[2], int(alpha*255))
         image.polygon(get_offset(getarrow(length), R[i], np.rad2deg(angle)), fill=color, outline=color)
-    return np.asarray(pil_image)
-def add_text(im, text, position, fontsize=18):
-    pil_image = Image.fromarray(np.squeeze(im))
+    return pil_image
+def add_text(pil_image, text, position, fontsize=18):
     image = ImageDraw.ImageDraw(pil_image)
     font_size = int(round(fontsize * 4 / 3))  # the 4/3 appears to be a factor of "converting" screel dpi to image dpi
     try:
@@ -885,10 +919,9 @@ def add_text(im, text, position, fontsize=18):
         color = int(np.mean(color))
 
     image.text((x, y), text, color, font=font)
-    return np.asarray(pil_image)
+    return pil_image
 
-def add_scalebar(im, scale, image_scale, width, xpos, ypos, fontsize, pixel_width, size_in_um, color="w", unit="µm"):
-    pil_image = Image.fromarray(im)
+def add_scalebar(pil_image, scale, image_scale, width, xpos, ypos, fontsize, pixel_width, size_in_um, color="w", unit="µm"):
     image = ImageDraw.ImageDraw(pil_image)
     pixel_height = width
     pixel_offset_x = xpos
@@ -933,4 +966,60 @@ def add_scalebar(im, scale, image_scale, width, xpos, ypos, fontsize, pixel_widt
         # draw the text for the number and the unit
         image.text((x, y), text, color, font=font)
         image.text((x+length_number+length_space, y), unit, color, font=font)
-        return np.asarray(pil_image)
+        return pil_image
+
+
+
+
+def getarrow(length, angle, scale=1, width=2, headlength=5, headheight=5, offset=None):
+    length *= scale
+    width *= scale
+    headlength *= scale
+    headheight *= scale
+    print("scale", scale, length)
+    headlength = headlength*np.ones(len(length))
+    headheight = headheight*np.ones(len(length))
+    index_small = length < headlength
+    if np.any(index_small):
+        headheight[index_small] = headheight[index_small] * length[index_small] / headlength[index_small]
+        headlength[index_small] = length[index_small]
+
+    # generate the arrow points
+    arrow = [(0, width / 2), (length - headlength, width / 2), (length - headlength, headheight / 2), (length, 0),
+            (length - headlength, -headheight / 2), (length - headlength, -width / 2), (0, -width / 2)]
+    # and distribute them for each point
+    arrows = np.zeros([length.shape[0], 7, 2])
+    for p in range(7):
+        for i in range(2):
+            arrows[:, p, i] = arrow[p][i]
+
+    # rotate the arrow
+    #angle = np.deg2rad(angle)
+    rot = np.array([[np.cos(angle), np.sin(angle)], [-np.sin(angle), np.cos(angle)]])
+    arrows = np.einsum("ijk,kli->ijl", arrows, rot)
+
+    # add the offset
+    arrows += offset[:, None, :]
+
+    return arrows
+
+
+def add_quiver(pil_image, R, lengths, angles, max_length, cmap, alpha=1, scale=1):
+    # get the colormap
+    cmap = plt.get_cmap(cmap)
+    # calculate the colors of the arrows
+    colors = cmap(lengths / max_length)
+    # set the transparancy
+    colors[:, 3] = alpha
+    # make colors uint8
+    colors = (colors*255).astype(np.uint8)
+
+    # get the arrows
+    arrows = getarrow(lengths*scale, angles, scale=scale, width=2, headlength=5, headheight=5, offset=R*scale)
+
+    # draw the arrows
+    image = ImageDraw.ImageDraw(pil_image, "RGBA")
+    for a, c in zip(arrows, colors):
+        image.polygon(list(a.flatten()), fill=tuple(c), outline=tuple(c))
+
+    return pil_image
