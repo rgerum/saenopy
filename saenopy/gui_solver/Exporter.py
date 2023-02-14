@@ -179,6 +179,12 @@ class ExportViewer(PipelineModule):
                         self.input_logosize.valueChanged.connect(self.update_display)
 
                         self.input_use2D.valueChanged.connect(self.update_display)
+                    with QtShortCuts.QHBoxLayout() as layout:
+                        self.input_scale = QtShortCuts.QInputNumber(None, "scale", 1, min=0.1, max=10,
+                                                                    use_slider=True, log_slider=True)
+                        self.input_scale.valueChanged.connect(self.update_display)
+                        self.input_antialiase = QtShortCuts.QInputBool(None, "antialiasing", True)
+                        self.input_antialiase.valueChanged.connect(self.update_display)
 
                 with QtShortCuts.QGroupBox(None, "camera") as layout:
                     with QtShortCuts.QHBoxLayout() as layout:
@@ -229,10 +235,11 @@ class ExportViewer(PipelineModule):
                             self.input_arrow_opacity.valueChanged.connect(self.update_display)
                         self.vtk_toolbar.colormap_chooser.addToLayout()
                         self.vtk_toolbar.arrow_scale.addToLayout()
-                        self.input_average_range = QtShortCuts.QInputNumber(None, "averaging z thickness", min=0, max=0, step=10)
-                        self.input_average_range.valueChanged.connect(self.update_display)
-                        self.input_arrow_skip = QtShortCuts.QInputNumber(None, "skip", 1, min=1, max=10)
-                        self.input_arrow_skip.valueChanged.connect(self.update_display)
+                        with QtShortCuts.QHBoxLayout() as layout:
+                            self.input_average_range = QtShortCuts.QInputNumber(None, "averaging z thickness", min=0, max=0, step=10)
+                            self.input_average_range.valueChanged.connect(self.update_display)
+                            self.input_arrow_skip = QtShortCuts.QInputNumber(None, "skip", 1, min=1, max=10)
+                            self.input_arrow_skip.valueChanged.connect(self.update_display)
                         #QtShortCuts.current_layout.addStretch()
 
                     with QtShortCuts.QGroupBox(None, "force arrows") as layout:
@@ -257,12 +264,19 @@ class ExportViewer(PipelineModule):
                         self.z_slider = QTimeSlider("z", self.update_display, "set z position").addToLayout()
                         #QtShortCuts.current_layout.addStretch()
 
-                with QtShortCuts.QGroupBox(None, "fiber display") as layout:
-                    with QtShortCuts.QVBoxLayout() as layout:
-                        self.input_scale = QtShortCuts.QInputNumber(None, "scale", 1, min=0.1, max=10, log_slider=True)
-                        self.input_scale.valueChanged.connect(self.update_display)
-                        self.input_antialiase = QtShortCuts.QInputBool(None, "antialiasing", True)
-                        self.input_antialiase.valueChanged.connect(self.update_display)
+
+                with QtShortCuts.QGroupBox(None, "scale bar") as layout:
+                    with QtShortCuts.QHBoxLayout() as layout:
+                        self.input_scalebar_um = QtShortCuts.QInputNumber(None, "length", 0, min=0, max=10000)
+                        self.input_scalebar_um.valueChanged.connect(self.update_display)
+                        self.input_scalebar_width = QtShortCuts.QInputNumber(None, "width", 5, min=0, max=100)
+                        self.input_scalebar_width.valueChanged.connect(self.update_display)
+                        self.input_scalebar_xpos = QtShortCuts.QInputNumber(None, "xpos", 15, min=0, max=100)
+                        self.input_scalebar_xpos.valueChanged.connect(self.update_display)
+                        self.input_scalebar_ypos = QtShortCuts.QInputNumber(None, "ypos", 10, min=0, max=100)
+                        self.input_scalebar_ypos.valueChanged.connect(self.update_display)
+                        self.input_scalebar_fontsize = QtShortCuts.QInputNumber(None, "fontsize", 18, min=0, max=100)
+                        self.input_scalebar_fontsize.valueChanged.connect(self.update_display)
 
                 with QtShortCuts.QGroupBox(None, "fiber display") as layout:
                     with QtShortCuts.QVBoxLayout() as layout:
@@ -635,7 +649,11 @@ class ExportViewer(PipelineModule):
                         old_v = v
                     pixel = mu / pixtomu * scale
                     return pixel, mu
-                pixel, mu = getBarParameters(display_image[1][0])
+                if self.input_scalebar_um.value() == 0:
+                    pixel, mu = getBarParameters(display_image[1][0])
+                else:
+                    mu = self.input_scalebar_um.value()
+                    pixel = mu/display_image[1][0]
 
                 def project_data(R, field, skip=1):
                     length = np.linalg.norm(field, axis=1)
@@ -675,7 +693,8 @@ class ExportViewer(PipelineModule):
                 if aa_scale == 2:
                     pil_image = pil_image.resize([pil_image.width//2, pil_image.height//2])
                     aa_scale = 1
-                pil_image = add_scalebar(pil_image, scale=1, image_scale=im_scale*aa_scale, width=5*aa_scale, xpos=15*aa_scale, ypos=10*aa_scale, fontsize=18*aa_scale, pixel_width=pixel, size_in_um=mu, color="w", unit="µm")
+                pil_image = add_scalebar(pil_image, scale=1, image_scale=im_scale*aa_scale,
+                                         width=self.input_scalebar_width.value()*aa_scale, xpos=self.input_scalebar_xpos.value()*aa_scale, ypos=self.input_scalebar_ypos.value()*aa_scale, fontsize=self.input_scalebar_fontsize.value()*aa_scale, pixel_width=pixel, size_in_um=mu, color="w", unit="µm")
 
                 if self.result is not None and self.result.time_delta is not None and self.time_check.value():
                     pil_image = add_text(pil_image, self.get_time_text(), position=(10, 10))
@@ -1015,7 +1034,7 @@ def add_quiver(pil_image, R, lengths, angles, max_length, cmap, alpha=1, scale=1
     colors = (colors*255).astype(np.uint8)
 
     # get the arrows
-    arrows = getarrow(lengths*scale, angles, scale=scale, width=2, headlength=5, headheight=5, offset=R*scale)
+    arrows = getarrow(lengths, angles, scale=scale, width=2, headlength=5, headheight=5, offset=R*scale)
 
     # draw the arrows
     image = ImageDraw.ImageDraw(pil_image, "RGBA")
