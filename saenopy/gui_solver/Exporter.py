@@ -355,8 +355,27 @@ class ExportViewer(PipelineModule):
                                                                   file_type="Image Files (*.png, *.jpf, *.tif, *.avi, *.mp4, *.gif)",
                                                                   settings_key="export/exportfilename",
                                                                   allow_edit=True, existing=False)
-                    self.input_fps = QtShortCuts.QInputNumber(None, "fps", 1)
-                    self.button_export = QtShortCuts.QPushButton(None, "export", self.do_export)
+                    self.button_export = QtShortCuts.QPushButton(None, "export single image", self.do_export)
+                with QtShortCuts.QHBoxLayout():
+                    with QtShortCuts.QVBoxLayout():
+                        self.button_export_time = QtShortCuts.QPushButton(None, "export time", self.do_export_time)
+                        with QtShortCuts.QHBoxLayout():
+                            self.time_fps = QtShortCuts.QInputNumber(None, "fps", 1)
+                            self.time_steps = QtShortCuts.QInputNumber(None, "steps", 1, float=False)
+                    with QtShortCuts.QVBoxLayout():
+                        self.button_export_reference = QtShortCuts.QPushButton(None, "export state/reference", self.do_export_reference)
+                        with QtShortCuts.QHBoxLayout():
+                            self.reference_fps = QtShortCuts.QInputNumber(None, "fps", 1)
+                    with QtShortCuts.QVBoxLayout():
+                        self.button_export_rotate = QtShortCuts.QPushButton(None, "export rotate", self.do_export_rotate)
+                        with QtShortCuts.QHBoxLayout():
+                            self.rotate_fps = QtShortCuts.QInputNumber(None, "fps", 10)
+                            self.rotate_steps = QtShortCuts.QInputNumber(None, "steps", 5, float=False)
+                    with QtShortCuts.QVBoxLayout():
+                        self.button_export_zscan = QtShortCuts.QPushButton(None, "export z-scan", self.do_export_zscan)
+                        with QtShortCuts.QHBoxLayout():
+                            self.zscan_fps = QtShortCuts.QInputNumber(None, "fps", 30)
+                            self.zscan_steps = QtShortCuts.QInputNumber(None, "steps", 1, float=False)
                 #self.tab.parent().t_slider = self.t_slider
                 QtShortCuts.current_layout.addStretch()
 
@@ -463,8 +482,16 @@ class ExportViewer(PipelineModule):
 
         self.box_fiberdisplay.setVisible(is3D)
 
+        self.button_export_rotate.setEnabled(is3D)
+        self.rotate_fps.setEnabled(is3D)
+        self.rotate_steps.setEnabled(is3D)
+
     def hide_timestamp(self):
-        self.time_check.setEnabled(self.result is not None and self.result.time_delta is not None)
+        isTimeAvailable = self.result is not None and self.result.time_delta is not None
+        self.time_check.setEnabled(isTimeAvailable)
+        self.button_export_time.setEnabled(isTimeAvailable)
+        self.time_fps.setEnabled(isTimeAvailable)
+        self.time_steps.setEnabled(isTimeAvailable)
         isTime = self.time_check.value() and self.result is not None and self.result.time_delta is not None
         self.time_format.setEnabled(isTime)
         self.time_start.setEnabled(isTime)
@@ -523,41 +550,88 @@ class ExportViewer(PipelineModule):
         cb = QtGui.QGuiApplication.clipboard()
         cb.setText(text, mode=cb.Clipboard)
 
-    def do_export(self):
+    def get_writer(self, fps):
         filename_base = Path(self.outputText3.value())
         writer = None
-        if self.t_slider.t_slider.maximum() > 0:
-            if filename_base.suffix in [".png", ".jpg", ".jpeg", ".tif", ".tiff"]:
-                if "{t}" not in str(filename_base):
-                    filename_base = Path(str(filename_base.with_suffix("")) + "_{t}" + filename_base.suffix)
-            else:
-                if filename_base.suffix == ".gif":
-                    writer = imageio.get_writer(filename_base, fps=self.input_fps.value(), quantizer=2)
-                elif filename_base.suffix == ".avi":
-                    writer = imageio.get_writer(filename_base, fps=self.input_fps.value(), format='FFMPEG', mode='I', codec='h264_x264')
-                elif filename_base.suffix == ".mp4":
-                    writer = imageio.get_writer(filename_base, fps=self.input_fps.value(), format='FFMPEG', mode='I', codec='h264_x264')
+        t = 0
+        class Writer:
+            def __enter__(s):
+                nonlocal filename_base, writer
+                if filename_base.suffix in [".png", ".jpg", ".jpeg", ".tif", ".tiff"]:
+                    if "{t}" not in str(filename_base):
+                        filename_base = Path(str(filename_base.with_suffix("")) + "_{t}" + filename_base.suffix)
                 else:
-                    ValueError("invalid suffix")
-        else:
-            if filename_base.suffix in [".avi", ".mp4"]:
-                raise ValueError("wrong file ending for a still image")
-        filename_base = str(filename_base)
-        for t in range(self.t_slider.t_slider.maximum()+1):
-            self.t_slider.setValue(t)
-            self.update_display()
-            filename = self.outputText3.value()
-            print("save", filename)
-            if self.t_slider.t_slider.maximum() > 0:
+                    if filename_base.suffix == ".gif":
+                        writer = imageio.get_writer(filename_base, fps=fps, quantizer=2)
+                    elif filename_base.suffix == ".avi":
+                        writer = imageio.get_writer(filename_base, fps=fps, format='FFMPEG',
+                                                    mode='I', codec='h264_x264')
+                    elif filename_base.suffix == ".mp4":
+                        writer = imageio.get_writer(filename_base, fps=fps, format='FFMPEG',
+                                                    mode='I', codec='h264_x264')
+                    else:
+                        ValueError("invalid suffix")
+                filename_base = str(filename_base)
+                return s
+
+            def write(s):
+                nonlocal t
                 if writer is None:
                     print("save", filename_base.format(t=t))
                     imageio.imwrite(filename_base.format(t=t), self.im)
                 else:
                     writer.append_data(self.im)
-            else:
-                imageio.imwrite(filename_base, self.im)
-        if writer is not None:
-            writer.close()
+                t += 1
+
+            def __exit__(self, exc_type, exc_val, exc_tb):
+                if writer is not None:
+                    writer.close()
+        return Writer()
+
+    def do_export(self):
+        filename_base = Path(self.outputText3.value())
+        if filename_base.suffix in [".avi", ".mp4"]:
+            raise ValueError("wrong file ending for a still image")
+        filename_base = str(filename_base)
+        for t in range(self.t_slider.t_slider.maximum()+1):
+            self.t_slider.setValue(t)
+            self.update_display()
+            print("save", filename_base)
+            imageio.imwrite(filename_base, self.im)
+
+    def do_export_time(self):
+        with self.get_writer(self.time_fps.value()) as writer:
+            for t in range(0, self.t_slider.t_slider.maximum() + 1, self.time_steps.value()):
+                self.t_slider.setValue(t)
+                self.update_display()
+                writer.write()
+
+    def do_export_reference(self):
+        with self.get_writer(self.reference_fps.value()) as writer:
+            self.input_reference_stack.setValue(False)
+            self.update_display()
+            writer.write()
+            self.input_reference_stack.setValue(True)
+            self.update_display()
+            writer.write()
+
+    def do_export_rotate(self):
+        with self.get_writer(self.rotate_fps.value()) as writer:
+            for t in range(0, 360, self.rotate_steps.value()):
+                if t > 180:
+                    t -= 360
+                print(t)
+                self.input_azimuth.setValue(t)
+                self.render_view()
+                writer.write()
+
+    def do_export_zscan(self):
+        with self.get_writer(self.zscan_fps.value()) as writer:
+            for t in range(0, self.z_slider.t_slider.maximum() + 1, self.zscan_steps.value()):
+                print(t)
+                self.z_slider.setValue(t)
+                self.update_display()
+                writer.write()
 
     def check_evaluated(self, result: Result) -> bool:
         return self.result is not None and result.stack is not None and len(result.stack) > 0
