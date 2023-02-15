@@ -6,9 +6,11 @@ from saenopy.solver import Solver
 import numpy as np
 
 
-def getVectorFieldImage(self, use_fixed_contrast_if_available=False):
+def getVectorFieldImage(self, use_fixed_contrast_if_available=False, use_2D=False):
     try:
         image = self.vtk_toolbar.show_image.value()
+        if use_2D:
+            image = 1
         if image and self.t_slider.value() < len(self.result.stack):
             if getattr(self, "input_reference_stack", None) and self.input_reference_stack.value() and self.result.stack_reference:
                 stack = self.result.stack_reference

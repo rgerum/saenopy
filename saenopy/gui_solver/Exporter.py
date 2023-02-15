@@ -173,25 +173,26 @@ class ExportViewer(PipelineModule):
                 with QtShortCuts.QHBoxLayout() as layout:
                     self.input_use2D = QtShortCuts.QInputBool(None, "", False, icon=["3D", "2D"], group=True)
                     self.input_use2D.valueChanged.connect(self.hide2D)
+                    self.input_use2D.valueChanged.connect(self.update_display)
                     QtShortCuts.current_layout.addStretch()
 
                 with QtShortCuts.QGroupBox(None, "image dimensions") as layout:
                     with QtShortCuts.QHBoxLayout() as layout:
                         self.input_width = QtShortCuts.QInputNumber(None, "width", 1024, float=False)
                         self.input_height = QtShortCuts.QInputNumber(None, "height", 768, float=False)
-                        self.input_logosize = QtShortCuts.QInputNumber(None, "logo size", 200, float=False, step=10)
 
-                        self.input_width.valueChanged.connect(self.update_display)
-                        self.input_height.valueChanged.connect(self.update_display)
-                        self.input_logosize.valueChanged.connect(self.update_display)
 
-                        self.input_use2D.valueChanged.connect(self.update_display)
-                    with QtShortCuts.QHBoxLayout() as layout:
                         self.input_scale = QtShortCuts.QInputNumber(None, "scale", 1, min=0.1, max=10,
                                                                     use_slider=True, log_slider=True)
                         self.input_scale.valueChanged.connect(self.update_display)
                         self.input_antialiase = QtShortCuts.QInputBool(None, "antialiasing", True)
                         self.input_antialiase.valueChanged.connect(self.update_display)
+
+                        self.input_logosize = QtShortCuts.QInputNumber(None, "logo size", 200, float=False, step=10)
+
+                        self.input_width.valueChanged.connect(self.update_display)
+                        self.input_height.valueChanged.connect(self.update_display)
+                        self.input_logosize.valueChanged.connect(self.update_display)
 
                 with QtShortCuts.QGroupBox(None, "camera") as (self.box_camera, _):
                     with QtShortCuts.QHBoxLayout() as layout:
@@ -231,25 +232,28 @@ class ExportViewer(PipelineModule):
                 with QtShortCuts.QHBoxLayout() as layout:
                     self.input_arrows = QtShortCuts.QInputChoice(None, "arrows", "piv", values=["None", "piv", "target deformations", "fitted deformations", "fitted forces"])
                     self.input_arrows.valueChanged.connect(self.update_display)
+                    self.input_arrows.valueChanged.connect(self.hide_arrow)
+                    self.input_average_range = QtShortCuts.QInputNumber(None, "averaging z thickness", min=0, max=0,
+                                                                        step=10)
+                    self.input_average_range.valueChanged.connect(self.update_display)
                     QtShortCuts.current_layout.addStretch()
 
                 with QtShortCuts.QHBoxLayout() as layout:
-                    with QtShortCuts.QGroupBox(None, "deformation arrows") as layout:
+                    with QtShortCuts.QGroupBox(None, "deformation arrows") as (self.box_deformation_arrows, _):
                         with QtShortCuts.QHBoxLayout() as layout:
                             self.vtk_toolbar.auto_scale.addToLayout()
                             self.vtk_toolbar.scale_max.addToLayout()
                             self.input_arrow_opacity = QtShortCuts.QInputNumber(None, "opacity", 1, min=0, max=1, float=True, step=0.1)
                             self.input_arrow_opacity.valueChanged.connect(self.update_display)
-                        self.vtk_toolbar.colormap_chooser.addToLayout()
-                        self.vtk_toolbar.arrow_scale.addToLayout()
-                        with QtShortCuts.QHBoxLayout() as layout:
-                            self.input_average_range = QtShortCuts.QInputNumber(None, "averaging z thickness", min=0, max=0, step=10)
-                            self.input_average_range.valueChanged.connect(self.update_display)
                             self.input_arrow_skip = QtShortCuts.QInputNumber(None, "skip", 1, min=1, max=10)
                             self.input_arrow_skip.valueChanged.connect(self.update_display)
+                        self.vtk_toolbar.colormap_chooser.addToLayout()
+
+                        self.vtk_toolbar.arrow_scale.addToLayout()
+
                         #QtShortCuts.current_layout.addStretch()
 
-                    with QtShortCuts.QGroupBox(None, "force arrows") as layout:
+                    with QtShortCuts.QGroupBox(None, "force arrows") as (self.box_force_arrows, _):
                         with QtShortCuts.QHBoxLayout() as layout:
                             self.vtk_toolbar2.auto_scale.addToLayout()
                             self.vtk_toolbar2.scale_max.addToLayout()
@@ -264,6 +268,8 @@ class ExportViewer(PipelineModule):
                 with QtShortCuts.QGroupBox(None, "stack image") as layout:
                     with QtShortCuts.QHBoxLayout() as layout:
                         self.vtk_toolbar.show_image.addToLayout()
+                        self.vtk_toolbar.show_image.valueChanged.connect(self.hide_stack_image)
+                        self.input_use2D.valueChanged.connect(self.hide_stack_image)
                         self.vtk_toolbar.channel_select.addToLayout()
                         self.vtk_toolbar.button_z_proj.addToLayout()
                         self.vtk_toolbar.contrast_enhance.addToLayout()
@@ -311,7 +317,12 @@ class ExportViewer(PipelineModule):
                         self.channel1_properties = ChannelProperties().addToLayout()
                         self.channel1_properties.valueChanged.connect(self.update_display)
                         self.channel0_properties.input_show.setValue(False)
+                        self.channel0_properties.checkDisabled()
                         self.channel1_properties.input_show.setValue(False)
+                        self.channel1_properties.checkDisabled()
+
+                        self.channel0_properties.input_show.valueChanged.connect(self.hide_fiber)
+                        self.channel1_properties.input_show.valueChanged.connect(self.hide_fiber)
                         pass
                     self.channel1_properties.input_cmap.setValue("Greens")
                     self.channel1_properties.input_sato.setValue(0)
@@ -324,14 +335,16 @@ class ExportViewer(PipelineModule):
 
                 with QtShortCuts.QHBoxLayout():
                     self.t_slider = QTimeSlider(connected=self.update_display).addToLayout()
+                with QtShortCuts.QHBoxLayout():
+                    self.time_check = QtShortCuts.QInputBool(None, "show timestamp", True)
                     self.time_format = QtShortCuts.QInputString(None, "", "%d:%H:%M")
                     self.time_start = QtShortCuts.QInputNumber(None, "start (s)", 0)
-                    self.time_check = QtShortCuts.QInputBool(None, "", True)
                     self.time_size = QtShortCuts.QInputNumber(None, "", 18, float=False)
 
                     self.time_format.valueChanged.connect(self.update_display)
                     self.time_start.valueChanged.connect(self.update_display)
                     self.time_check.valueChanged.connect(self.update_display)
+                    self.time_check.valueChanged.connect(self.hide_timestamp)
                     self.time_size.valueChanged.connect(self.update_display)
 
                 with QtShortCuts.QHBoxLayout():
@@ -415,6 +428,9 @@ class ExportViewer(PipelineModule):
         self.setParameterMapping(None, {})
         self.no_update = False
         self.hide2D()
+        self.hide_fiber()
+        self.hide_arrow()
+        self.hide_stack_image()
 
     def hide2D(self):
         is2D = self.input_use2D.value()
@@ -441,6 +457,36 @@ class ExportViewer(PipelineModule):
         self.box_2darrows.setVisible(is2D)
 
         self.box_fiberdisplay.setVisible(is3D)
+
+    def hide_timestamp(self):
+        self.time_check.setEnabled(self.result is not None and self.result.time_delta is not None)
+        isTime = self.time_check.value() and self.result is not None and self.result.time_delta is not None
+        self.time_format.setEnabled(isTime)
+        self.time_start.setEnabled(isTime)
+        self.time_size.setEnabled(isTime)
+
+    def hide_fiber(self):
+        isActive = self.channel0_properties.input_show.value() or self.channel1_properties.input_show.value()
+        self.input_cropx.setEnabled(isActive)
+        self.input_cropy.setEnabled(isActive)
+        self.input_cropz.setEnabled(isActive)
+        isActiveBoth = self.channel0_properties.input_show.value() and self.channel1_properties.input_show.value()
+        self.input_thresh.setEnabled(isActiveBoth)
+
+    def hide_arrow(self):
+        isDeformation = self.input_arrows.value() in ["piv", "target deformations", "fitted deformations"]
+        isForce = self.input_arrows.value() in ["fitted forces"]
+
+        self.box_deformation_arrows.setEnabled(isDeformation)
+        self.box_force_arrows.setEnabled(isForce)
+
+    def hide_stack_image(self):
+        isActive = self.vtk_toolbar.show_image.value() != 0 or self.input_use2D.value()
+        self.vtk_toolbar.channel_select.setEnabled(isActive)
+        self.vtk_toolbar.button_z_proj.setEnabled(isActive)
+        self.vtk_toolbar.contrast_enhance.setEnabled(isActive)
+        self.vtk_toolbar.colormap_chooser2.setEnabled(isActive)
+        self.z_slider.setEnabled(isActive)
 
     def save_parameters(self):
         new_path = QtWidgets.QFileDialog.getSaveFileName(None, "Save Parameters", os.getcwd(), "JSON File (*.json)")
@@ -541,7 +587,9 @@ class ExportViewer(PipelineModule):
 
             self.input_average_range.setRange(0, shape[2]*result.stack[0].voxel_size[2])
             self.input_average_range.setValue(10)
+
         super().setResult(result)
+        self.hide_timestamp()
         if not no_update_display:
             self.update_display()
 
@@ -665,7 +713,7 @@ class ExportViewer(PipelineModule):
                 stack = self.result.stack[self.t_slider.value()]
                 if self.input_reference_stack.value():
                     stack = self.result.stack_reference
-                display_image = getVectorFieldImage(self, use_fixed_contrast_if_available=True)
+                display_image = getVectorFieldImage(self, use_fixed_contrast_if_available=True, use_2D=True)
                 if display_image is None:
                     return
                 im_scale = self.input_scale.value()

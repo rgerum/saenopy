@@ -229,6 +229,7 @@ class ChannelProperties(QtWidgets.QWidget):
             with QtShortCuts.QVBoxLayout() as layout:
                 with QtShortCuts.QHBoxLayout() as layout:
                     self.input_show = QtShortCuts.QInputBool(None, "show", True)
+                    self.input_show.valueChanged.connect(self.checkDisabled)
                     self.input_skip = QtShortCuts.QInputNumber(None, "skip", 1, min=1, max=10, float=False)
                     layout.addStretch()
                 with QtShortCuts.QHBoxLayout() as layout:
@@ -251,6 +252,14 @@ class ChannelProperties(QtWidgets.QWidget):
                        self.input_cmap, self.input_show, self.input_skip]:
             widget.valueChanged.connect(self.valueChanged)
         self.sigmoid.editFinished.connect(self.valueChanged)
+
+    def checkDisabled(self):
+        isActive = self.input_show.value()
+        self.input_skip.setEnabled(isActive)
+        self.input_sato.setEnabled(isActive)
+        self.input_gauss.setEnabled(isActive)
+        self.input_cmap.setEnabled(isActive)
+        self.sigmoid.setEnabled(isActive)
 
     def value(self):
         return dict(show=self.input_show.value(), skip=self.input_skip.value(), sigma_sato=self.input_sato.value(), sigma_gauss=self.input_gauss.value(),
