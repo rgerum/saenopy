@@ -325,10 +325,12 @@ class ExportViewer(PipelineModule):
                 with QtShortCuts.QHBoxLayout():
                     self.t_slider = QTimeSlider(connected=self.update_display).addToLayout()
                     self.time_format = QtShortCuts.QInputString(None, "", "%d:%H:%M")
+                    self.time_start = QtShortCuts.QInputNumber(None, "start (s)", 0)
                     self.time_check = QtShortCuts.QInputBool(None, "", True)
                     self.time_size = QtShortCuts.QInputNumber(None, "", 18, float=False)
 
                     self.time_format.valueChanged.connect(self.update_display)
+                    self.time_start.valueChanged.connect(self.update_display)
                     self.time_check.valueChanged.connect(self.update_display)
                     self.time_size.valueChanged.connect(self.update_display)
 
@@ -405,6 +407,7 @@ class ExportViewer(PipelineModule):
             "time": {
                 "t": self.t_slider,
                 "format": self.time_format,
+                "start": self.time_start,
                 "display": self.time_check,
                 "fontsize": self.time_size,
             },
@@ -580,7 +583,7 @@ class ExportViewer(PipelineModule):
             self.no_update = False
 
     def get_time_text(self):
-        return formatTimedelta(datetime.timedelta(seconds=float(self.t_slider.value() * self.result.time_delta)),
+        return formatTimedelta(datetime.timedelta(seconds=float(self.t_slider.value() * self.result.time_delta) + self.time_start.value()),
                         self.time_format.value())
 
     def get_current_arrow_data(self):
