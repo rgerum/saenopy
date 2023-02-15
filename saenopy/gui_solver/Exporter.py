@@ -170,12 +170,16 @@ class ExportViewer(PipelineModule):
                     QtShortCuts.QPushButton(None, "load parameters", self.load_parameters)
                     QtShortCuts.QPushButton(None, "copy to clipboard parameters", self.copy_parameters)
 
+                with QtShortCuts.QHBoxLayout() as layout:
+                    self.input_use2D = QtShortCuts.QInputBool(None, "", False, icon=["3D", "2D"], group=True)
+                    self.input_use2D.valueChanged.connect(self.hide2D)
+                    QtShortCuts.current_layout.addStretch()
+
                 with QtShortCuts.QGroupBox(None, "image dimensions") as layout:
                     with QtShortCuts.QHBoxLayout() as layout:
                         self.input_width = QtShortCuts.QInputNumber(None, "width", 1024, float=False)
                         self.input_height = QtShortCuts.QInputNumber(None, "height", 768, float=False)
                         self.input_logosize = QtShortCuts.QInputNumber(None, "logo size", 200, float=False, step=10)
-                        self.input_use2D = QtShortCuts.QInputBool(None, "2D", False)
 
                         self.input_width.valueChanged.connect(self.update_display)
                         self.input_height.valueChanged.connect(self.update_display)
@@ -189,7 +193,7 @@ class ExportViewer(PipelineModule):
                         self.input_antialiase = QtShortCuts.QInputBool(None, "antialiasing", True)
                         self.input_antialiase.valueChanged.connect(self.update_display)
 
-                with QtShortCuts.QGroupBox(None, "camera") as layout:
+                with QtShortCuts.QGroupBox(None, "camera") as (self.box_camera, _):
                     with QtShortCuts.QHBoxLayout() as layout:
                         self.input_elevation = QtShortCuts.QInputNumber(None, "elevation", 35, min=-90, max=90, use_slider=True, step=10)
                         self.input_azimuth = QtShortCuts.QInputNumber(None, "azimuth", 45, min=-180, max=180, use_slider=True, step=10)
@@ -268,7 +272,7 @@ class ExportViewer(PipelineModule):
                         #QtShortCuts.current_layout.addStretch()
 
 
-                with QtShortCuts.QGroupBox(None, "scale bar") as layout:
+                with QtShortCuts.QGroupBox(None, "scale bar") as (self.box_scalebar, _):
                     with QtShortCuts.QHBoxLayout() as layout:
                         self.input_scalebar_um = QtShortCuts.QInputNumber(None, "length", 0, min=0, max=10000)
                         self.input_scalebar_um.valueChanged.connect(self.update_display)
@@ -282,7 +286,7 @@ class ExportViewer(PipelineModule):
                         self.input_scalebar_fontsize.valueChanged.connect(self.update_display)
                         self.input_scalebar_fontsize.addToLayout()
 
-                with QtShortCuts.QGroupBox(None, "2D arrrows") as layout:
+                with QtShortCuts.QGroupBox(None, "2D arrrows") as (self.box_2darrows, _):
                     with QtShortCuts.QHBoxLayout() as layout:
                         self.input_2darrow_width = QtShortCuts.QInputNumber(None, "width", 2, min=0, max=100)
                         self.input_2darrow_width.valueChanged.connect(self.update_display)
@@ -291,7 +295,7 @@ class ExportViewer(PipelineModule):
                         self.input_2darrow_headwidth = QtShortCuts.QInputNumber(None, "head width", 5, min=0, max=100)
                         self.input_2darrow_headwidth.valueChanged.connect(self.update_display)
 
-                with QtShortCuts.QGroupBox(None, "fiber display") as layout:
+                with QtShortCuts.QGroupBox(None, "fiber display") as (self.box_fiberdisplay, _):
                     with QtShortCuts.QVBoxLayout() as layout:
                         QtShortCuts.current_layout.setContentsMargins(0, 0, 0, 0)
                         self.input_cropx = QtShortCuts.QRangeSlider(None, "crop x", 0, 200)
@@ -407,6 +411,33 @@ class ExportViewer(PipelineModule):
         }
         self.setParameterMapping(None, {})
         self.no_update = False
+        self.hide2D()
+
+    def hide2D(self):
+        is2D = self.input_use2D.value()
+        is3D = not self.input_use2D.value()
+        self.input_width.setVisible(is3D)
+        self.input_height.setVisible(is3D)
+
+        self.input_scale.setVisible(is2D)
+        self.input_antialiase.setVisible(is2D)
+
+        self.box_camera.setVisible(is3D)
+
+        self.vtk_toolbar.theme.setVisible(is3D)
+        self.vtk_toolbar.show_grid.setVisible(is3D)
+        self.vtk_toolbar.use_nans.setVisible(is3D)
+
+        self.input_average_range.setVisible(is2D)
+        self.input_arrow_skip.setVisible(is2D)
+
+        self.vtk_toolbar.show_image.setVisible(is3D)
+
+        self.box_scalebar.setVisible(is2D)
+        self.box_scalebar.setVisible(is2D)
+        self.box_2darrows.setVisible(is2D)
+
+        self.box_fiberdisplay.setVisible(is3D)
 
     def save_parameters(self):
         new_path = QtWidgets.QFileDialog.getSaveFileName(None, "Save Parameters", os.getcwd(), "JSON File (*.json)")

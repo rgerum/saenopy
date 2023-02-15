@@ -368,7 +368,10 @@ class QInputBool(QInput):
             self.buttons = []
             for button_icon in icon:
                 button = QtWidgets.QPushButton()
-                button.setIcon(button_icon)
+                if isinstance(button_icon, str):
+                    button.setText(button_icon)
+                else:
+                    button.setIcon(button_icon)
                 button.setCheckable(True)
                 if tooltip and isinstance(tooltip, list):
                     button.setToolTip(tooltip[len(self.buttons)])
@@ -380,7 +383,10 @@ class QInputBool(QInput):
             self.icon = icon
             self.button = QtWidgets.QPushButton()
             if isinstance(icon, list):
-                self.button.setIcon(icon[0])
+                if isinstance(icon[0], str):
+                    self.button.setText(icon[0])
+                else:
+                    self.button.setIcon(icon[0])
             else:
                 self.button.setIcon(icon)
             self.button.setCheckable(True)
@@ -413,7 +419,10 @@ class QInputBool(QInput):
         if self.button is not None:
             self.button.setChecked(bool(value))
             if isinstance(self.icon, list):
-                self.button.setIcon(self.icon[value])
+                if isinstance(self.icon[value], str):
+                    self.button.setText(self.icon[value])
+                else:
+                    self.button.setIcon(self.icon[value])
                 if isinstance(self.tooltip, list):
                     self.button.setToolTip(self.tooltip[value])
         elif self.buttons is not None:
