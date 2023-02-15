@@ -1179,10 +1179,12 @@ def getarrow(length, angle, scale=1, width=2, headlength=5, headheight=5, offset
     print("scale", scale, length)
     headlength = headlength*np.ones(len(length))
     headheight = headheight*np.ones(len(length))
+    width = width*np.ones(len(length))
     index_small = length < headlength
     if np.any(index_small):
         headheight[index_small] = headheight[index_small] * length[index_small] / headlength[index_small]
         headlength[index_small] = length[index_small]
+        width[index_small] = headheight[index_small]
 
     # generate the arrow points
     arrow = [(0, width / 2), (length - headlength, width / 2), (length - headlength, headheight / 2), (length, 0),
