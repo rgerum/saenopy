@@ -71,7 +71,7 @@ def showVectorField2(self, M, points_name):
 
 def showVectorField(plotter: QtInteractor, obj: Solver, field: np.ndarray, name: str, center=None, show_nan=True, stack_shape=None,
                     show_all_points=False, factor=.1, scalebar_max=None, display_image=None, show_grid=True,
-                    colormap="turbo", colormap2=None, stack_min_max=None, arrow_opacity=1):
+                    colormap="turbo", colormap2=None, stack_min_max=None, arrow_opacity=1, skip=1):
     # ensure that the image is either with color channels or no channels
     if (display_image is not None) and (display_image[0].shape[2] == 1):
         display_image[0] = display_image[0][:, :, 0]
@@ -86,10 +86,18 @@ def showVectorField(plotter: QtInteractor, obj: Solver, field: np.ndarray, name:
         scale = 1  # 1e-6
 
         if field is not None:
+            obj_R = obj.R*1e6
+
+            if skip != 1:
+                N = int(np.sqrt(obj_R.shape[0]))
+                x_unique = len(np.unique(obj_R[:, 0]))
+                y_unique = len(np.unique(obj_R[:, 1]))
+                z_unique = len(np.unique(obj_R[:, 2]))
+                obj_R = obj_R.reshape(x_unique, y_unique, z_unique, 3)[::skip, ::skip, ::skip].reshape(-1, 3)
+                field = field.reshape(x_unique, y_unique, z_unique, 3)[::skip, ::skip, ::skip].reshape(-1, 3)
+
             # get positions of nan values
             nan_values = np.isnan(field[:, 0])
-
-            obj_R = obj.R*1e6
 
             # create a point cloud
             point_cloud = pv.PolyData(obj_R)

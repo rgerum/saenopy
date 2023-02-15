@@ -245,7 +245,7 @@ class ExportViewer(PipelineModule):
                             self.vtk_toolbar.scale_max.addToLayout()
                             self.input_arrow_opacity = QtShortCuts.QInputNumber(None, "opacity", 1, min=0, max=1, float=True, step=0.1)
                             self.input_arrow_opacity.valueChanged.connect(self.update_display)
-                            self.input_arrow_skip = QtShortCuts.QInputNumber(None, "skip", 1, min=1, max=10)
+                            self.input_arrow_skip = QtShortCuts.QInputNumber(None, "skip", 1, min=1, max=10, float=False)
                             self.input_arrow_skip.valueChanged.connect(self.update_display)
                         self.vtk_toolbar.colormap_chooser.addToLayout()
 
@@ -261,6 +261,9 @@ class ExportViewer(PipelineModule):
                             self.input_arrow_opacity2 = QtShortCuts.QInputNumber(None, "opacity", 1, min=0, max=1,
                                                                                 float=True, step=0.1)
                             self.input_arrow_opacity2.valueChanged.connect(self.update_display)
+                            self.input_arrow_skip2 = QtShortCuts.QInputNumber(None, "skip", 1, min=1, max=10,
+                                                                             float=False)
+                            self.input_arrow_skip2.valueChanged.connect(self.update_display)
                         self.vtk_toolbar2.colormap_chooser.addToLayout()
                         self.vtk_toolbar2.arrow_scale.addToLayout()
                         #QtShortCuts.current_layout.addStretch()
@@ -385,6 +388,7 @@ class ExportViewer(PipelineModule):
                 "colormap": self.vtk_toolbar.colormap_chooser,
                 "arrow_scale": self.vtk_toolbar.arrow_scale,
                 "arrow_opacity": self.input_arrow_opacity,
+                "skip": self.input_arrow_skip,
             },
 
             "force_arrows": {
@@ -394,6 +398,7 @@ class ExportViewer(PipelineModule):
                 "colormap": self.vtk_toolbar.colormap_chooser,
                 "arrow_scale": self.vtk_toolbar.arrow_scale,
                 "arrow_opacity": self.input_arrow_opacity2,
+                "skip": self.input_arrow_skip2,
             },
 
             "stack": {
@@ -448,7 +453,7 @@ class ExportViewer(PipelineModule):
         self.vtk_toolbar.use_nans.setVisible(is3D)
 
         self.input_average_range.setVisible(is2D)
-        self.input_arrow_skip.setVisible(is2D)
+        #self.input_arrow_skip.setVisible(is2D)
 
         self.vtk_toolbar.show_image.setVisible(is3D)
 
@@ -643,6 +648,7 @@ class ExportViewer(PipelineModule):
         factor = None
         scale_max = self.vtk_toolbar.getScaleMax()
         stack_min_max = None
+        skip = self.input_arrow_skip.value()
         if self.input_arrows.value() == "piv":
             if self.result is None:
                 M = None
@@ -686,6 +692,7 @@ class ExportViewer(PipelineModule):
                 colormap = self.vtk_toolbar2.colormap_chooser.value()
                 scale_max = self.vtk_toolbar2.getScaleMax()
                 stack_min_max = [M.R.min(axis=0) * 1e6, M.R.max(axis=0) * 1e6]
+                skip = self.input_arrow_skip2.value()
         else:
             # get min/max of stack
             M = self.result.solver[self.t_slider.value()]
@@ -697,7 +704,7 @@ class ExportViewer(PipelineModule):
                     stack_min_max = [M.R.min(axis=0) * 1e6, M.R.max(axis=0) * 1e6]
                 else:
                     stack_min_max = None
-        return M, field, center, name, colormap, factor, scale_max, stack_min_max
+        return M, field, center, name, colormap, factor, scale_max, stack_min_max, skip
 
     def update_display(self):
         if self.no_update:
@@ -762,7 +769,7 @@ class ExportViewer(PipelineModule):
                         d2 = d2.loc[(slice(None, None, skip), slice(None, None, skip)), :]
                     return np.array([i for i in d2.index]), d2[["length", "angle"]]
 
-                M, field, center, name, colormap, factor, scale_max, stack_min_max = self.get_current_arrow_data()
+                M, field, center, name, colormap, factor, scale_max, stack_min_max, skip = self.get_current_arrow_data()
                 if field is not None:
                     # rescale and offset
                     scale = 1e6 / display_image[1][0]
@@ -871,8 +878,9 @@ class ExportViewer(PipelineModule):
                 else:
                     stack_shape = None
 
-                M, field, center, name, colormap, factor, scale_max, stack_min_max = self.get_current_arrow_data()
+                M, field, center, name, colormap, factor, scale_max, stack_min_max, skip = self.get_current_arrow_data()
                 showVectorField(self.plotter, M, field, name, center=center,
+                                skip=skip,
                                 factor=factor,
                                 colormap=colormap,
                                 colormap2=self.vtk_toolbar.colormap_chooser2.value(),
