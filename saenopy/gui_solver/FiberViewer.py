@@ -116,10 +116,12 @@ def get_transparency(a, b, alpha):
 
 
 @cache_results()
-def get_stack_images(stack, channel, crops):
+def get_stack_images(stack, channel, crops, skip):
     minx, maxx, miny, maxy, minz, maxz = crops
     # get the stack as a numpy array for the given imaging channel
     data = stack[minx:maxx, miny:maxy, :, minz:maxz, channel]
+    # downsample
+    data = data[::skip, ::skip, :, ::skip]
     # make sure the stack data has onlz one color channel
     if data.shape[2] == 1:
         data = data[:, :, 0]
@@ -176,9 +178,9 @@ def rescale(smoothed_data):
     return combined1.astype(np.uint8)
 
 
-def process_stack(stack, channel, crops=None, sigma_sato=None, sigma_gauss=None, range=range, percentiles=(0.01, 99.6), alpha=(1.3, 3.86, 1),
+def process_stack(stack, channel, crops=None, sigma_sato=None, sigma_gauss=None, range=range, percentiles=(0.01, 99.6), alpha=(1.3, 3.86, 1), skip=1,
                   cmap="gray", show=None):
-    data = get_stack_images(stack, channel=channel, crops=crops)
+    data = get_stack_images(stack, channel=channel, crops=crops, skip=skip)
 
     center = -np.array(stack.shape[:3]) / 2
     center += np.array([crops[0], crops[2], crops[4]])
@@ -196,7 +198,7 @@ def process_stack(stack, channel, crops=None, sigma_sato=None, sigma_gauss=None,
     combined1 = rescale(smoothed_data)
 
     opacity = get_transparency(*alpha)
-    return {"data": combined1, "opacity": opacity, "cmap": cmap, "original": filtered_data, "center": tuple(center), "resolution": tuple(resolution)}
+    return {"data": combined1, "opacity": opacity, "cmap": cmap, "original": filtered_data, "center": tuple(center), "resolution": tuple(resolution*skip)}
 
 
 def join_stacks(stack_data1, stack_data2, thres_cell=1):
@@ -227,6 +229,7 @@ class ChannelProperties(QtWidgets.QWidget):
             with QtShortCuts.QVBoxLayout() as layout:
                 with QtShortCuts.QHBoxLayout() as layout:
                     self.input_show = QtShortCuts.QInputBool(None, "show", True)
+                    self.input_skip = QtShortCuts.QInputNumber(None, "skip", 1, min=1, max=10, float=False)
                     layout.addStretch()
                 with QtShortCuts.QHBoxLayout() as layout:
                     self.input_sato = QtShortCuts.QInputNumber(None, "sato filter", 2, min=0, max=7, float=False)
@@ -245,12 +248,12 @@ class ChannelProperties(QtWidgets.QWidget):
             #self.sigmoid.valueChanged.connect(lambda x1, x2, x3, *args: (self.input_alpha1.setValue(x1), self.input_alpha2.setValue(x2), self.input_alpha3.setValue(x3)))
         for widget in [self.input_sato, self.input_gauss, #self.input_percentile1, self.input_percentile2,
                        #self.input_alpha1, self.input_alpha2, self.input_alpha3,
-                       self.input_cmap, self.input_show]:
+                       self.input_cmap, self.input_show, self.input_skip]:
             widget.valueChanged.connect(self.valueChanged)
         self.sigmoid.editFinished.connect(self.valueChanged)
 
     def value(self):
-        return dict(show=self.input_show.value(), sigma_sato=self.input_sato.value(), sigma_gauss=self.input_gauss.value(),
+        return dict(show=self.input_show.value(), skip=self.input_skip.value(), sigma_sato=self.input_sato.value(), sigma_gauss=self.input_gauss.value(),
                     percentiles=(0, 1),#(self.input_percentile1.value(), self.input_percentile2.value()),
                     range=self.sigmoid.p.get_range(),
                     #alpha=(self.input_alpha1.value(), self.input_alpha2.value(), self.input_alpha3.value()),
