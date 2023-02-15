@@ -146,6 +146,9 @@ class ExportViewer(PipelineModule):
             self.view1.setMinimumWidth(700)
             self.pixmap1 = QtWidgets.QGraphicsPixmapItem(self.view1.origin)
             self.view1.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
+            self.pixmap1.sceneEvent = self.sceneEventFilter
+            #self.view1.origin.installSceneEventFilter(self)
+
             #self.plotter.setMinimumWidth(300)
             #layout.addWidget(self.plotter.interactor)
 
@@ -192,9 +195,9 @@ class ExportViewer(PipelineModule):
                         self.input_azimuth = QtShortCuts.QInputNumber(None, "azimuth", 45, min=-180, max=180, use_slider=True, step=10)
                         self.input_distance = QtShortCuts.QInputNumber(None, "distance", 0, min=0, float=False, step=100)
 
-                        self.input_elevation.valueChanged.connect(self.update_display)
-                        self.input_azimuth.valueChanged.connect(self.update_display)
-                        self.input_distance.valueChanged.connect(self.update_display)
+                        self.input_elevation.valueChanged.connect(self.render_view)
+                        self.input_azimuth.valueChanged.connect(self.render_view)
+                        self.input_distance.valueChanged.connect(self.render_view)
 
                         def reset():
                             self.plotter.camera_position = "yz"
@@ -202,16 +205,16 @@ class ExportViewer(PipelineModule):
                             self.input_distance.setValue(distance)
                             self.input_elevation.setValue(35)
                             self.input_azimuth.setValue(45)
-                            self.update_display()
+                            self.render_view()
 
                         QtShortCuts.QPushButton(None, "", connect=reset, icon=qta.icon("fa5s.home"), tooltip="reset view")
                     with QtShortCuts.QHBoxLayout() as layout:
                         self.input_offset_x = QtShortCuts.QInputNumber(None, "offset x", 0, float=False, step=10)
                         self.input_offset_y = QtShortCuts.QInputNumber(None, "offset y", 0, float=False, step=10)
                         self.input_roll = QtShortCuts.QInputNumber(None, "roll", 0, float=False, step=10)
-                        self.input_offset_x.valueChanged.connect(self.update_display)
-                        self.input_offset_y.valueChanged.connect(self.update_display)
-                        self.input_roll.valueChanged.connect(self.update_display)
+                        self.input_offset_x.valueChanged.connect(self.render_view)
+                        self.input_offset_y.valueChanged.connect(self.render_view)
+                        self.input_roll.valueChanged.connect(self.render_view)
                 with QtShortCuts.QGroupBox(None, "general") as layout:
                     with QtShortCuts.QHBoxLayout() as layout:
                         self.vtk_toolbar.theme.addToLayout()
@@ -277,6 +280,7 @@ class ExportViewer(PipelineModule):
                         self.input_scalebar_ypos.valueChanged.connect(self.update_display)
                         self.input_scalebar_fontsize = QtShortCuts.QInputNumber(None, "fontsize", 18, min=0, max=100)
                         self.input_scalebar_fontsize.valueChanged.connect(self.update_display)
+                        self.input_scalebar_fontsize.addToLayout()
 
                 with QtShortCuts.QGroupBox(None, "2D arrrows") as layout:
                     with QtShortCuts.QHBoxLayout() as layout:
@@ -808,34 +812,6 @@ class ExportViewer(PipelineModule):
                     self.plotter.remove_actor("fiber")
                 print("plot time", f"{time.time()-t_start:.3f}s")
 
-                #self.plotter.reset_camera()
-                self.plotter.camera_position = "yz"
-                #distance = self.plotter.camera.position[0]
-                #self.input_distance.setValue(distance)
-                if self.input_distance.value() == 0:
-                    distance = self.plotter.camera.position[0]
-                    self.input_distance.setValue(distance)
-                #self.plotter.camera_position = "yz"
-                #distance = self.plotter.camera.position[0]
-                #self.plotter.camera.position = (self.input_distance.value(), 0, 10)
-                def rotate(pos, angle):
-                    x, y = pos
-                    angle = np.deg2rad(angle)
-                    s, c = np.sin(angle), np.cos(angle)
-                    return x*c + y*s, -x*s + y*c
-                dx = self.input_offset_x.value()
-                dz = self.input_offset_y.value()
-                dx, dz = rotate((dx, dz), self.input_roll.value())
-                dx, dy = rotate((dx, 0), self.input_azimuth.value())
-                self.plotter.camera.position = (self.input_distance.value()-dy, -dx, -dz)
-                self.plotter.camera.focal_point = (0-dy, -dx, -dz)
-                #print(self.plotter.camera_position)
-                self.plotter.camera.azimuth = self.input_azimuth.value()
-                self.plotter.camera.elevation = self.input_elevation.value()
-                self.plotter.camera.roll += self.input_roll.value()
-                #im = self.plotter.show(screenshot="test.png", return_img=True, auto_close=False,
-                #                       window_size=(self.input_width.value(), self.input_height.value()))
-                #self.plotter.camera.elevation = 30
                 if self.result is not None and self.result.time_delta is not None and self.time_check.value():
                     self.plotter.add_text(self.get_time_text(), name="time_text", font_size=self.time_size.value(),
                                           position=(20, self.input_height.value()-20-self.time_size.value()*2))
@@ -845,30 +821,7 @@ class ExportViewer(PipelineModule):
             finally:
                 self.plotter.render = render
 
-                import appdirs
-                target_folder = Path(appdirs.user_data_dir("saenopy", "rgerum"))
-                target_folder.mkdir(parents=True, exist_ok=True)
-                tmp_file = str(target_folder/"tmp.png")
-
-                im = self.plotter.show(screenshot=tmp_file, return_img=True, auto_close=False, window_size=(self.input_width.value(), self.input_height.value()))
-                # render again to prevent potential shifts
-                im = self.plotter.show(screenshot=tmp_file, return_img=True, auto_close=False, window_size=(self.input_width.value(), self.input_height.value()))
-                im = Image.open(tmp_file).convert("RGBA")
-                if self.input_logosize.value() >= 10:
-                    if self.vtk_toolbar.theme.valueName() == "dark":
-                        im_logo = Image.open(Path(__file__).parent / "../img/Logo_black.png")
-                    else:
-                        im_logo = Image.open(Path(__file__).parent / "../img/Logo.png")
-                    scale = self.input_logosize.value()/im_logo.width#im.width/400*0.2
-                    im_logo = im_logo.resize([int(400*scale), int(200*scale)])
-                    padding = int(im_logo.width*0.1)
-                    im.alpha_composite(im_logo, dest=(im.width-im_logo.width-padding, padding))
-
-                im = np.asarray(im)
-                self.pixmap1.setPixmap(QtGui.QPixmap(array2qimage(im)))
-                self.view1.setExtend(im.shape[1], im.shape[0])
-                self.view1.fitInView()
-                self.im = im
+                self.render_view()
 
             if cam_pos is not None:
                 self.plotter.camera_position = cam_pos
@@ -876,6 +829,187 @@ class ExportViewer(PipelineModule):
             pass
             #self.plotter.interactor.setToolTip("")
 
+    def render_view(self):
+        # self.plotter.reset_camera()
+        self.plotter.camera_position = "yz"
+        # distance = self.plotter.camera.position[0]
+        # self.input_distance.setValue(distance)
+        if self.input_distance.value() == 0:
+            distance = self.plotter.camera.position[0]
+            self.input_distance.setValue(distance)
+
+        # self.plotter.camera_position = "yz"
+        # distance = self.plotter.camera.position[0]
+        # self.plotter.camera.position = (self.input_distance.value(), 0, 10)
+        def rotate(pos, angle):
+            x, y = pos
+            angle = np.deg2rad(angle)
+            s, c = np.sin(angle), np.cos(angle)
+            return x * c + y * s, -x * s + y * c
+
+        dx = self.input_offset_x.value()
+        dz = self.input_offset_y.value()
+        dx, dz = rotate((dx, dz), self.input_roll.value())
+        dx, dy = rotate((dx, 0), self.input_azimuth.value())
+        self.plotter.camera.position = (self.input_distance.value() - dy, -dx, -dz)
+        self.plotter.camera.focal_point = (0 - dy, -dx, -dz)
+        # print(self.plotter.camera_position)
+        self.plotter.camera.azimuth = self.input_azimuth.value()
+        self.plotter.camera.elevation = self.input_elevation.value()
+        self.plotter.camera.roll += self.input_roll.value()
+        # im = self.plotter.show(screenshot="test.png", return_img=True, auto_close=False,
+        #                       window_size=(self.input_width.value(), self.input_height.value()))
+        # self.plotter.camera.elevation = 30
+
+        import appdirs
+        target_folder = Path(appdirs.user_data_dir("saenopy", "rgerum"))
+        target_folder.mkdir(parents=True, exist_ok=True)
+        tmp_file = str(target_folder / "tmp.png")
+
+        im = self.plotter.show(screenshot=tmp_file, return_img=True, auto_close=False,
+                               window_size=(self.input_width.value(), self.input_height.value()))
+        # render again to prevent potential shifts
+        im = self.plotter.show(screenshot=tmp_file, return_img=True, auto_close=False,
+                               window_size=(self.input_width.value(), self.input_height.value()))
+        im = Image.open(tmp_file).convert("RGBA")
+        if self.input_logosize.value() >= 10:
+            if self.vtk_toolbar.theme.valueName() == "dark":
+                im_logo = Image.open(Path(__file__).parent / "../img/Logo_black.png")
+            else:
+                im_logo = Image.open(Path(__file__).parent / "../img/Logo.png")
+            scale = self.input_logosize.value() / im_logo.width  # im.width/400*0.2
+            im_logo = im_logo.resize([int(400 * scale), int(200 * scale)])
+            padding = int(im_logo.width * 0.1)
+            im.alpha_composite(im_logo, dest=(im.width - im_logo.width - padding, padding))
+
+        im = np.asarray(im)
+        self.pixmap1.setPixmap(QtGui.QPixmap(array2qimage(im)))
+        self.view1.setExtend(im.shape[1], im.shape[0])
+        self.view1.fitInView()
+        self.im = im
+
+    drag_pos = None
+    drag_pos2 = None
+    drag_pos3 = None
+    drag_pos4 = None
+    drag_pos3_start_roll = None
+    drag_pos3_start_roll1 = None
+    drag_pos4_start_scale = None
+    def sceneEventFilter(self, event):
+        if self.input_use2D.value():
+            return False
+        if event.type() == QtCore.QEvent.GraphicsSceneMousePress and event.button() & QtCore.Qt.LeftButton and event.modifiers() & QtCore.Qt.ControlModifier:
+            self.drag_pos3 = event.pos()
+            self.drag_pos3_start_roll = self.input_roll.value()
+            dx = event.pos().x() - self.input_width.value() / 2
+            dy = event.pos().y() - self.input_height.value() / 2
+            self.drag_pos3_start_roll1 = np.rad2deg(-np.arctan2(dy, dx))
+            return True
+        elif event.type() == QtCore.QEvent.GraphicsSceneMousePress and event.button() & QtCore.Qt.LeftButton:
+            self.drag_pos = event.pos()
+            return True
+        elif event.type() == QtCore.QEvent.GraphicsSceneMousePress and event.button() & QtCore.Qt.MiddleButton:
+            self.drag_pos2 = event.pos()
+            return True
+        elif event.type() == QtCore.QEvent.GraphicsSceneMousePress and event.button() & QtCore.Qt.RightButton:
+            self.drag_pos4 = event.pos()
+            self.drag_pos4_start_scale = self.input_distance.value()
+            return True
+        elif event.type() == QtCore.QEvent.GraphicsSceneMouseRelease and event.button() & QtCore.Qt.LeftButton:
+            self.drag_pos = None
+            self.drag_pos3 = None
+        elif event.type() == QtCore.QEvent.GraphicsSceneMouseRelease and event.button() & QtCore.Qt.MiddleButton:
+            self.drag_pos2 = None
+        elif event.type() == QtCore.QEvent.GraphicsSceneMouseRelease and event.button() & QtCore.Qt.MiddleButton:
+            self.drag_pos4 = None
+        elif event.type() == QtCore.QEvent.GraphicsSceneWheel:
+            if event.delta() < 0:
+                scale = self.input_distance.value() * 1.1**(-event.delta()/120)
+            else:
+                scale = self.input_distance.value() / 1.1**(event.delta()/120)
+            self.input_distance.setValue(scale)
+            self.render_view()
+        elif event.type() == QtCore.QEvent.GraphicsSceneMouseMove and self.drag_pos3:
+            dx = event.pos().x() - self.input_width.value()/2
+            dy = event.pos().y() - self.input_height.value()/2
+            angle = (np.rad2deg(-np.arctan2(dy, dx))-self.drag_pos3_start_roll1) + self.drag_pos3_start_roll
+            self.input_roll.setValue(angle)
+            self.render_view()
+        elif event.type() == QtCore.QEvent.GraphicsSceneMouseMove and self.drag_pos2:
+            dx = event.pos().x() - self.drag_pos2.x()
+            dy = event.pos().y() - self.drag_pos2.y()
+            self.drag_pos2 = event.pos()
+            self.input_offset_x.setValue(self.input_offset_x.value() + dx)
+            self.input_offset_y.setValue(self.input_offset_y.value() - dy)
+            self.render_view()
+        elif event.type() == QtCore.QEvent.GraphicsSceneMouseMove and self.drag_pos:
+            dx = event.pos().x() - self.drag_pos.x()
+            dy = event.pos().y() - self.drag_pos.y()
+            self.drag_pos = event.pos()
+            azimuth = (self.input_azimuth.value() - dx * 0.1)
+            if azimuth < -180:
+                azimuth += 360
+            if azimuth >= 180:
+                azimuth -= 360
+            self.input_azimuth.setValue(azimuth)
+            elevation = self.input_elevation.value() + dy * 0.2
+            self.input_elevation.setValue(elevation)
+            self.render_view()
+            return True
+        elif event.type() == QtCore.QEvent.GraphicsSceneMouseMove and self.drag_pos4:
+            dy = event.pos().y() - self.drag_pos4.y()
+            scale = self.drag_pos4_start_scale * 10 ** (dy/1000)
+            self.input_distance.setValue(scale)
+            self.render_view()
+            return True
+        return False
+        if self.data_file is None:
+            return False
+        if self.hidden or self.data_file.image is None or self.tool_index == -1:
+            return False
+        if event.type() == QtCore.QEvent.GraphicsSceneMousePress and event.button() == QtCore.Qt.LeftButton and \
+                not event.modifiers() & Qt.ControlModifier and self.active_type is not None and self.tool_index == 0:
+            if getattr(self.active_drag, "drag_click", None) is not None:
+                if getattr(self.active_drag, "drag_click", None)(event):
+                    return True
+            self.active_drag = None
+            if len(self.points) >= 0:
+                BroadCastEvent(self.modules, "MarkerPointsAdded")
+            tracks = [track for track in self.tracks.values() if track.data.type.id == self.active_type.id]
+            if self.active_type.mode & TYPE_Track and self.data_file.getOption("tracking_connect_nearest") and \
+                    len(tracks) and not event.modifiers() & Qt.AltModifier:
+                distances = [np.linalg.norm(PosToArray(point.g1.pos() - event.pos())) for point in tracks]
+                index = np.argmin(distances)
+                tracks[index].graberMoved(None, event.pos(), event)
+                tracks[index].graberReleased(None, event)
+            elif self.active_type.mode & TYPE_Track:
+                track = MyTrackItem(self, self.TrackParent, event=event, type=self.active_type, frame=self.frame_number)
+                track.updateDisplay()
+                self.tracks[track.data.id] = track
+                self.marker_lists[track.data.id] = track.markers
+            elif self.active_type.mode & TYPE_Line:
+                self.lines.append(MyLineItem(self, self.TrackParent, event=event, type=self.active_type))
+                self.active_drag = self.lines[-1]
+            elif self.active_type.mode & TYPE_Rect:
+                self.rectangles.append(MyRectangleItem(self, self.TrackParent, event=event, type=self.active_type))
+                self.active_drag = self.rectangles[-1]
+            elif self.active_type.mode & TYPE_Ellipse:
+                self.ellipses.append(MyEllipseItem(self, self.TrackParent, event=event, type=self.active_type))
+                self.active_drag = self.ellipses[-1]
+            elif self.active_type.mode & TYPE_Polygon:
+                self.polygons.append(MyPolygonItem(self, self.TrackParent, event=event, type=self.active_type))
+                self.active_drag = self.polygons[-1]
+            else:
+                self.points.append(MyMarkerItem(self, self.MarkerParent, event=event, type=self.active_type))
+            self.data_file.setChangesMade()
+            return True
+        elif event.type() == QtCore.QEvent.GraphicsSceneMouseMove and self.active_drag:
+            self.active_drag.drag(event)
+            return True
+        elif event.type() == QtCore.QEvent.GraphicsSceneHoverMove and self.active_drag and getattr(self.active_drag, "hover_drag", None) is not None:
+            getattr(self.active_drag, "hover_drag", None)(event)
+            return True
+        return False
 
 app = None
 exporter = None
