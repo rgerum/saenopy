@@ -669,8 +669,8 @@ class ExportViewer(PipelineModule):
                     pixel = mu/display_image[1][0]
 
                 def project_data(R, field, skip=1):
-                    length = np.linalg.norm(field, axis=1)
-                    angle = np.arctan(field[:, 0], field[:, 1])
+                    length = np.linalg.norm(field, axis=1)  
+                    angle = np.arctan2(field[:, 1], field[:, 0])
                     data = pd.DataFrame(np.hstack((R, length[:, None], angle[:, None])),
                                         columns=["x", "y", "length", "angle"])
                     data = data.sort_values(by="length", ascending=False)
@@ -685,7 +685,10 @@ class ExportViewer(PipelineModule):
                     # rescale and offset
                     scale = 1e6 / display_image[1][0]
                     offset = np.array(display_image[0].shape[0:2]) / 2
-                    R = M.R[:, :2][:, ::-1] * scale + offset
+  
+                    R = M.R.copy()
+                    field = field.copy()
+                    R = R[:, :2][:, ::-1] * scale + offset
                     field = field[:, :2][:, ::-1] * scale * self.vtk_toolbar.arrow_scale.value()#factor
 
                     if scale_max is None:
