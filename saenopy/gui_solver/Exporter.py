@@ -997,7 +997,7 @@ class ExportViewer(PipelineModule):
             finally:
                 self.plotter.render = render
 
-                self.render_view()
+                self.render_view(double_render=True)
 
             if cam_pos is not None:
                 self.plotter.camera_position = cam_pos
@@ -1005,45 +1005,50 @@ class ExportViewer(PipelineModule):
             pass
             #self.plotter.interactor.setToolTip("")
 
-    def render_view(self):
-        # self.plotter.reset_camera()
-        self.plotter.camera_position = "yz"
-        # distance = self.plotter.camera.position[0]
-        # self.input_distance.setValue(distance)
-        if self.input_distance.value() == 0:
-            distance = self.plotter.camera.position[0]
-            self.input_distance.setValue(distance)
+    def render_view(self, double_render=False):
+        render = self.plotter.render
+        self.plotter.render = lambda *args: None
+        try:
+            # self.plotter.reset_camera()
+            self.plotter.camera_position = "yz"
+            # distance = self.plotter.camera.position[0]
+            # self.input_distance.setValue(distance)
+            if self.input_distance.value() == 0:
+                distance = self.plotter.camera.position[0]
+                self.input_distance.setValue(distance)
 
-        # self.plotter.camera_position = "yz"
-        # distance = self.plotter.camera.position[0]
-        # self.plotter.camera.position = (self.input_distance.value(), 0, 10)
-        def rotate(pos, angle):
-            x, y = pos
-            angle = np.deg2rad(angle)
-            s, c = np.sin(angle), np.cos(angle)
-            return x * c + y * s, -x * s + y * c
+            # self.plotter.camera_position = "yz"
+            # distance = self.plotter.camera.position[0]
+            # self.plotter.camera.position = (self.input_distance.value(), 0, 10)
+            def rotate(pos, angle):
+                x, y = pos
+                angle = np.deg2rad(angle)
+                s, c = np.sin(angle), np.cos(angle)
+                return x * c + y * s, -x * s + y * c
 
-        dx = self.input_offset_x.value()
-        dz = self.input_offset_y.value()
-        dx, dz = rotate((dx, dz), self.input_roll.value())
-        dx, dy = rotate((dx, 0), self.input_azimuth.value())
-        self.plotter.camera.position = (self.input_distance.value() - dy, -dx, -dz)
-        self.plotter.camera.focal_point = (0 - dy, -dx, -dz)
-        # print(self.plotter.camera_position)
-        self.plotter.camera.azimuth = self.input_azimuth.value()
-        self.plotter.camera.elevation = self.input_elevation.value()
-        self.plotter.camera.roll += self.input_roll.value()
-        # im = self.plotter.show(screenshot="test.png", return_img=True, auto_close=False,
-        #                       window_size=(self.input_width.value(), self.input_height.value()))
-        # self.plotter.camera.elevation = 30
+            dx = self.input_offset_x.value()
+            dz = self.input_offset_y.value()
+            dx, dz = rotate((dx, dz), self.input_roll.value())
+            dx, dy = rotate((dx, 0), self.input_azimuth.value())
+            self.plotter.camera.position = (self.input_distance.value() - dy, -dx, -dz)
+            self.plotter.camera.focal_point = (0 - dy, -dx, -dz)
+            # print(self.plotter.camera_position)
+            self.plotter.camera.azimuth = self.input_azimuth.value()
+            self.plotter.camera.elevation = self.input_elevation.value()
+            self.plotter.camera.roll += self.input_roll.value()
+            # im = self.plotter.show(screenshot="test.png", return_img=True, auto_close=False,
+            #                       window_size=(self.input_width.value(), self.input_height.value()))
+            # self.plotter.camera.elevation = 30
+        finally:
+            self.plotter.render = render
 
         import appdirs
         target_folder = Path(appdirs.user_data_dir("saenopy", "rgerum"))
         target_folder.mkdir(parents=True, exist_ok=True)
         tmp_file = str(target_folder / "tmp.png")
 
-        im = self.plotter.show(screenshot=tmp_file, return_img=True, auto_close=False,
-                               window_size=(self.input_width.value(), self.input_height.value()))
+        if double_render is True:
+            self.plotter.show(auto_close=False, window_size=(self.input_width.value(), self.input_height.value()))
         # render again to prevent potential shifts
         im = self.plotter.show(screenshot=tmp_file, return_img=True, auto_close=False,
                                window_size=(self.input_width.value(), self.input_height.value()))
