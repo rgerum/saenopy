@@ -59,6 +59,61 @@ from saenopy.gui_solver.FiberViewer import ChannelProperties, process_stack, joi
 import time
 import datetime
 
+class Writer:
+    writer = None
+    def __init__(self, filename, fps=None, qui_parent=None):
+        self.filename_base = Path(filename)
+        self.fps = fps
+        self.gui_parent = qui_parent
+        self.t = 0
+
+    def __enter__(self):
+        if str(self.filename_base) == "" or str(self.filename_base) == ".":
+            if self.gui_parent is not None:
+                QtWidgets.QMessageBox.critical(self.gui_parent, "Exporter", "Provide a valid filename.")
+            raise FileExistsError
+        if self.fps is None:
+            if self.filename_base.suffix not in [".png", ".jpg", ".jpeg", ".tif", ".tiff", ".gif"]:
+                if self.gui_parent is not None:
+                    QtWidgets.QMessageBox.critical(self.gui_parent, "Exporter",
+                                                   f"File extension '{self.filename_base.suffix}' is not supported for still images.")
+                raise ValueError(f"File extension '{self.filename_base.suffix}' is not supported for still images.")
+        else:
+            if self.filename_base.suffix in [".png", ".jpg", ".jpeg", ".tif", ".tiff"]:
+                if "{t}" not in str(self.filename_base):
+                    self.filename_base = Path(str(self.filename_base.with_suffix("")) + "_{t}" + self.filename_base.suffix)
+            else:
+                if self.filename_base.suffix == ".gif":
+                    self.writer = imageio.get_writer(self.filename_base, fps=self.fps, quantizer=2)
+                elif self.filename_base.suffix == ".avi":
+                    self.writer = imageio.get_writer(self.filename_base, fps=self.fps, format='FFMPEG',
+                                                mode='I', codec='h264_x264')
+                elif self.filename_base.suffix == ".mp4":
+                    self.writer = imageio.get_writer(self.filename_base, fps=self.fps, format='FFMPEG',
+                                                mode='I', codec='h264_x264')
+                else:
+                    if self.gui_parent is not None:
+                        QtWidgets.QMessageBox.critical(self.gui_parent, "Exporter",
+                                                   f"File extension '{self.filename_base.suffix}' is not supported.")
+                    raise ValueError("invalid suffix")
+        self.filename_base = str(self.filename_base)
+        return self
+
+    def write(self, im):
+        if self.writer is None:
+            print("save", self.filename_base.format(t=self.t))
+            # JPEG does not support alpha channel.
+            if self.filename_base.endswith(".jpg"):
+                im = im[:, :, :3]
+            imageio.imwrite(self.filename_base.format(t=self.t), im)
+        else:
+            print("save", self.filename_base, self.t)
+            self.writer.append_data(im)
+        self.t += 1
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        if self.writer is not None:
+            self.writer.close()
 
 
 def formatTimedelta(t: datetime.timedelta, fmt: str) -> str:
@@ -550,88 +605,42 @@ class ExportViewer(PipelineModule):
         cb = QtGui.QGuiApplication.clipboard()
         cb.setText(text, mode=cb.Clipboard)
 
-    def get_writer(self, fps):
-        filename_base = Path(self.outputText3.value())
-        writer = None
-        t = 0
-        class Writer:
-            def __enter__(s):
-                nonlocal filename_base, writer
-                if filename_base.suffix in [".png", ".jpg", ".jpeg", ".tif", ".tiff"]:
-                    if "{t}" not in str(filename_base):
-                        filename_base = Path(str(filename_base.with_suffix("")) + "_{t}" + filename_base.suffix)
-                else:
-                    if filename_base.suffix == ".gif":
-                        writer = imageio.get_writer(filename_base, fps=fps, quantizer=2)
-                    elif filename_base.suffix == ".avi":
-                        writer = imageio.get_writer(filename_base, fps=fps, format='FFMPEG',
-                                                    mode='I', codec='h264_x264')
-                    elif filename_base.suffix == ".mp4":
-                        writer = imageio.get_writer(filename_base, fps=fps, format='FFMPEG',
-                                                    mode='I', codec='h264_x264')
-                    else:
-                        ValueError("invalid suffix")
-                filename_base = str(filename_base)
-                return s
-
-            def write(s):
-                nonlocal t
-                if writer is None:
-                    print("save", filename_base.format(t=t))
-                    imageio.imwrite(filename_base.format(t=t), self.im)
-                else:
-                    writer.append_data(self.im)
-                t += 1
-
-            def __exit__(self, exc_type, exc_val, exc_tb):
-                if writer is not None:
-                    writer.close()
-        return Writer()
-
     def do_export(self):
-        filename_base = Path(self.outputText3.value())
-        if filename_base.suffix in [".avi", ".mp4"]:
-            raise ValueError("wrong file ending for a still image")
-        filename_base = str(filename_base)
-        for t in range(self.t_slider.t_slider.maximum()+1):
-            self.t_slider.setValue(t)
+        with Writer(self.outputText3.value(), None, self) as writer:
             self.update_display()
-            print("save", filename_base)
-            imageio.imwrite(filename_base, self.im)
+            writer.write(self.im)
 
     def do_export_time(self):
-        with self.get_writer(self.time_fps.value()) as writer:
+        with Writer(self.outputText3.value(), self.time_fps.value(), self) as writer:
             for t in range(0, self.t_slider.t_slider.maximum() + 1, self.time_steps.value()):
                 self.t_slider.setValue(t)
                 self.update_display()
-                writer.write()
+                writer.write(self.im)
 
     def do_export_reference(self):
-        with self.get_writer(self.reference_fps.value()) as writer:
+        with Writer(self.outputText3.value(), self.reference_fps.value(), self) as writer:
             self.input_reference_stack.setValue(False)
             self.update_display()
-            writer.write()
+            writer.write(self.im)
             self.input_reference_stack.setValue(True)
             self.update_display()
-            writer.write()
+            writer.write(self.im)
 
     def do_export_rotate(self):
-        with self.get_writer(self.rotate_fps.value()) as writer:
+        with Writer(self.outputText3.value(), self.rotate_fps.value(), self) as writer:
             for t in range(0, 360, self.rotate_steps.value()):
                 if t > 180:
                     t -= 360
-                print(t)
                 self.input_azimuth.setValue(t)
                 self.render_view()
-                writer.write()
+                writer.write(self.im)
 
     def do_export_zscan(self):
-        with self.get_writer(self.zscan_fps.value()) as writer:
+        with Writer(self.outputText3.value(), self.zscan_fps.value(), self) as writer:
             for t in range(0, self.z_slider.t_slider.maximum() + 1, self.zscan_steps.value()):
-                print(t)
                 self.z_slider.setValue(t)
                 self.update_display()
-                writer.write()
+                writer.write(self.im)
 
     def check_evaluated(self, result: Result) -> bool:
         return self.result is not None and result.stack is not None and len(result.stack) > 0
