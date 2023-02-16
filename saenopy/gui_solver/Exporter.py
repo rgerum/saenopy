@@ -432,6 +432,8 @@ class ExportViewer(PipelineModule):
                             self.zscan_fps = QtShortCuts.QInputNumber(None, "fps", 30)
                             self.zscan_steps = QtShortCuts.QInputNumber(None, "steps", 1, float=False)
                 #self.tab.parent().t_slider = self.t_slider
+                self.render_progress = QtWidgets.QProgressBar().addToLayout()
+                self.render_progress.setRange(0, 100)
                 QtShortCuts.current_layout.addStretch()
 
         self.parameter_map = {
@@ -605,6 +607,13 @@ class ExportViewer(PipelineModule):
         cb = QtGui.QGuiApplication.clipboard()
         cb.setText(text, mode=cb.Clipboard)
 
+    def progress_iterator(self, iter):
+        self.render_progress.setRange(0, len(iter))
+        self.render_progress.setValue(0)
+        for i, value in enumerate(iter):
+            yield value
+            self.render_progress.setValue(i+1)
+
     def do_export(self):
         with Writer(self.outputText3.value(), None, self) as writer:
             self.update_display()
@@ -612,24 +621,23 @@ class ExportViewer(PipelineModule):
 
     def do_export_time(self):
         with Writer(self.outputText3.value(), self.time_fps.value(), self) as writer:
-            for t in range(0, self.t_slider.t_slider.maximum() + 1, self.time_steps.value()):
+            for t in self.progress_iterator(range(0, self.t_slider.t_slider.maximum() + 1, self.time_steps.value())):
                 self.t_slider.setValue(t)
                 self.update_display()
                 writer.write(self.im)
 
     def do_export_reference(self):
         with Writer(self.outputText3.value(), self.reference_fps.value(), self) as writer:
-            self.input_reference_stack.setValue(False)
-            self.update_display()
-            writer.write(self.im)
-            self.input_reference_stack.setValue(True)
-            self.update_display()
-            writer.write(self.im)
+            for ref in self.progress_iterator([False, True]):
+                self.input_reference_stack.setValue(ref)
+                self.update_display()
+                writer.write(self.im)
 
     def do_export_rotate(self):
         with Writer(self.outputText3.value(), self.rotate_fps.value(), self) as writer:
-            for t in range(0, 360, self.rotate_steps.value()):
-                if t > 180:
+            azimuth = 45
+            for t in self.progress_iterator(range(azimuth, azimuth+360, self.rotate_steps.value())):
+                while t > 180:
                     t -= 360
                 self.input_azimuth.setValue(t)
                 self.render_view()
@@ -637,7 +645,7 @@ class ExportViewer(PipelineModule):
 
     def do_export_zscan(self):
         with Writer(self.outputText3.value(), self.zscan_fps.value(), self) as writer:
-            for t in range(0, self.z_slider.t_slider.maximum() + 1, self.zscan_steps.value()):
+            for t in self.progress_iterator(range(0, self.z_slider.t_slider.maximum() + 1, self.zscan_steps.value())):
                 self.z_slider.setValue(t)
                 self.update_display()
                 writer.write(self.im)
