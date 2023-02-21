@@ -255,13 +255,22 @@ def template_to_array(filename, crop):
     return image_filenames, c_indices
 
 
+def readTiff(image_filenames):
+    image_filenames = str(image_filenames)
+    page = 0
+    if image_filenames.endswith("]"):
+        image_filenames, page = re.match(r"(.*)\[(\d*)\]", image_filenames).groups()
+    # im = io.imread(image_filenames)
+    tif = tifffile.TiffReader(image_filenames)
+    page = tif.pages[page]
+    if isinstance(page, list):
+        page = page[0]
+    return page.asarray()
+
+
 def load_image_files_to_nparray(image_filenames, crop=None):
     if isinstance(image_filenames, str):
-        page = 0
-        if image_filenames.endswith("]"):
-            image_filenames, page = re.match(r"(.*)\[(\d*)\]", image_filenames).groups()
-        #im = io.imread(image_filenames)
-        im = tifffile.TiffReader(image_filenames).pages[page][0].asarray()
+        im = readTiff(image_filenames)
         if len(im.shape) == 2:
             im = im[:, :, None]
         if crop is not None and "x" in crop:
@@ -347,12 +356,7 @@ class Stack(Saveable):
         if self.leica_file is not None:
             return (self.leica_file.dims.y, self.leica_file.dims.x, self.leica_file.dims.z, 1)
         if self._shape is None:
-            match = re.match(r"(.*)\[(\d*)\]", self.image_filenames[0][0])
-            if match:
-                image_filenames, page = match.groups()
-                im = tifffile.TiffReader(image_filenames).pages[page][0].asarray()
-            else:
-                im = io.imread(self.image_filenames[0][0])
+            readTiff(self.image_filenames[0][0])
             if self.crop is not None and "x" in self.crop:
                 im = im[:, slice(*self.crop["x"])]
             if self.crop is not None and "y" in self.crop:

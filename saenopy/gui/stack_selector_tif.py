@@ -10,6 +10,7 @@ from qtpy import QtWidgets, QtCore, QtGui
 from saenopy.gui import QtShortCuts
 from saenopy.gui.stack_selector_leica import StackSelectorLeica
 import appdirs
+from saenopy.getDeformations import readTiff
 from typing import List
 
 
@@ -269,13 +270,7 @@ class StackSelectorTif(QtWidgets.QWidget):
 
         #self.parent_selector.setZCount(len(d))
         self.d = d
-        if str(d.iloc[0].filename).endswith(".tif") or re.match(r"(.*)\[(\d*)\]", d.iloc[0].filename):
-            image_filenames, page = re.match(r"(.*)\[(\d*)\]", d.iloc[0].filename).groups()
-            # im = io.imread(image_filenames)
-            im = tifffile.TiffReader(image_filenames).pages[page][0].asarray()
-            #im = tifffile.imread(str(d.iloc[0].filename))
-        else:
-            im = imageio.imread(str(d.iloc[0].filename))
+        im = readTiff(d.iloc[0].filename)
         if len(im.shape) == 3:
             im = im[:, :, 0]
         self.stack = np.zeros((im.shape[0], im.shape[1], len(d)), dtype=im.dtype)
