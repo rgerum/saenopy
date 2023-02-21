@@ -155,8 +155,14 @@ class StackSelectorTif(QtWidgets.QWidget):
         properties = []
         for file in filenames:
             prop = filename_to_prop_dict(regexpr, file)
+            tif = tifffile.TiffReader(file)
+            if len(tif.pages) > 1:
+                selected_prop["tiff pages"] = 0
             prop["filename"] = file
-            properties.append(prop)
+            for page in range(0, len(tif.pages)):
+                prop["tiff pages"] = page
+                prop["filename"] = str(file)+f"[{page}]"
+                properties.append(prop.copy())
         df = pd.DataFrame(properties)
 
         for key, value in selected_prop.items():
@@ -164,7 +170,7 @@ class StackSelectorTif(QtWidgets.QWidget):
                 self.format_template = self.format_template.replace("*", "{"+key+"}", 1)
 
         for col in df.columns:
-            if len(df[col].unique()) == 1:
+            if len(df[col].unique()) == 1 and col != "filename":
                 self.format_template = self.format_template.replace("{" + col + "}", df[col].unique()[0], 1)
                 df.drop(col, inplace=True, axis=1)
 
@@ -252,13 +258,22 @@ class StackSelectorTif(QtWidgets.QWidget):
                 self.stack_obj.append(s)
 
         self.target_glob = self.format_template.format(**selected_props_dict)
+        if z_prop_name == "tiff pages":
+            self.target_glob += "[z]"
+        elif z_prop_name == "tiff pages":
+            self.target_glob += "[t]"
+        elif selected_props_dict["tiff pages"] != 0:
+            self.target_glob += f'[{selected_props_dict["tiff pages"]}]'
         self.parent_selector.stack_changed.emit()
         self.parent_selector.glob_string_changed.emit('getstack', self.target_glob)
 
         #self.parent_selector.setZCount(len(d))
         self.d = d
-        if str(d.iloc[0].filename).endswith(".tif"):
-            im = tifffile.imread(str(d.iloc[0].filename))
+        if str(d.iloc[0].filename).endswith(".tif") or re.match(r"(.*)\[(\d*)\]", d.iloc[0].filename):
+            image_filenames, page = re.match(r"(.*)\[(\d*)\]", d.iloc[0].filename).groups()
+            # im = io.imread(image_filenames)
+            im = tifffile.TiffReader(image_filenames).pages[page][0].asarray()
+            #im = tifffile.imread(str(d.iloc[0].filename))
         else:
             im = imageio.imread(str(d.iloc[0].filename))
         if len(im.shape) == 3:

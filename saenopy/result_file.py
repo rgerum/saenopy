@@ -55,7 +55,7 @@ def process_line(filename, output_path):
                 results[-1]["times"] = np.arange(counts["t"])
         return results
     filename, channel1 = get_channel_placeholder(filename)
-    results1, output_base = format_glob(filename)
+    results1, output_base = format_glob(Path(filename))
     for (r1, d1) in results1.groupby("template"):
         counts = {"z": len(d1.z.unique())}
         iterator = get_iterator(d1.z.unique(), "z")
@@ -73,14 +73,16 @@ def process_line(filename, output_path):
         shape = None
         for props in iterator:
             filename = template.format(**props)
+            if re.match("(.*.tif)\[(.*)\]", filename):
+                filename, page = re.match("(.*.tif)\[(.*)\]", filename).groups()
             if not Path(filename).exists():
-                raise FileNotFoundError()
+                raise FileNotFoundError(f"Could not find file {filename}")
             f = tifffile.TiffFile(filename)
             if shape is None:
                 shape = f.pages[0].shape
             else:
                 if f.pages[0].shape != shape:
-                    raise ValueError()
+                    raise ValueError(f"Shape of file {filename} ({f.pages[0].shape}) does not match previous shape ({shape})")
 
         # create the output path
         output = Path(output_path) / os.path.relpath(r1, output_base)

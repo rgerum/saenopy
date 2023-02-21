@@ -601,6 +601,7 @@ class BatchEvaluate(QtWidgets.QWidget):
             except Exception as err:
                 QtWidgets.QMessageBox.critical(self, "Load Stacks",
                                                str(err))
+                raise
             else:
                 add_last_voxel_size(dialog.stack_data.getVoxelSize())
 

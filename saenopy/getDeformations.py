@@ -19,6 +19,7 @@ from skimage import io
 import natsort
 import pandas as pd
 import os
+import tifffile
 from scipy import interpolate
 from saenopy.loadHelpers import Saveable
 
@@ -50,7 +51,14 @@ def double_glob(text):
 
 
 def format_glob(pattern):
+    print("format glob", pattern)
     pattern = str(Path(pattern))
+
+    match = re.match(r"(.*\.tif)\[(.*)\]", pattern)
+    page = 0
+    if match:
+        pattern, page = match.groups()
+
     regexp_string = re.sub(r"\\{([^}]*)\\}", r"(?P<\1>.*)", re.escape(pattern).replace("\\*\\*", ".*").replace("\\*", ".*"))
     regexp_string3 = ""
     replacement = ""
@@ -68,7 +76,7 @@ def format_glob(pattern):
     regexp_string2 = re.compile(regexp_string)
     glob_string = re.sub(r"({[^}]*})", "*", pattern)
 
-    output_base = glob_string
+    output_base = Path(glob_string).parent
     while "*" in str(output_base):
         output_base = Path(output_base).parent
 
@@ -79,7 +87,19 @@ def format_glob(pattern):
         template_name = re.sub(regexp_string3, replacement, file)
         group["filename"] = file
         group["template"] = template_name
-        file_list.append(group)
+        try:
+            page = int(page)
+            if page != 0:
+                group["filename"] = file+f"[{page}]"
+                group["template"] = template_name + "[" + page + "]"
+            file_list.append(group)
+        except ValueError:
+            tif = tifffile.TiffReader(file)
+            group["template"] = template_name + "[" + page + "]"
+            for i in range(len(tif.pages)):
+                group["filename"] = file+f"[{i}]"
+                group[page] = i
+                file_list.append(group.copy())
     return pd.DataFrame(file_list), output_base
 
 
@@ -213,6 +233,8 @@ def template_to_array(filename, crop):
     filename, channel1 = get_channel_placeholder(filename)
     results1, output_base = format_glob(filename)
     for (template, d1) in results1.groupby("template"):
+        if template.endswith("[z]"):
+            template = template.replace("[z]", "[{z}]")
         z_indices = natsort.natsorted(d1.z.unique())
         if crop is not None and "z" in crop:
             z_indices = z_indices[slice(*crop["z"])]
@@ -235,7 +257,11 @@ def template_to_array(filename, crop):
 
 def load_image_files_to_nparray(image_filenames, crop=None):
     if isinstance(image_filenames, str):
-        im = io.imread(image_filenames)
+        page = 0
+        if image_filenames.endswith("]"):
+            image_filenames, page = re.match(r"(.*)\[(\d*)\]", image_filenames).groups()
+        #im = io.imread(image_filenames)
+        im = tifffile.TiffReader(image_filenames).pages[page][0].asarray()
         if len(im.shape) == 2:
             im = im[:, :, None]
         if crop is not None and "x" in crop:
@@ -262,6 +288,7 @@ class Stack(Saveable):
     leica_file = None
 
     def __init__(self, template=None, voxel_size=None, filename=None, shape=None, channels=None, image_filenames=None, crop=None):
+        print("stack",template)
         if template is None:
             if isinstance(filename, list):
                 template = filenames_to_channel_template(filename)
@@ -320,7 +347,12 @@ class Stack(Saveable):
         if self.leica_file is not None:
             return (self.leica_file.dims.y, self.leica_file.dims.x, self.leica_file.dims.z, 1)
         if self._shape is None:
-            im = io.imread(self.image_filenames[0][0])
+            match = re.match(r"(.*)\[(\d*)\]", self.image_filenames[0][0])
+            if match:
+                image_filenames, page = match.groups()
+                im = tifffile.TiffReader(image_filenames).pages[page][0].asarray()
+            else:
+                im = io.imread(self.image_filenames[0][0])
             if self.crop is not None and "x" in self.crop:
                 im = im[:, slice(*self.crop["x"])]
             if self.crop is not None and "y" in self.crop:
@@ -429,7 +461,7 @@ def interpolate_different_mesh(R, U, Rnew):
 
 if __name__ == "__main__":
     from saenopy.result_file import get_channel_placeholder
-    import tifffile
+
     def get_iterator(values, name="", iter=None):
         if iter is None:
             for v in values:
