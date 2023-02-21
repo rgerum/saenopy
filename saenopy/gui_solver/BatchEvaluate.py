@@ -122,7 +122,7 @@ class BatchEvaluate(QtWidgets.QWidget):
                     self.sub_module_fitted_mesh = FittedMesh(self, layout0)
                     self.sub_module_regularize = Regularizer(self, layout0)
                     self.sub_module_view = ResultView(self, layout0)
-                    self.sub_module_fiber = FiberViewer(self, layout0)
+                    #self.sub_module_fiber = FiberViewer(self, layout0)
                     self.sub_module_export = ExportViewer(self, layout0)
                     layout0.addStretch()
                     self.button_start_all = QtShortCuts.QPushButton(None, "run all", self.run_all)
