@@ -115,6 +115,12 @@ class Writer:
         if self.writer is not None:
             self.writer.close()
 
+def rotate(pos, angle):
+    x, y = pos
+    angle = np.deg2rad(angle)
+    s, c = np.sin(angle), np.cos(angle)
+    return x * c + y * s, -x * s + y * c
+
 
 def formatTimedelta(t: datetime.timedelta, fmt: str) -> str:
     sign = 1
@@ -265,6 +271,7 @@ class ExportViewer(PipelineModule):
                             self.input_distance.setValue(distance)
                             self.input_elevation.setValue(35)
                             self.input_azimuth.setValue(45)
+                            self.input_roll.setValue(0)
                             self.render_view()
 
                         QtShortCuts.QPushButton(None, "", connect=reset, icon=qta.icon("fa5s.home"), tooltip="reset view")
@@ -1028,11 +1035,7 @@ class ExportViewer(PipelineModule):
             # self.plotter.camera_position = "yz"
             # distance = self.plotter.camera.position[0]
             # self.plotter.camera.position = (self.input_distance.value(), 0, 10)
-            def rotate(pos, angle):
-                x, y = pos
-                angle = np.deg2rad(angle)
-                s, c = np.sin(angle), np.cos(angle)
-                return x * c + y * s, -x * s + y * c
+
 
             dx = self.input_offset_x.value()
             dz = self.input_offset_y.value()
@@ -1096,6 +1099,9 @@ class ExportViewer(PipelineModule):
             return True
         elif event.type() == QtCore.QEvent.GraphicsSceneMousePress and event.button() & QtCore.Qt.LeftButton:
             self.drag_pos = event.pos()
+            self.drag_azimuth = self.input_azimuth.value()
+            self.drag_elevation = self.input_elevation.value()
+            self.drag_roll = self.input_roll.value()
             return True
         elif event.type() == QtCore.QEvent.GraphicsSceneMousePress and event.button() & QtCore.Qt.MiddleButton:
             self.drag_pos2 = event.pos()
@@ -1134,14 +1140,28 @@ class ExportViewer(PipelineModule):
         elif event.type() == QtCore.QEvent.GraphicsSceneMouseMove and self.drag_pos:
             dx = event.pos().x() - self.drag_pos.x()
             dy = event.pos().y() - self.drag_pos.y()
-            self.drag_pos = event.pos()
-            azimuth = (self.input_azimuth.value() - dx * 0.1)
+            dx, dy = rotate([dx, dy], -self.drag_roll)
+            #self.drag_pos = event.pos()
+            azimuth = (self.drag_azimuth - dx * 0.1)
+
+            elevation = self.drag_elevation + dy * 0.2
+            roll = self.drag_roll
+            if elevation > 90:
+                elevation = 90 - (elevation - 90)
+                azimuth += 180
+                roll = (self.drag_roll + 180) % 360
+            elif elevation < -90:
+                elevation = -90 - (elevation + 90)
+                azimuth -= 180
+                roll = (self.drag_roll - 180) % 360
+
             if azimuth < -180:
                 azimuth += 360
             if azimuth >= 180:
                 azimuth -= 360
             self.input_azimuth.setValue(azimuth)
-            elevation = self.input_elevation.value() + dy * 0.2
+            self.input_roll.setValue(roll)
+
             self.input_elevation.setValue(elevation)
             self.render_view()
             return True
@@ -1150,53 +1170,6 @@ class ExportViewer(PipelineModule):
             scale = self.drag_pos4_start_scale * 10 ** (dy/1000)
             self.input_distance.setValue(scale)
             self.render_view()
-            return True
-        return False
-        if self.data_file is None:
-            return False
-        if self.hidden or self.data_file.image is None or self.tool_index == -1:
-            return False
-        if event.type() == QtCore.QEvent.GraphicsSceneMousePress and event.button() == QtCore.Qt.LeftButton and \
-                not event.modifiers() & Qt.ControlModifier and self.active_type is not None and self.tool_index == 0:
-            if getattr(self.active_drag, "drag_click", None) is not None:
-                if getattr(self.active_drag, "drag_click", None)(event):
-                    return True
-            self.active_drag = None
-            if len(self.points) >= 0:
-                BroadCastEvent(self.modules, "MarkerPointsAdded")
-            tracks = [track for track in self.tracks.values() if track.data.type.id == self.active_type.id]
-            if self.active_type.mode & TYPE_Track and self.data_file.getOption("tracking_connect_nearest") and \
-                    len(tracks) and not event.modifiers() & Qt.AltModifier:
-                distances = [np.linalg.norm(PosToArray(point.g1.pos() - event.pos())) for point in tracks]
-                index = np.argmin(distances)
-                tracks[index].graberMoved(None, event.pos(), event)
-                tracks[index].graberReleased(None, event)
-            elif self.active_type.mode & TYPE_Track:
-                track = MyTrackItem(self, self.TrackParent, event=event, type=self.active_type, frame=self.frame_number)
-                track.updateDisplay()
-                self.tracks[track.data.id] = track
-                self.marker_lists[track.data.id] = track.markers
-            elif self.active_type.mode & TYPE_Line:
-                self.lines.append(MyLineItem(self, self.TrackParent, event=event, type=self.active_type))
-                self.active_drag = self.lines[-1]
-            elif self.active_type.mode & TYPE_Rect:
-                self.rectangles.append(MyRectangleItem(self, self.TrackParent, event=event, type=self.active_type))
-                self.active_drag = self.rectangles[-1]
-            elif self.active_type.mode & TYPE_Ellipse:
-                self.ellipses.append(MyEllipseItem(self, self.TrackParent, event=event, type=self.active_type))
-                self.active_drag = self.ellipses[-1]
-            elif self.active_type.mode & TYPE_Polygon:
-                self.polygons.append(MyPolygonItem(self, self.TrackParent, event=event, type=self.active_type))
-                self.active_drag = self.polygons[-1]
-            else:
-                self.points.append(MyMarkerItem(self, self.MarkerParent, event=event, type=self.active_type))
-            self.data_file.setChangesMade()
-            return True
-        elif event.type() == QtCore.QEvent.GraphicsSceneMouseMove and self.active_drag:
-            self.active_drag.drag(event)
-            return True
-        elif event.type() == QtCore.QEvent.GraphicsSceneHoverMove and self.active_drag and getattr(self.active_drag, "hover_drag", None) is not None:
-            getattr(self.active_drag, "hover_drag", None)(event)
             return True
         return False
 
