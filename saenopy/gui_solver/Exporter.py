@@ -195,54 +195,24 @@ class ExportViewer(PipelineModule):
             self.parent.shared_properties = Null()
             self.parent.shared_properties.add_property = lambda *args: None
             self.parent.shared_properties.change_property = lambda *args: None
-            #self.export_window.show()
 
-        with QtShortCuts.QHBoxLayout(self.export_window) as layout:
-
-            self.plotter = pyvista.Plotter(off_screen=True, multi_samples=4, line_smoothing=True)#QtInteractor(self, auto_update=False)  # , theme=pv.themes.DocumentTheme())
-            #self.tab.parent().plotter = self.plotter
-            self.plotter.set_background("black")
-
-            self.view1 = QExtendedGraphicsView.QExtendedGraphicsView().addToLayout()
-            self.view1.setMinimumWidth(700)
-            self.pixmap1 = QtWidgets.QGraphicsPixmapItem(self.view1.origin)
-            self.view1.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
-            self.pixmap1.sceneEvent = self.sceneEventFilter
-            #self.view1.origin.installSceneEventFilter(self)
-
-            #self.plotter.setMinimumWidth(300)
-            #layout.addWidget(self.plotter.interactor)
-
-                #self.z_slider = QTimeSlider("z", self.z_slider_value_changed, "set z position",
-                #                            QtCore.Qt.Vertical).addToLayout()
-                #self.z_slider.t_slider.valueChanged.connect(
-                #    lambda value: parent.shared_properties.change_property("z_slider", value, self))
-                #parent.shared_properties.add_property("z_slider", self)\
-            self.widget_settings = QtWidgets.QWidget().addToLayout()
-            self.widget_settings.setMaximumWidth(700)
-            self.widget_settings.setMinimumWidth(700)
-
-            with QtShortCuts.QVBoxLayout(self.widget_settings) as layout:
-                self.vtk_toolbar = VTK_Toolbar(self.plotter, self.update_display, shared_properties=self.parent.shared_properties)#.addToLayout()
-                self.vtk_toolbar2 = VTK_Toolbar(self.plotter, self.update_display, center=True, shared_properties=self.parent.shared_properties)#.addToLayout()
-
-                with QtShortCuts.QHBoxLayout() as layout:
+        with QtShortCuts.QHBoxLayout(self.export_window):
+            with QtShortCuts.QVBoxLayout():
+                with QtShortCuts.QHBoxLayout():
                     QtShortCuts.QPushButton(None, "save parameters", self.save_parameters)
                     QtShortCuts.QPushButton(None, "load parameters", self.load_parameters)
                     QtShortCuts.QPushButton(None, "copy to clipboard parameters", self.copy_parameters)
 
-                with QtShortCuts.QHBoxLayout() as layout:
+                with QtShortCuts.QHBoxLayout():
                     self.input_use2D = QtShortCuts.QInputBool(None, "", False, icon=["3D", "2D"], group=True)
                     self.input_use2D.valueChanged.connect(self.hide2D)
                     self.input_use2D.valueChanged.connect(self.update_display)
                     QtShortCuts.current_layout.addStretch()
 
-                with QtShortCuts.QGroupBox(None, "image dimensions") as layout:
-                    with QtShortCuts.QHBoxLayout() as layout:
+                with QtShortCuts.QGroupBox(None, "image dimensions"):
+                    with QtShortCuts.QHBoxLayout():
                         self.input_width = QtShortCuts.QInputNumber(None, "width", 1024, float=False)
                         self.input_height = QtShortCuts.QInputNumber(None, "height", 768, float=False)
-
-
                         self.input_scale = QtShortCuts.QInputNumber(None, "scale", 1, min=0.1, max=10,
                                                                     use_slider=True, log_slider=True)
                         self.input_scale.valueChanged.connect(self.update_display)
@@ -255,6 +225,31 @@ class ExportViewer(PipelineModule):
                         self.input_height.valueChanged.connect(self.update_display)
                         self.input_logosize.valueChanged.connect(self.update_display)
 
+                with QtShortCuts.QHBoxLayout():
+                    self.plotter = pyvista.Plotter(off_screen=True, multi_samples=4, line_smoothing=True)
+                    self.plotter.set_background("black")
+
+                    self.view1 = QExtendedGraphicsView.QExtendedGraphicsView().addToLayout()
+                    self.view1.setMinimumWidth(700)
+                    self.pixmap1 = QtWidgets.QGraphicsPixmapItem(self.view1.origin)
+                    self.view1.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
+                    self.pixmap1.sceneEvent = self.sceneEventFilter
+
+                    #self.widget_settings = QtWidgets.QWidget().addToLayout()
+                    #self.widget_settings.setMaximumWidth(700)
+                    #self.widget_settings.setMinimumWidth(700)
+
+                    self.vtk_toolbar = VTK_Toolbar(self.plotter, self.update_display,
+                                                   shared_properties=self.parent.shared_properties)  # .addToLayout()
+                    self.vtk_toolbar2 = VTK_Toolbar(self.plotter, self.update_display, center=True,
+                                                    shared_properties=self.parent.shared_properties)  # .addToLayout()
+                    self.z_slider = QTimeSlider("z", self.update_display, "set z position", QtCore.Qt.Vertical).addToLayout()
+                self.t_slider = QTimeSlider(connected=self.update_display).addToLayout()
+            self.widget_settings = QtWidgets.QWidget().addToLayout()
+            self.widget_settings.setMaximumWidth(700)
+            self.widget_settings.setMinimumWidth(700)
+            with QtShortCuts.QVBoxLayout(self.widget_settings):
+                QtShortCuts.current_layout.setContentsMargins(0, 0, 0, 0)
                 with QtShortCuts.QGroupBox(None, "camera") as (self.box_camera, _):
                     with QtShortCuts.QHBoxLayout() as layout:
                         self.input_elevation = QtShortCuts.QInputNumber(None, "elevation", 35, min=-90, max=90, use_slider=True, step=10)
@@ -265,16 +260,7 @@ class ExportViewer(PipelineModule):
                         self.input_azimuth.valueChanged.connect(self.render_view)
                         self.input_distance.valueChanged.connect(self.render_view)
 
-                        def reset():
-                            self.plotter.camera_position = "yz"
-                            distance = self.plotter.camera.position[0]
-                            self.input_distance.setValue(distance)
-                            self.input_elevation.setValue(35)
-                            self.input_azimuth.setValue(45)
-                            self.input_roll.setValue(0)
-                            self.render_view()
-
-                        QtShortCuts.QPushButton(None, "", connect=reset, icon=qta.icon("fa5s.home"), tooltip="reset view")
+                        QtShortCuts.QPushButton(None, "", connect=self.reset, icon=qta.icon("fa5s.home"), tooltip="reset view")
                     with QtShortCuts.QHBoxLayout() as layout:
                         self.input_offset_x = QtShortCuts.QInputNumber(None, "offset x", 0, float=False, step=10)
                         self.input_offset_y = QtShortCuts.QInputNumber(None, "offset y", 0, float=False, step=10)
@@ -313,8 +299,6 @@ class ExportViewer(PipelineModule):
 
                         self.vtk_toolbar.arrow_scale.addToLayout()
 
-                        #QtShortCuts.current_layout.addStretch()
-
                     with QtShortCuts.QGroupBox(None, "force arrows") as (self.box_force_arrows, _):
                         with QtShortCuts.QHBoxLayout() as layout:
                             self.vtk_toolbar2.auto_scale.addToLayout()
@@ -328,10 +312,9 @@ class ExportViewer(PipelineModule):
                             self.input_arrow_skip2.valueChanged.connect(self.update_display)
                         self.vtk_toolbar2.colormap_chooser.addToLayout()
                         self.vtk_toolbar2.arrow_scale.addToLayout()
-                        #QtShortCuts.current_layout.addStretch()
 
-                with QtShortCuts.QGroupBox(None, "stack image") as layout:
-                    with QtShortCuts.QHBoxLayout() as layout:
+                with QtShortCuts.QGroupBox(None, "stack image"):
+                    with QtShortCuts.QHBoxLayout():
                         self.vtk_toolbar.show_image.addToLayout()
                         self.vtk_toolbar.show_image.valueChanged.connect(self.hide_stack_image)
                         self.input_use2D.valueChanged.connect(self.hide_stack_image)
@@ -339,12 +322,10 @@ class ExportViewer(PipelineModule):
                         self.vtk_toolbar.button_z_proj.addToLayout()
                         self.vtk_toolbar.contrast_enhance.addToLayout()
                         self.vtk_toolbar.colormap_chooser2.addToLayout()
-                        self.z_slider = QTimeSlider("z", self.update_display, "set z position").addToLayout()
-                        #QtShortCuts.current_layout.addStretch()
-
+                        QtShortCuts.current_layout.addStretch()
 
                 with QtShortCuts.QGroupBox(None, "scale bar") as (self.box_scalebar, _):
-                    with QtShortCuts.QHBoxLayout() as layout:
+                    with QtShortCuts.QHBoxLayout():
                         self.input_scalebar_um = QtShortCuts.QInputNumber(None, "length", 0, min=0, max=10000)
                         self.input_scalebar_um.valueChanged.connect(self.update_display)
                         self.input_scalebar_width = QtShortCuts.QInputNumber(None, "width", 5, min=0, max=100)
@@ -358,7 +339,7 @@ class ExportViewer(PipelineModule):
                         self.input_scalebar_fontsize.addToLayout()
 
                 with QtShortCuts.QGroupBox(None, "2D arrrows") as (self.box_2darrows, _):
-                    with QtShortCuts.QHBoxLayout() as layout:
+                    with QtShortCuts.QHBoxLayout():
                         self.input_2darrow_width = QtShortCuts.QInputNumber(None, "width", 2, min=0, max=100)
                         self.input_2darrow_width.valueChanged.connect(self.update_display)
                         self.input_2darrow_headlength = QtShortCuts.QInputNumber(None, "head length", 5, min=0, max=100)
@@ -367,7 +348,7 @@ class ExportViewer(PipelineModule):
                         self.input_2darrow_headwidth.valueChanged.connect(self.update_display)
 
                 with QtShortCuts.QGroupBox(None, "fiber display") as (self.box_fiberdisplay, _):
-                    with QtShortCuts.QVBoxLayout() as layout:
+                    with QtShortCuts.QVBoxLayout():
                         QtShortCuts.current_layout.setContentsMargins(0, 0, 0, 0)
                         self.input_cropx = QtShortCuts.QRangeSlider(None, "crop x", 0, 200)
                         self.input_cropy = QtShortCuts.QRangeSlider(None, "crop y", 0, 200)
@@ -375,7 +356,7 @@ class ExportViewer(PipelineModule):
                         self.input_cropx.editingFinished.connect(self.update_display)
                         self.input_cropy.editingFinished.connect(self.update_display)
                         self.input_cropz.editingFinished.connect(self.update_display)
-                    with QtShortCuts.QHBoxLayout() as layout:
+                    with QtShortCuts.QHBoxLayout():
                         QtShortCuts.current_layout.setContentsMargins(0, 0, 0, 0)
                         self.channel0_properties = ChannelProperties().addToLayout()
                         self.channel0_properties.valueChanged.connect(self.update_display)
@@ -388,18 +369,13 @@ class ExportViewer(PipelineModule):
 
                         self.channel0_properties.input_show.valueChanged.connect(self.hide_fiber)
                         self.channel1_properties.input_show.valueChanged.connect(self.hide_fiber)
-                        pass
+
                     self.channel1_properties.input_cmap.setValue("Greens")
                     self.channel1_properties.input_sato.setValue(0)
                     self.channel1_properties.input_gauss.setValue(7)
-                    #self.channel1_properties.input_percentile1.setValue(10)
-                    #self.channel1_properties.input_percentile2.setValue(100)
                     self.input_thresh = QtShortCuts.QInputNumber(None, "thresh", 1, float=True, min=0, max=2, step=0.1)
                     self.input_thresh.valueChanged.connect(self.update_display)
-                    #self.canvas = MatplotlibWidget(self).addToLayout()
 
-                with QtShortCuts.QHBoxLayout():
-                    self.t_slider = QTimeSlider(connected=self.update_display).addToLayout()
                 with QtShortCuts.QHBoxLayout():
                     self.time_check = QtShortCuts.QInputBool(None, "show timestamp", True)
                     self.time_format = QtShortCuts.QInputString(None, "", "%d:%H:%M")
@@ -438,7 +414,6 @@ class ExportViewer(PipelineModule):
                         with QtShortCuts.QHBoxLayout():
                             self.zscan_fps = QtShortCuts.QInputNumber(None, "fps", 30)
                             self.zscan_steps = QtShortCuts.QInputNumber(None, "steps", 1, float=False)
-                #self.tab.parent().t_slider = self.t_slider
                 self.render_progress = QtWidgets.QProgressBar().addToLayout()
                 self.render_progress.setRange(0, 100)
                 QtShortCuts.current_layout.addStretch()
@@ -519,6 +494,15 @@ class ExportViewer(PipelineModule):
         self.hide_fiber()
         self.hide_arrow()
         self.hide_stack_image()
+
+    def reset(self):
+        self.plotter.camera_position = "yz"
+        distance = self.plotter.camera.position[0]
+        self.input_distance.setValue(distance)
+        self.input_elevation.setValue(35)
+        self.input_azimuth.setValue(45)
+        self.input_roll.setValue(0)
+        self.render_view()
 
     def hide2D(self):
         is2D = self.input_use2D.value()
