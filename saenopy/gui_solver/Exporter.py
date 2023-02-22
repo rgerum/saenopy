@@ -823,137 +823,16 @@ class ExportViewer(PipelineModule):
                 self.view1.fitInView()
                 self.im = im
                 return
-            cam_pos = None
-            if self.plotter.camera_position is not None and CamPos.cam_pos_initialized is True:
-                cam_pos = self.plotter.camera_position
-            CamPos.cam_pos_initialized = True
-            #self.plotter.interactor.setToolTip(str(self.result.interpolate_parameter)+f"\nNodes {self.result.solver[self.t_slider.value()].R.shape[0]}\nTets {self.result.solver[self.t_slider.value()].T.shape[0]}")
-            crops = []
-            for widged in [self.input_cropy, self.input_cropx, self.input_cropz]:
-                crops.extend(widged.value())
-            t = self.t_slider.value()
-            t_start = time.time()
-            stack_data = None
-            stack = self.result.stack[t]
-            if self.input_reference_stack.value():
-                stack = self.result.stack_reference
-            if self.channel0_properties.input_show.value() and crops[0] != crops[1] and crops[2] != crops[3] and crops[4] != crops[5]:
-                stack_data1 = process_stack(stack, 0,
-                                            crops=crops,
-                                            **self.channel0_properties.value())
-                stack_data = stack_data1
-                self.channel0_properties.sigmoid.p.set_im(stack_data1["original"])
-
-            else:
-                stack_data1 = None
-            if self.channel1_properties.input_show.value() and crops[0] != crops[1] and crops[2] != crops[3] and crops[4] != crops[5]:
-                stack_data2 = process_stack(stack, 1,
-                                            crops=crops,
-                                            **self.channel1_properties.value())
-                self.channel1_properties.sigmoid.p.set_im(stack_data2["original"])
-                if stack_data1 is not None:
-                    stack_data = join_stacks(stack_data1, stack_data2, self.input_thresh.value())
-                else:
-                    stack_data = stack_data2
-            else:
-                stack_data2 = None
-            #stack_data = stack_data1
-            if 0:#self.canvas is not None and stack_data is not None:
-                self.canvas.figure.axes[0].cla()
-                self.canvas.figure.axes[0].plot(np.linspace(0, 1, len(stack_data["opacity"])), stack_data["opacity"])
-                self.canvas.figure.axes[0].spines["top"].set_visible(False)
-                self.canvas.figure.axes[0].spines["right"].set_visible(False)
-                self.canvas.figure.axes[0].set_xlim(0, 1)
-                self.canvas.figure.axes[0].set_ylim(0, 1)
-                self.canvas.draw()
-
-            render = self.plotter.render
-            self.plotter.render = lambda *args: None
-            try:
-                #if self.input_arrows = QtShortCuts.QInputChoice("arrows", "piv", values=["None", "piv", "target deformations", "fitted deformations", "fitted forces"])
-                display_image = getVectorFieldImage(self, use_fixed_contrast_if_available=True)
-                if len(self.result.stack):
-                    stack_shape = np.array(self.result.stack[0].shape[:3]) * np.array(
-                        self.result.stack[0].voxel_size)
-                else:
-                    stack_shape = None
-
-                M, field, center, name, colormap, factor, scale_max, stack_min_max, skip = self.get_current_arrow_data()
-                showVectorField(self.plotter, M, field, name, center=center,
-                                skip=skip,
-                                factor=factor,
-                                colormap=colormap,
-                                colormap2=self.vtk_toolbar.colormap_chooser2.value(),
-                                scalebar_max=scale_max,
-                                show_nan=self.vtk_toolbar.use_nans.value(),
-                                display_image=display_image, show_grid=self.vtk_toolbar.show_grid.value(),
-                                stack_shape=stack_shape, stack_min_max=stack_min_max,
-                                arrow_opacity=self.input_arrow_opacity.value() if self.input_arrows.value() != "fitted forces" else self.input_arrow_opacity2.value())
-
-                if stack_data is not None:
-                    dataset = stack_data["data"]
-                    mesh = pyvista.UniformGrid(dimensions=dataset.shape, spacing=stack_data["resolution"],
-                                               origin=stack_data["center"])
-                    mesh['values'] = dataset.ravel(order='F')
-                    mesh.active_scalars_name = 'values'
-
-                    vol = self.plotter.add_volume(mesh,# resolution=np.array(self.result.stack[0].voxel_size),
-                                              cmap=stack_data["cmap"], opacity=stack_data["opacity"],
-                                         blending="composite", name="fiber", render=False)  # 1.0*x
-                    self.plotter.remove_scalar_bar("values")
-                else:
-                    self.plotter.remove_actor("fiber")
-                print("plot time", f"{time.time()-t_start:.3f}s")
-
-                if self.result is not None and self.result.time_delta is not None and self.time_check.value():
-                    self.plotter.add_text(self.get_time_text(), name="time_text", font_size=self.time_size.value(),
-                                          position=(20, self.input_height.value()-20-self.time_size.value()*2))
-                else:
-                    self.plotter.remove_actor("time_text")
-                #self.plotter.camera.zoom(self.input_zoom.value())
-            finally:
-                self.plotter.render = render
-
-                self.render_view(double_render=True)
-
-            if cam_pos is not None:
-                self.plotter.camera_position = cam_pos
-        else:
-            pass
-            #self.plotter.interactor.setToolTip("")
 
 
+            self.render_view(True)
 
     def render_view(self, double_render=False):
         render = self.plotter.render
         self.plotter.render = lambda *args: None
         try:
-            # self.plotter.reset_camera()
-            self.plotter.camera_position = "yz"
-            # distance = self.plotter.camera.position[0]
-            # self.input_distance.setValue(distance)
-            if self.input_distance.value() == 0:
-                distance = self.plotter.camera.position[0]
-                self.input_distance.setValue(distance)
-
-            # self.plotter.camera_position = "yz"
-            # distance = self.plotter.camera.position[0]
-            # self.plotter.camera.position = (self.input_distance.value(), 0, 10)
-
-
-            dx = self.input_offset_x.value()
-            dz = self.input_offset_y.value()
-            dx, dz = rotate((dx, dz), self.input_roll.value())
-            dx, dy = rotate((dx, 0), self.input_azimuth.value())
-            self.plotter.camera.position = (self.input_distance.value() - dy, -dx, -dz)
-            self.plotter.camera.focal_point = (0 - dy, -dx, -dz)
-            # print(self.plotter.camera_position)
-            self.plotter.camera.azimuth = self.input_azimuth.value()
-            self.plotter.camera.elevation = self.input_elevation.value()
-            self.plotter.camera.roll += self.input_roll.value()
-            # im = self.plotter.show(screenshot="test.png", return_img=True, auto_close=False,
-            #                       window_size=(self.input_width.value(), self.input_height.value()))
-            # self.plotter.camera.elevation = 30
+            from saenopy.gui_solver.ExporterRender3D import render_3d
+            render_3d(self.get_parameters(), self.result, self.plotter)
         finally:
             self.plotter.render = render
 
