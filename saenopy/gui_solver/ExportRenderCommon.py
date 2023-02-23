@@ -1,74 +1,54 @@
 import datetime
 import numpy as np
 
-def get_current_arrow_data(params, result):
-    M = None
-    field = None
-    center = None
-    name = ""
-    colormap = None
-    factor = None
-    scale_max = params["deformation_arrows"]["scale_max"] if params["deformation_arrows"]["autoscale"] else None
-    stack_min_max = None
-    skip = params["deformation_arrows"]["skip"]
-    alpha = params["deformation_arrows"]["arrow_opacity"] if params["arrows"] != "fitted forces" else params["force_arrows"]["arrow_opacity"]
 
+def get_mesh_arrows(params, result):
     if params["arrows"] == "piv":
-        if result is None:
-            M = None
-        else:
+        if result is not None:
             M = result.mesh_piv[params["time"]["t"]]
-
-        if M is not None:
-            if M.hasNodeVar("U_measured"):
-                # showVectorField2(self, M, "U_measured")
-                field = M.getNodeVar("U_measured")
-                factor = 0.1 * params["deformation_arrows"]["arrow_scale"]
-                name = "U_measured"
-                colormap = params["deformation_arrows"]["colormap"]
-                stack_min_max = [M.R.min(axis=0) * 1e6, M.R.max(axis=0) * 1e6]
+            if M is not None and M.hasNodeVar("U_measured"):
+                return M, M.getNodeVar("U_measured"), params["deformation_arrows"], "U_measured"
     elif params["arrows"] == "target deformations":
         M = result.solver[params["time"]["t"]]
-        # showVectorField2(self, M, "U_target")
         if M is not None:
-            field = M.U_target
-            factor = 0.1 * params["deformation_arrows"]["arrow_scale"]
-            name = "U_target"
-            colormap = params["deformation_arrows"]["colormap"]
-            stack_min_max = [M.R.min(axis=0) * 1e6, M.R.max(axis=0) * 1e6]
+            return M, M.U_target, params["deformation_arrows"], "U_target"
     elif params["arrows"] == "fitted deformations":
         M = result.solver[params["time"]["t"]]
         if M is not None:
-            field = M.U
-            factor = 0.1 * params["deformation_arrows"]["arrow_scale"]
-            name = "U"
-            colormap = params["deformation_arrows"]["colormap"]
-            stack_min_max = [M.R.min(axis=0) * 1e6, M.R.max(axis=0) * 1e6]
+            return M, M.U, params["deformation_arrows"], "U"
     elif params["arrows"] == "fitted forces":
         M = result.solver[params["time"]["t"]]
         if M is not None:
-            center = None
-            if params["force_arrows"]["use_center"] is True:
-                center = M.getCenter(mode="Force")
-            field = -M.f * M.reg_mask[:, None]
-            factor = 0.15 * params["force_arrows"]["arrow_scale"]
-            name = "f"
-            colormap = params["force_arrows"]["colormap"]
-            scale_max = params["force_arrows"]["scale_max"] if params["force_arrows"]["autoscale"] else None
-            stack_min_max = [M.R.min(axis=0) * 1e6, M.R.max(axis=0) * 1e6]
-            skip = params["force_arrows"]["skip"]
-    else:
-        # get min/max of stack
+            return M, -M.f * M.reg_mask[:, None], params["force_arrows"], "f"
+    return None, None, {}, ""
+
+
+def get_mesh_extent(params, result):
+    if params["arrows"] == "piv":
+        M = result.mesh_piv[params["time"]["t"]]
+        if M is not None and M.hasNodeVar("U_measured"):
+            return [M.R.min(axis=0) * 1e6, M.R.max(axis=0) * 1e6]
+    elif params["arrows"] == "target deformations":
         M = result.solver[params["time"]["t"]]
         if M is not None:
-            stack_min_max = [M.R.min(axis=0) * 1e6, M.R.max(axis=0) * 1e6]
+            return [M.R.min(axis=0) * 1e6, M.R.max(axis=0) * 1e6]
+    elif params["arrows"] == "fitted deformations":
+        M = result.solver[params["time"]["t"]]
+        if M is not None:
+            return [M.R.min(axis=0) * 1e6, M.R.max(axis=0) * 1e6]
+    elif params["arrows"] == "fitted forces":
+        M = result.solver[params["time"]["t"]]
+        if M is not None:
+            return [M.R.min(axis=0) * 1e6, M.R.max(axis=0) * 1e6]
+    else:
+        M = result.solver[params["time"]["t"]]
+        if M is not None:
+            return [M.R.min(axis=0) * 1e6, M.R.max(axis=0) * 1e6]
         else:
             M = result.mesh_piv[params["time"]["t"]]
             if M is not None:
-                stack_min_max = [M.R.min(axis=0) * 1e6, M.R.max(axis=0) * 1e6]
-            else:
-                stack_min_max = None
-    return M, field, center, name, colormap, factor, scale_max, stack_min_max, skip, alpha
+                return [M.R.min(axis=0) * 1e6, M.R.max(axis=0) * 1e6]
+    return None
 
 
 def getVectorFieldImage(result, params, use_fixed_contrast_if_available=False, use_2D=False, exporter=None):
@@ -120,6 +100,7 @@ def get_time_text(params, result):
     print("time", float(params["time"]["t"] * result.time_delta) + params["time"]["start"], float(params["time"]["t"] * result.time_delta), params["time"]["start"])
     return formatTimedelta(datetime.timedelta(seconds=float(params["time"]["t"] * result.time_delta) + params["time"]["start"]),
                            params["time"]["format"])
+
 
 def formatTimedelta(t: datetime.timedelta, fmt: str) -> str:
     sign = 1
@@ -179,4 +160,3 @@ def formatTimedelta(t: datetime.timedelta, fmt: str) -> str:
         else:
             fmt = fmt[:i - 1] + "-" + fmt[i:]
     return fmt
-

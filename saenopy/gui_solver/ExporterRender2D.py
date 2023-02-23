@@ -1,20 +1,12 @@
 import numpy as np
-from .showVectorField import getVectorFieldImage
-from PIL import Image
 import pandas as pd
-from qtpy import QtCore, QtWidgets, QtGui
 from pathlib import Path
-from qimage2ndarray import array2qimage
 from PIL import Image, ImageDraw, ImageFont
 import matplotlib
 import matplotlib.pyplot as plt
-import datetime
-from .ExportRenderCommon import get_time_text, getVectorFieldImage, get_current_arrow_data
 
-
-
-
-
+from .showVectorField import getVectorFieldImage
+from .ExportRenderCommon import get_time_text, getVectorFieldImage, get_mesh_arrows
 
 
 def render_2d(params, result, exporter=None):
@@ -70,8 +62,13 @@ def render_2d_arrows(params, result, pil_image, im_scale, aa_scale, display_imag
             d2 = d2.loc[(slice(None, None, skip), slice(None, None, skip)), :]
         return np.array([i for i in d2.index]), d2[["length", "angle"]]
 
-    M, field, center, name, colormap, factor, scale_max, stack_min_max, skip, alpha = get_current_arrow_data(params,
-                                                                                                             result)
+    M, field, params_arrows, name = get_mesh_arrows(params, result)
+
+    scale_max = params_arrows["scale_max"] if params_arrows["autoscale"] else None
+    colormap = params_arrows["colormap"]
+    skip = params_arrows["skip"]
+    alpha = params_arrows["arrow_opacity"]
+
     if field is not None:
         # rescale and offset
         scale = 1e6 / display_image[1][0]
@@ -80,12 +77,14 @@ def render_2d_arrows(params, result, pil_image, im_scale, aa_scale, display_imag
         R = M.R.copy()
         field = field.copy()
         R = R[:, :2][:, ::-1] * scale + offset
-        field = field[:, :2][:, ::-1] * scale * params["deformation_arrows"]["arrow_scale"]  # factor
+        field = field[:, :2][:, ::-1] * scale * params_arrows["arrow_scale"]
+        if name == "f":
+            field *= 1e4
 
         if scale_max is None:
-            max_length = np.nanmax(np.linalg.norm(field, axis=1))
+            max_length = np.nanmax(np.linalg.norm(field, axis=1))# * params_arrows["arrow_scale"]
         else:
-            max_length = scale_max
+            max_length = scale_max * params_arrows["arrow_scale"]
 
         z_center = (params["averaging_size"] - result.stack[0].shape[2] / 2) * display_image[1][2] * 1e-6
         z_min = z_center - params["averaging_size"] * 1e-6

@@ -1,12 +1,10 @@
-from saenopy.gui_solver.FiberViewer import ChannelProperties, process_stack, join_stacks
 import time
 import pyvista
 import pyvista as pv
-from pyvistaqt import QtInteractor
-from saenopy.solver import Solver
 import numpy as np
 
-from .ExportRenderCommon import get_time_text, getVectorFieldImage, get_current_arrow_data
+from saenopy.gui_solver.FiberViewer import process_stack, join_stacks
+from .ExportRenderCommon import get_time_text, getVectorFieldImage, get_mesh_arrows, get_mesh_extent
 
 
 def render_3d(params, result, plotter, exporter=None):
@@ -149,21 +147,24 @@ def render_3d_arrows(params, result, plotter):
         print("skipped arrows")
         return
 
-    obj, field, center, name, colormap, factor, scale_max, stack_min_max, skip, arrow_opacity = get_current_arrow_data(params, result)
-    show_all_points = False
+    obj, field, params_arrows, name = get_mesh_arrows(params, result)
+
+    if obj is None:
+        plotter.remove_actor("arrows")
+        plotter.remove_actor("nans")
+        plotter.remove_actor("center")
+        return
+
     show_nan = params["use_nans"]
-    scalebar_max = scale_max
-
-    plotter.renderer.remove_bounds_axes()
-    plotter.renderer.remove_bounding_box()
-
-    scale = 1  # 1e-6
+    scalebar_max = params_arrows["scale_max"] if params_arrows["autoscale"] else None
+    colormap = params_arrows["colormap"]
+    skip = params_arrows["skip"]
+    arrow_opacity = params_arrows["arrow_opacity"]
 
     if field is not None:
         obj_R = obj.R*1e6
 
         if skip != 1:
-            N = int(np.sqrt(obj_R.shape[0]))
             x_unique = len(np.unique(obj_R[:, 0]))
             y_unique = len(np.unique(obj_R[:, 1]))
             z_unique = len(np.unique(obj_R[:, 2]))
@@ -179,19 +180,15 @@ def render_3d_arrows(params, result, plotter):
         point_cloud.point_data[name + "_mag"] = np.linalg.norm(field, axis=1)
         # convert to common units
         if name == "U_measured" or name == "U_target" or name == "U":
-              # scale deformations to µN
-              point_cloud.point_data[name + "_mag2"] = 1e6*point_cloud.point_data[name + "_mag"].copy()
+            # scale deformations to µN
+            point_cloud.point_data[name + "_mag2"] = 1e6*point_cloud.point_data[name + "_mag"].copy()
+            factor = 0.1 * params_arrows["arrow_scale"]
         if name == "f":
-              # scale forces to pN
-              point_cloud.point_data[name + "_mag2"] = 1e12*point_cloud.point_data[name + "_mag"].copy()
+            # scale forces to pN
+            point_cloud.point_data[name + "_mag2"] = 1e12*point_cloud.point_data[name + "_mag"].copy()
+            factor = 0.15 * params_arrows["arrow_scale"]
         # hide nans
         point_cloud.point_data[name + "_mag2"][nan_values] = 0
-        # show nans
-        if not show_all_points and show_nan:
-            R = obj_R[nan_values]
-            if R.shape[0]:
-                point_cloud2 = pv.PolyData(R)
-                point_cloud2.point_data["nan"] = obj_R[nan_values, 0] * np.nan
 
         # scalebar scaling factor
         norm_stack_size = np.abs(np.max(obj_R) - np.min(obj_R))
@@ -209,26 +206,21 @@ def render_3d_arrows(params, result, plotter):
         elif name == "f":
             title = "Forces (pN)"
 
-        sargs = dict(#position_x=0.05, position_y=0.95,
-                     title_font_size=15,
-                     label_font_size=15,
-                     n_labels=3,
-                     title=title,
-                     #italic=True,  ##height=0.25, #vertical=True,
-                     fmt="%.1e",
-                     color=plotter._theme.font.color,
-                     font_family="arial")
-
-        # show the points
-        plotter.remove_actor("nans")
-        if show_all_points:
-            plotter.add_mesh(point_cloud, colormap=colormap, scalars=name + "_mag2", render=False)
-        elif show_nan:
+        # show the nan points
+        if show_nan:
+            R = obj_R[nan_values]
             if R.shape[0]:
-                plotter.add_mesh(point_cloud2, colormap=colormap, scalars="nan",
-                                                     show_scalar_bar=False, render=False, name="nans")
+                point_cloud2 = pv.PolyData(R)
+                point_cloud2.point_data["nan"] = obj_R[nan_values, 0] * np.nan
+                plotter.add_mesh(point_cloud2, colormap=colormap, scalars="nan", show_scalar_bar=False, render=False, name="nans")
+            else:
+                plotter.remove_actor("nans")
+        else:
+            plotter.remove_actor("nans")
 
         # add the arrows
+        sargs = dict(title_font_size=15, label_font_size=15, n_labels=3, title=title,
+                     fmt="%.1e", color=plotter._theme.font.color, font_family="arial")
         plotter.add_mesh(arrows, scalar_bar_args=sargs, colormap=colormap, name="arrows", opacity=arrow_opacity, render=False)
 
         # update the scalebar
@@ -241,7 +233,8 @@ def render_3d_arrows(params, result, plotter):
         plotter.remove_actor("arrows")
 
     # plot center points if desired
-    if center is not None:
+    if params_arrows.get("use_center", False):
+        center = obj.getCenter(mode="Force")
         plotter.add_points(np.array([center])*1e6, color='m', point_size=10, render=False, name="center")
     else:
         plotter.remove_actor("center")
@@ -282,7 +275,7 @@ def render_3d_image(params, result, plotter, exporter=None):
         x = np.linspace(xmin, -xmin, 10)
         y = np.linspace(ymin, -ymin, 10)
         x, y = np.meshgrid(x, y)
-        z = z_pos * voxel_size[2] * scale + 0 * x
+        z = z_pos * voxel_size[2] * scale * np.ones_like(x)
         # structureGrid
         curvsurf = pv.StructuredGrid(x, y, z)
         # Map the curved surface to a plane - use best fitting plane
@@ -308,54 +301,59 @@ def render_3d_bounds(params, result, plotter):
         print("skipped bounds")
         return
 
-    plotter.remove_bounds_axes()
-
     show_grid = params["show_grid"]
-    obj, field, center, name, colormap, factor, scale_max, stack_min_max, skip, alpha = get_current_arrow_data(params, result)
-    if obj is None:
-        plotter.remove_actor("border")
-        return
-    obj_R = obj.R * 1e6
-    scale = 1
-    if len(result.stack):
-        stack_shape = np.array(result.stack[0].shape[:3]) * np.array(
-            result.stack[0].voxel_size)
-    else:
-        stack_shape = None
 
-    if show_grid == 2 and (field is not None or stack_min_max is not None):
-        if field is not None:
-            xmin, ymin, zmin = obj_R.min(axis=0)
-            xmax, ymax, zmax = obj_R.max(axis=0)
-        else:
+    # show the mesh border cube
+    if show_grid == 2:
+        # get the mesh extent
+        stack_min_max = get_mesh_extent(params, result)
+        # if present draw a cube
+        if stack_min_max is not None:
             ((xmin, ymin, zmin), (xmax, ymax, zmax)) = stack_min_max
-        # plotter.show_bounds(bounds=[xmin, xmax, ymin, ymax, zmin, zmax], grid='front', location='outer', all_edges=True,
-        #                    show_xlabels=False, show_ylabels=False, show_zlabels=False,
-        #                    xlabel=" ", ylabel=" ", zlabel=" ", render=False)
-        corners = np.asarray([[xmin, ymin, zmin], [xmax, ymin, zmin], [xmin, ymax, zmin], [xmax, ymax, zmin],
-                              [xmin, ymin, zmax], [xmax, ymin, zmax], [xmin, ymax, zmax], [xmax, ymax, zmax]])
-        grid = pv.ExplicitStructuredGrid(np.asarray([2, 2, 2]), corners)
-        plotter.add_mesh(grid, style='wireframe', render_lines_as_tubes=True, line_width=2, show_edges=True,
-                         name="border")
-    elif show_grid == 3 and stack_shape is not None:
-        xmin, xmax = -stack_shape[0] / 2 * scale, stack_shape[0] / 2 * scale
-        # print(xmin,ymin)
-        ymin, ymax = -stack_shape[1] / 2 * scale, stack_shape[1] / 2 * scale
-        zmin, zmax = -stack_shape[2] / 2 * scale, stack_shape[2] / 2 * scale
-        corners = np.asarray([[xmin, ymin, zmin], [xmax, ymin, zmin], [xmin, ymax, zmin], [xmax, ymax, zmin],
-                              [xmin, ymin, zmax], [xmax, ymin, zmax], [xmin, ymax, zmax], [xmax, ymax, zmax]])
-        grid = pv.ExplicitStructuredGrid(np.asarray([2, 2, 2]), corners)
-        plotter.add_mesh(grid, style='wireframe', render_lines_as_tubes=True, line_width=2,
-                         show_edges=True, name="border")
+            corners = np.asarray([[xmin, ymin, zmin], [xmax, ymin, zmin], [xmin, ymax, zmin], [xmax, ymax, zmin],
+                                  [xmin, ymin, zmax], [xmax, ymin, zmax], [xmin, ymax, zmax], [xmax, ymax, zmax]])
+            grid = pv.ExplicitStructuredGrid(np.asarray([2, 2, 2]), corners)
+            plotter.add_mesh(grid, style='wireframe', render_lines_as_tubes=True, line_width=2, show_edges=True,
+                             name="border")
+        # or remove the current cube
+        else:
+            plotter.remove_actor("border")
+    # show the image stack border cube
+    elif show_grid == 3:
+        # get the stack shape
+        if len(result.stack):
+            stack_shape = np.array(result.stack[0].shape[:3]) * np.array(
+                result.stack[0].voxel_size)
+        else:
+            stack_shape = None
+        # draw a cube around it
+        if stack_shape is not None:
+            xmin, xmax = -stack_shape[0] / 2, stack_shape[0] / 2
+            ymin, ymax = -stack_shape[1] / 2, stack_shape[1] / 2
+            zmin, zmax = -stack_shape[2] / 2, stack_shape[2] / 2
+            corners = np.asarray([[xmin, ymin, zmin], [xmax, ymin, zmin], [xmin, ymax, zmin], [xmax, ymax, zmin],
+                                  [xmin, ymin, zmax], [xmax, ymin, zmax], [xmin, ymax, zmax], [xmax, ymax, zmax]])
+            grid = pv.ExplicitStructuredGrid(np.asarray([2, 2, 2]), corners)
+            plotter.add_mesh(grid, style='wireframe', render_lines_as_tubes=True, line_width=2,
+                             show_edges=True, name="border")
+        # or remove the border
+        else:
+            plotter.remove_actor("border")
     else:
         plotter.remove_actor("border")
-    if show_grid == 1 and (field is not None or stack_min_max is not None):
-        if field is not None:
-            xmin, ymin, zmin = obj_R.min(axis=0)
-            xmax, ymax, zmax = obj_R.max(axis=0)
-        else:
+
+    # show the coordinate axes
+    if show_grid == 1:
+        # get the extent of the mesh
+        stack_min_max = get_mesh_extent(params, result)
+        # show the grid or remove it
+        if stack_min_max is not None:
             ((xmin, ymin, zmin), (xmax, ymax, zmax)) = stack_min_max
-        plotter.show_grid(bounds=[xmin, xmax, ymin, ymax, zmin, zmax], color=plotter._theme.font.color, render=False)
+            plotter.show_grid(bounds=[xmin, xmax, ymin, ymax, zmin, zmax], color=plotter._theme.font.color, render=False)
+        else:
+            plotter.remove_bounds_axes()
+    else:
+        plotter.remove_bounds_axes()
 
 
 def render_3d_camera(params, result, plotter, exporter=None, double_render=False):
@@ -367,7 +365,9 @@ def render_3d_camera(params, result, plotter, exporter=None, double_render=False
         print("skipped camera")
         return
 
+    # reset the camera before rotating
     plotter.camera_position = "yz"
+
     # if the distance is not set use a reasonable default based on the current stack
     if params["camera"]["distance"] == 0:
         distance = plotter.camera.position[0]
@@ -375,20 +375,18 @@ def render_3d_camera(params, result, plotter, exporter=None, double_render=False
         if exporter is not None:
             exporter.input_distance.setValue(distance)
 
-
+    # define the offsets, they might need to be rotated by roll an azimuth
     dx = params["camera"]["offset_x"]
     dz = params["camera"]["offset_y"]
     dx, dz = rotate((dx, dz), params["camera"]["roll"])
     dx, dy = rotate((dx, 0), params["camera"]["azimuth"])
+    # position of the camera defined by offset and distance
     plotter.camera.position = (params["camera"]["distance"] - dy, -dx, -dz)
     plotter.camera.focal_point = (0 - dy, -dx, -dz)
-    # print(self.plotter.camera_position)
+    # the rotation angles of the camera
     plotter.camera.azimuth = params["camera"]["azimuth"]
     plotter.camera.elevation = params["camera"]["elevation"]
     plotter.camera.roll += params["camera"]["roll"]
-    # im = self.plotter.show(screenshot="test.png", return_img=True, auto_close=False,
-    #                       window_size=(self.input_width.value(), self.input_height.value()))
-    # self.plotter.camera.elevation = 30
 
 
 def rotate(pos, angle):
