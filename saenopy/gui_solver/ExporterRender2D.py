@@ -33,6 +33,12 @@ def render_2d_image(params, result, exporter):
     display_image = getVectorFieldImage(result, params, use_fixed_contrast_if_available=True, use_2D=True, exporter=exporter)
     if display_image is None:
         return None, None, 1, 1
+    if params["stack"]["channel_B"] != "":
+        params["stack"]["channel"] = params["stack"]["channel_B"]
+        display_imageB = getVectorFieldImage(result, params, use_fixed_contrast_if_available=True, exporter=exporter)
+    else:
+        display_imageB = None
+
     im_scale = params["image"]["scale"]
     aa_scale = params["image"]["antialiase"] + 1
 
@@ -42,12 +48,19 @@ def render_2d_image(params, result, exporter):
     if len(im.shape) == 2 and colormap2 is not None and colormap2 != "gray":
         import matplotlib.pyplot as plt
         cmap = plt.get_cmap(colormap2)
-        im = (cmap(im) * 255).astype(np.uint8)[:, :, :3]
+        im = cmap(im)
+
+        if display_imageB is not None:
+            print("add second", params["stack"]["channel_B"], params["stack"]["colormap_B"])
+            im += plt.get_cmap(params["stack"]["colormap_B"])(np.squeeze(display_imageB[0]))
+            im = np.clip(im, 0, 1)
+        im = (im * 255).astype(np.uint8)[:, :, :3]
 
     pil_image = Image.fromarray(im).convert("RGB")
     pil_image = pil_image.resize([int(pil_image.width * im_scale * aa_scale), int(pil_image.height * im_scale * aa_scale)])
 
     return pil_image, display_image, im_scale, aa_scale
+
 
 def render_2d_arrows(params, result, pil_image, im_scale, aa_scale, display_image):
     def project_data(R, field, skip=1):
@@ -63,6 +76,9 @@ def render_2d_arrows(params, result, pil_image, im_scale, aa_scale, display_imag
         return np.array([i for i in d2.index]), d2[["length", "angle"]]
 
     M, field, params_arrows, name = get_mesh_arrows(params, result)
+
+    if M is None:
+        return pil_image
 
     scale_max = params_arrows["scale_max"] if params_arrows["autoscale"] else None
     colormap = params_arrows["colormap"]
@@ -103,6 +119,7 @@ def render_2d_arrows(params, result, pil_image, im_scale, aa_scale, display_imag
                                headheight=params["2D_arrows"]["headheight"])
     return pil_image
 
+
 def render_2d_scalebar(params, result, pil_image, im_scale, aa_scale):
     def getBarParameters(pixtomu, scale=1):
         mu = 200 * pixtomu / scale
@@ -130,6 +147,7 @@ def render_2d_scalebar(params, result, pil_image, im_scale, aa_scale):
                              size_in_um=mu, color="w", unit="µm")
     return pil_image
 
+
 def render_2d_time(params, result, pil_image):
     if result is not None and result.time_delta is not None and params["time"]["display"]:
         pil_image = add_text(pil_image, get_time_text(params, result), position=(10, 10))
@@ -149,6 +167,7 @@ def render_2d_logo(params, result, pil_image, aa_scale):
         pil_image = pil_image.convert("RGBA")
         pil_image.alpha_composite(im_logo, dest=(pil_image.width - im_logo.width - padding, padding))
     return pil_image
+
 
 def add_quiver(pil_image, R, lengths, angles, max_length, cmap, alpha=1, scale=1):
     cmap = plt.get_cmap(cmap)
@@ -182,6 +201,8 @@ def add_quiver(pil_image, R, lengths, angles, max_length, cmap, alpha=1, scale=1
         color = (color[0], color[1], color[2], int(alpha*255))
         image.polygon(get_offset(getarrow(length), R[i], np.rad2deg(angle)), fill=color, outline=color)
     return pil_image
+
+
 def add_text(pil_image, text, position, fontsize=18):
     image = ImageDraw.ImageDraw(pil_image)
     font_size = int(round(fontsize * 4 / 3))  # the 4/3 appears to be a factor of "converting" screel dpi to image dpi

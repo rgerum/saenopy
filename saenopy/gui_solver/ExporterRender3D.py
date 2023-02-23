@@ -242,7 +242,9 @@ def render_3d_arrows(params, result, plotter):
 
 def render_3d_image(params, result, plotter, exporter=None):
     used_values = [
-        ("stack", ("image", "colormap", "use_reference_stack", "channel", "z", "z_proj", "contrast_enhance", "use_contrast_enhance")),
+        ("stack", ("image", "colormap", "use_reference_stack", "channel",
+                   "z", "z_proj", "contrast_enhance", "use_contrast_enhance",
+                   "channel_B", "colormap_B")),
         ("time", "t"),
     ]
     params, changed = filter_params(params, used_values, getattr(plotter, "previous_plot_params", {}))
@@ -253,15 +255,20 @@ def render_3d_image(params, result, plotter, exporter=None):
     colormap2 = params["stack"]["colormap"]
 
     display_image = getVectorFieldImage(result, params, use_fixed_contrast_if_available=True, exporter=exporter)
+    params["stack"]["channel"] = params["stack"]["channel_B"]
+    if params["stack"]["channel_B"] != "":
+        display_imageB = getVectorFieldImage(result, params, use_fixed_contrast_if_available=True, exporter=exporter)
+    else:
+        display_imageB = None
 
-    if display_image is not None:
-        img, voxel_size, z_pos = display_image
+    def adjust_im(img, colormap2):
         # adjust the direction of the underlying image
         # the combination of following both operations does the job
         img_adjusted = img[:, ::-1]  # mirror the image
         img_adjusted = np.swapaxes(img_adjusted, 1, 0)  # switch axis
 
-        if (len(img_adjusted.shape) == 2 or img_adjusted.shape[2] == 1) and colormap2 is not None and colormap2 != "gray":
+        if (len(img_adjusted.shape) == 2 or img_adjusted.shape[
+            2] == 1) and colormap2 is not None and colormap2 != "gray":
             import matplotlib.pyplot as plt
             if len(img_adjusted.shape) == 3:
                 img_adjusted = img_adjusted[:, :, 0]
@@ -269,6 +276,14 @@ def render_3d_image(params, result, plotter, exporter=None):
             img_adjusted = (cmap(img_adjusted) * 255).astype(np.uint8)[:, :, :3]
         elif len(img_adjusted.shape) == 2 or img_adjusted.shape[2] == 1:
             img_adjusted = np.tile(np.squeeze(img_adjusted)[:, :, None], (1, 1, 3))
+        return img_adjusted
+
+    if display_image is not None:
+        img, voxel_size, z_pos = display_image
+        img_adjusted = adjust_im(img, colormap2)
+        if display_imageB is not None:
+            img_adjusted = img_adjusted.astype(np.int16) + adjust_im(display_imageB[0], params["stack"]["colormap_B"])
+            img_adjusted = np.clip(img_adjusted, 0, 255).astype(np.uint8)
         # get coords
         xmin = (-img_adjusted.shape[1] / 2) * voxel_size[0] * scale
         ymin = (-img_adjusted.shape[0] / 2) * voxel_size[1] * scale

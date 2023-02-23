@@ -322,6 +322,13 @@ class ExportViewer(PipelineModule):
                         self.vtk_toolbar.button_z_proj.addToLayout()
                         self.vtk_toolbar.contrast_enhance.addToLayout()
                         self.vtk_toolbar.colormap_chooser2.addToLayout()
+
+                        QtShortCuts.QVLine().addToLayout()
+                        self.channel_selectB = QtShortCuts.QInputChoice(None, "", "", [""], ["       "],
+                                                                       tooltip="From which channel to display the stack image.")
+                        self.channel_selectB.valueChanged.connect(self.update_display)
+                        self.colormap_chooserB = QtShortCuts.QDragableColor("gray").addToLayout()
+                        self.colormap_chooserB.valueChanged.connect(self.update_display)
                         QtShortCuts.current_layout.addStretch()
 
                 with QtShortCuts.QGroupBox(None, "scale bar") as (self.box_scalebar, _):
@@ -471,6 +478,8 @@ class ExportViewer(PipelineModule):
                 "colormap": self.vtk_toolbar.colormap_chooser2,
                 "z": self.z_slider,
                 "use_reference_stack": self.input_reference_stack,
+                "channel_B": self.channel_selectB,
+                "colormap_B": self.colormap_chooserB,
             },
 
             "scalebar": {
@@ -672,9 +681,16 @@ class ExportViewer(PipelineModule):
                 self.vtk_toolbar.channel_select.setValues(np.arange(len(result.stack[0].channels)), result.stack[0].channels)
                 self.vtk_toolbar.channel_select.setValue(value)
                 self.vtk_toolbar.channel_select.setVisible(True)
+
+                value = self.channel_selectB.value()
+                self.channel_selectB.setValues([-1]+list(np.arange(len(result.stack[0].channels))),
+                                                          [""]+result.stack[0].channels)
+                self.channel_selectB.setValue("")
+                self.channel_selectB.setVisible(True)
             else:
                 self.vtk_toolbar.channel_select.setValue(0)
                 self.vtk_toolbar.channel_select.setVisible(False)
+                self.channel_selectB.setVisible(False)
 
             shape = result.stack[0].shape
             self.input_cropx.setRange(0, shape[1])
