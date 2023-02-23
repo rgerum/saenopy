@@ -9,22 +9,22 @@ import numpy as np
 from .ExportRenderCommon import get_time_text, getVectorFieldImage, get_current_arrow_data
 
 
-def render_3d(params, result, plotter):
+def render_3d(params, result, plotter, exporter=None):
 
     render = plotter.render
     plotter.render = lambda *args: None
     try:
         render_3d_arrows(params, result, plotter)
 
-        render_3d_image(params, result, plotter)
+        render_3d_image(params, result, plotter, exporter)
 
         render_3d_bounds(params, result, plotter)
 
-        render_3d_fibers(params, result, plotter)
+        render_3d_fibers(params, result, plotter, exporter)
 
         render_3d_text(params, result, plotter)
 
-        render_3d_camera(params, result, plotter, double_render=False)
+        render_3d_camera(params, result, plotter, exporter, double_render=False)
 
         plotter.previous_plot_params = params
         plotter.previous_plot_result = result
@@ -52,7 +52,8 @@ def filter_params(params, used_values, previous_params):
                 difference = d
     return new_params, difference
 
-def render_3d_fibers(params, result, plotter):
+
+def render_3d_fibers(params, result, plotter, exporter):
     used_values = [
         ("crop", ('y', 'x', 'z')),
         ("time", ("t",)),
@@ -84,7 +85,8 @@ def render_3d_fibers(params, result, plotter):
                                     crops=crops,
                                     **params["channel0"])
         stack_data = stack_data1
-        #self.channel0_properties.sigmoid.p.set_im(stack_data1["original"])
+        if exporter is not None:
+            exporter.channel0_properties.sigmoid.p.set_im(stack_data1["original"])
     else:
         stack_data1 = None
 
@@ -93,7 +95,8 @@ def render_3d_fibers(params, result, plotter):
         stack_data2 = process_stack(stack, 1,
                                     crops=crops,
                                     **params["channel1"])
-        #self.channel1_properties.sigmoid.p.set_im(stack_data2["original"])
+        if exporter is not None:
+            exporter.channel1_properties.sigmoid.p.set_im(stack_data2["original"])
         if stack_data1 is not None:
             stack_data = join_stacks(stack_data1, stack_data2, params["channel_thresh"])
         else:
@@ -244,9 +247,9 @@ def render_3d_arrows(params, result, plotter):
         plotter.remove_actor("center")
 
 
-def render_3d_image(params, result, plotter):
+def render_3d_image(params, result, plotter, exporter=None):
     used_values = [
-        ("stack", ("image", "colormap", "use_reference_stack", "channel", "z", "z_proj", "contrast_enhance")),
+        ("stack", ("image", "colormap", "use_reference_stack", "channel", "z", "z_proj", "contrast_enhance", "use_contrast_enhance")),
         ("time", "t"),
     ]
     params, changed = filter_params(params, used_values, getattr(plotter, "previous_plot_params", {}))
@@ -256,12 +259,7 @@ def render_3d_image(params, result, plotter):
     scale = 1
     colormap2 = params["stack"]["colormap"]
 
-    display_image = getVectorFieldImage(result, params, use_fixed_contrast_if_available=True)
-    if len(result.stack):
-        stack_shape = np.array(result.stack[0].shape[:3]) * np.array(
-            result.stack[0].voxel_size)
-    else:
-        stack_shape = None
+    display_image = getVectorFieldImage(result, params, use_fixed_contrast_if_available=True, exporter=exporter)
 
     if display_image is not None:
         img, voxel_size, z_pos = display_image
@@ -270,13 +268,12 @@ def render_3d_image(params, result, plotter):
         img_adjusted = img[:, ::-1]  # mirror the image
         img_adjusted = np.swapaxes(img_adjusted, 1, 0)  # switch axis
 
-        print(img_adjusted.shape)
-        if len(img_adjusted.shape) == 2 and colormap2 is not None and colormap2 != "gray":
+        if (len(img_adjusted.shape) == 2 or img_adjusted.shape[2] == 1) and colormap2 is not None and colormap2 != "gray":
             import matplotlib.pyplot as plt
+            if len(img_adjusted.shape) == 3:
+                img_adjusted = img_adjusted[:, :, 0]
             cmap = plt.get_cmap(colormap2)
-            # print(img_adjusted.shape, img_adjusted.dtype, img_adjusted.min(), img_adjusted.mean(), img_adjusted.max())
             img_adjusted = (cmap(img_adjusted) * 255).astype(np.uint8)[:, :, :3]
-            # print(img_adjusted.shape, img_adjusted.dtype, img_adjusted.min(), img_adjusted.mean(), img_adjusted.max())
         elif len(img_adjusted.shape) == 2 or img_adjusted.shape[2] == 1:
             img_adjusted = np.tile(np.squeeze(img_adjusted)[:, :, None], (1, 1, 3))
         # get coords
@@ -292,9 +289,10 @@ def render_3d_image(params, result, plotter):
         curvsurf.texture_map_to_plane(inplace=True)
         tex = pv.numpy_to_texture(img_adjusted)
         # add image below arrow field
-        mesh = plotter.add_mesh(curvsurf, texture=tex, name="image_mesh")
+        plotter.add_mesh(curvsurf, texture=tex, name="image_mesh")
     else:
         plotter.remove_actor("image_mesh")
+
 
 def render_3d_bounds(params, result, plotter):
     used_values = [
@@ -360,7 +358,7 @@ def render_3d_bounds(params, result, plotter):
         plotter.show_grid(bounds=[xmin, xmax, ymin, ymax, zmin, zmax], color=plotter._theme.font.color, render=False)
 
 
-def render_3d_camera(params, result, plotter, double_render=False):
+def render_3d_camera(params, result, plotter, exporter=None, double_render=False):
     used_values = [
         ("camera", ("elevation", "azimuth", "distance", "offset_x", "offset_y", "roll")),
     ]
@@ -369,17 +367,14 @@ def render_3d_camera(params, result, plotter, double_render=False):
         print("skipped camera")
         return
 
-    # self.plotter.reset_camera()
     plotter.camera_position = "yz"
-    # distance = self.plotter.camera.position[0]
-    # self.input_distance.setValue(distance)
-    #if params["camera"]["distance"] == 0: TODO
-    #    distance = plotter.camera.position[0]
-    #    self.input_distance.setValue(distance)
+    # if the distance is not set use a reasonable default based on the current stack
+    if params["camera"]["distance"] == 0:
+        distance = plotter.camera.position[0]
+        params["camera"]["distance"] = distance
+        if exporter is not None:
+            exporter.input_distance.setValue(distance)
 
-    # self.plotter.camera_position = "yz"
-    # distance = self.plotter.camera.position[0]
-    # self.plotter.camera.position = (self.input_distance.value(), 0, 10)
 
     dx = params["camera"]["offset_x"]
     dz = params["camera"]["offset_y"]

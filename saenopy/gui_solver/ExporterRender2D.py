@@ -17,8 +17,8 @@ from .ExportRenderCommon import get_time_text, getVectorFieldImage, get_current_
 
 
 
-def render_2d(params, result):
-    pil_image, display_image, im_scale, aa_scale = render_2d_image(params, result)
+def render_2d(params, result, exporter=None):
+    pil_image, display_image, im_scale, aa_scale = render_2d_image(params, result, exporter)
     if pil_image is None:
         return np.zeros((10, 10))
 
@@ -37,8 +37,8 @@ def render_2d(params, result):
     return np.asarray(pil_image)
 
 
-def render_2d_image(params, result):
-    display_image = getVectorFieldImage(result, params, use_fixed_contrast_if_available=True, use_2D=True)
+def render_2d_image(params, result, exporter):
+    display_image = getVectorFieldImage(result, params, use_fixed_contrast_if_available=True, use_2D=True, exporter=exporter)
     if display_image is None:
         return None, None, 1, 1
     im_scale = params["image"]["scale"]

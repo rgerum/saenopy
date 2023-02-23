@@ -71,7 +71,7 @@ def get_current_arrow_data(params, result):
     return M, field, center, name, colormap, factor, scale_max, stack_min_max, skip, alpha
 
 
-def getVectorFieldImage(result, params, use_fixed_contrast_if_available=False, use_2D=False):
+def getVectorFieldImage(result, params, use_fixed_contrast_if_available=False, use_2D=False, exporter=None):
     try:
         image = params["stack"]["image"]
         if use_2D:
@@ -90,21 +90,18 @@ def getVectorFieldImage(result, params, use_fixed_contrast_if_available=False, u
                 im = stack[:, :, :, params["stack"]["z"], channel]
             if params["stack"]["z_proj"]:
                 z_range = [0, 5, 10, 1000][params["stack"]["z_proj"]]
-                start = np.clip(params["stack"]["z"] - z_range, 0,
-                                stack.shape[2])
+                start = np.clip(params["stack"]["z"] - z_range, 0, stack.shape[2])
                 end = np.clip(params["stack"]["z"] + z_range, 0, stack.shape[2])
-                im = stack[:, :, :, start:end, params["stack"]["channel"]]
+                im = stack[:, :, :, start:end, channel]
                 im = np.max(im, axis=3)
 
-            if params["stack"]["contrast_enhance"]:
-                print("contreast!")
-                if use_fixed_contrast_if_available and getattr(result, "contrast_enhance_values", None):
-                    (min, max) = result.contrast_enhance_values
-                    print("current contrast", min, max)
+            if params["stack"]["use_contrast_enhance"]:
+                if use_fixed_contrast_if_available and params["stack"]["contrast_enhance"]:
+                    (min, max) = params["stack"]["contrast_enhance"]
                 else:
-                    print("new contrast")
                     (min, max) = np.percentile(im, (1, 99))
-                    result.contrast_enhance_values = (min, max)
+                    if exporter:
+                        exporter.vtk_toolbar.contrast_enhance_values.setValue((min, max))
                 im = im.astype(np.float32) - min
                 im = im.astype(np.float64) * 255 / (max - min)
                 im = np.clip(im, 0, 255).astype(np.uint8)

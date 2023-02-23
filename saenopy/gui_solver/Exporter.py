@@ -466,6 +466,7 @@ class ExportViewer(PipelineModule):
                 "image": self.vtk_toolbar.show_image,
                 "channel": self.vtk_toolbar.channel_select,
                 "z_proj": self.vtk_toolbar.button_z_proj,
+                "use_contrast_enhance": self.vtk_toolbar.contrast_enhance,
                 "contrast_enhance": self.vtk_toolbar.contrast_enhance_values,
                 "colormap": self.vtk_toolbar.colormap_chooser2,
                 "z": self.z_slider,
@@ -817,7 +818,7 @@ class ExportViewer(PipelineModule):
         if self.check_evaluated(self.result):
             if self.input_use2D.value():
                 from saenopy.gui_solver.ExporterRender2D import render_2d
-                im = render_2d(self.get_parameters(), self.result)
+                im = render_2d(self.get_parameters(), self.result, self)
                 self.pixmap1.setPixmap(QtGui.QPixmap(array2qimage(im)))
                 self.view1.setExtend(im.shape[1], im.shape[0])
                 self.view1.fitInView()
@@ -832,7 +833,7 @@ class ExportViewer(PipelineModule):
         self.plotter.render = lambda *args: None
         try:
             from saenopy.gui_solver.ExporterRender3D import render_3d
-            render_3d(self.get_parameters(), self.result, self.plotter)
+            render_3d(self.get_parameters(), self.result, self.plotter, self)
         finally:
             self.plotter.render = render
 
