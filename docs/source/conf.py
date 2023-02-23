@@ -10,7 +10,7 @@ import importlib.metadata
 from sphinx_gallery.sorting import FileNameSortKey
 
 project = 'saenopy'
-copyright = '2019-2022, Richard Gerum'
+copyright = '2019-2023, Richard Gerum, David Böhringer'
 author = 'Richard Gerum'
 release = importlib.metadata.metadata('saenopy')['version']
 
