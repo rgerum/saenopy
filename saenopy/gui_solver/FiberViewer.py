@@ -221,7 +221,7 @@ def join_stacks(stack_data1, stack_data2, thres_cell=1):
 
 class ChannelProperties(QtWidgets.QWidget):
     valueChanged = QtCore.Signal()
-    def __init__(self):
+    def __init__(self, use_channel=False):
         super().__init__()
         self.setMaximumHeight(100)
         with QtShortCuts.QHBoxLayout(self) as layout:
@@ -231,6 +231,11 @@ class ChannelProperties(QtWidgets.QWidget):
                     self.input_show = QtShortCuts.QInputBool(None, "show", True)
                     self.input_show.valueChanged.connect(self.checkDisabled)
                     self.input_skip = QtShortCuts.QInputNumber(None, "skip", 1, min=1, max=10, float=False)
+                    self.use_channel = use_channel
+                    if use_channel:
+                        self.channel_select = QtShortCuts.QInputChoice(None, "", 0, [0], ["       "],
+                                                                        tooltip="From which channel to display the second fiber image.")
+                        self.channel_select.valueChanged.connect(self.valueChanged)
                     layout.addStretch()
                 with QtShortCuts.QHBoxLayout() as layout:
                     self.input_sato = QtShortCuts.QInputNumber(None, "sato filter", 2, min=0, max=7, float=False)
@@ -262,12 +267,15 @@ class ChannelProperties(QtWidgets.QWidget):
         self.sigmoid.setEnabled(isActive)
 
     def value(self):
-        return dict(show=self.input_show.value(), skip=self.input_skip.value(), sigma_sato=self.input_sato.value(), sigma_gauss=self.input_gauss.value(),
+        value = dict(show=self.input_show.value(), skip=self.input_skip.value(), sigma_sato=self.input_sato.value(), sigma_gauss=self.input_gauss.value(),
                     percentiles=(0, 1),#(self.input_percentile1.value(), self.input_percentile2.value()),
                     range=self.sigmoid.p.get_range(),
                     #alpha=(self.input_alpha1.value(), self.input_alpha2.value(), self.input_alpha3.value()),
                     alpha=(self.sigmoid.a1, self.sigmoid.a2, self.sigmoid.a3),
                     cmap=self.input_cmap.value())
+        if self.use_channel:
+            value["channel"] = self.channel_select.value()
+        return value
 
     def setValue(self, params):
         self.input_show.setValue(params["show"])
@@ -280,6 +288,8 @@ class ChannelProperties(QtWidgets.QWidget):
         self.sigmoid.p.a3 = params["alpha"][2]
         self.sigmoid.p.update_line()
         self.input_cmap.setValue(params["cmap"])
+        if self.use_channel:
+            self.channel_select.setValue(params["channel"])
 
 
 class FiberViewer(PipelineModule):

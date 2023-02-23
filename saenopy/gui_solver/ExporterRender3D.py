@@ -57,7 +57,7 @@ def render_3d_fibers(params, result, plotter, exporter):
         ("time", ("t",)),
         ("stack", "use_reference_stack"),
         ("channel0", ("show", "sigma_sato", "sigma_gauss", "range", "alpha", "cmap")),
-        ("channel1", ("show", "sigma_sato", "sigma_gauss", "range", "alpha", "cmap")),
+        ("channel1", ("show", "sigma_sato", "sigma_gauss", "range", "alpha", "cmap", "channel")),
         "channel_thresh",
     ]
     params, changed = filter_params(params, used_values, getattr(plotter, "previous_plot_params", {}))
@@ -90,7 +90,10 @@ def render_3d_fibers(params, result, plotter, exporter):
 
     if params["channel1"]["show"] and crops[0] != crops[1] and crops[2] != crops[3] and crops[4] != \
             crops[5]:
-        stack_data2 = process_stack(stack, 1,
+
+        if isinstance(params["channel1"]["channel"], str):
+            params["channel1"]["channel"] = result.stack[0].channels.index(params["channel1"]["channel"])
+        stack_data2 = process_stack(stack,
                                     crops=crops,
                                     **params["channel1"])
         if exporter is not None:

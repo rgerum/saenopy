@@ -367,7 +367,7 @@ class ExportViewer(PipelineModule):
                         QtShortCuts.current_layout.setContentsMargins(0, 0, 0, 0)
                         self.channel0_properties = ChannelProperties().addToLayout()
                         self.channel0_properties.valueChanged.connect(self.update_display)
-                        self.channel1_properties = ChannelProperties().addToLayout()
+                        self.channel1_properties = ChannelProperties(True).addToLayout()
                         self.channel1_properties.valueChanged.connect(self.update_display)
                         self.channel0_properties.input_show.setValue(False)
                         self.channel0_properties.checkDisabled()
@@ -687,6 +687,12 @@ class ExportViewer(PipelineModule):
                                                           [""]+result.stack[0].channels)
                 self.channel_selectB.setValue("")
                 self.channel_selectB.setVisible(True)
+
+                value = self.channel1_properties.channel_select.value()
+                self.channel1_properties.channel_select.setValues(np.arange(len(result.stack[0].channels))[1:],
+                                               result.stack[0].channels[1:])
+                self.channel1_properties.channel_select.setValue(value)
+                self.channel1_properties.channel_select.setVisible(True)
             else:
                 self.vtk_toolbar.channel_select.setValue(0)
                 self.vtk_toolbar.channel_select.setVisible(False)
