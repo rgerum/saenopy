@@ -128,6 +128,8 @@ def unflatten_dict(data):
                 r = r[name]
             except TypeError:
                 r = r[int(name)]
+            except KeyError:
+                continue
             hierarchy.append(r)
 
         if isinstance(r, list):

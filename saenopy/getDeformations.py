@@ -283,9 +283,11 @@ def load_image_files_to_nparray(image_filenames, crop=None):
 
 
 class Stack(Saveable):
-    __save_parameters__ = ['template', 'image_filenames', 'filename', 'voxel_size', 'shape', 'channels', 'crop']
+    __save_parameters__ = ['template', 'image_filenames', 'filename', 'voxel_size', 'shape', 'channels', 'crop', 'packed_files']
     template: str = None
     image_filenames: list = None
+
+    packed_files: list = None
 
     images: list = None
     input: str = ""
@@ -296,7 +298,7 @@ class Stack(Saveable):
 
     leica_file = None
 
-    def __init__(self, template=None, voxel_size=None, filename=None, shape=None, channels=None, image_filenames=None, crop=None):
+    def __init__(self, template=None, voxel_size=None, filename=None, shape=None, channels=None, image_filenames=None, crop=None, **kwargs):
         print("stack",template)
         if template is None:
             if isinstance(filename, list):
@@ -344,6 +346,13 @@ class Stack(Saveable):
                 self.filename = list(filename)
                 self.images = list(filename)
         self.voxel_size = voxel_size
+        super().__init__(**kwargs)
+
+    def pack_files(self):
+        images = np.array(self.image_filenames)[:, :]
+        images = np.asarray(load_image_files_to_nparray(images, self.crop)).T
+
+        self.packed_files = images
 
     def description(self, z):
         try:
@@ -390,8 +399,11 @@ class Stack(Saveable):
             if isinstance(index[3], int):
                 images = images[:, :, :, 0]
             return images[index[0], index[1], index[2]]
-        images = np.array(self.image_filenames)[index[3], index[4]]
-        images = np.asarray(load_image_files_to_nparray(images, self.crop)).T
+        if self.packed_files is None:
+            images = np.array(self.image_filenames)[index[3], index[4]]
+            images = np.asarray(load_image_files_to_nparray(images, self.crop)).T
+        else:
+            images = self.packed_files[:, :, :, index[4], index[3]]
         images = np.swapaxes(images, 0, 2)
         return images[index[0], index[1], index[2]]
 

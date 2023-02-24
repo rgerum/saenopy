@@ -201,6 +201,7 @@ class BatchEvaluate(QtWidgets.QWidget):
 
     def path_editor(self):
         result = self.list.data[self.list.currentRow()][2]
+
         class PathEditor(QtWidgets.QDialog):
             def __init__(self, parent):
                 super().__init__(parent)
@@ -210,6 +211,8 @@ class BatchEvaluate(QtWidgets.QWidget):
                     self.label = QtShortCuts.SuperQLabel(
                         f"The current path is {result.template}.").addToLayout()
                     self.label.setWordWrap(True)
+                    self.input_pack = QtShortCuts.QInputBool(None, "pack files", False)
+                    self.input_save = QtShortCuts.QInputBool(None, "save", False)
                     self.input_folder = QtShortCuts.QInputFolder(None, "", Path(result.template), allow_edit=True)
                     if result.stack_reference:
                         self.input_folder2 = QtShortCuts.QInputFolder(None, "", Path(result.stack_reference.template), allow_edit=True)
@@ -263,6 +266,17 @@ class BatchEvaluate(QtWidgets.QWidget):
         if path_editor.input_folder2 is not None:
             path_changer = PathChanger(result.stack_reference.template, path_editor.input_folder2.value())
             path_changer.stack_change(result.stack_reference)
+
+        if path_editor.input_pack.value():
+            for stack in result.stack:
+                stack.pack_files()
+            if result.stack_reference:
+                stack_reference.pack_files()
+
+        if path_editor.input_save.value():
+            result.save()
+            print("saved")
+            return
 
     def progress(self, tup):
         n, total = tup
