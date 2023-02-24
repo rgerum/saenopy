@@ -652,7 +652,7 @@ class QInputFolder(QInput):
         self.button.clicked.connect(self._openDialog)
 
         # set the color
-        self.setValue(value)
+        self.setValue(str(value))
         if value is None:
             self.last_folder = os.getcwd()
 

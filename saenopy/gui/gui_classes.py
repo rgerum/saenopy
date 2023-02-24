@@ -304,6 +304,7 @@ class ListWidget(QtWidgets.QListWidget):
     addItemClicked = QtCore.Signal()
     signal_act_copy_clicked = QtCore.Signal()
     signal_act_paste_clicked = QtCore.Signal()
+    signal_act_paths_clicked = QtCore.Signal()
 
     data = []
     def __init__(self, layout, editable=False, add_item_button=False, color_picker=False, copy_params=False, allow_paste_callback=None):
@@ -327,6 +328,8 @@ class ListWidget(QtWidgets.QListWidget):
             self.act_paste = QtWidgets.QAction(qta.icon("fa5s.paste"), "Paste Parameters", self)
             self.act_paste.triggered.connect(self.signal_act_paste_clicked)
             self.allow_paste_callback = allow_paste_callback
+            self.act_path = QtWidgets.QAction(qta.icon("mdi.folder-multiple-image"), "Adjust Paths", self)
+            self.act_path.triggered.connect(self.signal_act_paths_clicked)
 
         self.setDragDropMode(QtWidgets.QAbstractItemView.InternalMove)
 
@@ -386,6 +389,7 @@ class ListWidget(QtWidgets.QListWidget):
                 menu.addAction(self.act_copy)
                 self.act_paste.setDisabled(not self.allow_paste_callback())
                 menu.addAction(self.act_paste)
+                menu.addAction(self.act_path)
 
             menu.addAction(self.act_delete)
 
