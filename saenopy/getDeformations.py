@@ -356,7 +356,7 @@ class Stack(Saveable):
         if self.leica_file is not None:
             return (self.leica_file.dims.y, self.leica_file.dims.x, self.leica_file.dims.z, 1)
         if self._shape is None:
-            readTiff(self.image_filenames[0][0])
+            im = readTiff(self.image_filenames[0][0])
             if self.crop is not None and "x" in self.crop:
                 im = im[:, slice(*self.crop["x"])]
             if self.crop is not None and "y" in self.crop:
