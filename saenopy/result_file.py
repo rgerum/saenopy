@@ -123,7 +123,7 @@ def get_stacks(filename, output_path, voxel_size, time_delta=None, reference_sta
             if "t" in r1["dimensions"]:
                 stacks = []
                 times = r1["times"]
-                if "t" in crop:
+                if (crop is not None) and ("t" in crop):
                     times = times[slice(*crop["t"])]
                 for t in times:
                     stacks.append(Stack(r1["filename"].replace("{t}", t), voxel_size, crop=crop))
