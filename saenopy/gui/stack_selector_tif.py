@@ -172,7 +172,7 @@ class StackSelectorTif(QtWidgets.QWidget):
 
         for col in df.columns:
             if len(df[col].unique()) == 1 and col != "filename":
-                self.format_template = self.format_template.replace("{" + col + "}", df[col].unique()[0], 1)
+                self.format_template = self.format_template.replace("{" + col + "}", str(df[col].unique()[0]), 1)
                 df.drop(col, inplace=True, axis=1)
 
         for prop in self.property_selectors:
