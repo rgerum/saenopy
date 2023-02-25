@@ -263,7 +263,7 @@ class StackSelectorTif(QtWidgets.QWidget):
             self.target_glob += "[z]"
         elif z_prop_name == "tiff pages":
             self.target_glob += "[t]"
-        elif selected_props_dict["tiff pages"] != 0:
+        elif ("tiff pages" in selected_props_dict) and (selected_props_dict["tiff pages"] != 0):
             self.target_glob += f'[{selected_props_dict["tiff pages"]}]'
         self.parent_selector.stack_changed.emit()
         self.parent_selector.glob_string_changed.emit('getstack', self.target_glob)
