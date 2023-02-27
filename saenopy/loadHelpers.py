@@ -44,6 +44,9 @@ class Saveable:
     def save(self, filename: str):
         data = self.to_dict()
 
+        if filename.endswith("h5py") or filename.endswith("h5"):
+            return dict_to_h5(filename, flatten_dict(data))
+
         #np.savez(filename, **data)
         np.lib.npyio._savez(filename, [], flatten_dict(data), True, allow_pickle=False)
 
@@ -68,9 +71,14 @@ class Saveable:
 
     @classmethod
     def load(cls, filename):
-        data = np.load(filename, allow_pickle=False)
+        if str(filename).endswith(".h5py") or str(filename).endswith(".h5"):
+            import h5py
+            data = h5py.File(filename, "a")
+            result = cls.from_dict(unflatten_dict_h5(data))
+        else:
+            data = np.load(filename, allow_pickle=False)
 
-        result = cls.from_dict(unflatten_dict(data))
+            result = cls.from_dict(unflatten_dict(data))
         if getattr(result, 'on_load', None) is not None:
             getattr(result, 'on_load')(filename)
         return result
@@ -79,6 +87,7 @@ def flatten_dict(data):
     result = {}
 
     def print_content(data, prefix):
+        print(prefix, type(data))
         if isinstance(data, list):  # and not isinstance(data[0], (int, float)):
             result[prefix] = "list"
             for name, d in enumerate(data):
@@ -145,6 +154,47 @@ def unflatten_dict(data):
             r[names[-1]] = item
 
     return result
+
+
+def dict_to_h5(filename, data):
+    import h5py
+    with h5py.File(filename, "w") as f:
+        for key in data.keys():
+            print(key)#, data[key].dtype)
+            if isinstance(data[key], str):
+                if str(data[key]) == "list" or str(data[key]) == "dict" or str(data[key]) == "tuple":
+                    grp = f.create_group(key)
+                    grp.attrs["type"] = str(data[key])
+                    continue
+                dset = f.create_dataset(key, data=str(data[key]))
+            elif str(data[key].dtype).startswith("<U"):
+                print(str(data[key]))
+                dset = f.create_dataset(key, data=str(data[key]))
+            else:
+                try:
+                    f.create_dataset(key, data=data[key], compression="gzip")
+                except TypeError:
+                    f.create_dataset(key, data=data[key])
+
+
+def unflatten_dict_h5(data):
+    import h5py
+    if isinstance(data, h5py.Group):
+        if data.attrs.get("type") == "list":
+            result = [unflatten_dict_h5(v) for v in data.values()]
+        elif data.attrs.get("type") == "tuple":
+            result = tuple([unflatten_dict_h5(v) for v in data.values()])
+        else:
+            result = {k: unflatten_dict_h5(v) for k, v in data.items()}
+        return result
+    else:
+        if data.shape == ():
+            try:
+                return data.asstr()[()]
+            except TypeError:
+                return data[()]
+        else:
+            return data
 
 def load(filename, *args, **kwargs):
     file2 = filename[:-4] + ".npy"
