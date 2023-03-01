@@ -274,10 +274,7 @@ class StackSelectorTif(QtWidgets.QWidget):
 
         #self.parent_selector.setZCount(len(d))
         self.d = d
-        if Path(d.iloc[0].filename).suffix in [".tif", ".tiff"]:
-            im = readTiff(d.iloc[0].filename)
-        else:
-            im = imageio.imread(d.iloc[0].filename)
+        im = readTiff(d.iloc[0].filename)
         if len(im.shape) == 3:
             im = im[:, :, 0]
         self.stack = np.zeros((im.shape[0], im.shape[1], len(d)), dtype=im.dtype)

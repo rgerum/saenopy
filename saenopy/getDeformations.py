@@ -257,12 +257,12 @@ def template_to_array(filename, crop):
 
 
 def readTiff(image_filenames):
-    if Path(image_filenames).suffix in [".tif", ".tiff"]:
+    if re.match(f".*\.tiff?(\[.*\])?$", str(image_filenames)):
         image_filenames = str(image_filenames)
         page = 0
         if image_filenames.endswith("]"):
             image_filenames, page = re.match(r"(.*)\[(\d*)\]", image_filenames).groups()
-        # im = io.imread(image_filenames)
+            page = int(page)
         tif = tifffile.TiffReader(image_filenames)
         page = tif.pages[page]
         if isinstance(page, list):
@@ -274,10 +274,7 @@ def readTiff(image_filenames):
 
 def load_image_files_to_nparray(image_filenames, crop=None):
     if isinstance(image_filenames, str):
-        if Path(image_filenames).suffix in [".tif", ".tiff"]:
-            im = readTiff(image_filenames)
-        else:
-            im = imageio.imread(image_filenames)
+        im = readTiff(image_filenames)
         if len(im.shape) == 2:
             im = im[:, :, None]
         if crop is not None and "x" in crop:
