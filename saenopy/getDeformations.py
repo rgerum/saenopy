@@ -22,6 +22,7 @@ import os
 import tifffile
 from scipy import interpolate
 from saenopy.loadHelpers import Saveable
+import imageio
 
 
 def double_glob(text):
@@ -256,21 +257,27 @@ def template_to_array(filename, crop):
 
 
 def readTiff(image_filenames):
-    image_filenames = str(image_filenames)
-    page = 0
-    if image_filenames.endswith("]"):
-        image_filenames, page = re.match(r"(.*)\[(\d*)\]", image_filenames).groups()
-    # im = io.imread(image_filenames)
-    tif = tifffile.TiffReader(image_filenames)
-    page = tif.pages[page]
-    if isinstance(page, list):
-        page = page[0]
-    return page.asarray()
+    if Path(image_filenames).suffix in [".tif", ".tiff"]:
+        image_filenames = str(image_filenames)
+        page = 0
+        if image_filenames.endswith("]"):
+            image_filenames, page = re.match(r"(.*)\[(\d*)\]", image_filenames).groups()
+        # im = io.imread(image_filenames)
+        tif = tifffile.TiffReader(image_filenames)
+        page = tif.pages[page]
+        if isinstance(page, list):
+            page = page[0]
+        return page.asarray()
+    im = imageio.imread(image_filenames)
+    return im
 
 
 def load_image_files_to_nparray(image_filenames, crop=None):
     if isinstance(image_filenames, str):
-        im = readTiff(image_filenames)
+        if Path(image_filenames).suffix in [".tif", ".tiff"]:
+            im = readTiff(image_filenames)
+        else:
+            im = imageio.imread(image_filenames)
         if len(im.shape) == 2:
             im = im[:, :, None]
         if crop is not None and "x" in crop:

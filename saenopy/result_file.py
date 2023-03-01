@@ -77,12 +77,18 @@ def process_line(filename, output_path):
                 filename, page = re.match("(.*.tif)\[(.*)\]", filename).groups()
             if not Path(filename).exists():
                 raise FileNotFoundError(f"Could not find file {filename}")
-            f = tifffile.TiffFile(filename)
-            if shape is None:
-                shape = f.pages[0].shape
+            if Path(filename).suffix in [".tif", ".tiff"]:
+                f = tifffile.TiffFile(filename)
+                file_shape = f.pages[0].shape
             else:
-                if f.pages[0].shape != shape:
-                    raise ValueError(f"Shape of file {filename} ({f.pages[0].shape}) does not match previous shape ({shape})")
+                from PIL import Image
+                im = Image.open(filename)
+                file_shape = (im.height, im.width)
+            if shape is None:
+                shape = file_shape
+            else:
+                if file_shape != shape:
+                    raise ValueError(f"Shape of file {filename} ({file_shape}) does not match previous shape ({shape})")
 
         # create the output path
         output = Path(output_path) / os.path.relpath(r1, output_base)

@@ -156,13 +156,17 @@ class StackSelectorTif(QtWidgets.QWidget):
         properties = []
         for file in filenames:
             prop = filename_to_prop_dict(regexpr, file)
-            tif = tifffile.TiffReader(file)
-            if len(tif.pages) > 1:
-                selected_prop["tiff pages"] = 0
+            if file.suffix in [".tif", ".tiff"]:
+                tif = tifffile.TiffReader(file)
+                if len(tif.pages) > 1:
+                    selected_prop["tiff pages"] = 0
             prop["filename"] = file
-            for page in range(0, len(tif.pages)):
-                prop["tiff pages"] = page
-                prop["filename"] = str(file)+f"[{page}]"
+            if file.suffix in [".tif", ".tiff"]:
+                for page in range(0, len(tif.pages)):
+                    prop["tiff pages"] = page
+                    prop["filename"] = str(file)+f"[{page}]"
+                    properties.append(prop.copy())
+            else:
                 properties.append(prop.copy())
         df = pd.DataFrame(properties)
 
@@ -270,7 +274,10 @@ class StackSelectorTif(QtWidgets.QWidget):
 
         #self.parent_selector.setZCount(len(d))
         self.d = d
-        im = readTiff(d.iloc[0].filename)
+        if Path(d.iloc[0].filename).suffix in [".tif", ".tiff"]:
+            im = readTiff(d.iloc[0].filename)
+        else:
+            im = imageio.imread(d.iloc[0].filename)
         if len(im.shape) == 3:
             im = im[:, :, 0]
         self.stack = np.zeros((im.shape[0], im.shape[1], len(d)), dtype=im.dtype)
