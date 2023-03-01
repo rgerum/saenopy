@@ -213,10 +213,10 @@ class DeformationDetector(PipelineModule):
                     count -= 1
                 # iterate over all stack pairs
                 for i in range(count):
-                    # get both stacks, either reference stack and one from the list
+                    # or two consecutive stacks
                     if result.stack_reference is None:
                         stack1, stack2 = result.stack[i], result.stack[i + 1]
-                    # or two consecutive stacks
+                    # get both stacks, either reference stack and one from the list
                     else:
                         stack1, stack2 = result.stack_reference, result.stack[i]
                     # and calculate the displacement between them
