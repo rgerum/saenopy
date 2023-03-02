@@ -125,18 +125,18 @@ for result in results:
 # +------------------+-------+
 # | mesh_size_same   | False |
 # +------------------+-------+
-# | mesh_size_x      |  900  |
+# | mesh_size_x      |  1000 |
 # +------------------+-------+
-# | mesh_size_y      |  900  |
+# | mesh_size_y      |  1000 |
 # +------------------+-------+
-# | mesh_size_z      |  900  |
+# | mesh_size_z      |  1000 |
 # +------------------+-------+
 # | reference_stack  |'first'|
 # +------------------+-------+
 #
 
 # define the parameters to generate the solver mesh and interpolate the piv mesh onto it
-params = {'reference_stack': 'first', 'element_size': 30, 'mesh_size_same': False, 'mesh_size_x': 900.0, 'mesh_size_y': 900.0, 'mesh_size_z': 900.0}
+params = {'reference_stack': 'first', 'element_size': 30, 'mesh_size_same': False, 'mesh_size_x': 1000.0, 'mesh_size_y': 1000.0, 'mesh_size_z': 1000.0}
 
 # iterate over all the results objects
 for result in results:
@@ -155,7 +155,7 @@ for result in results:
 # Calculating the Forces
 # ----------------------
 # Define the material model and run the regularisation to fit the measured deformations and get the forces. Here we define a low convergence criterion
-# and let the algorithm run for the maximal amount of steps that we define to 500. Afterwards, we can check the regularisation_results in the console or
+# and let the algorithm run for the maximal amount of steps that we define to 900. Afterwards, we can check the regularisation_results in the console or
 # in the graphical user interface.
 #
 # +--------------------+---------+
@@ -177,14 +177,14 @@ for result in results:
 # +--------------------------+---------+
 # | stepper                  |    0.33 |
 # +--------------------------+---------+
-# | i_max                    |    500  |
+# | i_max                    |    900  |
 # +--------------------------+---------+
-# | rel_conv_crit            |  3e-05  |
+# | rel_conv_crit            |  1e-7  |
 # +--------------------------+---------+
 #
 
 # define the parameters to generate the solver mesh and interpolate the piv mesh onto it
-params = {'k': 6062.0, 'd0': 0.0025, 'lambda_s': 0.0804, 'ds':  0.034, 'alpha': 10**10, 'stepper': 0.33, 'i_max': 500, 'rel_conv_crit': 3e-05}
+params = {'k': 6062.0, 'd0': 0.0025, 'lambda_s': 0.0804, 'ds':  0.034, 'alpha': 10**10, 'stepper': 0.33, 'i_max': 900, 'rel_conv_crit': 1e-7}
 
 # iterate over all the results objects
 for result in results:
