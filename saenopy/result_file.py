@@ -275,6 +275,17 @@ class Result(Saveable):
         Path(self.output).parent.mkdir(exist_ok=True, parents=True)
         super().save(self.output)
 
+    def clear_cache(self, solver_id):
+        # only if there is a solver
+        if self.solver[solver_id] is None:
+            return
+        # get the solver object and convert the important parts to a dict
+        data_dict = self.solver[solver_id].to_dict()
+        # delete the solver in the list so that the garbage collector can remove it
+        self.solver[solver_id] = None
+        # create a new solver object from the data
+        self.solver[solver_id] = Solver.from_dict(data_dict)
+
     def on_load(self, filename):
         self.output = str(Path(filename))
 

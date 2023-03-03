@@ -157,6 +157,9 @@ class Regularizer(PipelineModule):
                                 alpha=params["alpha"], rel_conv_crit=params["rel_conv_crit"],
                                 callback=callback, verbose=True)
 
+            # clear the cache of the solver
+            results.clear_cache(i)
+
     def property_changed(self, name, value):
         if name == "z_slider":
             self.z_slider.setValue(value)
@@ -218,7 +221,7 @@ class Regularizer(PipelineModule):
 
     def get_code(self) -> Tuple[str, str]:
         import_code = "import saenopy\n"
-        results = None
+        results: Result = None
         def code(my_reg_params):
             # define the parameters to generate the solver mesh and interpolate the piv mesh onto it
             params = my_reg_params
@@ -226,7 +229,7 @@ class Regularizer(PipelineModule):
             # iterate over all the results objects
             for result in results:
                 result.solve_parameter = params
-                for M in result.solver:
+                for index, M in enumerate(result.solver):
                     # set the material model
                     M.setMaterialModel(saenopy.materials.SemiAffineFiberMaterial(
                         params["k"],
@@ -236,8 +239,10 @@ class Regularizer(PipelineModule):
                     ))
                     # find the regularized force solution
                     M.solve_regularized(stepper=params["stepper"], i_max=params["i_max"], alpha=params["alpha"], rel_conv_crit=params["rel_conv_crit"], verbose=True)
-                # save the forces
-                result.save()
+                    # save the forces
+                    result.save()
+                    # clear the cache of the solver
+                    results.clear_cache(index)
 
         params = self.result.solve_parameter_tmp
         if params["d0"] == "None":
