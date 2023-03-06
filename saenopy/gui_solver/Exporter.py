@@ -616,9 +616,14 @@ class ExportViewer(PipelineModule):
             else:
                 new_path = str(new_path)
             import json
-            with open(new_path, "r") as fp:
-                self.set_parameters(json.load(fp))
-            self.update_display()
+            try:
+                with open(new_path, "r") as fp:
+                    self.set_parameters(json.load(fp))
+            except json.JSONDecodeError as err:
+                QtWidgets.QMessageBox.critical(self, "Load Parameters", f"Parameter file is corrupt:\n{err}")
+            else:
+                QtWidgets.QMessageBox.information(self, "Load Parameters", f"Parameter file successfully loaded.")
+                self.update_display()
 
     def copy_parameters(self):
         text = repr(self.get_parameters())
