@@ -265,6 +265,8 @@ class ChannelProperties(QtWidgets.QWidget):
         self.input_gauss.setEnabled(isActive)
         self.input_cmap.setEnabled(isActive)
         self.sigmoid.setEnabled(isActive)
+        if self.use_channel:
+            self.channel_select.setEnabled(isActive)
 
     def value(self):
         value = dict(show=self.input_show.value(), skip=self.input_skip.value(), sigma_sato=self.input_sato.value(), sigma_gauss=self.input_gauss.value(),
@@ -274,7 +276,7 @@ class ChannelProperties(QtWidgets.QWidget):
                     alpha=(self.sigmoid.a1, self.sigmoid.a2, self.sigmoid.a3),
                     cmap=self.input_cmap.value())
         if self.use_channel:
-            value["channel"] = self.channel_select.value()
+            value["channel"] = int(self.channel_select.value())
         return value
 
     def setValue(self, params):
