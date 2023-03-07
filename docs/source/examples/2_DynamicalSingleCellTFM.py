@@ -115,18 +115,17 @@ for result in results:
         count -= 1
     # iterate over all stack pairs
     for i in range(count):
-        # get both stacks, either reference stack and one from the list
+        # get two consecutive stacks
         if result.stack_reference is None:
             stack1, stack2 = result.stack[i], result.stack[i + 1]
-        # or two consecutive stacks
+        # or or reference stack and one from the list 
         else:
             stack1, stack2 = result.stack_reference, result.stack[i]
         
         # Due acceleration of the galvo stage there can be shaking in the 
         # lower or upper part of the stack. Therefore we recorded larger 
         # z-regions and then discard the upper or lower parts        
-        # stack1, stack2 = np.array(stack1[:,:,20:-20]), np.array(stack2[:,:,20:-20])
-            
+              
         
         # and calculate the displacement between them
         result.mesh_piv[i] = saenopy.get_displacements_from_stacks(stack1, stack2,
