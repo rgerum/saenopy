@@ -55,8 +55,11 @@ class MyScene(QtWidgets.QGraphicsScene):
         self.parent()
         e.accept()
 
+
 class QExtendedGraphicsView(QtWidgets.QGraphicsView):
     signal_zoom = QtCore.Signal(object, object)
+    signal_pan = QtCore.Signal(float, float)
+
     def __init__(self, dropTarget=None):
         QtWidgets.QGraphicsView.__init__(self)
 
@@ -144,10 +147,11 @@ class QExtendedGraphicsView(QtWidgets.QGraphicsView):
         # get the cosine and sine for the rotation
         c = np.cos(self.origin.angle * np.pi / 180)
         s = np.sin(self.origin.angle * np.pi / 180)
-        
+
         if with_transform:
             # compose the transformation matrix
-            t = self.origin.transform() * QtGui.QTransform(c, s, -s, c, 0, 0) * self.rotater1.transform() * self.translater.transform() * self.scaler.transform()
+            t = self.origin.transform() * QtGui.QTransform(c, s, -s, c, 0,
+                                                           0) * self.rotater1.transform() * self.translater.transform() * self.scaler.transform()
         else:
             # leave out the rotation
             t = self.origin.transform() * self.rotater1.transform() * self.translater.transform() * self.scaler.transform()
@@ -205,6 +209,7 @@ class QExtendedGraphicsView(QtWidgets.QGraphicsView):
         yoff = self.size().height() - height * scale
         self.translater.setTransform(QtGui.QTransform(1, 0, 0, 1, xoff * 0.5 / scale, yoff * 0.5 / scale))
         self.panEvent(xoff, yoff)
+        self.signal_pan.emit(xoff, yoff)
         self.zoomEvent(scale, QtCore.QPoint(0, 0))
         self.fitted = 1
 
@@ -228,9 +233,9 @@ class QExtendedGraphicsView(QtWidgets.QGraphicsView):
 
         # re-pan to the old x-center or y-center
         if self.size().width() / width < self.size().height() / height:
-            self.centerOn(np.mean([start_x, end_x]), height/2)
+            self.centerOn(np.mean([start_x, end_x]), height / 2)
         else:
-            self.centerOn(width/2, np.mean([start_y, end_y]))
+            self.centerOn(width / 2, np.mean([start_y, end_y]))
 
     def centerOn(self, x, y):
         """ center the view on pos(x,y)"""
@@ -252,19 +257,21 @@ class QExtendedGraphicsView(QtWidgets.QGraphicsView):
         # calculate center of view position
         # as it depends on the current window size and the pixmap size
         # calculation in image pixels
-        xoff = self.size().width()/scale - width
-        yoff = self.size().height()/scale - height
+        xoff = self.size().width() / scale - width
+        yoff = self.size().height() / scale - height
 
         # move the target coordinates to the center of the view
         # part 1 -> move point to the center of image (yes image not view!)
         # part 2 -> add offset between image and view
-        self.translater.setTransform(QtGui.QTransform(1, 0, 0, 1, (width/2 - x) + xoff/2 , (height/2 - y) + yoff/2),
-                                     combine=False)
+        self.translater.setTransform(
+            QtGui.QTransform(1, 0, 0, 1, (width / 2 - x) + xoff / 2, (height / 2 - y) + yoff / 2),
+            combine=False)
 
     def translateOrigin(self, x, y):
         # TODO do we still use this function or can we remove it?
         self.translater.setTransform(QtGui.QTransform(1, 0, 0, 1, x, y))
         self.panEvent(x, y)
+        self.signal_pan.emit(x, y)
 
     def scaleOrigin(self, scale, pos):
         pos = self.mapToScene(pos)
@@ -320,6 +327,7 @@ class QExtendedGraphicsView(QtWidgets.QGraphicsView):
             self.last_pos = new_pos
             self.fitted = 0
             self.panEvent(*delta)
+            self.signal_pan.emit(*delta)
         super(QExtendedGraphicsView, self).mouseMoveEvent(event)
 
     def DoTranslateOrigin(self, delta):
@@ -360,6 +368,7 @@ class QExtendedGraphicsView(QtWidgets.QGraphicsView):
     def link(self, other):
         view1 = self
         view2 = other
+
         def changes1(*args, scale=0, pos=0):
             view2.setOriginScale(
                 view1.getOriginScale() * view1.view_rect[0] / view2.view_rect[0])
@@ -391,7 +400,74 @@ class QExtendedGraphicsView(QtWidgets.QGraphicsView):
 
         view2.zoomEvent = zoomEvent
         view2.panEvent = changes2
-        #changes2()
+        # changes2()
+
+    def get_center(self):
+        start_x, start_y, end_x, end_y = self.GetExtend()
+        center_x, center_y = start_x + (end_x - start_x) / 2, start_y + (end_y - start_y) / 2
+        return center_x, center_y
+
+    def link2(self, other, link_x=True, link_y=False):
+        view1 = self
+        view2 = other
+
+        skip_signal = False
+
+        def changes1(*args, scale=0, pos=0):
+            nonlocal skip_signal
+            if skip_signal:
+                return
+            try:
+                skip_signal = True
+                view2.setOriginScale(view1.getOriginScale() * view1.view_rect[0] / view2.view_rect[0])
+                center_x, center_y = view1.get_center()
+                center_x = center_x / view1.view_rect[0] * view2.view_rect[0]
+                center_y = center_y / view1.view_rect[1] * view2.view_rect[1]
+
+                if not link_x:
+                    center_x = view2.get_center()[0]
+                if not link_y:
+                    center_y = view2.get_center()[1]
+
+                view2.centerOn(center_x, center_y)
+                view2.signal_zoom.emit(scale, pos)
+            finally:
+                skip_signal = False
+
+        def zoomEvent(scale, pos):
+            changes1(scale=scale, pos=pos)
+
+        view1.signal_zoom.connect(zoomEvent)
+        view1.signal_pan.connect(changes1)
+
+        def changes2(*args, scale=0, pos=0):
+            nonlocal skip_signal
+            if skip_signal:
+                return
+            try:
+                skip_signal = True
+                view1.setOriginScale(
+                    view2.getOriginScale() * view2.view_rect[0] / view1.view_rect[0])
+                center_x, center_y = view2.get_center()
+                center_x = center_x / view2.view_rect[0] * view1.view_rect[0]
+                center_y = center_y / view2.view_rect[1] * view1.view_rect[1]
+
+                if not link_x:
+                    center_x = view1.get_center()[0]
+                if not link_y:
+                    center_y = view1.get_center()[1]
+
+                view1.centerOn(center_x, center_y)
+                view1.signal_zoom.emit(scale, pos)
+            finally:
+                skip_signal = False
+
+        def zoomEvent(scale, pos):
+            changes2(scale=scale, pos=pos)
+
+        view2.signal_zoom.connect(zoomEvent)
+        view2.signal_pan.connect(changes2)
+        # changes2()
 
 
 if __name__ == '__main__':

@@ -158,7 +158,7 @@ class Regularizer(PipelineModule):
                                 callback=callback, verbose=True)
 
             # clear the cache of the solver
-            results.clear_cache(i)
+            result.clear_cache(i)
 
     def property_changed(self, name, value):
         if name == "z_slider":
@@ -242,7 +242,7 @@ class Regularizer(PipelineModule):
                     # save the forces
                     result.save()
                     # clear the cache of the solver
-                    results.clear_cache(index)
+                    result.clear_cache(index)
 
         params = self.result.solve_parameter_tmp
         if params["d0"] == "None":
