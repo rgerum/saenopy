@@ -276,7 +276,10 @@ class ChannelProperties(QtWidgets.QWidget):
                     alpha=(self.sigmoid.a1, self.sigmoid.a2, self.sigmoid.a3),
                     cmap=self.input_cmap.value())
         if self.use_channel:
-            value["channel"] = int(self.channel_select.value())
+            try:
+                value["channel"] = int(self.channel_select.value())
+            except TypeError:
+                value["channel"] = self.channel_select.value()
         return value
 
     def setValue(self, params):
