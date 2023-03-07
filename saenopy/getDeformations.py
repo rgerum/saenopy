@@ -60,7 +60,7 @@ def format_glob(pattern):
     if match:
         pattern, page = match.groups()
 
-    regexp_string = re.sub(r"\\{([^}]*)\\}", r"(?P<\1>.*)", re.escape(pattern).replace("\\*\\*", ".*").replace("\\*", ".*"))
+    regexp_string = re.sub(r"[^{]\\{([^{}]*)\\}[^}]", r"(?P<\1>.*)", re.escape(pattern).replace("\\*\\*", ".*").replace("\\*", ".*"))
     regexp_string3 = ""
     replacement = ""
     count = 1
@@ -74,6 +74,7 @@ def format_glob(pattern):
             replacement += f"\\{count}"
             count += 1
 
+    regexp_string = regexp_string.replace("\\{\\{", "\\{").replace("\\}\\}", "\\}")
     regexp_string2 = re.compile(regexp_string)
     glob_string = re.sub(r"({[^}]*})", "*", pattern)
 
@@ -85,7 +86,7 @@ def format_glob(pattern):
     for file in output_base.rglob(str(Path(glob_string).relative_to(output_base))):#glob.glob(glob_string, recursive=True):
         file = str(Path(file))
         group = regexp_string2.match(file).groupdict()
-        template_name = re.sub(regexp_string3, replacement, file)
+        template_name = re.sub(regexp_string3, replacement, file.replace("{", "{{").replace("}", "}}"))
         group["filename"] = file
         group["template"] = template_name
         try:

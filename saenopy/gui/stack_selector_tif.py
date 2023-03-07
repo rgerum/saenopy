@@ -170,6 +170,8 @@ class StackSelectorTif(QtWidgets.QWidget):
                 properties.append(prop.copy())
         df = pd.DataFrame(properties)
 
+        self.format_template = self.format_template.replace("{", "{{{{").replace("}", "}}}}")
+
         for key, value in selected_prop.items():
             if key in df.columns:
                 self.format_template = self.format_template.replace("*", "{"+key+"}", 1)
