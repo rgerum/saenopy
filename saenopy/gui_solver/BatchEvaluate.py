@@ -444,7 +444,7 @@ class BatchEvaluate(QtWidgets.QWidget):
                                         QtWidgets.QMessageBox.critical(self, "Deformation Detector", "Provide a stack for the deformed state.")
                                         return
                                     if self.stack_data.get_t_count() <= 1 and self.stack_reference.active is None:
-                                        QtWidgets.QMessageBox.critical(self, "Deformation Detector", "Provide either a reference stack for a time sequence.")
+                                        QtWidgets.QMessageBox.critical(self, "Deformation Detector", "Provide either a reference stack or a time sequence.")
                                         return
                                     if not self.stack_crop.validator():
                                         QtWidgets.QMessageBox.critical(self, "Deformation Detector", "Enter a valid voxel size.")
