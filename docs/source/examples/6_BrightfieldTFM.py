@@ -205,8 +205,8 @@ for result in results:
 #
 #  .. figure:: ../images/BF_TFM/Reconstruction.png 
 #   
-# The reconstructed force field (right) generates a reconstructed deformation field (middle)
-# that recapitulates the measured matrix deformation field (left). The overall cell contractility is 
+# The reconstructed force field (right) generates a reconstructed deformation field (left)
+# that recapitulates the measured matrix deformation field (upper video). The overall cell contractility is 
 # calculated as all force components pointing to the force epicenter.
 #
 #  .. figure:: ../images/BF_TFM/Nans.png 
