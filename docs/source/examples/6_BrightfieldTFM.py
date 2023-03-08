@@ -211,7 +211,7 @@ for result in results:
 #
 #  .. figure:: ../images/BF_TFM/Nans.png 
 #
-# The cell occupied area is omitted since the signal to noise filter replaces the limited information with Nan values.
+# The cell occupied area is omitted since the signal to noise filter replaces the limited information with Nan values (Grey Dots).
 # Therefore, no additional segmentation is required. Since we are working with simple brightfield images here, we 
-# also have no information below and above the cell.
+# do not have information below and above the cell.
 #
