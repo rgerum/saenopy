@@ -51,6 +51,8 @@ def loadExample(name, target_folder=None, progress_callback=None):
         downloadFiles("https://github.com/rgerum/saenopy/releases/download/v0.7.4/2_DynamicalSingleCellTFM.zip", target_folder, progress_callback=progress_callback)
     if name == "OrganoidTFM":
         downloadFiles("https://github.com/rgerum/saenopy/releases/download/v0.7.4/4_OrganoidTFM.zip", target_folder, progress_callback=progress_callback)
+    if name == "BrightfieldTFM":
+        downloadFiles("https://github.com/rgerum/saenopy/releases/download/v0.7.4/6_BrightfieldNK92Data.zip", target_folder, progress_callback=progress_callback)
     
 
 
@@ -91,7 +93,20 @@ def getExamples():
             "piv_parameter": {'win_um': 40.0, 'elementsize': 30.0, 'signoise_filter': 1.3, 'drift_correction': True},
             "interpolate_parameter": {'reference_stack': 'first', 'element_size': 30, 'inner_region': 100.0, 'thinning_factor': 0, 'mesh_size_same': False, 'mesh_size_x': 900.0, 'mesh_size_y': 900.0, 'mesh_size_z': 900.0},
             "solve_parameter": {'k': 6062.0, 'd0': 0.0025, 'lambda_s': 0.0804, 'ds':  0.034, 'alpha':  10**10, 'stepper': 0.33, 'i_max': 500,  'rel_conv_crit': 0.00003},
-    }
+    },
+        "BrightfieldTFM": {
+            "desc": "Traction forces around an immune cell in collagen 1.2mg/ml calculated on simple brightfield images",
+            "img": image_path / "BFTFM_2.png",
+            "voxel_size": [0.15, 0.15, 2.0],
+            "crop": {'x': (1590, 2390), 'y': (878, 1678), 'z': (30, 90)},
+            "stack": example_path / 'BrightfieldNK92Data/2023_02_14_12_0920_stack.tif[z]',
+            "reference_stack": example_path / 'BrightfieldNK92Data/2023_02_14_12_0850_stack.tif[z]',
+            "output_path": example_path / 'BrightfieldNK92Data/example_output',
+            "piv_parameter": {'win_um': 12.0, 'elementsize': 4.8, 'signoise_filter': 1.3, 'drift_correction': True},
+            "interpolate_parameter": {'reference_stack': 'next', 'element_size': 4.0, 'mesh_size_same': True, 'mesh_size_x': 200.0, 'mesh_size_y': 200.0, 'mesh_size_z': 200.0},
+            "solve_parameter": {'k': 6062.0, 'd0': 0.0025, 'lambda_s': 0.0804, 'ds':  0.034, 'alpha':  10**11, 'stepper': 0.33, 'i_max': 300, 'rel_conv_crit': 0.01},
+
+        },
     
 
     }
