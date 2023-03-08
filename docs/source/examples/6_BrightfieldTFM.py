@@ -9,7 +9,9 @@ Here simple brightfield image stacks are used to calculate
 the matrix deformations & forces around the cell.
 
 We compare the contracted state with the previous time step 30 seconds earlier.
-The cell of interest is cropped from a larger field of view.
+The cell of interest is cropped from a larger field of view. 
+
+This example can also be evaluated within the graphical user interface.
 
 
  .. figure:: ../images/BF_TFM/2D.gif
