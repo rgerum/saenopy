@@ -221,6 +221,7 @@ class QInputNumber(QInput):
             self.slider = None
 
         # add spin box
+        self.use_float = float
         if float:
             self.spin_box = QtWidgets.QDoubleSpinBox()
             self.spin_box.setDecimals(decimals)
@@ -271,7 +272,10 @@ class QInputNumber(QInput):
             self._emitSignal()
 
     def _doSetValue(self, value):
-        self.spin_box.setValue(value)
+        if self.use_float:
+            self.spin_box.setValue(value)
+        else:
+            self.spin_box.setValue(int(value))
         if self.slider is not None:
             if self.log_slider:
                 self.slider.setValue(int(np.log10(value) * self.decimal_factor))
