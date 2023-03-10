@@ -60,7 +60,7 @@ def format_glob(pattern):
     if match:
         pattern, page = match.groups()
 
-    regexp_string = re.sub(r"[^{]\\{([^{}]*)\\}[^}]", r"(?P<\1>.*)", re.escape(pattern).replace("\\*\\*", ".*").replace("\\*", ".*"))
+    regexp_string = re.sub(r"(?<!{)\\{([^{}]*)\\}(?!})", r"(?P<\1>.*)", re.escape(pattern).replace("\\*\\*", ".*").replace("\\*", ".*"))
     regexp_string3 = ""
     replacement = ""
     count = 1
