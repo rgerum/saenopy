@@ -1,35 +1,13 @@
 import sys
-
-# Setting the Qt bindings for QtPy
-import os
-
-os.environ["QT_API"] = "pyqt5"
-
 from qtpy import QtCore, QtWidgets, QtGui
-
-import numpy as np
-
-import pyvista as pv
-import vtk
-from pyvistaqt import QtInteractor
-
-import saenopy
-import saenopy.multigridHelper
-from saenopy.gui import QtShortCuts, QExtendedGraphicsView
-from saenopy.gui.stack_selector import StackSelector
-import imageio
-from qimage2ndarray import array2qimage
-import matplotlib.pyplot as plt
-import glob
-import imageio
-import threading
 from pathlib import Path
-import saenopy.getDeformations
-import saenopy.multigridHelper
-import saenopy.materials
+
+from skimage.filters import ridges, thresholding
+from saenopy.gui import QtShortCuts
 from saenopy.gui_deformation_whole2 import MainWindow as SolverMain
 from saenopy.gui_deformation_spheriod import MainWindow as SpheriodMain
 from saenopy.gui_orientation import MainWindow as OrientationMain
+
 
 class InfoBox(QtWidgets.QWidget):
     def __init__(self, name, func):
@@ -46,6 +24,7 @@ class InfoBox(QtWidgets.QWidget):
                     else:
                         self.text = QtWidgets.QLabel("Measure the orientations\nof fiberes in 2D images.\n\nAs a proxy for contractility.").addToLayout()
                     self.button1 = QtShortCuts.QPushButton(None, name, func)
+
 
 class MainWindow(QtWidgets.QWidget):
 
@@ -129,9 +108,20 @@ def main():
         ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
     print(sys.argv)
     window = MainWindow()
-    #if len(sys.argv) >= 2:
-    #    window.loadFile(sys.argv[1])
     window.show()
+    try:
+        import pyi_splash
+
+        # Update the text on the splash screen
+        pyi_splash.update_text("PyInstaller is a great software!")
+        pyi_splash.update_text("Second time's a charm!")
+
+        # Close the splash screen. It does not matter when the call
+        # to this function is made, the splash screen remains open until
+        # this function is called or the Python program is terminated.
+        pyi_splash.close()
+    except ImportError:
+        pass
     sys.exit(app.exec_())
 
 

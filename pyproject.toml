@@ -9,7 +9,7 @@ packages = [{include = "saenopy"}]
 
 
 [tool.poetry.dependencies]
-python = "^3.8"
+python = "^3.8,<3.12"
 numpy = "^1.23.4"
 scipy = "^1.9.3"
 tqdm = "^4.64.1"
@@ -40,6 +40,10 @@ docs = ["sphinx", "sphinx-rtd-theme", "nbsphinx", "sphinx-gallery"]
 [tool.poetry.scripts]
 saenopy = "saenopy.gui_master:main"
 
+
+[tool.poetry.group.dev.dependencies]
+pyinstaller = "^5.9.0"
+auto-py-to-exe = "^2.33.0"
 
 [build-system]
 requires = ["poetry-core"]
