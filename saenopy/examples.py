@@ -5,6 +5,7 @@ import os
 from pathlib import Path
 from urllib.request import urlretrieve
 import appdirs
+from saenopy.gui.resources import resource_path
 
 
 def reporthook(count, block_size, total_size, msg=None):
@@ -58,7 +59,7 @@ def loadExample(name, target_folder=None, progress_callback=None):
 
 def getExamples():
     example_path = Path(appdirs.user_data_dir("saenopy", "rgerum"))
-    image_path = Path(__file__).parent / "img" / "thumbnails"
+    image_path = Path(resource_path("thumbnails"))
     return {
         "ClassicSingleCellTFM": {
             "desc": "Hepatic stellate cells in 1.2mg/ml collagen with relaxed and deformed stacks.\nRelaxed state induced with cytochalasin D.\n3 examples",

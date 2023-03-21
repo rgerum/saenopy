@@ -4,6 +4,7 @@ from pathlib import Path
 from PIL import Image, ImageDraw, ImageFont
 import matplotlib
 import matplotlib.pyplot as plt
+from saenopy.gui.resources import resource_path
 
 from .showVectorField import getVectorFieldImage
 from .ExportRenderCommon import get_time_text, getVectorFieldImage, get_mesh_arrows
@@ -157,9 +158,9 @@ def render_2d_time(params, result, pil_image):
 def render_2d_logo(params, result, pil_image, aa_scale):
     if params["image"]["logo_size"] >= 10:
         if params["theme"] == "dark":
-            im_logo = Image.open(Path(__file__).parent / "../img/Logo_black.png")
+            im_logo = Image.open(resource_path("Logo_black.png"))
         else:
-            im_logo = Image.open(Path(__file__).parent / "../img/Logo.png")
+            im_logo = Image.open(resource_path("Logo.png"))
         scale = params["image"]["logo_size"] / im_logo.width  # im.width/400*0.2
         im_logo = im_logo.resize([int(400 * scale * aa_scale), int(200 * scale * aa_scale)])
         padding = int(im_logo.width * 0.1)

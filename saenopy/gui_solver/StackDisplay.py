@@ -16,6 +16,7 @@ import saenopy.getDeformations
 import saenopy.multigridHelper
 import saenopy.materials
 from saenopy import Result
+from saenopy.gui.resources import resource_path, resource_icon
 
 from typing import Tuple
 
@@ -68,8 +69,8 @@ class StackDisplay(PipelineModule):
                         layout.addStretch()
 
                         self.button_display_single = QtShortCuts.QInputBool(None, "", icon=[
-                            QtGui.QIcon(str(Path(__file__).parent.parent / "img" / "view_two.ico")),
-                            QtGui.QIcon(str(Path(__file__).parent.parent / "img" / "view_single.ico")),
+                            resource_icon("view_two.ico"),
+                            resource_icon("view_single.ico"),
                         ], group=True, tooltip=["Parallel view of the two stacks", "View only one stack and alternate view between them"])
                         self.button_display_single.valueChanged.connect(self.setSingle)
                         QtShortCuts.QVLine()
@@ -82,10 +83,10 @@ class StackDisplay(PipelineModule):
                         self.channel_select.valueChanged.connect(self.z_slider_value_changed)
 
                         self.button_z_proj = QtShortCuts.QInputBool(None, "", icon=[
-                            QtGui.QIcon(str(Path(__file__).parent.parent / "img" / "slice0.ico")),
-                            QtGui.QIcon(str(Path(__file__).parent.parent / "img" / "slice1.ico")),
-                            QtGui.QIcon(str(Path(__file__).parent.parent / "img" / "slice2.ico")),
-                            QtGui.QIcon(str(Path(__file__).parent.parent / "img" / "slice_all.ico")),
+                            resource_icon("slice0.ico"),
+                            resource_icon("slice1.ico"),
+                            resource_icon("slice2.ico"),
+                            resource_icon("slice_all.ico"),
                         ], group=False, tooltip=["Show only the current z slice",
                                                 "Show a maximum intensity projection over +-5 z slices",
                                                 "Show a maximum intensity projection over +-10 z slices",
@@ -96,8 +97,8 @@ class StackDisplay(PipelineModule):
                         parent.shared_properties.add_property("button_z_proj", self)
 
                         self.contrast_enhance = QtShortCuts.QInputBool(None, "", icon=[
-                            QtGui.QIcon(str(Path(__file__).parent.parent / "img" / "contrast0.ico")),
-                            QtGui.QIcon(str(Path(__file__).parent.parent / "img" / "contrast1.ico")),
+                            resource_icon("contrast0.ico"),
+                            resource_icon("contrast1.ico"),
                         ], group=False, tooltip="Toggle contrast enhancement")
                         self.contrast_enhance.valueChanged.connect(self.z_slider_value_changed)
                         self.contrast_enhance.valueChanged.connect(

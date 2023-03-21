@@ -34,6 +34,7 @@ from saenopy.getDeformations import getStack, Stack, format_glob
 from saenopy.multigridHelper import getScaledMesh, getNodesWithOneFace
 from saenopy.loadHelpers import Saveable
 from saenopy import Result
+from saenopy.gui.resources import resource_path
 
 from typing import List, Tuple
 
@@ -586,7 +587,7 @@ class BatchEvaluate(QtWidgets.QWidget):
                                     QtWidgets.QLabel \
                                         ("This example evaluates three hepatic stellate cells in 1.2mg/ml collagen with relaxed and deformed stacks.\nThe relaxed stacks were recorded with cytochalasin D treatment of the cells.").addToLayout()
                                     label = QtWidgets.QLabel().addToLayout()
-                                    pix = QtGui.QPixmap(str(Path(__file__).parent.parent / "img" / "examples" / "example1.png"))
+                                    pix = QtGui.QPixmap(resource_path("examples/example1.png"))
                                     pix = pix.scaledToWidth(
                                         int(200 * QtGui.QGuiApplication.primaryScreen().logicalDotsPerInch() / 96),
                                         QtCore.Qt.SmoothTransformation)

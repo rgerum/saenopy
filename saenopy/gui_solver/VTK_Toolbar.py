@@ -6,6 +6,8 @@ import pyvista as pv
 from pyvistaqt import QtInteractor
 from saenopy.gui import QtShortCuts
 from .ResultView import result_view
+from saenopy.gui.resources import resource_path, resource_icon
+
 
 class SetValuePseudoWidget:
     def __init__(self, value=None):
@@ -39,8 +41,8 @@ class VTK_Toolbar(QtWidgets.QWidget):
                                                   tooltip="Set a color theme for the 3D view.")
 
             self.auto_scale = QtShortCuts.QInputBool(None, "", icon=[
-                QtGui.QIcon(str(Path(__file__).parent.parent / "img" / "autoscale0.ico")),
-                QtGui.QIcon(str(Path(__file__).parent.parent / "img" / "autoscale1.ico")),
+                resource_icon("autoscale0.ico"),
+                resource_icon("autoscale1.ico"),
             ], group=False, tooltip="Automatically choose the maximum for the color scale.")
             #self.auto_scale = QtShortCuts.QInputBool(None, "auto color", True, tooltip="Automatically choose the maximum for the color scale.")
             self.auto_scale.setValue(True)
@@ -89,20 +91,20 @@ class VTK_Toolbar(QtWidgets.QWidget):
                     lambda value: shared_properties.change_property("colormap_chooser2" + addition, value, self))
                 shared_properties.add_property("colormap_chooser2"+addition, self)
             self.button_arrow_scale = QtShortCuts.QPushButton(None, "", lambda x: self.window_scale.show())
-            self.button_arrow_scale.setIcon(QtGui.QIcon(str(Path(__file__).parent.parent / "img" / "arrowscale.ico")))
+            self.button_arrow_scale.setIcon(resource_icon("arrowscale.ico"))
 
             self.use_nans = QtShortCuts.QInputBool(None, "", icon=[
-                QtGui.QIcon(str(Path(__file__).parent.parent / "img" / "nan0.ico")),
-                QtGui.QIcon(str(Path(__file__).parent.parent / "img" / "nan1.ico")),
+                resource_icon("nan0.ico"),
+                resource_icon("nan1.ico"),
             ], group=False, tooltip="Display nodes which do not have values associated as gray dots.")
 
             self.use_nans.valueChanged.connect(self.update_display)
             self.show_grid = QtShortCuts.QInputBool(None, "", True,
                                                      tooltip="Display a grid or a bounding box.", icon=[
-                    QtGui.QIcon(str(Path(__file__).parent.parent / "img" / "grid.ico")),
-                    QtGui.QIcon(str(Path(__file__).parent.parent / "img" / "grid2.ico")),
-                    QtGui.QIcon(str(Path(__file__).parent.parent / "img" / "grid3.ico")),
-                    QtGui.QIcon(str(Path(__file__).parent.parent / "img" / "grid3.ico")),
+                    resource_icon("grid.ico"),
+                    resource_icon("grid2.ico"),
+                    resource_icon("grid3.ico"),
+                    resource_icon("grid3.ico"),
                 ])
             self.show_grid.valueChanged.connect(self.update_display)
             self.show_grid.valueChanged.connect(lambda value: shared_properties.change_property("show_grid", value, self))
@@ -111,8 +113,8 @@ class VTK_Toolbar(QtWidgets.QWidget):
 
             if center is True:
                 self.use_center = QtShortCuts.QInputBool(None, "", icon=[
-                    QtGui.QIcon(str(Path(__file__).parent.parent / "img" / "center0.ico")),
-                    QtGui.QIcon(str(Path(__file__).parent.parent / "img" / "center1.ico")),
+                    resource_icon("center0.ico"),
+                    resource_icon("center1.ico"),
                 ], group=False, tooltip="Display the center of the force field.")
                 self.use_center.valueChanged.connect(self.update_display)
 
@@ -120,9 +122,9 @@ class VTK_Toolbar(QtWidgets.QWidget):
 
             self.show_image = QtShortCuts.QInputBool(None, "", True,
                                                    tooltip="Display the stack image in the stack or at the bottom.", icon=[
-                    QtGui.QIcon(str(Path(__file__).parent.parent / "img" / "show_image3.ico")),
-                    QtGui.QIcon(str(Path(__file__).parent.parent / "img" / "show_image.ico")),
-                    QtGui.QIcon(str(Path(__file__).parent.parent / "img" / "show_image2.ico")),
+                    resource_icon("show_image3.ico"),
+                    resource_icon("show_image.ico"),
+                    resource_icon("show_image2.ico"),
                 ])
             self.show_image.valueChanged.connect(self.update_display)
             self.show_image.valueChanged.connect(
@@ -136,10 +138,10 @@ class VTK_Toolbar(QtWidgets.QWidget):
             shared_properties.add_property("channel_select", self)
 
             self.button_z_proj = QtShortCuts.QInputBool(None, "", icon=[
-                QtGui.QIcon(str(Path(__file__).parent.parent / "img" / "slice0.ico")),
-                QtGui.QIcon(str(Path(__file__).parent.parent / "img" / "slice1.ico")),
-                QtGui.QIcon(str(Path(__file__).parent.parent / "img" / "slice2.ico")),
-                QtGui.QIcon(str(Path(__file__).parent.parent / "img" / "slice_all.ico")),
+                resource_icon("slice0.ico"),
+                resource_icon("slice1.ico"),
+                resource_icon("slice2.ico"),
+                resource_icon("slice_all.ico"),
             ], group=False, tooltip=["Show only the current z slice",
                                      "Show a maximum intensity projection over +-5 z slices",
                                      "Show a maximum intensity projection over +-10 z slices",
@@ -151,8 +153,8 @@ class VTK_Toolbar(QtWidgets.QWidget):
             shared_properties.add_property("button_z_proj", self)
 
             self.contrast_enhance = QtShortCuts.QInputBool(None, "", icon=[
-                QtGui.QIcon(str(Path(__file__).parent.parent / "img" / "contrast0.ico")),
-                QtGui.QIcon(str(Path(__file__).parent.parent / "img" / "contrast1.ico")),
+                resource_icon("contrast0.ico"),
+                resource_icon("contrast1.ico"),
             ], group=False, tooltip="Toggle contrast enhancement")
             self.contrast_enhance.valueChanged.connect(self.update_display)
             self.contrast_enhance.valueChanged.connect(

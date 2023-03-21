@@ -56,6 +56,7 @@ from matplotlib.colors import ListedColormap, LinearSegmentedColormap
 import matplotlib
 from saenopy.gui.gui_classes import CheckAbleGroup, MatplotlibWidget, NavigationToolbar
 from saenopy.gui_solver.FiberViewer import ChannelProperties, process_stack, join_stacks
+from saenopy.gui.resources import resource_path
 import time
 import datetime
 
@@ -877,9 +878,9 @@ class ExportViewer(PipelineModule):
         im = Image.open(tmp_file).convert("RGBA")
         if self.input_logosize.value() >= 10:
             if self.vtk_toolbar.theme.valueName() == "dark":
-                im_logo = Image.open(Path(__file__).parent / "../img/Logo_black.png")
+                im_logo = Image.open(resource_path("Logo_black.png"))
             else:
-                im_logo = Image.open(Path(__file__).parent / "../img/Logo.png")
+                im_logo = Image.open(resource_path("Logo.png"))
             scale = self.input_logosize.value() / im_logo.width  # im.width/400*0.2
             im_logo = im_logo.resize([int(400 * scale), int(200 * scale)])
             padding = int(im_logo.width * 0.1)

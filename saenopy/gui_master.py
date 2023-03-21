@@ -7,6 +7,7 @@ from saenopy.gui import QtShortCuts
 from saenopy.gui_deformation_whole2 import MainWindow as SolverMain
 from saenopy.gui_deformation_spheriod import MainWindow as SpheriodMain
 from saenopy.gui_orientation import MainWindow as OrientationMain
+from saenopy.gui.resources import resource_path, resource_icon
 
 
 class InfoBox(QtWidgets.QWidget):
@@ -37,7 +38,7 @@ class MainWindow(QtWidgets.QWidget):
         self.setMinimumWidth(800)
         self.setMinimumHeight(400)
         self.setWindowTitle("Saenopy")
-        self.setWindowIcon(QtGui.QIcon(str(Path(__file__).parent / "img/Icon.ico")))
+        self.setWindowIcon(resource_icon("Icon.ico"))
 
         self.settings = QtCore.QSettings("Saenopy", "Seanopy")
 
@@ -51,7 +52,7 @@ class MainWindow(QtWidgets.QWidget):
                     with QtShortCuts.QHBoxLayout() as layout2:
                         layout.addStretch()
                         self.image = QtWidgets.QLabel("x").addToLayout()
-                        self.image.setPixmap(QtGui.QPixmap(str(Path(__file__).parent / "img/Logo.png")))
+                        self.image.setPixmap(QtGui.QPixmap(resource_path("Logo.png")))
                         self.image.setScaledContents(True)
                         self.image.setMaximumWidth(400)
                         self.image.setMaximumHeight(200)

@@ -10,6 +10,7 @@ from saenopy.gui import QtShortCuts
 from saenopy.gui.gui_classes import QHLine, MatplotlibWidget, NavigationToolbar, execute, ListWidget
 from saenopy import Result
 from saenopy.gui_solver.BatchEvaluate import BatchEvaluate
+from saenopy.gui.resources import resource_path, resource_icon
 
 
 class PlottingWindow(QtWidgets.QWidget):
@@ -498,7 +499,7 @@ class MainWindow(QtWidgets.QWidget):
         self.setMinimumWidth(1600)
         self.setMinimumHeight(900)
         self.setWindowTitle("Saenopy Viewer")
-        self.setWindowIcon(QtGui.QIcon("img/Icon.ico"))
+        self.setWindowIcon(resource_icon("Icon.ico"))
 
         main_layout = QtWidgets.QHBoxLayout(self)
 
