@@ -8,7 +8,7 @@ a = Analysis(
     ['gui_master.py'],
     pathex=[],
     binaries=[],
-    datas=[],
+    datas=[ ('img/*', 'saenopy/img' ), ('img/thumbnails', 'saenopy/img/thumbnails' ) ],
     hiddenimports=[],
     hookspath=[],
     hooksconfig={},
@@ -19,11 +19,20 @@ a = Analysis(
     cipher=block_cipher,
     noarchive=False,
 )
+splash = Splash('img/Logo.png',
+                binaries=a.binaries,
+                datas=a.datas,
+                text_pos=(10, 50),
+                text_size=12,
+                text_color='black')
+
 pyz = PYZ(a.pure, a.zipped_data, cipher=block_cipher)
 
 exe = EXE(
     pyz,
     a.scripts,
+    splash,
+    splash.binaries,
     [],
     exclude_binaries=True,
     name='gui_master',
@@ -37,6 +46,7 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
+    icon='saenopy/img/Icon.ico',
 )
 coll = COLLECT(
     exe,

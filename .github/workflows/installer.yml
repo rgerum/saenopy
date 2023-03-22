@@ -1,0 +1,24 @@
+name: Upload Python Package
+
+on:
+  release:
+    types: [created]
+  workflow_dispatch:
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Package Application
+      uses: JackMcKew/pyinstaller-action-windows@main
+      with:
+        path: saenopy
+
+    - uses: actions/upload-artifact@v2
+      with:
+        name: name-of-artifact
+        path: src/dist/windows

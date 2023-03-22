@@ -121,7 +121,7 @@ def main():
         # to this function is made, the splash screen remains open until
         # this function is called or the Python program is terminated.
         pyi_splash.close()
-    except ImportError:
+    except (ImportError, RuntimeError):
         pass
     sys.exit(app.exec_())
 

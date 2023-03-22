@@ -1,0 +1,17 @@
+numpy
+scipy
+tqdm
+qimage2ndarray
+natsort
+pyvista
+pyvistaqt
+imagecodecs
+openpiv
+pyqt5
+qtawesome
+jointforces
+numba
+appdirs
+nptyping
+qtrangeslider
+h5py
