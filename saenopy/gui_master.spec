@@ -11,7 +11,6 @@ a = Analysis(
     datas=[ ('img/*', 'saenopy/img' ), ('img/thumbnails', 'saenopy/img/thumbnails' ) ],
     hiddenimports=[],
     hookspath=[],
-    hooksconfig={},
     runtime_hooks=[],
     excludes=[],
     win_no_prefer_redirects=False,

@@ -1,4 +1,4 @@
-name: Upload Python Package
+name: Create Windows PyInstaller .exe
 
 on:
   release:
@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
 
     - name: Package Application
       uses: JackMcKew/pyinstaller-action-windows@main
