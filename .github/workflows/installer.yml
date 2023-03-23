@@ -38,6 +38,7 @@ jobs:
       shell: bash
       run: |
           poetry run pyinstaller --clean -y --dist output/saenopy_run --onefile --icon "saenopy/img/Icon.ico" --splash "saenopy/img/Logo.png" --add-data "saenopy/img:saenopy/img"  saenopy/gui_master.py 
+          mv output/saenopy_run/gui_master output/saenopy_run/saenopy_linux
 
     - uses: actions/upload-artifact@v3
       with:
@@ -81,7 +82,7 @@ jobs:
       - name: build exe with pyinstaller
         shell: bash
         run: |
-          poetry run pyinstaller --clean -y --dist output/saenopy_run --onefile --icon "saenopy/img/Icon.ico" --splash "saenopy/img/Logo.png" --add-data "saenopy\img:saenopy\img"  saenopy/gui_master.py
+          poetry run pyinstaller --clean -y --dist output/saenopy_run --onefile --icon "saenopy/img/Icon.ico" --splash "saenopy/img/Logo.png" --add-data "saenopy/img;saenopy/img"  saenopy/gui_master.py
           rename output\saenopy_run\gui_master output\saenopy_run\saenopy_windows
 
       - uses: actions/upload-artifact@v3
