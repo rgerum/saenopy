@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  build:
+  build-linux:
 
     runs-on: ubuntu-latest
 
@@ -29,14 +29,55 @@ jobs:
         virtualenvs-in-project: true
         installer-parallel: true
 
-    - name: build exe with pyinstaller
+    - name: install dependencies
       shell: bash
       run: |
         poetry install --with dev
-        pip install pyinstaller
+
+    - name: build exe with pyinstaller
+      shell: bash
+      run: |
         poetry run pyinstaller --clean -y --dist output/saenopy_run --onefile saenopy/gui_master.py 
 
-    - uses: actions/upload-artifact@v2
+    - uses: actions/upload-artifact@v3
       with:
-        name: name-of-artifact
+        name: saenopy_linux
         path: output/saenopy_run
+
+  build-windows:
+
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up python
+        id: setup-python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+        #----------------------------------------------
+        #  -----  install & configure poetry  -----
+        #----------------------------------------------
+      - name: Install Poetry
+        uses: snok/install-poetry@v1
+        with:
+          virtualenvs-create: true
+          virtualenvs-in-project: true
+          installer-parallel: true
+
+      - name: install dependencies
+        shell: bash
+        run: |
+          poetry install --with dev
+
+      - name: build exe with pyinstaller
+        shell: bash
+        run: |
+          poetry run pyinstaller --clean -y --dist output/saenopy_run --onefile saenopy/gui_master.py 
+
+      - uses: actions/upload-artifact@v3
+        with:
+          name: saenopy_windows
+          path: output/saenopy_run
