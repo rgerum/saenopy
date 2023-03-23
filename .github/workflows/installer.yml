@@ -1,4 +1,4 @@
-name: Create Windows PyInstaller .exe
+name: Create Linux PyInstaller .exe
 
 on:
   release:
@@ -13,12 +13,21 @@ jobs:
     steps:
     - uses: actions/checkout@v3
 
-    - name: Package Application
-      uses: JackMcKew/pyinstaller-action-windows@main
+    - name: Set up python
+      id: setup-python
+      uses: actions/setup-python@v4
       with:
-        path: saenopy
+        python-version: '3.10'
+
+    - name: build exe with pyinstaller
+      shell: bash
+      run: |
+        python -m pip install --upgrade pip 
+        pip install -r requirements.txt      
+        pip install pyinstaller
+        pyinstaller --clean -y --dist output/saenopy_run --onefile saenopy/gui_master.py 
 
     - uses: actions/upload-artifact@v2
       with:
         name: name-of-artifact
-        path: src/dist/windows
+        path: output/saenopy_run
