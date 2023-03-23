@@ -34,7 +34,7 @@ jobs:
       run: |
         poetry install --with dev
         pip install pyinstaller
-        pyinstaller --clean -y --dist output/saenopy_run --onefile saenopy/gui_master.py 
+        poetry run pyinstaller --clean -y --dist output/saenopy_run --onefile saenopy/gui_master.py 
 
     - uses: actions/upload-artifact@v2
       with:
