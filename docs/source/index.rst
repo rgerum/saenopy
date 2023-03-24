@@ -35,6 +35,20 @@ This migration immune cell demonstrated what scientific discoveries you can achi
 Installation
 ------------
 
+Standalone
+~~~~~~~~~~
+You can download saenopy as a standalone application for windows or for linux:
+
+Windows
+https://github.com/rgerum/saenopy/releases/download/v0.8.0/saenopy_windows.exe
+
+Linux
+https://github.com/rgerum/saenopy/releases/download/v0.8.0/saenopy_linux
+
+Using Python
+~~~~~~~~~~~~
+
+If you are experienced with python or even want to use our Python API, you need to install saenopy as a python package.
 Saenopy can be installed directly using pip:
 
     ``pip install saenopy``
