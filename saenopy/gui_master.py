@@ -1,6 +1,7 @@
 import sys
 from qtpy import QtCore, QtWidgets, QtGui
 from pathlib import Path
+import multiprocessing
 
 from skimage.filters import ridges, thresholding
 from saenopy.gui import QtShortCuts
@@ -127,4 +128,7 @@ def main():
 
 
 if __name__ == '__main__':
+    # On Windows calling this function is necessary.
+    multiprocessing.freeze_support()
+
     main()
