@@ -1,4 +1,4 @@
-name: Create Linux PyInstaller .exe
+name: Create PyInstaller .exe
 
 on:
   release:
@@ -48,7 +48,7 @@ jobs:
     - name: Upload GitHub release assets
       uses: vesoft-inc/upload-assets@v1.0.0
       with:
-        asset-path: output/saenopy_run/gui_master
+        asset-path: output/saenopy_run/saenopy_linux
         tag: v0.8.0
 
   build-windows:
@@ -83,7 +83,7 @@ jobs:
         shell: bash
         run: |
           poetry run pyinstaller --clean -y --dist output/saenopy_run --onefile --icon "saenopy/img/Icon.ico" --splash "saenopy/img/Logo.png" --add-data "saenopy/img;saenopy/img"  saenopy/gui_master.py
-          rename output\saenopy_run\gui_master output\saenopy_run\saenopy_windows
+          mv output\saenopy_run\gui_master output\saenopy_run\saenopy_windows
 
       - uses: actions/upload-artifact@v3
         with:
