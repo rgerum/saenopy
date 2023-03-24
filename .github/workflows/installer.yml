@@ -46,10 +46,10 @@ jobs:
         path: output/saenopy_run
 
     - name: Upload GitHub release assets
-      uses: vesoft-inc/upload-assets@v1.0.0
-      with:
-        asset-path: output/saenopy_run/saenopy_linux
-        tag: v0.8.0
+      run: gh release upload $TAG output/saenopy_run/saenopy_linux
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        TAG: v0.8.0
 
   build-windows:
 
@@ -91,7 +91,7 @@ jobs:
           path: output/saenopy_run
 
       - name: Upload GitHub release assets
-        uses: vesoft-inc/upload-assets@v1.0.0
-        with:
-          asset-path: output\saenopy_run\saenopy_windows
-          tag: v0.8.0
+        run: gh release upload $TAG output\saenopy_run\saenopy_windows.exe
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: v0.8.0
