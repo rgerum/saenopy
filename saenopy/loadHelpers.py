@@ -87,7 +87,6 @@ def flatten_dict(data):
     result = {}
 
     def print_content(data, prefix):
-        print(prefix, type(data))
         if isinstance(data, list):  # and not isinstance(data[0], (int, float)):
             result[prefix] = "list"
             for name, d in enumerate(data):
@@ -160,7 +159,6 @@ def dict_to_h5(filename, data):
     import h5py
     with h5py.File(filename, "w") as f:
         for key in data.keys():
-            print(key)#, data[key].dtype)
             if isinstance(data[key], str):
                 if str(data[key]) == "list" or str(data[key]) == "dict" or str(data[key]) == "tuple":
                     grp = f.create_group(key)
@@ -168,7 +166,6 @@ def dict_to_h5(filename, data):
                     continue
                 dset = f.create_dataset(key, data=str(data[key]))
             elif str(data[key].dtype).startswith("<U"):
-                print(str(data[key]))
                 dset = f.create_dataset(key, data=str(data[key]))
             else:
                 try:

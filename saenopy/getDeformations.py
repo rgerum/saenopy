@@ -5,14 +5,11 @@ Created on Thu Oct 15 11:41:50 2020
 @author: david
 """
 
-import sys
 import glob as glob
-from tqdm import tqdm
 import numpy as np
 from pathlib import Path
 import re
 from openpiv.pyprocess3D import extended_search_area_piv3D
-from openpiv.lib import replace_nans
 from skimage import io
 import natsort
 import pandas as pd
@@ -50,7 +47,6 @@ def double_glob(text):
 
 
 def format_glob(pattern):
-    print("format glob", pattern)
     pattern = str(Path(pattern))
 
     match = re.match(r"(.*\.tif)\[(.*)\]", pattern)
@@ -149,49 +145,49 @@ def replace_outliers( u, v, w=None, method='localmean', max_iter=5, tol=1e-3, ke
     As integrted into OpenPiv Jun 19, 2020.
     Since OpenPIV changed several functions lateron, we use this version
     to replace outliers with np.nan dependend on the signal2noise ratio here
-    
+
     Replace invalid vectors in an velocity field using an iterative image inpainting algorithm.
-    
+
     The algorithm is the following:
-    
+
     1) For each element in the arrays of the ``u`` and ``v`` components, replace it by a weighted average
        of the neighbouring elements which are not invalid themselves. The weights depends
        of the method type. If ``method=localmean`` weight are equal to 1/( (2*kernel_size+1)**2 -1 )
-       
+
     2) Several iterations are needed if there are adjacent invalid elements.
        If this is the case, inforation is "spread" from the edges of the missing
-       regions iteratively, until the variation is below a certain threshold. 
-    
+       regions iteratively, until the variation is below a certain threshold.
+
     Parameters
     ----------
-    
+
     u : 2d or 3d np.ndarray
         the u velocity component field
-        
+
     v : 2d or 3d  np.ndarray
         the v velocity component field
     w : 2d or 3d  np.ndarray
         the w velocity component field
-        
+
     max_iter : int
         the number of iterations
     fil
     kernel_size : int
         the size of the kernel, default is 1
-        
+
     method : str
         the type of kernel used for repairing missing vectors
-        
+
     Returns
     -------
     uf : 2d or 3d np.ndarray
         the smoothed u velocity component field, where invalid vectors have been replaced
-        
+
     vf : 2d or 3d np.ndarray
         the smoothed v velocity component field, where invalid vectors have been replaced
     wf : 2d or 3d np.ndarray
         the smoothed w velocity component field, where invalid vectors have been replaced
-        
+
     """
     uf = replace_nans_py(u, method=method, max_iter=max_iter, tol=tol, kernel_size=kernel_size)
     vf = replace_nans_py(v, method=method, max_iter=max_iter, tol=tol, kernel_size=kernel_size)
@@ -444,7 +440,7 @@ def filenames_to_channel_template(filenames):
         else:
             continue
         i -= 1
-        while filenames[0][i] in "0123456789":
+        while filenames[0][i].isdigits():
             i -= 1
         i += 1
         break
@@ -455,7 +451,7 @@ def filenames_to_channel_template(filenames):
         else:
             continue
         j += 1
-        while filenames[0][j] in "0123456789":
+        while filenames[0][j].isdigits():
             j += 1
         break
     template = filenames[0][:i] + "{c:" + filenames[0][i:j] + "}" + filenames[0][j:]
@@ -710,226 +706,3 @@ def interpolate_different_mesh(R, U, Rnew):
         Unew[np.isnan(Unew[:, 0]), :] = Unew2[np.isnan(Unew[:, 0]), :]
 
     return Unew
-
-
-if __name__ == "__main__":
-    from saenopy.result_file import get_channel_placeholder
-
-    def get_iterator(values, name="", iter=None):
-        if iter is None:
-            for v in values:
-                yield {name: v}
-        else:
-            for v in values:
-                for t in iter:
-                    t[name] = v
-                    yield t
-
-    def template_to_array(filename):
-        filename, channel1 = get_channel_placeholder(filename)
-        results1, output_base = format_glob(filename)
-        for (template, d1) in results1.groupby("template"):
-            z_indices = natsort.natsorted(d1.z.unique())
-            if channel1 is not None:
-                c_indices = natsort.natsorted(d1.c.unique())
-                c_indices.remove(channel1)
-                c_indices = [channel1] + c_indices
-                image_filenames = []
-                for c in c_indices:
-                    image_filenames.append([])
-                    for z in z_indices:
-                        image_filenames[-1].append(template.format(z=z, c=c))
-            else:
-                image_filenames = [[]]
-                for z in z_indices:
-                    image_filenames.append(template.format(z=z))
-                c_indices = [""]
-        return image_filenames, c_indices
-
-    if 1:
-        image_filenames, c_indices = template_to_array("/home/richard/.local/share/saenopy/2_DynamicalSingleCellTFM/data/Pos*_S*_t00_z{z}_ch{c:01}.tif")
-        for im in image_filenames:
-            print("channel")
-            for i in im[:3]:
-                print(i)
-            print("...")
-        print(c_indices)
-        image_filenames, c_indices = template_to_array("/home/richard/.local/share/saenopy/1_ClassicSingleCellTFM/Deformed/Mark_and_Find_001/Pos003_S001_z{z}_ch{c:01}.tif")
-        for im in image_filenames:
-            print("channel")
-            for i in im[:3]:
-                print(i)
-            print("...")
-        image_filenames = np.array(image_filenames)[0:2, 1:5]
-        def to_stack(image_filenames):
-            if isinstance(image_filenames, str):
-                im = io.imread(image_filenames)
-                return im[:,:,None]
-            else:
-                return [to_stack(i) for i in image_filenames]
-        image_stack = np.asarray(to_stack(image_filenames)).T
-        #image_stack = np.swapaxes(image_stack, 1, 0)
-        shape = list(image_stack.shape)
-        image_stack = np.swapaxes(image_stack, 2, 0)
-        shape[0]
-        print(image_stack.shape)
-        #print(image_filenames)
-        #print(c_indices)
-        exit()
-
-    def process_line(filename, output_path):
-        results = []
-        filename, channel1 = get_channel_placeholder(filename)
-        results1, output_base = format_glob(filename)
-        for (r1, d1) in results1.groupby("template"):
-            counts = {"z": len(d1.z.unique())}
-            iterator = get_iterator(d1.z.unique(), "z")
-            if channel1 is not None:
-                r1 = r1.replace("{c}", "{c:"+channel1+"}")
-                counts["c"] = len(d1.c.unique())
-                iterator = get_iterator(d1.c.unique(), "c", iterator)
-            if "t" in d1.columns:
-                counts["t"] = len(d1.t.unique())
-                iterator = get_iterator(d1.t.unique(), "t", iterator)
-            #print(r1, counts, np.prod([c for c in counts.values()]), len(d1))
-            #assert np.prod([c for c in counts.values()]) == len(d1)
-            # check if all files exist and have the same shape
-            template = d1.iloc[0].template
-            shape = None
-            for props in iterator:
-                filename = template.format(**props)
-                if not Path(filename).exists():
-                    raise FileNotFoundError()
-                f = tifffile.TiffFile(filename)
-                if shape is None:
-                    shape = f.pages[0].shape
-                else:
-                    if f.pages[0].shape != shape:
-                        raise ValueError()
-
-            # create the output path
-            output = Path(output_path) / os.path.relpath(r1, output_base)
-            output = output.parent / output.stem
-            output = Path(str(output).replace("*", "").replace("{c}", "{c:" + str(channel1) + "}") + ".npz")
-
-            results.append({"filename": r1, "dimensions": counts, "output": output})
-            if "t" in d1.columns:
-                results[-1]["times"] = natsort.natsorted(d1.t.unique())
-        return results
-
-    from saenopy.result_file import Result
-    def get_stacksX(filename, output_path, voxel_size, time_delta=None, reference_stack=None, exist_overwrite_callback=None):
-        results1 = process_line(filename, output_path)
-        results = []
-        if reference_stack is not None:
-            results2 = process_line(reference_stack, output_path)
-            if len(results1) != len(results2):
-                raise ValueError(f"Number of active stacks ({len(results1)}) does not match the number of reference stacks ({len(results2)}).")
-            for r1, r2 in zip(results1, results2):
-                if r1["dimensions"]["z"] != r2["dimensions"]["z"]:
-                    raise ValueError("active and reference stack need the same number of z slices")
-                if "t" in r2["dimensions"]:
-                    raise ValueError("the reference stack is not allowed to have different time points")
-                if "c" in r1["dimensions"]:
-                    if "c" not in r2["dimensions"]:
-                        raise ValueError("if the active stack has channels the reference stack also needs channels")
-                    if r1["dimensions"]["c"] != r2["dimensions"]["c"]:
-                        raise ValueError("the active stack and the reference stack also need the same number of channels")
-
-                if "t" in r1["dimensions"]:
-                    stacks = []
-                    for t in r1["times"]:
-                        stacks.append(Stack(r1["filename"].replace("{t}", t), voxel_size))
-                else:
-                    stacks = [Stack(r1["filename"], voxel_size)]
-
-                output = r1["output"]
-                if output.exists() and exist_overwrite_callback is not None:
-                    mode = exist_overwrite_callback(output)
-                    if mode == 0:
-                        break
-                    if mode == "read":
-                        print('exists', output)
-                        data = Result.load(output)
-                        results.append(data)
-                        continue
-
-                data = Result(
-                    output=output,
-                    template=r1["filename"],
-                    stack=stacks,
-                    stack_reference=Stack(r2["filename"], voxel_size),
-                    time_delta=time_delta,
-                )
-                data.save()
-                results.append(data)
-        else:
-            for r1 in results1:
-                if "t" in r1["dimensions"]:
-                    stacks = []
-                    for t in r1["times"]:
-                        stacks.append(Stack(r1["filename"].replace("{t}", t), voxel_size))
-                else:
-                    stacks = [Stack(r1["filename"], voxel_size)]
-
-                output = r1["output"]
-                if output.exists() and exist_overwrite_callback is not None:
-                    mode = exist_overwrite_callback(output)
-                    if mode == 0:
-                        break
-                    if mode == "read":
-                        print('exists', output)
-                        data = Result.load(output)
-                        results.append(data)
-                        continue
-
-                data = Result(
-                    output=r1["output"],
-                    template=r1["filename"],
-                    stack=stacks,
-                    time_delta=time_delta,
-                )
-                data.save()
-                results.append(data)
-        return results
-
-    if 0:
-        filenames = ['/home/richard/.local/share/saenopy/1_ClassicSingleCellTFM/Deformed/Mark_and_Find_001/Pos003_S001_z*_ch000.tif', '/home/richard/.local/share/saenopy/1_ClassicSingleCellTFM/Deformed/Mark_and_Find_001/Pos003_S001_z*_ch020.tif', '/home/richard/.local/share/saenopy/1_ClassicSingleCellTFM/Deformed/Mark_and_Find_001/Pos003_S001_z*_ch010.tif']
-        for i in range(len(filenames[0])):
-            for file in filenames[1:]:
-                if file[:i] != filenames[0][:i]:
-                    break
-            else:
-                continue
-            i -= 1
-            while filenames[0][i] in "0123456789":
-                i -= 1
-            i += 1
-            break
-        for j in range(len(filenames[0])-1, 0, -1):
-            for file in filenames[1:]:
-                print(file[j:], filenames[0][j:], file[j:] != filenames[0][j:])
-                if file[j:] != filenames[0][j:]:
-                    break
-            else:
-                continue
-            j += 1
-            while filenames[0][j] in "0123456789":
-                j += 1
-            break
-        template = filenames[0][:i] + "{c:" + filenames[0][i:j] + "}" + filenames[0][j:]
-        print(i, j, filenames[0][:i], filenames[0][i:j], filenames[0][j:])
-        print(template)
-        exit(0)
-    #process_line("/home/richard/.local/share/saenopy/2_DynamicalSingleCellTFM/data/Pos*_S*_t*_z{z}_ch{c:01}.tif")
-    from saenopy import get_stacks
-    get_stacks("/home/richard/.local/share/saenopy/2_DynamicalSingleCellTFM/data/Pos002_S001_t00_z{z}_ch{c:01}.tif",
-               "/home/richard/.local/share/saenopy/2_DynamicalSingleCellTFM/output",
-               [0.1, 0.1, 0.1],
-               time_delta=1,
-               #reference_stack="/home/richard/.local/share/saenopy/2_DynamicalSingleCellTFM/data/Pos002_S001_t00_z{z}_ch{c:01}.tif",
-               )
-    #process_line("/home/richard/.local/share/saenopy/2_DynamicalSingleCellTFM/data/Pos002_S001_t00_z{z}_ch01.tif")
-    #process_line("/home/richard/.local/share/saenopy/2_DynamicalSingleCellTFM/data/Pos002_S001_t{t}_z{z}_ch01.tif")
-    #process_line("/home/richard/.local/share/saenopy/2_DynamicalSingleCellTFM/data/Pos002_S001_t*_z{z}_ch01.tif")
-    #Stack("/home/richard/.local/share/saenopy/2_DynamicalSingleCellTFM/data/Pos002_S001_t00_z{z}_ch01.tif", [0.1, 0.1, 0.1])

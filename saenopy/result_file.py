@@ -56,6 +56,7 @@ def process_line(filename, output_path):
         return results
     filename, channel1 = get_channel_placeholder(filename)
     results1, output_base = format_glob(Path(filename))
+
     for (r1, d1) in results1.groupby("template"):
         counts = {"z": len(d1.z.unique())}
         iterator = get_iterator(d1.z.unique(), "z")
