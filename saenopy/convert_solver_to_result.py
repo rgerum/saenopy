@@ -1,5 +1,5 @@
-from saenopy.gui_deformation_whole2 import Result, format_glob
-from saenopy.getDeformations import getStack, Stack
+from saenopy.stack import format_glob
+from saenopy.stack import Stack
 from saenopy.solver import load
 import natsort
 
@@ -10,7 +10,7 @@ Option for newer saenopy version
  
 import os
 from saenopy import Solver
-from saenopy.solver import Result,Mesh
+from saenopy.solver import Result, Mesh
 from glob import glob
 
 liste = glob(r"../Amp*_dist*.npz")

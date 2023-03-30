@@ -5,7 +5,7 @@ import os
 import natsort
 from typing import List
 import tifffile
-from saenopy.getDeformations import Stack, format_glob
+from saenopy.stack import Stack, format_glob
 from saenopy.loadHelpers import Saveable
 from saenopy.solver import Mesh, Solver
 

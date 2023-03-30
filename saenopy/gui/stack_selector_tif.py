@@ -10,7 +10,7 @@ from qtpy import QtWidgets, QtCore, QtGui
 from saenopy.gui import QtShortCuts
 from saenopy.gui.stack_selector_leica import StackSelectorLeica
 import appdirs
-from saenopy.getDeformations import readTiff
+from saenopy.stack import readTiff
 from typing import List
 
 
@@ -127,7 +127,6 @@ class StackSelectorTif(QtWidgets.QWidget):
                 self.t_prop.valueChanged.connect(self.propertiesChanged)
 
         self.stack_initialized = None
-        from saenopy.getDeformations import Stack
         self.stack_obj = []
 
     def checkAcceptFilename(self, filename):
@@ -251,7 +250,7 @@ class StackSelectorTif(QtWidgets.QWidget):
                 selected_props_dict[prop.name] = str(prop.value())
 
         self.stack_obj = []
-        from saenopy.getDeformations import Stack
+        from saenopy.stack import Stack
         if not self.use_time or t_prop_name == "None":
             d = d.sort_values(z_prop_name)
             self.stack_obj = [Stack()]

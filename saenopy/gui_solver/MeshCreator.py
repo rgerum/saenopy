@@ -29,7 +29,7 @@ import saenopy.getDeformations
 import saenopy.multigridHelper
 import saenopy.materials
 from saenopy.gui.stack_selector import StackSelector
-from saenopy.getDeformations import getStack, Stack, format_glob
+from ..stack import Stack, getStack, format_glob
 from saenopy.multigridHelper import getScaledMesh, getNodesWithOneFace
 from saenopy.loadHelpers import Saveable
 from saenopy import Result

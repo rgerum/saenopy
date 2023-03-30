@@ -1,63 +1,24 @@
-import sys
 import os
 
 import pyvista
 import qtawesome as qta
 from qtpy import QtCore, QtWidgets, QtGui
 import numpy as np
-import pyvista as pv
-from pyvistaqt import QtInteractor
 from PIL import Image
 
-import imageio
 from qimage2ndarray import array2qimage
-import matplotlib.pyplot as plt
-import glob
 import imageio
-import threading
-import inspect
-
-import natsort
 
 from pathlib import Path
-import re
-import pandas as pd
-import matplotlib as mpl
 
-import saenopy
-import saenopy.multigridHelper
 from saenopy.gui import QtShortCuts, QExtendedGraphicsView
-from saenopy.gui.gui_classes import Spoiler, CheckAbleGroup, QHLine, QVLine, MatplotlibWidget, NavigationToolbar, execute, kill_thread, ListWidget, QProcess, ProcessSimple
-import saenopy.getDeformations
-import saenopy.multigridHelper
-import saenopy.materials
-from saenopy.gui.stack_selector import StackSelector
-from saenopy.getDeformations import getStack, Stack, format_glob
-from saenopy.multigridHelper import getScaledMesh, getNodesWithOneFace
-from saenopy.loadHelpers import Saveable
 from saenopy import Result
-
-from typing import List, Tuple
 
 from .PipelineModule import PipelineModule
 from .QTimeSlider import QTimeSlider
 from .VTK_Toolbar import VTK_Toolbar
-from .showVectorField import showVectorField, showVectorField2, getVectorFieldImage
-from .DeformationDetector import CamPos
-
-from skimage import exposure
-from skimage.filters import meijering, sato, frangi, hessian
-from skimage.restoration import (denoise_tv_chambolle, denoise_bilateral,
-                         denoise_wavelet, estimate_sigma)
-from skimage.filters import threshold_yen
-from scipy import ndimage
-from scipy.ndimage import gaussian_filter
-from matplotlib.colors import ListedColormap, LinearSegmentedColormap
-import matplotlib
-from saenopy.gui.gui_classes import CheckAbleGroup, MatplotlibWidget, NavigationToolbar
 from saenopy.gui_solver.FiberViewer import ChannelProperties, process_stack, join_stacks
 from saenopy.gui.resources import resource_path
-import time
 import datetime
 
 class Writer:

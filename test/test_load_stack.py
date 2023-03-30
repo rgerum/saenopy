@@ -4,11 +4,10 @@ import os
 
 import numpy as np
 from mock_dir import MockDir
-from saenopy.getDeformations import Stack
+from saenopy.stack import Stack
 from saenopy.result_file import get_stacks
 import pytest
 import tifffile
-from pathlib import Path
 
 
 def create_tif(filename, y=20, x=10, z=1, rgb=None):

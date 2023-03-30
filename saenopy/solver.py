@@ -5,19 +5,16 @@ import time
 import numpy as np
 import scipy.sparse as ssp
 
-from numba import jit, njit
+from numba import njit
 from typing import Union
 from nptyping import NDArray, Shape, Float, Int, Bool
 
-from saenopy.multigridHelper import getLinesTetrahedra, getLinesTetrahedra2
+from saenopy.multigridHelper import getLinesTetrahedra2
 from saenopy.buildBeams import buildBeams
 from saenopy.materials import Material, SemiAffineFiberMaterial
 from saenopy.conjugateGradient import cg
 from saenopy.loadHelpers import Saveable
 from typing import List
-from pathlib import Path
-import natsort
-from saenopy.getDeformations import getStack, Stack, format_glob
 
 
 class Mesh(Saveable):
