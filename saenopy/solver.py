@@ -16,8 +16,6 @@ from saenopy.conjugateGradient import cg
 from saenopy.loadHelpers import Saveable
 from typing import List
 
-from saenopy.result_file import Result
-
 
 class Mesh(Saveable):
     __save_parameters__ = ['R', 'T', 'node_vars']
@@ -1772,6 +1770,8 @@ class Solver(Saveable):
         campos = plotter.show(screenshot=export)
         return plotter, campos
 
+# needs to stay here instead of top to prevent circular import
+from saenopy.result_file import Result
 
 def save(filename: str, M: Solver):
     M.save(filename)

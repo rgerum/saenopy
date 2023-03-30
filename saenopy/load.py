@@ -1,7 +1,6 @@
 import numpy as np
 __name2__ = __name__
 __name__ = "saenopy"
-from .solver import Solver
 
 
 def load_gmsh(filename):
