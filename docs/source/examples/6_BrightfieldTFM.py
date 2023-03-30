@@ -138,7 +138,7 @@ params = {'reference_stack': 'next', 'element_size': 4.0, 'mesh_size_same': True
 # iterate over all the results objects
 for result in results:
     # correct for the reference state
-    displacement_list = saenopy.substract_reference_state(result.mesh_piv, params["reference_stack"])
+    displacement_list = saenopy.subtract_reference_state(result.mesh_piv, params["reference_stack"])
     # set the parameters
     result.interpolate_parameter = params
     # iterate over all stack pairs

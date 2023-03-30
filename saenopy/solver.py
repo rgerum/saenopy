@@ -16,6 +16,8 @@ from saenopy.conjugateGradient import cg
 from saenopy.loadHelpers import Saveable
 from typing import List
 
+from saenopy.result_file import Result
+
 
 class Mesh(Saveable):
     __save_parameters__ = ['R', 'T', 'node_vars']
@@ -199,7 +201,7 @@ class Solver(Saveable):
             # if no displacements where given, take the variable nodes from the nans in the force list
             if displacements is None:
                 self.var = ~np.any(np.isnan(forces), axis=1)
-            # if not, check if the the fixed displacements have no force
+            # if not, check if the fixed displacements have no force
             elif np.all(np.isnan(self.f_target[~self.var])) is False:
                 print("WARNING: Forces for fixed vertices were specified. These boundary conditions cannot be"
                       "fulfilled", file=sys.stderr)
@@ -1771,10 +1773,6 @@ class Solver(Saveable):
         return plotter, campos
 
 
-
-
-
-
 def save(filename: str, M: Solver):
     M.save(filename)
 
@@ -1782,36 +1780,17 @@ def save(filename: str, M: Solver):
 def load_solver(filename: str) -> Solver:
     return Solver.load(filename)
 
-from saenopy.result_file import Result
+
 def load(filename: str) -> Result:
     return Result.load(filename)
+
 
 def load_results(filename: str) -> List[Result]:
     import glob
     return [Result.load(file) for file in glob.glob(filename, recursive=True)]
 
 
-
-
-def get_channels(filename, z, c):
-    original_filename = filename
-    filename = filename.replace("{z}", z)
-    regex = re.compile(filename.replace("\\", "\\\\").replace("{c}", "(.*)"))
-    filenames = glob.glob(filename.replace("{c}", "*"))
-    channels = [c]
-    for file in filenames:
-        new_channel = regex.match(file).groups()[0]
-        if new_channel not in channels:
-            channels.append(new_channel)
-    filenames_new = []
-    for ch in channels:
-        filenames_new.append(original_filename.format(z="*", c=ch))
-    return list(channels), filenames_new
-
-
-
-
-def substract_reference_state(mesh_piv, mode):
+def subtract_reference_state(mesh_piv, mode):
     U = [M.getNodeVar("U_measured") for M in mesh_piv]
     # correct for the median position
     if len(U) > 2:
@@ -1829,7 +1808,7 @@ def substract_reference_state(mesh_piv, mode):
     return xpos2
 
 
-def interpolate_mesh(M, xpos2, params):
+def interpolate_mesh(M: Solver, xpos2: np.ndarray, params: dict) -> Solver:
     import saenopy
     from saenopy.multigridHelper import getScaledMesh, getNodesWithOneFace
     
@@ -1844,7 +1823,6 @@ def interpolate_mesh(M, xpos2, params):
         params["inner_region"] = x
     if "thinning_factor" not in params:    
         params["thinning_factor"] = 0
-   
     
     points, cells = saenopy.multigridHelper.getScaledMesh(params["element_size"] * 1e-6,
                                                           params["inner_region"] * 1e-6,
