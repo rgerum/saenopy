@@ -277,7 +277,7 @@ def getDisplacementsFromStacks_old(stack_deformed, stack_relaxed, voxel_size, wi
     window_size = (win_um / voxel_size).astype(int)
     overlap = ((fac_overlap * win_um) / voxel_size).astype(int)
     du, dv, dw = voxel_size
-    print("Calculate Deformations")
+    print("Calculate Deformations", stack_relaxed.shape, window_size, overlap)
 
     # calculate deformations
     u, v, w, sig2noise = extended_search_area_piv3D(stack_relaxed, stack_deformed,

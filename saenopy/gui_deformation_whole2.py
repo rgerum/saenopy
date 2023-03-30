@@ -526,7 +526,7 @@ class MainWindow(QtWidgets.QWidget):
             with self.tabs.createTab("Data Analysis") as v_layout:
                 with QtShortCuts.QHBoxLayout() as h_layout:
                     # self.deformations = Deformation(h_layout, self)
-                    self.deformations = PlottingWindow(self).addToLayout()
+                    self.plotting_window = PlottingWindow(self).addToLayout()
 
 
 if __name__ == '__main__':
