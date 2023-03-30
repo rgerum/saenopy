@@ -359,31 +359,6 @@ def replace_nans_py(array, max_iter, tol, kernel_size = 2, method = 'disk'):
                 replaced_old = replaced_new
     return filled
 
-def double_glob(text):
-    glob_string = text.replace("?", "*")
-    print("globbing", glob_string)
-    files = glob.glob(glob_string)
-
-    output_base = glob_string
-    while "*" in str(output_base):
-        output_base = Path(output_base).parent
-
-    regex_string = re.escape(text).replace(r"\*", "(.*)").replace(r"\?", ".*")
-
-    results = []
-    for file in files:
-        file = os.path.normpath(file)
-        print(file, regex_string)
-        match = re.match(regex_string, file).groups()
-        reconstructed_file = regex_string
-        for element in match:
-            reconstructed_file = reconstructed_file.replace("(.*)", element, 1)
-        reconstructed_file = reconstructed_file.replace(".*", "*")
-        reconstructed_file = re.sub(r'\\(.)', r'\1', reconstructed_file)
-        if reconstructed_file not in results:
-            results.append(reconstructed_file)
-    return results, output_base
-
 
 # Full 3D Deformation analysis
 def getDisplacementsFromStacks_old(stack_deformed, stack_relaxed, voxel_size, win_um=12, fac_overlap=0.6,
