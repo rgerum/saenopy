@@ -206,7 +206,6 @@ def get_dist(kernel,kernel_size):
     """
     As integrted into OpenPiv Jun 19, 2020.
     Since OpenPIV changed several functions lateron, we use this version
-    to replace outliers with np.nan dependend on the signal2noise ratio here
     """
     # generates a map of distances to the center of the kernel. This is later used to generate disk-shaped kernels and
     # fill in distance based weights
