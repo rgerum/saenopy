@@ -226,7 +226,7 @@ def load_image_files_to_nparray(image_filenames, crop=None):
 
 
 def readTiff(image_filenames):
-    if re.match(f".*\.tiff?(\[.*\])?$", str(image_filenames)):
+    if re.match(r".*\.tiff?(\[.*\])?$", str(image_filenames)):
         image_filenames = str(image_filenames)
         page = 0
         if image_filenames.endswith("]"):

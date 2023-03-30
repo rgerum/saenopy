@@ -74,8 +74,8 @@ def process_line(filename, output_path):
         shape = None
         for props in iterator:
             filename = template.format(**props)
-            if re.match("(.*.tif)\[(.*)\]", filename):
-                filename, page = re.match("(.*.tif)\[(.*)\]", filename).groups()
+            if re.match(r"(.*.tif)\[(.*)\]", filename):
+                filename, page = re.match(r"(.*.tif)\[(.*)\]", filename).groups()
             if not Path(filename).exists():
                 raise FileNotFoundError(f"Could not find file {filename}")
             if Path(filename).suffix in [".tif", ".tiff"]:
