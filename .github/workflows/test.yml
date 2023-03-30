@@ -56,6 +56,8 @@ jobs:
       #              run test suite
       #----------------------------------------------
       - name: Run tests
+        env:
+          QT_QPA_PLATFORM: "offscreen"
         run: |
           source .venv/bin/activate
           pytest test/
