@@ -13,16 +13,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+      - uses: pyvista/setup-headless-display-action@v2
+        with:
+          qt: true
+          pyvista: false
       - run: pipx install poetry
       - uses: actions/setup-python@v4
         with:
           python-version: '3.8'
           cache: 'poetry'
       - run: poetry install --with dev
-      - uses: pyvista/setup-headless-display-action@v2
-        with:
-          qt: true
-          pyvista: false
       - run: poetry run pytest
         env:
           QT_QPA_PLATFORM: "offscreen"
