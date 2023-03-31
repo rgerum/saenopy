@@ -1219,7 +1219,7 @@ class Solver(Saveable):
         axes.set_aspect('equal')
 
     def viewMesh(self, f1: float, f2: float):
-        from .meshViewer import MeshViewer
+        from saenopy.unused.meshViewer import MeshViewer
 
         L = getLinesTetrahedra2(self.T)
 
