@@ -71,4 +71,6 @@ if __name__ == "__main__":
         }
         os.chdir(tmp_path)
         mock_dir(file_structure, callback=lambda file: create_tif(file, x=50, y=50))
+    from pathlib import Path
+    Path("tmp").mkdir(exist_ok=True)
     test_stack(files("tmp"))
