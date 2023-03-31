@@ -1,51 +1,41 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+import pytest
 from qtpy import QtWidgets
 import numpy as np
-from mock_dir import MockDir
-import tifffile
+from mock_dir import mock_dir, create_tif
 from saenopy.gui.gui_master import MainWindow
 from saenopy import get_stacks
 import sys
+import os
 np.random.seed(1234)
 
 
-def create_tif(filename, y=20, x=10, z=1, rgb=None):
-    with tifffile.TiffWriter(filename) as tif:
-        for i in range(z):
-            if rgb is None:
-                tif.write(np.random.rand(y, x))
-            else:
-                tif.write(np.random.rand(y, x, rgb))
-
-
-def sf4(x):
-    if isinstance(x, float):
-        x = float(np.format_float_positional(x, precision=4, unique=False, fractional=False,trim='k'))
-        return x
-    return [sf4(xx) for xx in x]
-
-
-def test_stack():
+@pytest.fixture
+def files(tmp_path):
     file_structure = {
         "tmp": {
             "run-1": [f"Pos004_S001_z{z:03d}_ch00.tif" for z in range(50)],
             "run-1-reference": [f"Pos004_S001_z{z:03d}_ch00.tif" for z in range(50)],
         }
     }
+    os.chdir(tmp_path)
+    mock_dir(file_structure, callback=lambda file: create_tif(file, x=50, y=50))
+
+
+def test_stack(files):
     app = QtWidgets.QApplication(sys.argv)
     window = MainWindow()  # gui_master.py:MainWindow
     window.changedTab(1)
     solver = window.solver  # modules.py:MainWindow
     batch_evaluate = solver.deformations  # modules/BatchEvaluate.py:BatchEvaluate
 
-    with MockDir(file_structure, lambda file: create_tif(file, x=50, y=50)):
-        # get the input
-        results = get_stacks("tmp/run-1/Pos004_S001_z{z}_ch00.tif", "tmp/run-1", [1, 1, 1],
-                             reference_stack="tmp/run-1-reference/Pos004_S001_z{z}_ch00.tif")
-        # bundle the images
-        results[0].stack[0].pack_files()
-        results[0].stack_reference.pack_files()
+    # get the input
+    results = get_stacks("tmp/run-1/Pos004_S001_z{z}_ch00.tif", "tmp/run-1", [1, 1, 1],
+                         reference_stack="tmp/run-1-reference/Pos004_S001_z{z}_ch00.tif")
+    # bundle the images
+    results[0].stack[0].pack_files()
+    results[0].stack_reference.pack_files()
 
     # add them to the gui and select them
     batch_evaluate.list.addData(results[0].output, True, results[0], "#FF0000")
