@@ -1,7 +1,7 @@
 import numpy as np
 from numba import njit
 import numba
-from saenopy.loadHelpers import Saveable
+from saenopy.saveable import Saveable
 
 
 def saveEpsilon(epsilon, fname, CFG):

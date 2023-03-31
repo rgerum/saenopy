@@ -28,7 +28,7 @@ from saenopy.multigridHelper import getScaledMesh, getNodesWithOneFace
 import saenopy.getDeformations
 import saenopy.materials
 from saenopy.stack import Stack, getStack, format_glob
-from saenopy.loadHelpers import Saveable
+from saenopy.saveable import Saveable
 from saenopy import Result
 from saenopy.gui.common import QtShortCuts, QExtendedGraphicsView
 from saenopy.gui.common.gui_classes import Spoiler, CheckAbleGroup, QHLine, QVLine, MatplotlibWidget, NavigationToolbar, execute, kill_thread, ListWidget, QProcess, ProcessSimple

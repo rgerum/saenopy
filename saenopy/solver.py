@@ -13,7 +13,7 @@ from saenopy.multigridHelper import getLinesTetrahedra2
 from saenopy.buildBeams import buildBeams
 from saenopy.materials import Material, SemiAffineFiberMaterial
 from saenopy.conjugateGradient import cg
-from saenopy.loadHelpers import Saveable
+from saenopy.saveable import Saveable
 from typing import List
 
 

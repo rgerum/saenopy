@@ -9,7 +9,7 @@ import pandas as pd
 import tifffile
 from skimage import io
 
-from saenopy.loadHelpers import Saveable
+from saenopy.saveable import Saveable
 
 
 class Stack(Saveable):
