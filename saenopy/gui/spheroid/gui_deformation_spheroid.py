@@ -991,7 +991,7 @@ class BatchEvaluate(QtWidgets.QWidget):
                         glob_string = text.replace("?", "*")
                         files =natsorted( glob.glob(glob_string))
                                               
-                        regex_string = re.escape(text).replace("\*", "(.*)").replace("\?", ".*")
+                        regex_string = re.escape(text).replace(r"\*", "(.*)").replace(r"\?", ".*")
 
                         data = {}
                         for file in files:
@@ -1067,7 +1067,7 @@ class BatchEvaluate(QtWidgets.QWidget):
         while "*" in str(output_base):
             output_base = Path(output_base).parent
 
-        regex_string = re.escape(text).replace("\*", "(.*)").replace("\?", ".*")
+        regex_string = re.escape(text).replace(r"\*", "(.*)").replace(r"\?", ".*")
 
         data = {}
         for file in files:

@@ -211,7 +211,7 @@ class BatchEvaluate(QtWidgets.QWidget):
                 new_template = str(new_template)
 
                 old_template = re.sub(r"\{c(:[^}]*)?\}", r"{c}", old_template)
-                old_template = re.sub("\[z\]$", "[{z}]", old_template)
+                old_template = re.sub(r"\[z\]$", "[{z}]", old_template)
                 old_template_re = re.sub(r"\\\{c(:[^}]*)?\\\}", r"(?P<c>.*)",
                                          re.escape(old_template).replace("\\{t\\}", r"(?P<t>.*)").replace("\\{z\\}",
                                                                                                           r"(?P<z>.*)"))
@@ -219,7 +219,7 @@ class BatchEvaluate(QtWidgets.QWidget):
 
                 self.new_template = new_template
                 self.new_template_format = re.sub(r"\{c(:[^}]*)?\}", r"{c}", new_template)
-                self.new_template_format = re.sub("\[z\]$", "[{z}]", self.new_template_format)
+                self.new_template_format = re.sub(r"\[z\]$", "[{z}]", self.new_template_format)
 
             def change_path(self, path):
                 path_type = isinstance(path, Path)

@@ -135,9 +135,9 @@ class StackSelectorTif(QtWidgets.QWidget):
     def setImage(self, filename):
         # get the list of similar filenames
         filename = Path(filename)
-        filenames = list(filename.parent.glob(re.sub("\d+", "*", filename.name)))
+        filenames = list(filename.parent.glob(re.sub(r"\d+", "*", filename.name)))
 
-        self.format_template = str(filename.parent) + "/" + re.sub("\d+", "*", filename.name)
+        self.format_template = str(filename.parent) + "/" + re.sub(r"\d+", "*", filename.name)
 
         # find data according to regular expression pattern
         regexpr = re.compile(r"([^_\d]*|[^_\d]+_)(\d+)")
