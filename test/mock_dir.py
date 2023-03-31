@@ -1,5 +1,7 @@
 from pathlib import Path
 import shutil
+import tifffile
+import numpy as np
 
 
 class MockDir:
@@ -39,3 +41,35 @@ class MockDir:
                     #folder.rmdir()
                     shutil.rmtree(folder, ignore_errors=False, onerror=None)
         remove_mock(self.structure)
+
+
+def mock_dir(structure, parent=None, callback=None):
+    if parent is None:
+        parent = Path(".")
+    if isinstance(structure, list):
+        for file in structure:
+            if callback:
+                callback(parent / file)
+            else:
+                (parent / file).touch(exist_ok=True)
+    else:
+        for key in structure:
+            folder = parent / key
+            folder.mkdir(exist_ok=True)
+            mock_dir(structure[key], folder, callback)
+
+
+def create_tif(filename, y=20, x=10, z=1, rgb=None):
+    with tifffile.TiffWriter(filename) as tif:
+        for i in range(z):
+            if rgb is None:
+                tif.write(np.random.rand(y, x))
+            else:
+                tif.write(np.random.rand(y, x, rgb))
+
+
+def sf4(x):
+    if isinstance(x, float):
+        x = float(np.format_float_positional(x, precision=4, unique=False, fractional=False,trim='k'))
+        return x
+    return [sf4(xx) for xx in x]
