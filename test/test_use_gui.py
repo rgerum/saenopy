@@ -3,7 +3,7 @@
 import pytest
 from qtpy import QtWidgets
 import numpy as np
-from mock_dir import mock_dir, create_tif
+from mock_dir import mock_dir, create_tif, sf4
 from saenopy.gui.gui_master import MainWindow
 from saenopy import get_stacks
 import sys
