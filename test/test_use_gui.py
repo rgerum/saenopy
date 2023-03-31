@@ -59,3 +59,16 @@ def test_stack(files):
     print(M.U[M.reg_mask])
     print(results[0].solver[0].U.shape)
     assert sf4(M.U[M.reg_mask][0]) == sf4([-2.01259036e-38, -1.96865342e-38, -4.92921492e-38])
+
+
+if __name__ == "__main__":
+    def files(tmp_path):
+        file_structure = {
+            "tmp": {
+                "run-1": [f"Pos004_S001_z{z:03d}_ch00.tif" for z in range(50)],
+                "run-1-reference": [f"Pos004_S001_z{z:03d}_ch00.tif" for z in range(50)],
+            }
+        }
+        os.chdir(tmp_path)
+        mock_dir(file_structure, callback=lambda file: create_tif(file, x=50, y=50))
+    test_stack(files("tmp"))

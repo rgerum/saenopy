@@ -19,7 +19,6 @@
 # You should have received a copy of the GNU General Public License
 # along with ClickPoints. If not, see <http://www.gnu.org/licenses/>
 
-from __future__ import division
 import sys
 
 from qtpy import QtGui, QtCore, QtWidgets
