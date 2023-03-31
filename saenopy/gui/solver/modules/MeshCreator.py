@@ -4,6 +4,7 @@ import qtawesome as qta
 from qtpy import QtCore, QtWidgets, QtGui
 import numpy as np
 import pyvista as pv
+from typing import List, Tuple
 from pyvistaqt import QtInteractor
 
 import imageio
@@ -23,18 +24,16 @@ import matplotlib as mpl
 
 import saenopy
 import saenopy.multigridHelper
-from saenopy.gui.common import QtShortCuts, QExtendedGraphicsView
-from saenopy.gui.common.gui_classes import Spoiler, CheckAbleGroup, QHLine, QVLine, MatplotlibWidget, NavigationToolbar, execute, kill_thread, ListWidget, QProcess, ProcessSimple
-import saenopy.getDeformations
-import saenopy.multigridHelper
-import saenopy.materials
-from saenopy.gui.common.stack_selector import StackSelector
-from ..stack import Stack, getStack, format_glob
 from saenopy.multigridHelper import getScaledMesh, getNodesWithOneFace
+import saenopy.getDeformations
+import saenopy.materials
+from saenopy.stack import Stack, getStack, format_glob
 from saenopy.loadHelpers import Saveable
 from saenopy import Result
+from saenopy.gui.common import QtShortCuts, QExtendedGraphicsView
+from saenopy.gui.common.gui_classes import Spoiler, CheckAbleGroup, QHLine, QVLine, MatplotlibWidget, NavigationToolbar, execute, kill_thread, ListWidget, QProcess, ProcessSimple
+from saenopy.gui.common.stack_selector import StackSelector
 
-from typing import List, Tuple
 
 from .PipelineModule import PipelineModule
 from .QTimeSlider import QTimeSlider
@@ -286,4 +285,3 @@ class MeshCreator(PipelineModule):
             else:
                 code = code.replace(key, str(value))
         return import_code, code
-

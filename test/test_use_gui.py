@@ -30,14 +30,14 @@ def test_stack():
         }
     }
     with MockDir(file_structure, lambda file: create_tif(file, x=50, y=50)):
-        from saenopy.gui_master import MainWindow
+        from saenopy.gui.gui_master import MainWindow
         from qtpy import QtWidgets
         import sys
         app = QtWidgets.QApplication(sys.argv)
         window = MainWindow()  # gui_master.py:MainWindow
         window.changedTab(1)
-        solver = window.solver  # gui_deformation_whole2.py:MainWindow
-        batch_evaluate = solver.deformations  # gui_solver/BatchEvaluate.py:BatchEvaluate
+        solver = window.solver  # modules.py:MainWindow
+        batch_evaluate = solver.deformations  # modules/BatchEvaluate.py:BatchEvaluate
 
         # get the input
         from saenopy import get_stacks

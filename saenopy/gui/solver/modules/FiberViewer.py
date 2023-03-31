@@ -2,14 +2,6 @@ from qtpy import QtCore, QtWidgets, QtGui
 import numpy as np
 from pyvistaqt import QtInteractor
 import matplotlib.pyplot as plt
-from saenopy.gui.common import QtShortCuts
-from saenopy import Result
-
-from .PipelineModule import PipelineModule
-from .QTimeSlider import QTimeSlider
-from .VTK_Toolbar import VTK_Toolbar
-from .DeformationDetector import CamPos
-
 from skimage import exposure
 from skimage.filters import sato
 from skimage.filters import threshold_yen
@@ -18,6 +10,15 @@ from scipy.ndimage import gaussian_filter
 from matplotlib.colors import ListedColormap
 import matplotlib
 import time
+
+from saenopy.gui.common import QtShortCuts
+from saenopy import Result
+
+from .PipelineModule import PipelineModule
+from .QTimeSlider import QTimeSlider
+from .VTK_Toolbar import VTK_Toolbar
+from .DeformationDetector import CamPos
+from saenopy.gui.common.sigmoid_widget import SigmoidWidget
 
 
 caches = {}
@@ -213,7 +214,7 @@ class ChannelProperties(QtWidgets.QWidget):
                     #self.input_alpha3 = QtShortCuts.QInputNumber(None, "alpha3", 1, min=0, max=1, step=0.1)
                     self.input_cmap = QtShortCuts.QDragableColor("pink").addToLayout()
                 QtShortCuts.current_layout.addStretch()
-            from saenopy.gui.sigmoid_widget import SigmoidWidget
+
             self.sigmoid = SigmoidWidget().addToLayout()
             self.input_cmap.valueChanged.connect(lambda x: self.sigmoid.p.set_cmap(x))
             #self.sigmoid.valueChanged.connect(lambda x1, x2, x3, *args: (self.input_alpha1.setValue(x1), self.input_alpha2.setValue(x2), self.input_alpha3.setValue(x3)))

@@ -3,14 +3,16 @@ import os
 from qtpy import QtCore, QtWidgets, QtGui
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib as mpl
 import glob
 import pandas as pd
+import json
 
+from saenopy import Result
 from saenopy.gui.common import QtShortCuts
 from saenopy.gui.common.gui_classes import MatplotlibWidget, NavigationToolbar, execute, ListWidget
-from saenopy import Result
-from saenopy.gui_solver.BatchEvaluate import BatchEvaluate
 from saenopy.gui.common.resources import resource_icon
+from saenopy.gui.solver.modules.BatchEvaluate import BatchEvaluate
 
 
 class PlottingWindow(QtWidgets.QWidget):
@@ -95,7 +97,7 @@ class PlottingWindow(QtWidgets.QWidget):
                 list_new.append({"name": item[0], "selected": item[1], "color": item[3], "paths": []})
                 for item2 in item[2]:
                     list_new[-1]["paths"].append({"path": item2[0], "selected": item[1]})
-            import json
+
             with open(new_path, "w") as fp:
                 json.dump(list_new, fp, indent=2)
 
@@ -106,7 +108,6 @@ class PlottingWindow(QtWidgets.QWidget):
                 new_path = new_path[0]
             else:
                 new_path = str(new_path)
-            import json
             with open(new_path, "r") as fp:
                 list_new = json.load(fp)
             self.list.clear()
@@ -187,7 +188,6 @@ class PlottingWindow(QtWidgets.QWidget):
             self.box_group.setEnabled(False)
 
     def addGroup(self):
-        import matplotlib as mpl
         text = f"Group{1+len(self.data_folders)}"
         item = self.list.addData(text, True, [], mpl.colors.to_hex(f"C{len(self.data_folders)}"))
         self.list.setCurrentItem(item)

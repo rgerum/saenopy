@@ -3,9 +3,9 @@ from qtpy import QtCore, QtWidgets, QtGui
 import multiprocessing
 
 from saenopy.gui.common import QtShortCuts
-from saenopy.gui_deformation_whole2 import MainWindow as SolverMain
-from saenopy.gui_deformation_spheriod import MainWindow as SpheriodMain
-from saenopy.gui_orientation import MainWindow as OrientationMain
+from saenopy.gui.solver.gui_solver import MainWindow as SolverMain
+from saenopy.gui.spheroid.gui_deformation_spheroid import MainWindow as SpheriodMain
+from saenopy.gui.orientation.gui_orientation import MainWindow as OrientationMain
 from saenopy.gui.common.resources import resource_path, resource_icon
 
 

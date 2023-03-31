@@ -2,8 +2,9 @@ import imageio
 import numpy as np
 import pyvista as pv
 from pyvistaqt import QtInteractor
-from saenopy.solver import Solver
 import numpy as np
+import matplotlib.pyplot as plt
+from saenopy.solver import Solver
 
 
 def getVectorFieldImage(self, use_fixed_contrast_if_available=False, use_2D=False):
@@ -179,7 +180,6 @@ def showVectorField(plotter: QtInteractor, obj: Solver, field: np.ndarray, name:
             img_adjusted = img[:, ::-1]                             # mirror the image
             img_adjusted = np.swapaxes(img_adjusted, 1,0)   # switch axis
             if len(img_adjusted.shape) == 2 and colormap2 is not None and colormap2 != "gray":
-                import matplotlib.pyplot as plt
                 cmap = plt.get_cmap(colormap2)
                 #print(img_adjusted.shape, img_adjusted.dtype, img_adjusted.min(), img_adjusted.mean(), img_adjusted.max())
                 img_adjusted = (cmap(img_adjusted)*255).astype(np.uint8)[:,:, :3]

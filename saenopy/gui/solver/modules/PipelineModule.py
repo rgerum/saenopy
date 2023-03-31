@@ -1,9 +1,8 @@
 import qtawesome as qta
 from qtpy import QtCore, QtWidgets
-
 from saenopy import Result
-
 from typing import Tuple
+import traceback
 
 
 class PipelineModule(QtWidgets.QWidget):
@@ -201,7 +200,6 @@ class PipelineModule(QtWidgets.QWidget):
             self.parent.result_changed.emit(result)
             self.processing_finished.emit()
         except Exception as err:
-            import traceback
             traceback.print_exc()
             setattr(result, self.params_name + "_state", "failed")
             self.processing_state_changed.emit(result)

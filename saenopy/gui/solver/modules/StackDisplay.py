@@ -9,6 +9,9 @@ import inspect
 
 from pathlib import Path
 
+from typing import Tuple
+import tifffile
+
 import saenopy
 import saenopy.multigridHelper
 from saenopy.gui.common import QtShortCuts, QExtendedGraphicsView
@@ -18,7 +21,6 @@ import saenopy.materials
 from saenopy import Result
 from saenopy.gui.common.resources import resource_icon
 
-from typing import Tuple
 
 from .PipelineModule import PipelineModule
 from .QTimeSlider import QTimeSlider
@@ -158,7 +160,6 @@ class StackDisplay(PipelineModule):
     def export(self):
         if self.result is None:
             return
-        import tifffile
         new_path = QtWidgets.QFileDialog.getSaveFileName(None, "Save Images", os.getcwd())
         # if we got one, set it
         if new_path:

@@ -8,6 +8,7 @@ from pyvistaqt import QtInteractor
 import imageio
 from saenopy.gui.common import QtShortCuts
 from saenopy import Result, Solver
+from saenopy.materials import SemiAffineFiberMaterial
 
 from .PipelineModule import PipelineModule
 from .QTimeSlider import QTimeSlider
@@ -88,7 +89,6 @@ class ResultView(PipelineModule):
 
     def calculateStiffness(self):
         self.point_cloud2 = pv.PolyData(np.mean(self.M.R[self.M.T], axis=1))
-        from saenopy.materials import SemiAffineFiberMaterial
         # self.M.setMaterialModel(SemiAffineFiberMaterial(1645, 0.0008, 0.0075, 0.033), generate_lookup=False)
         if self.M.material_model is None:
             print("Warning using default material parameters")

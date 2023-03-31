@@ -3,9 +3,9 @@ from qtpy import QtCore, QtWidgets, QtGui
 import numpy as np
 
 from qimage2ndarray import array2qimage
-from saenopy.gui import QtShortCuts, QExtendedGraphicsView
-from saenopy.gui_solver.QTimeSlider import QTimeSlider
-from saenopy.gui_solver.StackDisplay import ModuleScaleBar
+from saenopy.gui.common import QtShortCuts, QExtendedGraphicsView
+from saenopy.gui.solver.modules.QTimeSlider import QTimeSlider
+from saenopy.gui.solver.modules.StackDisplay import ModuleScaleBar
 
 def crop(im, z, t, cropped):
     if "x" not in cropped:

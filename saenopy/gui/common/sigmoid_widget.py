@@ -347,7 +347,7 @@ class PolygonInteractor:
             self.update_line()
 
 from qtpy import QtWidgets, QtCore, QtGui
-from saenopy.gui.gui_classes import MatplotlibWidget
+from saenopy.gui.common.gui_classes import MatplotlibWidget
 class SigmoidWidget(QtWidgets.QWidget):
     valueChanged = QtCore.Signal(float, float, float, float, float)
     editFinished = QtCore.Signal()

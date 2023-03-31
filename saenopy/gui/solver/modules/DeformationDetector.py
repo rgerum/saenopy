@@ -2,17 +2,16 @@ from qtpy import QtWidgets, QtCore
 import numpy as np
 from pyvistaqt import QtInteractor
 import inspect
+import tqdm
+from typing import Tuple
 
 import saenopy
 import saenopy.multigridHelper
+import saenopy.materials
+from saenopy import Result
 from saenopy.gui.common import QtShortCuts
 from saenopy.gui.common.gui_classes import CheckAbleGroup, QProcess, ProcessSimple
 import saenopy.getDeformations
-import saenopy.multigridHelper
-import saenopy.materials
-from saenopy import Result
-
-from typing import Tuple
 
 from .PipelineModule import PipelineModule
 from .QTimeSlider import QTimeSlider
@@ -246,7 +245,6 @@ class DeformationDetector(PipelineModule):
 
 
 def getDeformation(progress, i, result, params):
-    import tqdm
     t = tqdm.tqdm
     n = tqdm.tqdm.__new__
     old_update = tqdm.tqdm.update

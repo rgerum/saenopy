@@ -1,19 +1,16 @@
 from qtpy import QtCore, QtWidgets
 import numpy as np
 from pyvistaqt import QtInteractor
-
 import inspect
+from typing import Tuple
 
 import saenopy
 import saenopy.multigridHelper
+from saenopy import Result
+import saenopy.getDeformations
+import saenopy.materials
 from saenopy.gui.common import QtShortCuts
 from saenopy.gui.common.gui_classes import CheckAbleGroup, MatplotlibWidget, NavigationToolbar
-import saenopy.getDeformations
-import saenopy.multigridHelper
-import saenopy.materials
-from saenopy import Result
-
-from typing import Tuple
 
 from .PipelineModule import PipelineModule
 from .QTimeSlider import QTimeSlider
@@ -265,4 +262,3 @@ class Regularizer(PipelineModule):
             else:
                 code = code.replace(key, str(value))
         return import_code, code
-

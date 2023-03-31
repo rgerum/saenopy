@@ -2,8 +2,9 @@ import time
 import pyvista
 import pyvista as pv
 import numpy as np
+import matplotlib.pyplot as plt
 
-from saenopy.gui_solver.FiberViewer import process_stack, join_stacks
+from saenopy.gui.solver.modules.FiberViewer import process_stack, join_stacks
 from .ExportRenderCommon import get_time_text, getVectorFieldImage, get_mesh_arrows, get_mesh_extent
 
 
@@ -272,7 +273,6 @@ def render_3d_image(params, result, plotter, exporter=None):
 
         if (len(img_adjusted.shape) == 2 or img_adjusted.shape[
             2] == 1) and colormap2 is not None and colormap2 != "gray":
-            import matplotlib.pyplot as plt
             if len(img_adjusted.shape) == 3:
                 img_adjusted = img_adjusted[:, :, 0]
             cmap = plt.get_cmap(colormap2)

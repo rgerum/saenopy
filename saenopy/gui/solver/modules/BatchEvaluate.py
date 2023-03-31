@@ -4,28 +4,29 @@ import os
 import qtawesome as qta
 from qtpy import QtCore, QtWidgets, QtGui
 import numpy as np
-
 import glob
 import threading
-
 from pathlib import Path
 import re
 import matplotlib as mpl
+import appdirs
+import time
 
 import saenopy
 import saenopy.multigridHelper
-from saenopy.gui.common import QtShortCuts
-from saenopy.gui.common.gui_classes import ListWidget
 import saenopy.getDeformations
 import saenopy.multigridHelper
 import saenopy.materials
-from saenopy.gui.common.stack_selector import StackSelector
+from saenopy import get_stacks
 from saenopy import Result
+from saenopy.gui.common import QtShortCuts
+from saenopy.gui.common.gui_classes import ListWidget
+from saenopy.gui.common.stack_selector import StackSelector
 from saenopy.gui.common.resources import resource_path
+from saenopy.gui.common.stack_selector_crop import StackSelectorCrop
+from saenopy.gui.common.stack_preview import StackPreview
+from saenopy.gui.common.stack_selector_tif import add_last_voxel_size, add_last_time_delta
 
-"""REFERENCE FOLDERS"""
-#\\131.188.117.96\biophysDS2\dboehringer\Platte_4\SoftwareWorkinProgess\TFM-Example-Data-3D\a127-tom-test-set\20170914_A172_rep1-bispos3\Before
-#\\131.188.117.96\biophysDS\lbischof\tif_and_analysis_backup\2021-06-02-NK92-Blebb-Rock\Blebb-round1\Mark_and_Find_001
 from .DeformationDetector import DeformationDetector
 from .FittedMesh import FittedMesh
 from .MeshCreator import MeshCreator
@@ -78,8 +79,6 @@ class BatchEvaluate(QtWidgets.QWidget):
                     self.list.signal_act_paths_clicked.connect(self.path_editor)
                     self.list.itemSelectionChanged.connect(self.listSelected)
                     self.progressbar = QProgressBar().addToLayout()
-                #           self.label = QtWidgets.QLabel(
-                #               "Select a path as an input wildcard. Use * to specify a placeholder. All paths that match the wildcard will be added.").addToLayout()
                 with QtShortCuts.QHBoxLayout() as layout:
                     layout.setContentsMargins(0, 0, 0, 0)
                     with QtShortCuts.QTabWidget(layout) as self.tabs:
@@ -117,11 +116,6 @@ class BatchEvaluate(QtWidgets.QWidget):
 
         self.data = []
         self.list.setData(self.data)
-
-        # self.list.addData("foo", True, [], mpl.colors.to_hex(f"C0"))
-
-        # data = Result.load(r"..\test\TestData\output3\Mark_and_Find_001_Pos001_S001_z_ch00.npz")
-        # self.list.addData("test", True, data, mpl.colors.to_hex(f"gray"))
 
         self.setAcceptDrops(True)
 
@@ -408,10 +402,8 @@ class BatchEvaluate(QtWidgets.QWidget):
                                                 self.place_holder_widget.setMinimumWidth(300)
                                                 self.stack_data.glob_string_changed.connect(lambda x, y: self.stack_data_input.setText(y))
                                                 self.stack_data_input = QtWidgets.QLineEdit().addToLayout()
-                                    from saenopy.gui.common.stack_selector_crop import StackSelectorCrop
                                     self.stack_crop = StackSelectorCrop(self.stack_data, self.stack_reference).addToLayout()
                                     self.stack_data.stack_crop = self.stack_crop
-                                from saenopy.gui.common.stack_preview import StackPreview
                                 self.stack_preview = StackPreview(QtShortCuts.current_layout, self.reference_choice, self.stack_reference, self.stack_data)
                             self.outputText = QtShortCuts.QInputFolder(None, "output", settings=settings,
                                                                        settings_key="batch/wildcard2", allow_edit=True)
@@ -515,7 +507,6 @@ class BatchEvaluate(QtWidgets.QWidget):
 
                         with self.tabs.createTab("Examples") as self.tab4:
                             start_time = 0
-                            import time
                             def reporthook(count, block_size, total_size, msg=None):
                                 nonlocal start_time
                                 if msg is not None:
@@ -562,7 +553,6 @@ class BatchEvaluate(QtWidgets.QWidget):
                                 lay.addStretch()
                             if 0:
                                 def loadexample1():
-                                    import appdirs
                                     saenopy.loadExample("ClassicSingleCellTFM", appdirs.user_data_dir("saenopy", "rgerum"), reporthook)
                                     self.mode = "example"
                                     self.mode_data = 1
@@ -580,7 +570,6 @@ class BatchEvaluate(QtWidgets.QWidget):
                                     self.button_example1 = QtShortCuts.QPushButton(None, "Open", loadexample1)
 
                                 def loadexample2():
-                                    import appdirs
                                     saenopy.loadExample("DynamicalSingleCellTFM", appdirs.user_data_dir("saenopy", "rgerum"), reporthook)
                                     self.mode = "example"
                                     self.mode_data = 2
@@ -640,9 +629,7 @@ class BatchEvaluate(QtWidgets.QWidget):
         if not dialog.exec():
             return
 
-        from saenopy import get_stacks
         if dialog.mode == "new":
-            from saenopy.gui.stack_selector_tif import add_last_voxel_size, add_last_time_delta
             if dialog.reference_choice.value() == 1:
                 reference_stack = dialog.stack_reference_input.text()
             else:
@@ -680,7 +667,7 @@ class BatchEvaluate(QtWidgets.QWidget):
                 voxel_size=dialog.stack_relaxed.getVoxelSize(),
                 exist_overwrite_callback=do_overwrite,
             )
-            from saenopy.gui.stack_selector_tif import add_last_voxel_size
+
             add_last_voxel_size(dialog.stack_relaxed.getVoxelSize())
 
             for data in results:
@@ -693,7 +680,6 @@ class BatchEvaluate(QtWidgets.QWidget):
                 time_delta=dialog.stack_before2.getTimeDelta(),
                 exist_overwrite_callback=do_overwrite,
             )
-            from saenopy.gui.stack_selector_tif import add_last_voxel_size, add_last_time_delta
             add_last_voxel_size(dialog.stack_before2.getVoxelSize())
             add_last_time_delta(dialog.stack_before2.getTimeDelta())
 
@@ -723,16 +709,11 @@ class BatchEvaluate(QtWidgets.QWidget):
                 self.list.addData(data.output, True, data, mpl.colors.to_hex(f"gray"))
 
         self.update_icons()
-        # import matplotlib as mpl
-        # for fiber, cell, out in zip(fiber_list, cell_list, out_list):
-        #    self.list.addData(fiber, True, [fiber, cell, out, {"segmention_thres": None, "seg_gaus1": None, "seg_gaus2": None}], mpl.colors.to_hex(f"gray"))
 
     def listSelected(self):
         if self.list.currentRow() is not None:
             pipe = self.data[self.list.currentRow()][2]
             self.set_current_result.emit(pipe)
-
-
 
 
 class QProgressBar(QtWidgets.QProgressBar):
@@ -754,7 +735,3 @@ class QProgressBar(QtWidgets.QProgressBar):
             yield i
             print("emit", i)
             self.signal_progress.emit(i+1)
-
-
-
-

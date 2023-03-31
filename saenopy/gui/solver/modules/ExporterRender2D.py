@@ -46,7 +46,6 @@ def render_2d_image(params, result, exporter):
 
     colormap2 = params["stack"]["colormap"]
     if len(im.shape) == 2 and colormap2 is not None and colormap2 != "gray":
-        import matplotlib.pyplot as plt
         cmap = plt.get_cmap(colormap2)
         im = cmap(im)
 

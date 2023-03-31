@@ -5,21 +5,25 @@ import qtawesome as qta
 from qtpy import QtCore, QtWidgets, QtGui
 import numpy as np
 from PIL import Image
-
+import datetime
 from qimage2ndarray import array2qimage
 import imageio
+import appdirs
+import json
 
 from pathlib import Path
 
-from saenopy.gui.common import QtShortCuts, QExtendedGraphicsView
 from saenopy import Result
+from saenopy.gui.common import QtShortCuts, QExtendedGraphicsView
+from saenopy.gui.common.resources import resource_path
+from saenopy.gui.solver.modules.FiberViewer import ChannelProperties
+from saenopy.gui.solver.modules.ExporterRender3D import render_3d
+from saenopy.gui.solver.modules.ExporterRender2D import render_2d
 
 from .PipelineModule import PipelineModule
 from .QTimeSlider import QTimeSlider
 from .VTK_Toolbar import VTK_Toolbar
-from saenopy.gui_solver.FiberViewer import ChannelProperties
-from saenopy.gui.common.resources import resource_path
-import datetime
+
 
 class Writer:
     writer = None
@@ -566,7 +570,6 @@ class ExportViewer(PipelineModule):
                 new_path = str(new_path)
             if not new_path.endswith(".json"):
                 new_path += ".json"
-            import json
             with open(new_path, "w") as fp:
                 json.dump(self.get_parameters(), fp, indent=2)
 
@@ -577,7 +580,6 @@ class ExportViewer(PipelineModule):
                 new_path = new_path[0]
             else:
                 new_path = str(new_path)
-            import json
             try:
                 with open(new_path, "r") as fp:
                     self.set_parameters(json.load(fp))
@@ -806,7 +808,6 @@ class ExportViewer(PipelineModule):
 
         if self.check_evaluated(self.result):
             if self.input_use2D.value():
-                from saenopy.gui_solver.ExporterRender2D import render_2d
                 im = render_2d(self.get_parameters(), self.result, self)
                 self.pixmap1.setPixmap(QtGui.QPixmap(array2qimage(im)))
                 self.view1.setExtend(im.shape[1], im.shape[0])
@@ -821,12 +822,10 @@ class ExportViewer(PipelineModule):
         render = self.plotter.render
         self.plotter.render = lambda *args: None
         try:
-            from saenopy.gui_solver.ExporterRender3D import render_3d
             render_3d(self.get_parameters(), self.result, self.plotter, self)
         finally:
             self.plotter.render = render
 
-        import appdirs
         target_folder = Path(appdirs.user_data_dir("saenopy", "rgerum"))
         target_folder.mkdir(parents=True, exist_ok=True)
         tmp_file = str(target_folder / "tmp.png")

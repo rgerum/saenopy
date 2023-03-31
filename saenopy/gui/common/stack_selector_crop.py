@@ -7,8 +7,8 @@ from pathlib import Path
 import imageio
 import tifffile
 from qtpy import QtWidgets, QtCore, QtGui
-from saenopy.gui import QtShortCuts
-from saenopy.gui.stack_selector_leica import StackSelectorLeica
+from saenopy.gui.common import QtShortCuts
+from saenopy.gui.common.stack_selector_leica import StackSelectorLeica
 import appdirs
 
 
