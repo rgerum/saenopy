@@ -1,8 +1,6 @@
 import matplotlib.patches
 import matplotlib.pyplot as plt
 import numpy as np
-from matplotlib.lines import Line2D
-from matplotlib.artist import Artist
 
 
 def get_transparency(a, b, alpha):
@@ -346,7 +344,7 @@ class PolygonInteractor:
             self.hovered = self.get_clicked(event)
             self.update_line()
 
-from qtpy import QtWidgets, QtCore, QtGui
+from qtpy import QtWidgets, QtCore
 from saenopy.gui.common.gui_classes import MatplotlibWidget
 class SigmoidWidget(QtWidgets.QWidget):
     valueChanged = QtCore.Signal(float, float, float, float, float)

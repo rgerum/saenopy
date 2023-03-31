@@ -1,26 +1,10 @@
 import sys
-
-# Setting the Qt bindings for QtPy
-import os
-
-import pandas as pd
 import qtawesome as qta
-
-os.environ["QT_API"] = "pyqt5"
-
 from qtpy import QtCore, QtWidgets, QtGui
 
-import numpy as np
-
-from saenopy.gui.common import QtShortCuts, QExtendedGraphicsView
-import imageio
-from qimage2ndarray import array2qimage
 import matplotlib.pyplot as plt
-import glob
-import imageio
-import threading
-import glob
-import re
+
+from saenopy.gui.common import QtShortCuts
 
 
 def trace_function(func, data):
@@ -59,16 +43,9 @@ def trace_function(func, data):
 
     sys.settrace(trace_calls)
 
-if QtCore.qVersion() >= "5.":
-    from matplotlib.backends.backend_qt5agg import (
-        FigureCanvas, NavigationToolbar2QT as NavigationToolbar)
-else:
-    from matplotlib.backends.backend_qt4agg import (
-        FigureCanvas, NavigationToolbar2QT as NavigationToolbar)
+
 from matplotlib.figure import Figure
 
-import urllib
-from pathlib import Path
 
 """ some magic to prevent PyQt5 from swallowing exceptions """
 # Back up the reference to the exceptionhook
@@ -125,6 +102,7 @@ class MatplotlibWidget(Canvas):
         self.manager._cidgcf = self.figure
         _pylab_helpers.Gcf.set_active(self.manager)
 
+
 def execute(func, *args, **kwargs):
     func(*args, **kwargs)
     import inspect
@@ -139,6 +117,7 @@ def execute(func, *args, **kwargs):
     code = code.replace("self.canvas.draw()", "plt.show()")
     return code
 
+
 def kill_thread(thread):
     """
     thread: a threading.Thread object
@@ -149,17 +128,20 @@ def kill_thread(thread):
         ctypes.pythonapi.PyThreadState_SetAsyncExc(thread_id, 0)
         print('Exception raise failure')
 
+
 class QHLine(QtWidgets.QFrame):
     def __init__(self):
         super().__init__()
         self.setFrameShape(QtWidgets.QFrame.HLine)
         self.setFrameShadow(QtWidgets.QFrame.Sunken)
 
+
 class QVLine(QtWidgets.QFrame):
     def __init__(self):
         super().__init__()
         self.setFrameShape(QtWidgets.QFrame.VLine)
         self.setFrameShadow(QtWidgets.QFrame.Sunken)
+
 
 class Spoiler(QtWidgets.QWidget):
     def __init__(self, parent=None, title='', animationDuration=300):
@@ -297,6 +279,7 @@ class CheckAbleGroup(QtWidgets.QWidget, QtShortCuts.EnterableLayout):
         else:
             self.child_widget.setLayout(layout)
         return layout
+
 
 class ListWidget(QtWidgets.QListWidget):
     itemSelectionChanged2 = QtCore.Signal()
@@ -456,9 +439,6 @@ class ListWidget(QtWidgets.QListWidget):
         item.setCheckState(QtCore.Qt.Checked if checked else QtCore.Qt.Unchecked)
         return item
 
-
-
-"""  """
 
 from multiprocessing import Process, Queue
 

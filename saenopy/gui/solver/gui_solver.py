@@ -24,7 +24,7 @@ class PlottingWindow(QtWidgets.QWidget):
         super().__init__(parent)
 
         # QSettings
-        self.settings = QtCore.QSettings("Saenopy", "Seanopy")
+        self.settings = QtCore.QSettings("Saenopy", "Saenopy")
 
         self.setMinimumWidth(800)
         self.setMinimumHeight(400)
@@ -494,7 +494,7 @@ class MainWindow(QtWidgets.QWidget):
         super().__init__(parent)
 
         # QSettings
-        self.settings = QtCore.QSettings("Saenopy", "Seanopy")
+        self.settings = QtCore.QSettings("Saenopy", "Saenopy")
 
         self.setMinimumWidth(1600)
         self.setMinimumHeight(900)

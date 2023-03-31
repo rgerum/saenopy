@@ -12,32 +12,16 @@ from qtpy import QtCore, QtWidgets, QtGui
 
 import numpy as np
 from natsort import natsorted
-import pyvista as pv
-import vtk
-from pyvistaqt import QtInteractor
 
-import saenopy
-import saenopy.multigridHelper
+
 from saenopy.gui.common import QtShortCuts, QExtendedGraphicsView
-from saenopy.gui.common.stack_selector import StackSelector
-import imageio
 from qimage2ndarray import array2qimage
 import matplotlib.pyplot as plt
-import glob
 import imageio
 import threading
 import glob
-import re
-import saenopy.getDeformations
-import saenopy.multigridHelper
-import saenopy.materials
 
-if QtCore.qVersion() >= "5.":
-    from matplotlib.backends.backend_qt5agg import (
-        FigureCanvas, NavigationToolbar2QT as NavigationToolbar)
-else:
-    from matplotlib.backends.backend_qt4agg import (
-        FigureCanvas, NavigationToolbar2QT as NavigationToolbar)
+
 from matplotlib.figure import Figure
 import jointforces as jf
 import urllib
@@ -61,7 +45,7 @@ else:
     from matplotlib.backends.backend_qt5agg import FigureManager
     from matplotlib.backends.backend_qt5 import NavigationToolbar2QT as NavigationToolbar
 
-settings = QtCore.QSettings("Saenopy", "Seanopy")
+settings = QtCore.QSettings("Saenopy", "Saenopy")
 
 
 class MatplotlibWidget(Canvas):
@@ -100,6 +84,7 @@ class MatplotlibWidget(Canvas):
         self.manager._cidgcf = self.figure
         _pylab_helpers.Gcf.set_active(self.manager)
 
+
 def execute(func, *args, **kwargs):
     func(*args, **kwargs)
     import inspect
@@ -114,6 +99,7 @@ def execute(func, *args, **kwargs):
     code = code.replace("self.canvas.draw()", "plt.show()")
     return code
 
+
 def kill_thread(thread):
     """
     thread: a threading.Thread object
@@ -124,17 +110,20 @@ def kill_thread(thread):
         ctypes.pythonapi.PyThreadState_SetAsyncExc(thread_id, 0)
         print('Exception raise failure')
 
+
 class QHLine(QtWidgets.QFrame):
     def __init__(self):
         super().__init__()
         self.setFrameShape(QtWidgets.QFrame.HLine)
         self.setFrameShadow(QtWidgets.QFrame.Sunken)
 
+
 class QVLine(QtWidgets.QFrame):
     def __init__(self):
         super().__init__()
         self.setFrameShape(QtWidgets.QFrame.VLine)
         self.setFrameShadow(QtWidgets.QFrame.Sunken)
+
 
 class Spoiler(QtWidgets.QWidget):
     def __init__(self, parent=None, title='', animationDuration=300):
@@ -274,6 +263,7 @@ class CheckAbleGroup(QtWidgets.QWidget, QtShortCuts.EnterableLayout):
             self.child_widget.setLayout(layout)
         return layout
 
+
 class LookUpTable(QtWidgets.QDialog):
     progress_signal = QtCore.Signal(int, int)
     finished_signal = QtCore.Signal()
@@ -281,7 +271,7 @@ class LookUpTable(QtWidgets.QDialog):
 
     def __init__(self):
         super().__init__()
-        self.settings = QtCore.QSettings("Saenopy", "Seanopy")
+        self.settings = QtCore.QSettings("Saenopy", "Saenopy")
 
         with QtShortCuts.QHBoxLayout(self):
             with QtShortCuts.QVBoxLayout() as main_layout:
@@ -658,7 +648,7 @@ class MainWindow(QtWidgets.QWidget):
         super().__init__(parent)
 
         # QSettings
-        self.settings = QtCore.QSettings("Saenopy", "Seanopy")
+        self.settings = QtCore.QSettings("Saenopy", "Saenopy")
 
         self.setMinimumWidth(800)
         self.setMinimumHeight(400)
@@ -804,7 +794,7 @@ class BatchEvaluate(QtWidgets.QWidget):
         super().__init__(parent)
 
         # QSettings
-        self.settings = QtCore.QSettings("Saenopy", "Seanopy")
+        self.settings = QtCore.QSettings("Saenopy", "Saenopy")
 
         self.setMinimumWidth(800)
         self.setMinimumHeight(400)
@@ -1517,7 +1507,7 @@ class PlottingWindow(QtWidgets.QWidget):
         super().__init__(parent)
 
         # QSettings
-        self.settings = QtCore.QSettings("Saenopy", "Seanopy")
+        self.settings = QtCore.QSettings("Saenopy", "Saenopy")
 
         self.setMinimumWidth(800)
         self.setMinimumHeight(400)

@@ -57,7 +57,7 @@ class DeformationDetector(QtWidgets.QWidget):
         self.stack_deformed = stack_deformed
         self.stack_relaxed = stack_relaxed
 
-        self.settings = QtCore.QSettings("Saenopy", "Seanopy")
+        self.settings = QtCore.QSettings("Saenopy", "Saenopy")
 
         self.input_overlap = QtShortCuts.QInputNumber(main_layout, "overlap", 0.6, step=0.1)
         self.input_win = QtShortCuts.QInputNumber(main_layout, "window size", 30)
@@ -166,7 +166,7 @@ class MeshCreator(QtWidgets.QWidget):
 
         self.deformation_detector = deformation_detector
 
-        self.settings = QtCore.QSettings("Saenopy", "Seanopy")
+        self.settings = QtCore.QSettings("Saenopy", "Saenopy")
 
         self.input_element_size = QtShortCuts.QInputString(main_layout, "element_size", "7")
         self.input_inner_region = QtShortCuts.QInputString(main_layout, "inner_region", "100")
@@ -237,7 +237,7 @@ class Regularizer(QtWidgets.QWidget):
 
         self.mesh_creator = mesh_creator
 
-        self.settings = QtCore.QSettings("Saenopy", "Seanopy")
+        self.settings = QtCore.QSettings("Saenopy", "Saenopy")
 
         self.input_k = QtShortCuts.QInputString(main_layout, "k", "1645")
         self.input_d0 = QtShortCuts.QInputString(main_layout, "d0", "0.0008")
@@ -348,7 +348,7 @@ class MainWindow(QtWidgets.QWidget):
         super().__init__(parent)
 
         # QSettings
-        self.settings = QtCore.QSettings("Saenopy", "Seanopy")
+        self.settings = QtCore.QSettings("Saenopy", "Saenopy")
 
         self.setMinimumWidth(800)
         self.setMinimumHeight(400)

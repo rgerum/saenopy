@@ -1,14 +1,9 @@
-import os
 import sys
 import numpy as np
-import pandas as pd
 import re
 from pathlib import Path
-import imageio
-import tifffile
-from qtpy import QtWidgets, QtCore, QtGui
+from qtpy import QtWidgets
 from saenopy.gui.common import QtShortCuts
-from saenopy.gui.common.stack_selector_leica import StackSelectorLeica
 import appdirs
 
 

@@ -42,7 +42,7 @@ class MainWindow(QtWidgets.QMainWindow):
         QtWidgets.QMainWindow.__init__(self, parent)
 
         # QSettings
-        self.settings = QtCore.QSettings("Saenopy", "Seanopy")
+        self.settings = QtCore.QSettings("Saenopy", "Saenopy")
 
         self.setMinimumWidth(800)
         self.setMinimumHeight(400)

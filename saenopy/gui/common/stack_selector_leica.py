@@ -1,6 +1,3 @@
-# Setting the Qt bindings for QtPy
-import os
-import sys
 import numpy as np
 from qtpy import QtWidgets
 from saenopy.gui.common import QtShortCuts

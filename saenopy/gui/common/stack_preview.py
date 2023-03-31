@@ -7,6 +7,7 @@ from saenopy.gui.common import QtShortCuts, QExtendedGraphicsView
 from saenopy.gui.solver.modules.QTimeSlider import QTimeSlider
 from saenopy.gui.solver.modules.StackDisplay import ModuleScaleBar
 
+
 def crop(im, z, t, cropped):
     if "x" not in cropped:
         cropped["x"] = (None, None)
@@ -40,6 +41,7 @@ def crop(im, z, t, cropped):
     else:
         im[:, :, 3] = 128
     return im
+
 
 class StackPreview(QtWidgets.QWidget):
     view_single = False

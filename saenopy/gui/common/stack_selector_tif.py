@@ -1,14 +1,11 @@
-import os
-import sys
 import numpy as np
 import pandas as pd
 import re
 from pathlib import Path
 import imageio
 import tifffile
-from qtpy import QtWidgets, QtCore, QtGui
+from qtpy import QtWidgets
 from saenopy.gui.common import QtShortCuts
-from saenopy.gui.common.stack_selector_leica import StackSelectorLeica
 import appdirs
 from saenopy.stack import readTiff
 from typing import List
@@ -16,6 +13,8 @@ from typing import List
 
 voxel_size_file = Path(appdirs.user_data_dir("saenopy", "rgerum")) / 'voxel_sizes.txt'
 time_delta_file = Path(appdirs.user_data_dir("saenopy", "rgerum")) / 'time_deltas.txt'
+
+
 def get_last_voxel_sizes() -> List:
     # if the file does not exist we have no recent voxel sizes
     if not voxel_size_file.exists():
@@ -67,6 +66,7 @@ def get_last_time_deltas() -> List:
                 if line not in sizes:
                     sizes.append(line)
     return sizes
+
 
 def add_last_time_delta(size: float) -> None:
     size = str(size)

@@ -19,7 +19,7 @@ class InfoBox(QtWidgets.QWidget):
                 with QtShortCuts.QVBoxLayout() as l2:
                     if name == "Solver":
                         self.text = QtWidgets.QLabel("Calculate the forces from a\n3D stack or a series of 3D stacks.").addToLayout()
-                    elif name == "Spheriod":
+                    elif name == "Spheroid":
                         self.text = QtWidgets.QLabel("Calculate the forces of\nmulticellular aggregates\nfrom a timeseries of 2D images.").addToLayout()
                     else:
                         self.text = QtWidgets.QLabel("Measure the orientations\nof fiberes in 2D images.\n\nAs a proxy for contractility.").addToLayout()
@@ -32,14 +32,12 @@ class MainWindow(QtWidgets.QWidget):
         super().__init__(parent)
 
         # QSettings
-        self.settings = QtCore.QSettings("Saenopy", "Seanopy")
+        self.settings = QtCore.QSettings("Saenopy", "Saenopy")
 
         self.setMinimumWidth(800)
         self.setMinimumHeight(400)
         self.setWindowTitle("Saenopy")
         self.setWindowIcon(resource_icon("Icon.ico"))
-
-        self.settings = QtCore.QSettings("Saenopy", "Seanopy")
 
         with QtShortCuts.QHBoxLayout(self) as main_layout:
             main_layout.setContentsMargins(0, 0, 0, 0)
