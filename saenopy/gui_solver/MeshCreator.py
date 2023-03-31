@@ -23,12 +23,12 @@ import matplotlib as mpl
 
 import saenopy
 import saenopy.multigridHelper
-from saenopy.gui import QtShortCuts, QExtendedGraphicsView
-from saenopy.gui.gui_classes import Spoiler, CheckAbleGroup, QHLine, QVLine, MatplotlibWidget, NavigationToolbar, execute, kill_thread, ListWidget, QProcess, ProcessSimple
+from saenopy.gui.common import QtShortCuts, QExtendedGraphicsView
+from saenopy.gui.common.gui_classes import Spoiler, CheckAbleGroup, QHLine, QVLine, MatplotlibWidget, NavigationToolbar, execute, kill_thread, ListWidget, QProcess, ProcessSimple
 import saenopy.getDeformations
 import saenopy.multigridHelper
 import saenopy.materials
-from saenopy.gui.stack_selector import StackSelector
+from saenopy.gui.common.stack_selector import StackSelector
 from ..stack import Stack, getStack, format_glob
 from saenopy.multigridHelper import getScaledMesh, getNodesWithOneFace
 from saenopy.loadHelpers import Saveable

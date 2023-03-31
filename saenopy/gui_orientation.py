@@ -7,8 +7,8 @@ import pandas as pd
 import qtawesome as qta
 from qtpy import QtCore, QtWidgets, QtGui
 import numpy as np
-from saenopy.gui import QtShortCuts, QExtendedGraphicsView
-from saenopy.gui.gui_classes import Spoiler, CheckAbleGroup, QHLine, QVLine, MatplotlibWidget, NavigationToolbar, execute, kill_thread, ListWidget
+from saenopy.gui.common import QtShortCuts, QExtendedGraphicsView
+from saenopy.gui.common.gui_classes import Spoiler, CheckAbleGroup, QHLine, QVLine, MatplotlibWidget, NavigationToolbar, execute, kill_thread, ListWidget
 import imageio
 from qimage2ndarray import array2qimage
 import matplotlib.pyplot as plt

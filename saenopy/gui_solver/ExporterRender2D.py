@@ -1,10 +1,9 @@
 import numpy as np
 import pandas as pd
-from pathlib import Path
 from PIL import Image, ImageDraw, ImageFont
 import matplotlib
 import matplotlib.pyplot as plt
-from saenopy.gui.resources import resource_path
+from saenopy.gui.common.resources import resource_path
 
 from .showVectorField import getVectorFieldImage
 from .ExportRenderCommon import get_time_text, getVectorFieldImage, get_mesh_arrows

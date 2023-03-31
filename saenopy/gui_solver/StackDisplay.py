@@ -11,12 +11,12 @@ from pathlib import Path
 
 import saenopy
 import saenopy.multigridHelper
-from saenopy.gui import QtShortCuts, QExtendedGraphicsView
+from saenopy.gui.common import QtShortCuts, QExtendedGraphicsView
 import saenopy.getDeformations
 import saenopy.multigridHelper
 import saenopy.materials
 from saenopy import Result
-from saenopy.gui.resources import resource_path, resource_icon
+from saenopy.gui.common.resources import resource_icon
 
 from typing import Tuple
 

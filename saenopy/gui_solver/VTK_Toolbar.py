@@ -1,12 +1,10 @@
 import os
-from pathlib import Path
 import qtawesome as qta
-from qtpy import QtWidgets, QtGui
+from qtpy import QtWidgets
 import pyvista as pv
 from pyvistaqt import QtInteractor
-from saenopy.gui import QtShortCuts
-from .ResultView import result_view
-from saenopy.gui.resources import resource_path, resource_icon
+from saenopy.gui.common import QtShortCuts
+from saenopy.gui.common.resources import resource_icon
 
 
 class SetValuePseudoWidget:

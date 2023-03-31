@@ -2,7 +2,7 @@ from qtpy import QtCore, QtWidgets, QtGui
 import numpy as np
 from pyvistaqt import QtInteractor
 import matplotlib.pyplot as plt
-from saenopy.gui import QtShortCuts
+from saenopy.gui.common import QtShortCuts
 from saenopy import Result
 
 from .PipelineModule import PipelineModule

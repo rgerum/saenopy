@@ -3,7 +3,7 @@ import os
 import sys
 import numpy as np
 from qtpy import QtWidgets
-from saenopy.gui import QtShortCuts
+from saenopy.gui.common import QtShortCuts
 
 
 class StackSelectorLeica(QtWidgets.QWidget):

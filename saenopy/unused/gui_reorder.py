@@ -12,24 +12,19 @@ from qtpy import QtCore, QtWidgets, QtGui
 import numpy as np
 
 import pyvista as pv
-import vtk
 from pyvistaqt import QtInteractor
 
-import saenopy
-import saenopy.multigridHelper
 from saenopy.gui import QtShortCuts, QExtendedGraphicsView
-from saenopy.gui.stack_selector import StackSelector
-from saenopy.gui.gui_classes import Spoiler, CheckAbleGroup, QHLine, QVLine, MatplotlibWidget, execute, kill_thread, ListWidget
+from saenopy.gui.common.stack_selector import StackSelector
 import imageio
 from qimage2ndarray import array2qimage
 import matplotlib.pyplot as plt
 import glob
 import imageio
 import threading
-import saenopy.getDeformations
 import saenopy.multigridHelper
 import saenopy.materials
-from saenopy.gui.stack_selector import StackSelector
+from saenopy.gui.common.stack_selector import StackSelector
 import matplotlib as mpl
 from pathlib import Path
 import re

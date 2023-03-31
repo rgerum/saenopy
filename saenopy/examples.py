@@ -5,7 +5,7 @@ import os
 from pathlib import Path
 from urllib.request import urlretrieve
 import appdirs
-from saenopy.gui.resources import resource_path
+from saenopy.gui.common.resources import resource_path
 
 
 def reporthook(count, block_size, total_size, msg=None):

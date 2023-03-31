@@ -6,7 +6,7 @@ import pyvista as pv
 from pyvistaqt import QtInteractor
 
 import imageio
-from saenopy.gui import QtShortCuts
+from saenopy.gui.common import QtShortCuts
 from saenopy import Result, Solver
 
 from .PipelineModule import PipelineModule

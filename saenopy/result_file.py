@@ -43,7 +43,7 @@ def process_line(filename, output_path):
         for file in files:
             relative = os.path.relpath(file, output_base)
             counts = {}
-            from saenopy.gui.lif_reader import LifFile
+            from saenopy.gui.common.lif_reader import LifFile
             leica_file = LifFile(file).get_image(folder)
             counts["z"] = leica_file.dims.z
             counts["c"] = leica_file.channels

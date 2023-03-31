@@ -2,10 +2,10 @@ import os
 import sys
 import numpy as np
 from qtpy import QtWidgets, QtCore, QtGui
-from saenopy.gui import QtShortCuts
-from saenopy.gui.stack_selector_leica import StackSelectorLeica
-from saenopy.gui.stack_selector_tif import StackSelectorTif
-from saenopy.gui import QtShortCuts, QExtendedGraphicsView
+from saenopy.gui.common import QtShortCuts
+from saenopy.gui.common.stack_selector_leica import StackSelectorLeica
+from saenopy.gui.common.stack_selector_tif import StackSelectorTif
+from saenopy.gui.common import QtShortCuts, QExtendedGraphicsView
 from qimage2ndarray import array2qimage
 from datetime import timedelta
 import datetime

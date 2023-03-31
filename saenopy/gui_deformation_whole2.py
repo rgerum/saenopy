@@ -6,11 +6,11 @@ import matplotlib.pyplot as plt
 import glob
 import pandas as pd
 
-from saenopy.gui import QtShortCuts
-from saenopy.gui.gui_classes import QHLine, MatplotlibWidget, NavigationToolbar, execute, ListWidget
+from saenopy.gui.common import QtShortCuts
+from saenopy.gui.common.gui_classes import MatplotlibWidget, NavigationToolbar, execute, ListWidget
 from saenopy import Result
 from saenopy.gui_solver.BatchEvaluate import BatchEvaluate
-from saenopy.gui.resources import resource_path, resource_icon
+from saenopy.gui.common.resources import resource_icon
 
 
 class PlottingWindow(QtWidgets.QWidget):

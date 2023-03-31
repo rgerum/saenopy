@@ -5,34 +5,28 @@ import os
 
 os.environ["QT_API"] = "pyqt5"
 
-from qtpy import QtCore, QtWidgets, QtGui
+from qtpy import QtCore, QtWidgets
 
 import numpy as np
 
 import pyvista as pv
-import vtk
 from pyvistaqt import QtInteractor
 
 import saenopy
 import saenopy.multigridHelper
-from saenopy.gui import QtShortCuts, QExtendedGraphicsView
-from saenopy.gui.stack_selector import StackSelector
-import imageio
-from qimage2ndarray import array2qimage
-import matplotlib.pyplot as plt
+from saenopy.gui import QtShortCuts
+from saenopy.gui.common.stack_selector import StackSelector
 import glob
-import imageio
 import threading
 import saenopy.getDeformations
 import saenopy.multigridHelper
 import saenopy.materials
 
 if QtCore.qVersion() >= "5.":
-    from matplotlib.backends.backend_qt5agg import (
-        FigureCanvas, NavigationToolbar2QT as NavigationToolbar)
+    pass
 else:
     from matplotlib.backends.backend_qt4agg import (
-        FigureCanvas, NavigationToolbar2QT as NavigationToolbar)
+        FigureCanvas)
 from matplotlib.figure import Figure
 
 

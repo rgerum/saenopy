@@ -5,8 +5,8 @@ import inspect
 
 import saenopy
 import saenopy.multigridHelper
-from saenopy.gui import QtShortCuts
-from saenopy.gui.gui_classes import CheckAbleGroup, QProcess, ProcessSimple
+from saenopy.gui.common import QtShortCuts
+from saenopy.gui.common.gui_classes import CheckAbleGroup, QProcess, ProcessSimple
 import saenopy.getDeformations
 import saenopy.multigridHelper
 import saenopy.materials

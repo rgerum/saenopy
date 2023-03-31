@@ -4,39 +4,24 @@ import os
 import qtawesome as qta
 from qtpy import QtCore, QtWidgets, QtGui
 import numpy as np
-import pyvista as pv
-from pyvistaqt import QtInteractor
 
-import imageio
-from qimage2ndarray import array2qimage
-import matplotlib.pyplot as plt
 import glob
-import imageio
 import threading
-import inspect
-
-import natsort
 
 from pathlib import Path
 import re
-import pandas as pd
 import matplotlib as mpl
 
 import saenopy
 import saenopy.multigridHelper
-from saenopy.gui import QtShortCuts, QExtendedGraphicsView
-from saenopy.gui.gui_classes import Spoiler, CheckAbleGroup, QHLine, QVLine, MatplotlibWidget, NavigationToolbar, execute, kill_thread, ListWidget, QProcess, ProcessSimple
+from saenopy.gui.common import QtShortCuts
+from saenopy.gui.common.gui_classes import ListWidget
 import saenopy.getDeformations
 import saenopy.multigridHelper
 import saenopy.materials
-from saenopy.gui.stack_selector import StackSelector
-from ..stack import Stack, getStack, format_glob
-from saenopy.multigridHelper import getScaledMesh, getNodesWithOneFace
-from saenopy.loadHelpers import Saveable
+from saenopy.gui.common.stack_selector import StackSelector
 from saenopy import Result
-from saenopy.gui.resources import resource_path
-
-from typing import List, Tuple
+from saenopy.gui.common.resources import resource_path
 
 """REFERENCE FOLDERS"""
 #\\131.188.117.96\biophysDS2\dboehringer\Platte_4\SoftwareWorkinProgess\TFM-Example-Data-3D\a127-tom-test-set\20170914_A172_rep1-bispos3\Before
@@ -47,7 +32,6 @@ from .MeshCreator import MeshCreator
 from .Regularizer import Regularizer
 from .ResultView import ResultView
 from .StackDisplay import StackDisplay
-from .FiberViewer import FiberViewer
 from .Exporter import ExportViewer
 from saenopy.examples import getExamples
 
@@ -424,10 +408,10 @@ class BatchEvaluate(QtWidgets.QWidget):
                                                 self.place_holder_widget.setMinimumWidth(300)
                                                 self.stack_data.glob_string_changed.connect(lambda x, y: self.stack_data_input.setText(y))
                                                 self.stack_data_input = QtWidgets.QLineEdit().addToLayout()
-                                    from saenopy.gui.stack_selector_crop import StackSelectorCrop
+                                    from saenopy.gui.common.stack_selector_crop import StackSelectorCrop
                                     self.stack_crop = StackSelectorCrop(self.stack_data, self.stack_reference).addToLayout()
                                     self.stack_data.stack_crop = self.stack_crop
-                                from saenopy.gui.stack_preview import StackPreview
+                                from saenopy.gui.common.stack_preview import StackPreview
                                 self.stack_preview = StackPreview(QtShortCuts.current_layout, self.reference_choice, self.stack_reference, self.stack_data)
                             self.outputText = QtShortCuts.QInputFolder(None, "output", settings=settings,
                                                                        settings_key="batch/wildcard2", allow_edit=True)

@@ -1,8 +1,8 @@
 import numpy as np
 from qtpy import QtCore, QtWidgets
 from pyvistaqt import QtInteractor
-from saenopy.gui import QtShortCuts
-from saenopy.gui.gui_classes import MatplotlibWidget, NavigationToolbar
+from saenopy.gui.common import QtShortCuts
+from saenopy.gui.common.gui_classes import MatplotlibWidget, NavigationToolbar
 from saenopy import Result
 
 from .PipelineModule import PipelineModule

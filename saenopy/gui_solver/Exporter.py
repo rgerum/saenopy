@@ -11,14 +11,14 @@ import imageio
 
 from pathlib import Path
 
-from saenopy.gui import QtShortCuts, QExtendedGraphicsView
+from saenopy.gui.common import QtShortCuts, QExtendedGraphicsView
 from saenopy import Result
 
 from .PipelineModule import PipelineModule
 from .QTimeSlider import QTimeSlider
 from .VTK_Toolbar import VTK_Toolbar
-from saenopy.gui_solver.FiberViewer import ChannelProperties, process_stack, join_stacks
-from saenopy.gui.resources import resource_path
+from saenopy.gui_solver.FiberViewer import ChannelProperties
+from saenopy.gui.common.resources import resource_path
 import datetime
 
 class Writer:

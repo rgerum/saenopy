@@ -42,7 +42,7 @@ class Stack(Saveable):
         if image_filenames is None and template is not None:
             match = re.match(r"(.*)\{f\:(\d*)\}\{c\:(\d*)\}(?:\{t\:(\d*)\})?.lif", template)
             if match:
-                from saenopy.gui.lif_reader import LifFile
+                from saenopy.gui.common.lif_reader import LifFile
                 self.leica_filename, self.leica_folder, self.leica_channel, self.leica_time = match.groups()
                 if self.leica_time is None:
                     self.leica_time = 0

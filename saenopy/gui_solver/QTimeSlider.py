@@ -1,5 +1,5 @@
 from qtpy import QtCore, QtWidgets
-from saenopy.gui import QtShortCuts
+from saenopy.gui.common import QtShortCuts
 
 
 class QTimeSlider(QtWidgets.QWidget):

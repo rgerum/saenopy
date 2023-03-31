@@ -18,8 +18,8 @@ from pyvistaqt import QtInteractor
 
 import saenopy
 import saenopy.multigridHelper
-from saenopy.gui import QtShortCuts, QExtendedGraphicsView
-from saenopy.gui.stack_selector import StackSelector
+from saenopy.gui.common import QtShortCuts, QExtendedGraphicsView
+from saenopy.gui.common.stack_selector import StackSelector
 import imageio
 from qimage2ndarray import array2qimage
 import matplotlib.pyplot as plt
