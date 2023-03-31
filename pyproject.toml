@@ -38,7 +38,7 @@ docs = ["sphinx", "sphinx-rtd-theme", "nbsphinx", "sphinx-gallery"]
 
 
 [tool.poetry.scripts]
-saenopy = "saenopy.gui_master:main"
+saenopy = "saenopy.gui.gui_master:main"
 
 
 [tool.poetry.group.dev.dependencies]

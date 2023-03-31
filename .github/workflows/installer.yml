@@ -37,8 +37,8 @@ jobs:
     - name: build exe with pyinstaller
       shell: bash
       run: |
-          poetry run pyinstaller --clean -y --dist output/saenopy_run --onefile --icon "saenopy/img/Icon.ico" --splash "saenopy/img/logo_splash.png" --add-data "saenopy/img:saenopy/img"  saenopy/gui_master.py 
-          mv output/saenopy_run/gui_master output/saenopy_run/saenopy_linux
+          poetry run pyinstaller --clean -y --dist output/saenopy_run --onefile --icon "saenopy/img/Icon.ico" --splash "saenopy/img/logo_splash.png" --add-data "saenopy/img:saenopy/img"  saenopy/gui/gui_master.py 
+          mv output/saenopy_run/gui_master output/saenopy_run/saenopy
 
     - uses: actions/upload-artifact@v3
       with:
@@ -46,7 +46,7 @@ jobs:
         path: output/saenopy_run
 
     - name: Upload GitHub release assets
-      run: gh release upload $TAG output/saenopy_run/saenopy_linux --clobber
+      run: gh release upload $TAG output/saenopy_run/saenopy --clobber
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         TAG: v0.8.0
@@ -82,8 +82,8 @@ jobs:
       - name: build exe with pyinstaller
         shell: bash
         run: |
-          poetry run pyinstaller --clean -y --dist output/saenopy_run --onefile --icon "saenopy/img/Icon.ico" --splash "saenopy/img/logo_splash.png" --add-data "saenopy/img;saenopy/img"  saenopy/gui_master.py
-          mv output/saenopy_run/gui_master.exe output/saenopy_run/saenopy_windows.exe
+          poetry run pyinstaller --clean -y --dist output/saenopy_run --onefile --icon "saenopy/img/Icon.ico" --splash "saenopy/img/logo_splash.png" --add-data "saenopy/img;saenopy/img"  saenopy/gui/gui_master.py
+          mv output/saenopy_run/gui_master.exe output/saenopy_run/saenopy.exe
 
       - uses: actions/upload-artifact@v3
         with:
@@ -91,7 +91,7 @@ jobs:
           path: output/saenopy_run
 
       - name: Upload GitHub release assets
-        run: gh release upload v0.8.0 "output\saenopy_run\saenopy_windows.exe" --clobber
+        run: gh release upload v0.8.0 "output\saenopy_run\saenopy.exe" --clobber
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAG: v0.8.0
