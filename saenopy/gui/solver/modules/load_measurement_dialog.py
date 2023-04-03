@@ -16,6 +16,10 @@ from saenopy.examples import getExamples
 
 
 class AddFilesDialog(QtWidgets.QDialog):
+    mode: str = None
+    mode_data: str = None
+    start_time: float = 0
+
     def __init__(self, parent, settings):
         super().__init__(parent)
         self.setMinimumWidth(800)
@@ -71,32 +75,7 @@ class AddFilesDialog(QtWidgets.QDialog):
                         QtShortCuts.current_layout.addStretch()
                         self.button_addList00 = QtShortCuts.QPushButton(None, "cancel", self.reject)
 
-                        def accept():
-                            self.mode = "new"
-                            if self.reference_choice.value() == 1:
-                                if self.stack_reference.active is None:
-                                    QtWidgets.QMessageBox.critical(self, "Deformation Detector",
-                                                                   "Provide a stack for the reference state.")
-                                    return
-                            if self.stack_data.active is None:
-                                QtWidgets.QMessageBox.critical(self, "Deformation Detector",
-                                                               "Provide a stack for the deformed state.")
-                                return
-                            if self.stack_data.get_t_count() <= 1 and self.stack_reference.active is None:
-                                QtWidgets.QMessageBox.critical(self, "Deformation Detector",
-                                                               "Provide either a reference stack or a time sequence.")
-                                return
-                            if not self.stack_crop.validator():
-                                QtWidgets.QMessageBox.critical(self, "Deformation Detector",
-                                                               "Enter a valid voxel size.")
-                                return
-                            if "{t}" in self.stack_data_input.text() and not self.stack_crop.validator_time():
-                                QtWidgets.QMessageBox.critical(self, "Deformation Detector",
-                                                               "Enter a valid time delta.")
-                                return
-                            self.accept()
-
-                        self.button_addList0 = QtShortCuts.QPushButton(None, "ok", accept)
+                        self.button_addList0 = QtShortCuts.QPushButton(None, "ok", self.accept_new)
 
                 with self.tabs.createTab("Existing Measurement") as self.tab3:
                     self.outputText3 = QtShortCuts.QInputFilename(None, "output", settings=settings,
@@ -105,63 +84,30 @@ class AddFilesDialog(QtWidgets.QDialog):
                                                                   allow_edit=True, existing=True)
                     self.tab3.addStretch()
                     with QtShortCuts.QHBoxLayout() as layout3:
-                        # self.button_clear = QtShortCuts.QPushButton(None, "clear list", self.clear_files)
                         layout3.addStretch()
                         self.button_addList6 = QtShortCuts.QPushButton(None, "cancel", self.reject)
 
-                        def accept():
-                            self.mode = "existing"
-                            self.accept()
-
-                        self.button_addList5 = QtShortCuts.QPushButton(None, "ok", accept)
+                        self.button_addList5 = QtShortCuts.QPushButton(None, "ok", self.accept_existing)
 
                 with self.tabs.createTab("Examples") as self.tab4:
-                    start_time = 0
-
-                    def reporthook(count, block_size, total_size, msg=None):
-                        nonlocal start_time
-                        if msg is not None:
-                            print(msg)
-                            self.download_state.setText(msg)
-                            return
-                        if count == 0:
-                            start_time = time.time()
-                            return
-                        duration = time.time() - start_time
-                        progress_size = int(count * block_size)
-                        speed = int(progress_size / (1024 * duration + 0.001))
-                        percent = int(count * block_size * 100 / total_size)
-                        sys.stdout.write("\r...%d%%, %d MB, %d KB/s, %d seconds passed" %
-                                         (percent, progress_size / (1024 * 1024), speed, duration))
-                        sys.stdout.flush()
-                        self.download_state.setText("...%d%%, %d MB, %d KB/s, %d seconds passed" %
-                                                    (percent, progress_size / (1024 * 1024), speed, duration))
-                        self.download_progress.setValue(percent)
-
                     examples = getExamples()
+                    self.example_buttons = []
                     with QtShortCuts.QHBoxLayout() as lay:
                         for example_name, properties in examples.items():
-                            def load_example(example_name):
-                                saenopy.loadExample(example_name, None, reporthook)
-                                self.mode = "example"
-                                self.mode_data = example_name
-                                self.accept()
-
                             with QtShortCuts.QGroupBox(None, example_name) as group:
                                 group[0].setMaximumWidth(240)
-                                label1 = QtWidgets.QLabel \
-                                    (properties["desc"]).addToLayout()
+                                label1 = QtWidgets.QLabel(properties["desc"]).addToLayout()
                                 label1.setWordWrap(True)
                                 label = QtWidgets.QLabel().addToLayout()
-                                pix = QtGui.QPixmap(
-                                    str(properties["img"]))
+                                pix = QtGui.QPixmap(str(properties["img"]))
                                 pix = pix.scaledToWidth(
                                     int(200 * QtGui.QGuiApplication.primaryScreen().logicalDotsPerInch() / 96),
                                     QtCore.Qt.SmoothTransformation)
                                 label.setPixmap(pix)
                                 label.setSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
                                 self.button_example1 = QtShortCuts.QPushButton(None, "Open",
-                                                           lambda *, example_name=example_name: load_example(example_name))
+                                                           lambda *, example_name=example_name: self.load_example(example_name))
+                                self.example_buttons.append(self.button_example1)
                         lay.addStretch()
 
                     self.tab4.addStretch()
@@ -169,8 +115,59 @@ class AddFilesDialog(QtWidgets.QDialog):
                     self.download_progress = QtWidgets.QProgressBar().addToLayout()
                     self.download_progress.setRange(0, 100)
 
+    def accept_new(self):
+        self.mode = "new"
+        if self.reference_choice.value() == 1 and self.stack_reference.active is None:
+                QtWidgets.QMessageBox.critical(self, "Deformation Detector",
+                                               "Provide a stack for the reference state.")
+        elif self.stack_data.active is None:
+            QtWidgets.QMessageBox.critical(self, "Deformation Detector",
+                                           "Provide a stack for the deformed state.")
+        elif self.stack_data.get_t_count() <= 1 and self.stack_reference.active is None:
+            QtWidgets.QMessageBox.critical(self, "Deformation Detector",
+                                           "Provide either a reference stack or a time sequence.")
+        elif not self.stack_crop.validator():
+            QtWidgets.QMessageBox.critical(self, "Deformation Detector",
+                                           "Enter a valid voxel size.")
+        elif "{t}" in self.stack_data_input.text() and not self.stack_crop.validator_time():
+            QtWidgets.QMessageBox.critical(self, "Deformation Detector",
+                                           "Enter a valid time delta.")
+        else:
+            self.accept()
+
+    def accept_existing(self):
+        self.mode = "existing"
+        self.accept()
+
+    def load_example(self, example_name):
+        saenopy.loadExample(example_name, None, self.reporthook)
+        self.mode = "example"
+        self.mode_data = example_name
+        self.accept()
+
+    def reporthook(self, count, block_size, total_size, msg=None):
+        if msg is not None:
+            print(msg)
+            self.download_state.setText(msg)
+            return
+        if count == 0:
+            self.start_time = time.time()
+            return
+        duration = time.time() - self.start_time
+        progress_size = int(count * block_size)
+        speed = int(progress_size / (1024 * duration + 0.001))
+        percent = int(count * block_size * 100 / total_size)
+        sys.stdout.write("\r...%d%%, %d MB, %d KB/s, %d seconds passed" %
+                         (percent, progress_size / (1024 * 1024), speed, duration))
+        sys.stdout.flush()
+        self.download_state.setText("...%d%%, %d MB, %d KB/s, %d seconds passed" %
+                                    (percent, progress_size / (1024 * 1024), speed, duration))
+        self.download_progress.setValue(percent)
+
 
 class FileExistsDialog(QtWidgets.QDialog):
+    mode: str = None
+
     def __init__(self, parent, filename):
         super().__init__(parent)
         self.setWindowTitle("File Exists")
@@ -180,16 +177,16 @@ class FileExistsDialog(QtWidgets.QDialog):
             with QtShortCuts.QHBoxLayout():
                 self.use_for_all = QtShortCuts.QInputBool(None, "remember decision for all files", False)
             with QtShortCuts.QHBoxLayout():
-                self.button_addList2 = QtShortCuts.QPushButton(None, "cancel", self.reject)
+                self.button_addList0 = QtShortCuts.QPushButton(None, "cancel", self.reject)
 
-                def accept():
-                    self.mode = "overwrite"
-                    self.accept()
+                self.button_addList1 = QtShortCuts.QPushButton(None, "overwrite", self.accept_overwrite)
 
-                self.button_addList1 = QtShortCuts.QPushButton(None, "overwrite", accept)
+                self.button_addList2 = QtShortCuts.QPushButton(None, "read", self.accept_read)
 
-                def accept2():
-                    self.mode = "read"
-                    self.accept()
+    def accept_overwrite(self):
+        self.mode = "overwrite"
+        self.accept()
 
-                self.button_addList1 = QtShortCuts.QPushButton(None, "read", accept2)
+    def accept_read(self):
+        self.mode = "read"
+        self.accept()

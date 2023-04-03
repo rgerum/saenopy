@@ -35,10 +35,10 @@ def downloadFiles(url, target_folder=None, progress_callback=None):
     if progress_callback is None:
         progress_callback = reporthook
     if not output_folder.exists():
-        reporthook(None, None, None, msg="Downloading File")
+        progress_callback(None, None, None, msg="Downloading File")
         Path(output_folder).parent.mkdir(parents=True, exist_ok=True)
         urlretrieve(str(url), file_download_path, progress_callback)
-        reporthook(None, None, None, msg="unzipping...")
+        progress_callback(None, None, None, msg="unzipping...")
         shutil.unpack_archive(file_download_path, output_folder.parent)
         os.remove(file_download_path)
 

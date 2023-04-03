@@ -113,12 +113,14 @@ class QInput(QtWidgets.QWidget):
         self.setValue(value)
         self._emitSignal()
 
-    def setValue(self, value):
+    def setValue(self, value, send_signal=False):
         self.no_signal = True
         if self.settings is not None:
             self.settings.setValue(self.settings_key, value)
         try:
             self._doSetValue(value)
+            if send_signal is True:
+                self.valueChanged.emit(value)
         finally:
             self.no_signal = False
 
@@ -624,7 +626,7 @@ class QInputFilename(QInput):
         if value is None:
             return
         self.last_folder = os.path.dirname(value)
-        self.line.setText(value)
+        self.line.setText(str(value))
 
     def value(self):
         # return the color
