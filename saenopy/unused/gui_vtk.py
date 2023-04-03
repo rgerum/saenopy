@@ -17,14 +17,6 @@ import saenopy
 import saenopy.multigridHelper
 from saenopy.gui import QtShortCuts, QExtendedGraphicsView
 import imageio
-from qimage2ndarray import array2qimage
-import matplotlib.pyplot as plt
-
-""" some magic to prevent PyQt5 from swallowing exceptions """
-# Back up the reference to the exceptionhook
-sys._excepthook = sys.excepthook
-# Set the exception hook to our wrapping function
-sys.excepthook = lambda *args: sys._excepthook(*args)
 
 
 def pathParts(path):

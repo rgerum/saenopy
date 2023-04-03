@@ -27,12 +27,6 @@ import jointforces as jf
 import urllib
 from pathlib import Path
 
-""" some magic to prevent PyQt5 from swallowing exceptions """
-# Back up the reference to the exceptionhook
-sys._excepthook = sys.excepthook
-# Set the exception hook to our wrapping function
-sys.excepthook = lambda *args: sys._excepthook(*args)
-
 import ctypes
 
 from qtpy import API_NAME as QT_API_NAME

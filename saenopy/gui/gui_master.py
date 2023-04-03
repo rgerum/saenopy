@@ -3,7 +3,7 @@ from qtpy import QtCore, QtWidgets, QtGui
 import multiprocessing
 
 from saenopy.gui.common import QtShortCuts
-from saenopy.gui.solver.gui_solver import MainWindow as SolverMain
+from saenopy.gui.solver.gui_solver import MainWindowSolver as SolverMain
 from saenopy.gui.spheroid.gui_deformation_spheroid import MainWindow as SpheriodMain
 from saenopy.gui.orientation.gui_orientation import MainWindow as OrientationMain
 from saenopy.gui.common.resources import resource_path, resource_icon
@@ -126,5 +126,11 @@ def main():
 if __name__ == '__main__':
     # On Windows calling this function is necessary.
     multiprocessing.freeze_support()
+
+    """ some magic to prevent PyQt5 from swallowing exceptions """
+    # Back up the reference to the exceptionhook
+    sys._excepthook = sys.excepthook
+    # Set the exception hook to our wrapping function
+    sys.excepthook = lambda *args: sys._excepthook(*args)
 
     main()

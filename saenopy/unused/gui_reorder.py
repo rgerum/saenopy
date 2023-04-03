@@ -29,12 +29,6 @@ import matplotlib as mpl
 from pathlib import Path
 import re
 
-# \\131.188.117.96\biophysDS\lbischof\tif_and_analysis_backup\2021-06-21-NK92_BlebbRock\Blebb_round4\Mark_and_Find_001
-""" some magic to prevent PyQt5 from swallowing exceptions """
-# Back up the reference to the exceptionhook
-sys._excepthook = sys.excepthook
-# Set the exception hook to our wrapping function
-sys.excepthook = lambda *args: sys._excepthook(*args)
 
 def format_glob(pattern):
     pattern = str(Path(pattern))

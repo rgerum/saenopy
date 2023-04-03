@@ -36,14 +36,6 @@ else:
 from matplotlib.figure import Figure
 
 
-""" some magic to prevent PyQt5 from swallowing exceptions """
-# Back up the reference to the exceptionhook
-sys._excepthook = sys.excepthook
-# Set the exception hook to our wrapping function
-sys.excepthook = lambda *args: sys._excepthook(*args)
-
-
-
 class DeformationDetector(QtWidgets.QWidget):
     detection_finished = QtCore.Signal()
     detection_error = QtCore.Signal(str)

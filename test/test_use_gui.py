@@ -3,18 +3,19 @@
 import pytest
 from qtpy import QtWidgets
 import numpy as np
-from mock_dir import mock_dir, create_tif, sf4
-from saenopy.gui.gui_master import MainWindow
-from saenopy import get_stacks
+from mock_dir import mock_dir, create_tif, random_path
+from pathlib import Path
 import sys
 import os
-import appdirs
-from pathlib import Path
+from saenopy.gui.gui_master import MainWindow
+from saenopy.gui.solver.gui_solver import MainWindowSolver
+from saenopy.gui.solver.modules.BatchEvaluate import BatchEvaluate
+from saenopy.gui.solver.modules.load_measurement_dialog import AddFilesDialog, FileExistsDialog
 np.random.seed(1234)
 
 
 @pytest.fixture
-def files(tmp_path, monkeypatch):
+def files(random_path):
     file_structure = {
         "tmp": {
             "run-1": [f"Pos004_S001_z{z:03d}_ch00.tif" for z in range(50)],
@@ -24,15 +25,12 @@ def files(tmp_path, monkeypatch):
         },
         "saenopy": {"rgerum": []}
     }
-    os.chdir(tmp_path)
     print("*** Path", os.getcwd())
-    mock_dir(file_structure, parent=tmp_path, callback=lambda file: create_tif(file, x=50, y=50))
-
-    monkeypatch.setattr(appdirs, "user_data_dir", lambda *args: Path(tmp_path) / "saenopy" / "rgerum")
+    mock_dir(file_structure, callback=lambda file: create_tif(file, x=50, y=50))
 
 
 @pytest.fixture
-def files2(tmp_path, monkeypatch):
+def files2(random_path):
     file_structure = {
         "tmp2": {
             "run-1": [f"Pos004_S001_z{z:03d}_ch00.tif" for z in range(50)],
@@ -40,9 +38,8 @@ def files2(tmp_path, monkeypatch):
         },
         "saenopy": {"rgerum": []}
     }
-    os.chdir(tmp_path)
     print("*** Path", os.getcwd())
-    mock_dir(file_structure, parent=tmp_path, callback=lambda file: create_tif(file, x=50, y=50))
+    mock_dir(file_structure, callback=lambda file: create_tif(file, x=50, y=50))
 
 
 class QMessageBoxException(Exception):
@@ -60,16 +57,34 @@ def catch_popup_error(monkeypatch):
     monkeypatch.setattr(QtWidgets.QMessageBox, "critical", do_raise)
 
 
-def test_stack(files2, monkeypatch):
+def get_batch_evaluate() -> BatchEvaluate:
+    # start the main gui
+    window: MainWindow = MainWindow()  # gui_master.py:MainWindow
+    window.changedTab(1)
+
+    # switch to the Solver part
+    solver: MainWindowSolver = window.solver  # modules.py:MainWindow
+
+    # get the Evaluate part
+    batch_evaluate: BatchEvaluate = solver.deformations  # modules/BatchEvaluate.py:BatchEvaluate
+    return batch_evaluate
+
+
+@pytest.fixture
+def app():
     app = QtWidgets.QApplication(sys.argv)
+    return app
+
+
+def test_stack(files2, files, monkeypatch, catch_popup_error, app):
     # start the main gui
     from saenopy.gui.gui_master import MainWindow
     window: MainWindow = MainWindow()  # gui_master.py:MainWindow
     window.changedTab(1)
 
     # switch to the Solver part
-    from saenopy.gui.solver.gui_solver import MainWindow
-    solver: MainWindow = window.solver  # modules.py:MainWindow
+    from saenopy.gui.solver.gui_solver import MainWindowSolver
+    solver: MainWindowSolver = window.solver  # modules.py:MainWindow
 
     # get the Evaluate part
     from saenopy.gui.solver.modules.BatchEvaluate import BatchEvaluate
@@ -113,7 +128,6 @@ def test_stack(files2, monkeypatch):
 
     # schedule to run all
     batch_evaluate.run_all()
-
     # wait until they are processed
     while batch_evaluate.current_task_id < len(batch_evaluate.tasks):
         app.processEvents()
@@ -129,23 +143,9 @@ def test_stack(files2, monkeypatch):
     monkeypatch.setattr(QtWidgets.QFileDialog, "getSaveFileName", lambda *args: "tmp.py")
     batch_evaluate.generate_code()
 
-
-def test_measurement_load(files, monkeypatch, catch_popup_error):
-    app = QtWidgets.QApplication(sys.argv)
-    # start the main gui
-    from saenopy.gui.gui_master import MainWindow
-    window: MainWindow = MainWindow()  # gui_master.py:MainWindow
-    window.changedTab(1)
-
-    # switch to the Solver part
-    from saenopy.gui.solver.gui_solver import MainWindow
-    solver: MainWindow = window.solver  # modules.py:MainWindow
-
-    # get the Evaluate part
-    from saenopy.gui.solver.modules.BatchEvaluate import BatchEvaluate
-    batch_evaluate: BatchEvaluate = solver.deformations  # modules/BatchEvaluate.py:BatchEvaluate
-
-    from saenopy.gui.solver.modules.load_measurement_dialog import AddFilesDialog, FileExistsDialog
+    # open all the tabs
+    for i in range(10):
+        batch_evaluate.tabs.setCurrentIndex(i)
 
     # raise for forgot voxel size
     with pytest.raises(QMessageBoxCritical, match="voxel size"):
@@ -190,6 +190,7 @@ def test_measurement_load(files, monkeypatch, catch_popup_error):
 
         monkeypatch.setattr(AddFilesDialog, "exec", handle_files)
         batch_evaluate.show_files()
+
 
     # raise for time stack but selected reference stack
     with pytest.raises(QMessageBoxCritical, match="reference state"):
@@ -319,24 +320,3 @@ def test_measurement_load(files, monkeypatch, catch_popup_error):
 
     monkeypatch.setattr(AddFilesDialog, "exec", handle_download_example)
     batch_evaluate.show_files()
-
-
-if __name__ == "__main__":
-    def files(tmp_path):
-        file_structure = {
-            "tmp": {
-                "run-1": [f"Pos004_S001_z{z:03d}_ch00.tif" for z in range(50)],
-                "run-1-reference": [f"Pos004_S001_z{z:03d}_ch00.tif" for z in range(50)],
-            }
-        }
-        os.chdir(tmp_path)
-        mock_dir(file_structure, callback=lambda file: create_tif(file, x=50, y=50))
-    from pathlib import Path
-    Path("tmp").mkdir(exist_ok=True)
-    class MonkeyPatch:
-        @staticmethod
-        def setattr(obj, name, func):
-            obj.name = func
-    monkeypatch = MonkeyPatch()
-
-    test_stack(files("tmp"), monkeypatch)

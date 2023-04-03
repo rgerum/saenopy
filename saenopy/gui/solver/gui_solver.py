@@ -7,7 +7,7 @@ from saenopy.gui.solver.analyze.plot_window import PlottingWindow
 from saenopy.gui.solver.modules.BatchEvaluate import BatchEvaluate
 
 
-class MainWindow(QtWidgets.QWidget):
+class MainWindowSolver(QtWidgets.QWidget):
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -40,6 +40,6 @@ if __name__ == '__main__':
         myappid = 'fabrylab.saenopy.master'  # arbitrary string
         ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
     print(sys.argv)
-    window = MainWindow()
+    window = MainWindowSolver()
     window.show()
     sys.exit(app.exec_())

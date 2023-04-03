@@ -3,7 +3,7 @@
 import os
 
 import numpy as np
-from mock_dir import mock_dir, create_tif
+from mock_dir import mock_dir, create_tif, random_path
 from saenopy.stack import Stack
 from saenopy.result_file import get_stacks
 import pytest
@@ -11,31 +11,29 @@ import tifffile
 
 
 @pytest.fixture
-def files_one_channel(tmp_path):
+def files_one_channel(random_path):
     file_structure = {
         "tmp": {
             "run-1": [f"Pos004_S001_z{z:03d}_ch00.tif" for z in range(2)],
             "run-1-reference": [f"Pos004_S001_z{z:03d}_ch00.tif" for z in range(2)],
         }
     }
-    os.chdir(tmp_path)
     mock_dir(file_structure, callback=lambda file: create_tif(file, x=10, y=20))
 
 
 @pytest.fixture
-def files_z_pages(tmp_path):
+def files_z_pages(random_path):
     file_structure = {
         "tmp": {
             "run-1": [f"Pos004_S001_ch00.tif"],
             "run-1-reference": [f"Pos004_S001_ch00.tif"],
         }
     }
-    os.chdir(tmp_path)
     mock_dir(file_structure, callback=lambda file: create_tif(file, x=50, y=50, z=10))
 
 
 @pytest.fixture
-def files_channels(tmp_path):
+def files_channels(random_path):
     file_structure = {
         "tmp": {
             "run-2": [f"Pos004_S001_z{z:03d}_ch{c:02d}.tif" for z in range(2) for c in range(3)],
@@ -44,19 +42,17 @@ def files_channels(tmp_path):
                                               range(2)],
         }
     }
-    os.chdir(tmp_path)
     mock_dir(file_structure, callback=lambda file: create_tif(file, x=10, y=20))
 
 
 @pytest.fixture
-def files_time(tmp_path):
+def files_time(random_path):
     file_structure = {
         "tmp": {
             "run-time": [f"Pos004_S001_z{z:03d}_ch{c:02d}_t{t:03d}.tif" for z in range(2) for c in range(3) for t in
                          range(2)],
         }
     }
-    os.chdir(tmp_path)
     mock_dir(file_structure, callback=lambda file: create_tif(file, x=10, y=20))
 
 

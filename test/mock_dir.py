@@ -2,6 +2,10 @@ from pathlib import Path
 import shutil
 import tifffile
 import numpy as np
+import pytest
+import uuid
+import os
+import appdirs
 
 
 class MockDir:
@@ -63,9 +67,9 @@ def create_tif(filename, y=20, x=10, z=1, rgb=None):
     with tifffile.TiffWriter(filename) as tif:
         for i in range(z):
             if rgb is None:
-                tif.write(np.random.rand(y, x))
+                tif.write((np.random.rand(y, x)*255).astype(np.uint8))
             else:
-                tif.write(np.random.rand(y, x, rgb))
+                tif.write((np.random.rand(y, x, rgb)*255).astype(np.uint8))
 
 
 def sf4(x):
@@ -73,3 +77,13 @@ def sf4(x):
         x = float(np.format_float_positional(x, precision=4, unique=False, fractional=False,trim='k'))
         return x
     return [sf4(xx) for xx in x]
+
+
+@pytest.fixture
+def random_path(tmp_path, monkeypatch):
+    target_path = Path(tmp_path) / str(uuid.uuid4())
+    target_path.mkdir(exist_ok=True)
+    os.chdir(target_path)
+    print("*** path", target_path)
+
+    monkeypatch.setattr(appdirs, "user_data_dir", lambda *args: Path(tmp_path) / "saenopy" / "rgerum")

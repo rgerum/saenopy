@@ -185,14 +185,6 @@ def quiver_3D(u, v, w, x=None, y=None, z=None, mask_filtered=None, filter_def=0,
     return fig
 
 
-
-""" some magic to prevent PyQt5 from swallowing exceptions """
-# Back up the reference to the exceptionhook
-sys._excepthook = sys.excepthook
-# Set the exception hook to our wrapping function
-sys.excepthook = lambda *args: sys._excepthook(*args)
-
-
 class MatplotlibWidget(Canvas):
 
     def __init__(self, parent=None, width=4, height=3, dpi=100):

@@ -46,13 +46,6 @@ def trace_function(func, data):
 
 from matplotlib.figure import Figure
 
-
-""" some magic to prevent PyQt5 from swallowing exceptions """
-# Back up the reference to the exceptionhook
-sys._excepthook = sys.excepthook
-# Set the exception hook to our wrapping function
-sys.excepthook = lambda *args: sys._excepthook(*args)
-
 import ctypes
 
 from qtpy import API_NAME as QT_API_NAME
