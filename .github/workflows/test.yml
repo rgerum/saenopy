@@ -23,5 +23,4 @@ jobs:
           python-version: '3.8'
           cache: 'poetry'
       - run: poetry install --with dev
-      - run: poetry run python test/test_use_gui.py
       - run: poetry run pytest
