@@ -25,9 +25,24 @@ def files(tmp_path, monkeypatch):
         "saenopy": {"rgerum": []}
     }
     os.chdir(tmp_path)
-    mock_dir(file_structure, callback=lambda file: create_tif(file, x=50, y=50))
+    print("*** Path", os.getcwd())
+    mock_dir(file_structure, parent=tmp_path, callback=lambda file: create_tif(file, x=50, y=50))
 
     monkeypatch.setattr(appdirs, "user_data_dir", lambda *args: Path(tmp_path) / "saenopy" / "rgerum")
+
+
+@pytest.fixture
+def files2(tmp_path, monkeypatch):
+    file_structure = {
+        "tmp2": {
+            "run-1": [f"Pos004_S001_z{z:03d}_ch00.tif" for z in range(50)],
+            "run-1-reference": [f"Pos004_S001_z{z:03d}_ch00.tif" for z in range(50)],
+        },
+        "saenopy": {"rgerum": []}
+    }
+    os.chdir(tmp_path)
+    print("*** Path", os.getcwd())
+    mock_dir(file_structure, parent=tmp_path, callback=lambda file: create_tif(file, x=50, y=50))
 
 
 class QMessageBoxException(Exception):
@@ -45,7 +60,7 @@ def catch_popup_error(monkeypatch):
     monkeypatch.setattr(QtWidgets.QMessageBox, "critical", do_raise)
 
 
-def test_stack(files, monkeypatch):
+def test_stack(files2, monkeypatch):
     app = QtWidgets.QApplication(sys.argv)
     # start the main gui
     from saenopy.gui.gui_master import MainWindow
@@ -63,17 +78,17 @@ def test_stack(files, monkeypatch):
     from saenopy.gui.solver.modules.load_measurement_dialog import AddFilesDialog
     def handle_files(self: AddFilesDialog):
         # set the data stack
-        self.stack_data.input_filename.setValue("tmp/run-1/Pos004_S001_z000_ch00.tif", send_signal=True)
+        self.stack_data.input_filename.setValue("tmp2/run-1/Pos004_S001_z000_ch00.tif", send_signal=True)
 
         # set the reference stack
         self.reference_choice.setValue(1, send_signal=True)
-        self.stack_reference.input_filename.setValue("tmp/run-1/Pos004_S001_z000_ch00.tif", send_signal=True)
+        self.stack_reference.input_filename.setValue("tmp2/run-1/Pos004_S001_z000_ch00.tif", send_signal=True)
 
         # add voxels
         self.stack_crop.input_voxel_size.setValue("1, 1, 1", send_signal=True)
 
         # set the output
-        self.outputText.setValue("tmp/output")
+        self.outputText.setValue("tmp2/output")
 
         # click "ok"
         self.accept_new()
@@ -86,6 +101,8 @@ def test_stack(files, monkeypatch):
     batch_evaluate.list.setCurrentRow(0)
 
     results = [batch_evaluate.sub_module_deformation.result]
+    results[0].stack[0].pack_files()
+    results[0].stack_reference.pack_files()
     assert batch_evaluate.sub_module_deformation.result != None
 
     # change some parameters
