@@ -187,8 +187,8 @@ def replace_nans_py(array, max_iter, tol, kernel_size = 2, method = 'disk'):
           a copy of the input array, where NaN elements have been replaced.
       """
 
-    DTYPEf = np.float
-    DTYPEi = np.int
+    DTYPEf = float
+    DTYPEi = int
 
     filled = array.copy()
     n_dim = len(array.shape)

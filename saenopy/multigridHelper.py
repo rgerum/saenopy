@@ -657,5 +657,5 @@ def removeNodes(R: NDArray[Shape["N_c, 3"], Float], T: NDArray[Shape["N_t, 4"], 
     new_indices = np.zeros(len(R))*np.nan
     new_indices[indices_keep] = np.arange(0, len(R2))
     T2 = new_indices[T]
-    T2 = T2[~np.isnan(np.sum(T2,axis=1))].astype(np.int)
+    T2 = T2[~np.isnan(np.sum(T2,axis=1))].astype(int)
     return R2, T2

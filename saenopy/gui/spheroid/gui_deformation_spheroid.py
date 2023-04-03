@@ -1326,7 +1326,7 @@ class BatchEvaluate(QtWidgets.QWidget):
                     elif self.plot_data.value() is True:
                         images = data["images"]
                         for ii in range(0, len(images)):
-                            im = imageio.imread(images[i]).astype(np.float)
+                            im = imageio.imread(images[i]).astype(float)
                             if ii == 0 or self.continous_segmentation.value() is True:
                                 seg0 = jf.piv.segment_spheroid(im, True, self.thres_segmentation.value())
                             if ii > 0:
