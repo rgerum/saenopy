@@ -23,28 +23,13 @@ class MainWindow(QtWidgets.QWidget):
         main_layout = QtWidgets.QHBoxLayout(self)
 
         with QtShortCuts.QTabWidget(main_layout) as self.tabs:
-            """ """
-            with self.tabs.createTab("Analyse Measurements") as v_layout:
-                with QtShortCuts.QHBoxLayout() as h_layout:
-                    # self.deformations = Deformation(h_layout, self)
+            with self.tabs.createTab("Analyse Measurements"):
+                with QtShortCuts.QHBoxLayout():
                     self.deformations = BatchEvaluate(self)
-                    h_layout.addWidget(self.deformations)
-                    if 0:
-                        self.description = QtWidgets.QTextEdit()
-                        self.description.setDisabled(True)
-                        self.description.setMaximumWidth(300)
-                        h_layout.addWidget(self.description)
-                        self.description.setText("""
-                        <h1>Start Evaluation</h1>
-                         """.strip())
-                #v_layout.addWidget(QHLine())
-                #with QtShortCuts.QHBoxLayout() as h_layout:
-                #    h_layout.addStretch()
-                    #self.button_previous = QtShortCuts.QPushButton(None, "back", self.previous)
-                    #self.button_next = QtShortCuts.QPushButton(None, "next", self.next)
-            with self.tabs.createTab("Data Analysis") as v_layout:
-                with QtShortCuts.QHBoxLayout() as h_layout:
-                    # self.deformations = Deformation(h_layout, self)
+                    QtShortCuts.current_layout.addWidget(self.deformations)
+
+            with self.tabs.createTab("Data Analysis"):
+                with QtShortCuts.QHBoxLayout():
                     self.plotting_window = PlottingWindow(self).addToLayout()
 
 

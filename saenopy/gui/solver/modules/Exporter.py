@@ -81,6 +81,7 @@ class Writer:
         if self.writer is not None:
             self.writer.close()
 
+
 def rotate(pos, angle):
     x, y = pos
     angle = np.deg2rad(angle)

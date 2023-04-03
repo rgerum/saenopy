@@ -8,6 +8,7 @@ from saenopy.gui.gui_master import MainWindow
 from saenopy import get_stacks
 import sys
 import os
+from pathlib import Path
 np.random.seed(1234)
 
 
@@ -23,12 +24,20 @@ def files(tmp_path):
     mock_dir(file_structure, callback=lambda file: create_tif(file, x=50, y=50))
 
 
-def test_stack(files):
+def test_stack(files, monkeypatch):
     app = QtWidgets.QApplication(sys.argv)
-    window = MainWindow()  # gui_master.py:MainWindow
+    # start the main gui
+    from saenopy.gui.gui_master import MainWindow
+    window: MainWindow = MainWindow()  # gui_master.py:MainWindow
     window.changedTab(1)
-    solver = window.solver  # modules.py:MainWindow
-    batch_evaluate = solver.deformations  # modules/BatchEvaluate.py:BatchEvaluate
+
+    # switch to the Solver part
+    from saenopy.gui.solver.gui_solver import MainWindow
+    solver: MainWindow = window.solver  # modules.py:MainWindow
+
+    # get the Evaluate part
+    from saenopy.gui.solver.modules.BatchEvaluate import BatchEvaluate
+    batch_evaluate: BatchEvaluate = solver.deformations  # modules/BatchEvaluate.py:BatchEvaluate
 
     # get the input
     results = get_stacks("tmp/run-1/Pos004_S001_z{z}_ch00.tif", "tmp/run-1", [1, 1, 1],
@@ -61,6 +70,10 @@ def test_stack(files):
     #assert sf4(M.U[M.reg_mask][0]) == sf4([-2.01259036e-38, -1.96865342e-38, -4.92921492e-38])
     #91.64216076e-38 -3.15079497e-39  3.19069614e-39
 
+    # apply the monkeypatch for requests.get to mock_get
+    monkeypatch.setattr(QtWidgets.QFileDialog, "getSaveFileName", lambda *args: "tmp.py")
+    batch_evaluate.generate_code()
+
 
 if __name__ == "__main__":
     def files(tmp_path):
@@ -74,4 +87,10 @@ if __name__ == "__main__":
         mock_dir(file_structure, callback=lambda file: create_tif(file, x=50, y=50))
     from pathlib import Path
     Path("tmp").mkdir(exist_ok=True)
-    test_stack(files("tmp"))
+    class MonkeyPatch:
+        @staticmethod
+        def setattr(obj, name, func):
+            obj.name = func
+    monkeypatch = MonkeyPatch()
+
+    test_stack(files("tmp"), monkeypatch)
