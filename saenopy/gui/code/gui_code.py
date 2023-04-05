@@ -1,6 +1,7 @@
 import sys
 import os
 from qtpy import QtCore, QtWidgets, QtGui
+import qtawesome as qta
 from pathlib import Path
 import threading
 import subprocess
@@ -33,15 +34,15 @@ class MainWindowCode(QtWidgets.QWidget):
 
         with QtShortCuts.QVBoxLayout(self):
             with QtShortCuts.QHBoxLayout():
-                self.button = QtShortCuts.QPushButton(None, "Open File", self.load)
+                self.button = QtShortCuts.QPushButton(None, "Open File", self.load, icon=qta.icon("fa5s.folder-open"))
                 self.tabs = QtWidgets.QTabBar().addToLayout()
                 self.tabs.setTabsClosable(True)
                 QtShortCuts.current_layout.addStretch()
             with QtShortCuts.QHBoxLayout():
                 self.input_filename = QtShortCuts.QInputString()
                 self.input_filename.setDisabled(True)
-                self.button_stop = QtShortCuts.QPushButton(None, "stop", self.stop)
-                self.button_run = QtShortCuts.QPushButton(None, "run", self.run)
+                self.button_stop = QtShortCuts.QPushButton(None, "stop", self.stop, icon=qta.icon("fa5s.stop"))
+                self.button_run = QtShortCuts.QPushButton(None, "run", self.run, icon=qta.icon("fa5s.play"))
             with QtShortCuts.QHBoxLayout():
                 self.editor = QtWidgets.QPlainTextEdit().addToLayout()
                 self.highlight = PythonHighlighter(self.editor.document())
@@ -67,9 +68,6 @@ class MainWindowCode(QtWidgets.QWidget):
 
         self.select_tab(-1)
 
-        #self.do_load("try_run.py")
-        #self.do_load("try_run2.py")
-
     def update_console(self, text, open_script):
         open_script.console += text
         if open_script == self.open_scripts[self.open_scripts_index]:
@@ -89,6 +87,8 @@ class MainWindowCode(QtWidgets.QWidget):
         self.open_scripts.append(OpenScript(filename=Path(open_script), console="", code=Path(open_script).read_text()))
         # and add the tab
         self.tabs.addTab(self.open_scripts[-1].filename.name)
+        # select the new tab
+        self.tabs.setCurrentIndex(len(self.open_scripts)-1)
 
     def select_tab(self, index=None):
         if index is not None:
