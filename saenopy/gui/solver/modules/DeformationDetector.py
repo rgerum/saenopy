@@ -1,3 +1,5 @@
+import os
+import time
 from qtpy import QtWidgets, QtCore
 import numpy as np
 from pyvistaqt import QtInteractor
@@ -179,6 +181,14 @@ class DeformationDetector(PipelineModule):
             self.label.setText("")
 
     def process(self, result: Result, params: dict):
+        # demo run
+        if os.environ.get("DEMO") == "true":
+            self.parent.progressbar.setRange(0, 10)
+            for i in range(11):
+                time.sleep(0.1)
+                self.parent.progressbar.setValue(i)
+            result.mesh_piv = result.mesh_piv_demo
+            return
 
         if not isinstance(result.mesh_piv, list):
             result.mesh_piv = [None] * (len(result.stack) - 1)
@@ -198,7 +208,7 @@ class DeformationDetector(PipelineModule):
         import_code = ""
 
         results = None
-        def code(my_piv_params):
+        def code(my_piv_params):  # pragma: no cover
             # define the parameters for the piv deformation detection
             params = my_piv_params
 

@@ -1,3 +1,5 @@
+import os
+import time
 from qtpy import QtCore, QtWidgets
 import numpy as np
 from pyvistaqt import QtInteractor
@@ -137,6 +139,16 @@ class Regularizer(PipelineModule):
                 self.canvas.draw()
 
     def process(self, result: Result, params: dict):
+        # demo run
+        if os.environ.get("DEMO") == "true":
+            imax = 100
+            self.parent.progressbar.setRange(0, imax)
+            for i in range(len(result.solver_relrec_demo)):
+                time.sleep(0.2)
+                self.iteration_finished.emit(result, result.solver_relrec_demo[:i], i, imax)
+            result.solver[0].regularisation_results = result.solver_relrec_demo
+            return
+
         for i in range(len(result.solver)):
             M = result.solver[i]
 
@@ -219,7 +231,7 @@ class Regularizer(PipelineModule):
     def get_code(self) -> Tuple[str, str]:
         import_code = "import saenopy\n"
         results: Result = None
-        def code(my_reg_params):
+        def code(my_reg_params):  # pragma: no cover
             # define the parameters to generate the solver mesh and interpolate the piv mesh onto it
             params = my_reg_params
 

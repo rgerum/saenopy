@@ -272,6 +272,19 @@ class Result(Saveable):
         super().__init__(**kwargs)
         print(self)
 
+        # if demo move parts to simulate empty result
+        if os.environ.get("DEMO") == "true":
+            self.mesh_piv_demo = self.mesh_piv
+            self.solver_demo = self.solver
+            if self.solver[0] is not None and getattr(self.solver[0], "regularisation_results", None):
+                self.solver_relrec_demo = self.solver[0].regularisation_results
+                self.solver[0].regularisation_results = None
+            if "stack_reference" in kwargs:
+                self.mesh_piv = [None] * (len(self.stack))
+            else:
+                self.mesh_piv = [None] * (len(self.stack) - 1)
+            self.solver = [None] * (len(self.mesh_piv))
+
     def save(self):
         Path(self.output).parent.mkdir(exist_ok=True, parents=True)
         super().save(self.output)

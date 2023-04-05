@@ -143,4 +143,9 @@ if __name__ == '__main__':  # pragma: no cover
     # Set the exception hook to our wrapping function
     sys.excepthook = lambda *args: sys._excepthook(*args)
 
+    for arg in sys.argv:
+        if arg == "--demo":
+            import os
+            os.environ["DEMO"] = "true"
+
     main()

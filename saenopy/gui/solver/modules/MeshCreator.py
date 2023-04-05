@@ -1,5 +1,6 @@
 import sys
 import os
+import time
 import qtawesome as qta
 from qtpy import QtCore, QtWidgets, QtGui
 import numpy as np
@@ -188,6 +189,10 @@ class MeshCreator(PipelineModule):
             self.plotter.interactor.setToolTip("")
 
     def process(self, result: Result, params: dict):
+        # demo run
+        if os.environ.get("DEMO") == "true":
+            result.solver = result.solver_demo
+            return
         
         # make sure the solver list exists and has the required length
         if result.solver is None or len(result.solver) != len(result.mesh_piv):
@@ -255,7 +260,7 @@ class MeshCreator(PipelineModule):
     def get_code(self) -> Tuple[str, str]:
         import_code = ""
         results = None
-        def code(my_mesh_params):
+        def code(my_mesh_params):  # pragma: no cover
             # define the parameters to generate the solver mesh and interpolate the piv mesh onto it
             params = my_mesh_params
 

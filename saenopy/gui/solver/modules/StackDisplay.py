@@ -263,7 +263,7 @@ class StackDisplay(PipelineModule):
         import_code = ""
         if self.result.time_delta is None:
             if self.result.stack_reference is not None:
-                def code(filename, reference_stack1, output1, voxel_size1, result_file, crop1):
+                def code(filename, reference_stack1, output1, voxel_size1, result_file, crop1):  # pragma: no cover
                     # load the relaxed and the contracted stack
                     # {z} is the placeholder for the z stack
                     # {c} is the placeholder for the channels
@@ -291,7 +291,7 @@ class StackDisplay(PipelineModule):
                 )
         else:
             if self.result.stack_reference is not None:
-                def code(filename, reference_stack1, output1, voxel_size1, time_delta1, result_file, crop1):
+                def code(filename, reference_stack1, output1, voxel_size1, time_delta1, result_file, crop1):  # pragma: no cover
                     # load the relaxed and the contracted stack
                     # {z} is the placeholder for the z stack
                     # {c} is the placeholder for the channels
@@ -320,7 +320,7 @@ class StackDisplay(PipelineModule):
                     time_delta1=self.result.time_delta,
                 )
             else:
-                def code(filename, output1, voxel_size1, time_delta1, result_file, crop1):
+                def code(filename, output1, voxel_size1, time_delta1, result_file, crop1):  # pragma: no cover
                     # load the relaxed and the contracted stack
                     # {z} is the placeholder for the z stack
                     # {c} is the placeholder for the channels

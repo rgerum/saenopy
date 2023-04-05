@@ -290,6 +290,8 @@ class BatchEvaluate(QtWidgets.QWidget):
 
         last_decision = None
         def do_overwrite(filename):
+            if os.environ.get("DEMO") == "true":
+                return "read"
             nonlocal last_decision
             if last_decision is not None:
                 return last_decision
