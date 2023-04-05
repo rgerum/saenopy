@@ -3,6 +3,7 @@ from qtpy import QtCore, QtWidgets, QtGui
 import multiprocessing
 # keep import for pyinstaller
 import skimage.filters.ridges
+import skimage.filters.thresholding
 
 from saenopy.gui.common import QtShortCuts
 from saenopy.gui.solver.gui_solver import MainWindowSolver as SolverMain
