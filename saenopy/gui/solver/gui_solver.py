@@ -15,11 +15,6 @@ class MainWindowSolver(QtWidgets.QWidget):
         # QSettings
         self.settings = QtCore.QSettings("Saenopy", "Saenopy")
 
-        self.setMinimumWidth(1600)
-        self.setMinimumHeight(900)
-        self.setWindowTitle("Saenopy Viewer")
-        self.setWindowIcon(resource_icon("Icon.ico"))
-
         main_layout = QtWidgets.QHBoxLayout(self)
 
         with QtShortCuts.QTabWidget(main_layout) as self.tabs:
@@ -41,5 +36,9 @@ if __name__ == '__main__':  # pragma: no cover
         ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
     print(sys.argv)
     window = MainWindowSolver()
+    window.setMinimumWidth(1600)
+    window.setMinimumHeight(900)
+    window.setWindowTitle("Saenopy Viewer")
+    window.setWindowIcon(resource_icon("Icon.ico"))
     window.show()
     sys.exit(app.exec_())

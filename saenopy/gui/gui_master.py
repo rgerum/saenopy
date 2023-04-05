@@ -65,13 +65,16 @@ class MainWindow(QtWidgets.QWidget):
                         layout2.addStretch()
                     layout.addStretch()
                 with self.tabs.createTab("Solver") as self.layout_solver:
-                    self.layout_solver.setContentsMargins(0, 0, 0, 0)
+                    QtShortCuts.current_layout.setContentsMargins(0, 0, 0, 0)
+
                 with self.tabs.createTab("Spheroid") as self.layout_spheroid:
-                    self.layout_spheroid.setContentsMargins(0, 0, 0, 0)
+                    QtShortCuts.current_layout.setContentsMargins(0, 0, 0, 0)
+
                 with self.tabs.createTab("Orientation") as self.layout_orientation:
-                    self.layout_orientation.setContentsMargins(0, 0, 0, 0)
+                    QtShortCuts.current_layout.setContentsMargins(0, 0, 0, 0)
+
                 with self.tabs.createTab("Code") as self.layout_code:
-                    self.layout_orientation.setContentsMargins(0, 0, 0, 0)
+                    QtShortCuts.current_layout.setContentsMargins(0, 0, 0, 0)
                     self.coder = MainWindowCode().addToLayout()
 
         #self.tabs.setCurrentIndex(self.settings.value("master_tab", 0))
