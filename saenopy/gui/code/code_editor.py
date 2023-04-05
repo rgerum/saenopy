@@ -34,6 +34,10 @@ class CodeEditor(QtWidgets.QPlainTextEdit):
         self.updateLineNumberAreaWidth(0)
         self.highlightCurrentLine()
 
+    def setPlainText(self, text: str) -> None:
+        super().setPlainText(text)
+        self.setViewportMargins(self.lineNumberAreaWidth(), 0, 0, 0)
+
     def lineNumberAreaWidth(self):
         digits = 1
         max_value = max(1, self.blockCount())
@@ -88,6 +92,9 @@ class CodeEditor(QtWidgets.QPlainTextEdit):
         while block.isValid() and top <= event.rect().bottom():
             if block.isVisible() and bottom >= event.rect().top():
                 number = str(blockNumber + 1)
+                if blockNumber == self.textCursor().blockNumber():
+                    painter.fillRect(QtCore.QRect(0, top, self.lineNumberArea.width()+10, self.fontMetrics().height()), lineColor)
+
                 painter.setPen(QtGui.QColor(lineNumbersTextColor))
                 painter.drawText(0, top, self.lineNumberArea.width()-lineNumbersRightMargin, self.fontMetrics().height(),
                                  QtCore.Qt.AlignRight, number)

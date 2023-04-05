@@ -284,12 +284,20 @@ def test_stack(files2, files, monkeypatch, catch_popup_error, app):
 
     def handle_overwrite_dialog(self: FileExistsDialog):
         self.accept_overwrite()
+        return True
     monkeypatch.setattr(FileExistsDialog, "exec", handle_overwrite_dialog)
     batch_evaluate.show_files()
 
     def handle_overwrite_dialog_read(self: FileExistsDialog):
         self.accept_read()
+        return True
     monkeypatch.setattr(FileExistsDialog, "exec", handle_overwrite_dialog_read)
+    batch_evaluate.show_files()
+
+    def handle_overwrite_dialog_cancel(self: FileExistsDialog):
+        self.accept_read()
+        return True
+    monkeypatch.setattr(FileExistsDialog, "exec", handle_overwrite_dialog_cancel)
     batch_evaluate.show_files()
 
     existing_file = list(Path("tmp/output").glob("*.npz"))[0]
