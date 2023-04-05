@@ -7,6 +7,7 @@ import threading
 import subprocess
 from dataclasses import dataclass
 from saenopy.gui.code.syntax import PythonHighlighter
+from saenopy.gui.code.code_editor import CodeEditor
 
 from saenopy.gui.common import QtShortCuts
 from saenopy.gui.common.resources import resource_icon
@@ -33,18 +34,23 @@ class MainWindowCode(QtWidgets.QWidget):
         self.settings = QtCore.QSettings("Saenopy", "Saenopy")
 
         with QtShortCuts.QVBoxLayout(self):
-            with QtShortCuts.QHBoxLayout():
-                self.button = QtShortCuts.QPushButton(None, "Open File", self.load, icon=qta.icon("fa5s.folder-open"))
-                self.tabs = QtWidgets.QTabBar().addToLayout()
-                self.tabs.setTabsClosable(True)
-                QtShortCuts.current_layout.addStretch()
+            with QtShortCuts.QVBoxLayout():
+                with QtShortCuts.QHBoxLayout():
+                    self.button = QtShortCuts.QPushButton(None, "Open File", self.load, icon=qta.icon("fa5s.folder-open"))
+                    self.tabs = QtWidgets.QTabBar().addToLayout()
+                    self.tabs.setTabsClosable(True)
+                    QtShortCuts.current_layout.addStretch()
+                    QtShortCuts.current_layout.setSpacing(11)
+                QtShortCuts.QHLine().addToLayout()
+                QtShortCuts.current_layout.setSpacing(0)
+
             with QtShortCuts.QHBoxLayout():
                 self.input_filename = QtShortCuts.QInputString()
                 self.input_filename.setDisabled(True)
                 self.button_stop = QtShortCuts.QPushButton(None, "stop", self.stop, icon=qta.icon("fa5s.stop"))
                 self.button_run = QtShortCuts.QPushButton(None, "run", self.run, icon=qta.icon("fa5s.play"))
             with QtShortCuts.QHBoxLayout():
-                self.editor = QtWidgets.QPlainTextEdit().addToLayout()
+                self.editor = CodeEditor()
                 self.highlight = PythonHighlighter(self.editor.document())
                 font = QtGui.QFont()
                 font.setFamily('Courier')
@@ -52,9 +58,13 @@ class MainWindowCode(QtWidgets.QWidget):
                 font.setPointSize(10)
                 self.editor.setFont(font)
 
-                self.console = QtWidgets.QTextEdit().addToLayout()
+                self.console = QtWidgets.QTextEdit()
                 self.console.setStyleSheet("background-color: #300a24; color: white")
                 self.console.setReadOnly(True)
+
+                self.splitter = QtWidgets.QSplitter().addToLayout()
+                self.splitter.addWidget(self.editor)
+                self.splitter.addWidget(self.console)
 
         self.console_update.connect(self.update_console)
 
