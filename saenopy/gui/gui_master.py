@@ -4,8 +4,9 @@ import multiprocessing
 
 from saenopy.gui.common import QtShortCuts
 from saenopy.gui.solver.gui_solver import MainWindowSolver as SolverMain
-from saenopy.gui.spheroid.gui_deformation_spheroid import MainWindow as SpheriodMain
+from saenopy.gui.spheroid.gui_deformation_spheroid import MainWindow as SpheroidMain
 from saenopy.gui.orientation.gui_orientation import MainWindow as OrientationMain
+from saenopy.gui.code.gui_code import MainWindowCode
 from saenopy.gui.common.resources import resource_path, resource_icon
 
 
@@ -58,19 +59,18 @@ class MainWindow(QtWidgets.QWidget):
                         layout2.addStretch()
                         InfoBox("Solver", lambda: self.setTab(1)).addToLayout()
                         layout2.addStretch()
-                        InfoBox("Spheriod", lambda: self.setTab(2)).addToLayout()
+                        InfoBox("Spheroid", lambda: self.setTab(2)).addToLayout()
                         layout2.addStretch()
                         InfoBox("Orientation", lambda: self.setTab(3)).addToLayout()
                         layout2.addStretch()
                     layout.addStretch()
                 with self.tabs.createTab("Solver") as self.layout_solver:
                     self.layout_solver.setContentsMargins(0, 0, 0, 0)
-                with self.tabs.createTab("Spheriod") as self.layout_spheriod:
-                    self.layout_spheriod.setContentsMargins(0, 0, 0, 0)
+                with self.tabs.createTab("Spheroid") as self.layout_spheroid:
+                    self.layout_spheroid.setContentsMargins(0, 0, 0, 0)
                 with self.tabs.createTab("Orientation") as self.layout_orientation:
                     self.layout_orientation.setContentsMargins(0, 0, 0, 0)
-                with self.tabs.createTab("Code") as self.layout_orientation:
-                    from code.gui_code import MainWindowCode
+                with self.tabs.createTab("Code") as self.layout_code:
                     self.layout_orientation.setContentsMargins(0, 0, 0, 0)
                     self.coder = MainWindowCode().addToLayout()
 
@@ -79,7 +79,7 @@ class MainWindow(QtWidgets.QWidget):
 
     first_tab_change = True
     solver = None
-    spheriod = None
+    spheroid = None
     orientation = None
     def changedTab(self, value):
         if self.first_tab_change is False:
@@ -89,8 +89,8 @@ class MainWindow(QtWidgets.QWidget):
             self.solver = SolverMain().addToLayout(self.layout_solver)
             self.setMinimumWidth(1600)
             self.setMinimumHeight(900)
-        if value == 2 and self.spheriod is None:
-            self.spheriod = SpheriodMain().addToLayout(self.layout_spheriod)
+        if value == 2 and self.spheroid is None:
+            self.spheroid = SpheroidMain().addToLayout(self.layout_spheroid)
             self.setMinimumWidth(1600)
             self.setMinimumHeight(900)
         if value == 3 and self.orientation is None:

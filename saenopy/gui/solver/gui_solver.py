@@ -33,7 +33,7 @@ class MainWindowSolver(QtWidgets.QWidget):
                     self.plotting_window = PlottingWindow(self).addToLayout()
 
 
-if __name__ == '__main__':
+if __name__ == '__main__':  # pragma: no cover
     app = QtWidgets.QApplication(sys.argv)
     if sys.platform.startswith('win'):
         import ctypes

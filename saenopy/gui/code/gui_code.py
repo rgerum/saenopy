@@ -5,7 +5,7 @@ from pathlib import Path
 import threading
 import subprocess
 from dataclasses import dataclass
-from .syntax import PythonHighlighter
+from saenopy.gui.code.syntax import PythonHighlighter
 
 from saenopy.gui.common import QtShortCuts
 from saenopy.gui.common.resources import resource_icon
@@ -30,11 +30,6 @@ class MainWindowCode(QtWidgets.QWidget):
 
         # QSettings
         self.settings = QtCore.QSettings("Saenopy", "Saenopy")
-
-        self.setMinimumWidth(1600)
-        self.setMinimumHeight(900)
-        self.setWindowTitle("Saenopy Viewer")
-        self.setWindowIcon(resource_icon("Icon.ico"))
 
         with QtShortCuts.QVBoxLayout(self):
             with QtShortCuts.QHBoxLayout():
@@ -163,7 +158,6 @@ class MainWindowCode(QtWidgets.QWidget):
         self.select_tab()
 
     def timer_callback(self, open_script):
-        print("timer_callback")
         while True:
             if open_script.process.poll() is not None:
                 break
@@ -173,6 +167,7 @@ class MainWindowCode(QtWidgets.QWidget):
         self.console_update.emit(f"\nProcess finished with exit code {open_script.process.poll()}", open_script)
         self.process_finished.emit()
 
+
 if __name__ == '__main__':  # pragma: no cover
     app = QtWidgets.QApplication(sys.argv)
     if sys.platform.startswith('win'):
@@ -181,5 +176,12 @@ if __name__ == '__main__':  # pragma: no cover
         ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
     print(sys.argv)
     window = MainWindowCode()
+    window.setMinimumWidth(1600)
+    window.setMinimumHeight(900)
+    window.setWindowTitle("Saenopy Viewer")
+    window.setWindowIcon(resource_icon("Icon.ico"))
+    for arg in sys.argv[1:]:
+        if arg.endswith(".py"):
+            window.do_load(arg)
     window.show()
     sys.exit(app.exec_())
