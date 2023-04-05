@@ -69,6 +69,10 @@ class MainWindow(QtWidgets.QWidget):
                     self.layout_spheriod.setContentsMargins(0, 0, 0, 0)
                 with self.tabs.createTab("Orientation") as self.layout_orientation:
                     self.layout_orientation.setContentsMargins(0, 0, 0, 0)
+                with self.tabs.createTab("Code") as self.layout_orientation:
+                    from code.gui_code import MainWindowCode
+                    self.layout_orientation.setContentsMargins(0, 0, 0, 0)
+                    self.coder = MainWindowCode().addToLayout()
 
         #self.tabs.setCurrentIndex(self.settings.value("master_tab", 0))
         self.first_tab_change = False
@@ -98,7 +102,7 @@ class MainWindow(QtWidgets.QWidget):
         self.tabs.setCurrentIndex(value)
 
 
-def main():
+def main():  # pragma: no cover
     app = QtWidgets.QApplication(sys.argv)
     if sys.platform.startswith('win'):
         import ctypes
@@ -123,7 +127,7 @@ def main():
     sys.exit(app.exec_())
 
 
-if __name__ == '__main__':
+if __name__ == '__main__':  # pragma: no cover
     # On Windows calling this function is necessary.
     multiprocessing.freeze_support()
 
