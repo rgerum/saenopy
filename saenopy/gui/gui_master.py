@@ -137,6 +137,13 @@ if __name__ == '__main__':  # pragma: no cover
     # On Windows calling this function is necessary.
     multiprocessing.freeze_support()
 
+    if len(sys.argv) >= 2 and sys.argv[1].endswith(".py"):
+        source = open(sys.argv[1]).read()
+        code = compile(source, sys.argv[1], 'exec')
+        exec(code)
+        exit(0)
+
+
     """ some magic to prevent PyQt5 from swallowing exceptions """
     # Back up the reference to the exceptionhook
     sys._excepthook = sys.excepthook
