@@ -442,8 +442,11 @@ class SignalReturn:
 def call_func(func: callable, queue_in: Queue, queue_out: Queue):
     args = queue_in.get()
     kwargs = queue_in.get()
-    returns = func(queue_out, *args, **kwargs)
-    queue_out.put(SignalReturn())
+    try:
+        returns = func(queue_out, *args, **kwargs)
+    finally:
+        queue_out.put(SignalReturn())
+        queue_out.put("-1")
     queue_out.put(returns)
 
 
