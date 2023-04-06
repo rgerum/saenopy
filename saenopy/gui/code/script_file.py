@@ -3,7 +3,6 @@ import sys
 from qtpy import QtCore, QtWidgets, QtGui
 from pathlib import Path
 import threading
-from saenopy.gui.common.gui_classes import ProcessSimple
 import html
 import re
 
@@ -95,5 +94,57 @@ def run_code(process, filename):
                 exec(code, {"print": print})
 
             except Exception:
-                error = traceback.format_exc().split("\n")
-                print("\n".join(error[0:1] + error[3:]), file=sys.stderr)
+                traceback.print_exc()
+                #error = traceback.format_exc().split("\n")
+                #print("\n".join(error[0:1] + error[3:]), file=sys.stderr)
+
+
+from multiprocessing import Process, Queue
+
+
+class SignalReturn:
+    pass
+
+def call_func(func: callable, queue_in: Queue, queue_out: Queue):
+    args = queue_in.get()
+    kwargs = queue_in.get()
+    try:
+        returns = func(queue_out, *args, **kwargs)
+    finally:
+        queue_out.put(SignalReturn())
+        queue_out.put("-1")
+    queue_out.put(returns)
+
+class ProcessSimple:
+    alive = True
+
+    def __init__(self, target, args=[], kwargs={}, progress_signal=None):
+        self.queue_in = Queue()
+        self.queue_out = Queue()
+        self.args = args
+        self.kwargs = kwargs
+        self.progress_signal = progress_signal
+        self.process = Process(target=call_func, args=(target, self.queue_in, self.queue_out))
+
+    def start(self):
+        self.process.start()
+        self.queue_in.put(self.args)
+        self.queue_in.put(self.kwargs)
+
+    def terminate(self):
+        self.alive = False
+        self.process.terminate()
+
+    def join(self):
+        while self.alive:
+            try:
+                result = self.queue_out.get(timeout=1)
+            except Exception:
+                continue
+            if isinstance(result, SignalReturn):
+                result = self.queue_out.get()
+                break
+            elif self.progress_signal is not None:
+                self.progress_signal.emit(result)
+        self.process.join()
+        return result

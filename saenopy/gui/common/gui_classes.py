@@ -442,17 +442,12 @@ class SignalReturn:
 def call_func(func: callable, queue_in: Queue, queue_out: Queue):
     args = queue_in.get()
     kwargs = queue_in.get()
-    try:
-        returns = func(queue_out, *args, **kwargs)
-    finally:
-        queue_out.put(SignalReturn())
-        queue_out.put("-1")
+    returns = func(queue_out, *args, **kwargs)
+    queue_out.put(SignalReturn())
     queue_out.put(returns)
 
 
 class ProcessSimple:
-    alive = True
-
     def __init__(self, target, args=[], kwargs={}, progress_signal=None):
         self.queue_in = Queue()
         self.queue_out = Queue()
@@ -466,16 +461,9 @@ class ProcessSimple:
         self.queue_in.put(self.args)
         self.queue_in.put(self.kwargs)
 
-    def terminate(self):
-        self.alive = False
-        self.process.terminate()
-
     def join(self):
-        while self.alive:
-            try:
-                result = self.queue_out.get(timeout=1)
-            except Exception:
-                continue
+        while True:
+            result = self.queue_out.get()
             if isinstance(result, SignalReturn):
                 result = self.queue_out.get()
                 break
