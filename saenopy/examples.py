@@ -92,8 +92,8 @@ def getExamples():
             "reference_stack": example_path / '4_OrganoidTFM/Pos007_S001_t6_z{z}_ch00.tif',
             "output_path": example_path / '4_OrganoidTFM/example_output',
             "piv_parameter": {'win_um': 40.0, 'elementsize': 30.0, 'signoise_filter': 1.3, 'drift_correction': True},
-            "interpolate_parameter": {'reference_stack': 'first', 'element_size': 30, 'inner_region': 100.0, 'thinning_factor': 0, 'mesh_size_same': False, 'mesh_size_x': 900.0, 'mesh_size_y': 900.0, 'mesh_size_z': 900.0},
-            "solve_parameter": {'k': 6062.0, 'd0': 0.0025, 'lambda_s': 0.0804, 'ds':  0.034, 'alpha':  10**10, 'stepper': 0.33, 'i_max': 500,  'rel_conv_crit': 0.00003},
+            "interpolate_parameter": {'reference_stack': 'first', 'element_size': 30, 'inner_region': 100.0, 'thinning_factor': 0, 'mesh_size_same': False, 'mesh_size_x': 738.0, 'mesh_size_y': 738.0, 'mesh_size_z': 738.0},
+            "solve_parameter": {'k': 6062.0, 'd0': 0.0025, 'lambda_s': 0.0804, 'ds':  0.034, 'alpha':  10**10, 'stepper': 0.33, 'i_max': 1400,  'rel_conv_crit': 1e-7},
     },
         "BrightfieldTFM": {
             "desc": "Traction forces around an immune cell in collagen 1.2mg/ml calculated on simple brightfield images",

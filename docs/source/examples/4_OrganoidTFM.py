@@ -116,7 +116,7 @@ for result in results:
 # Interpolate the found deformations onto a new mesh which will be used for the regularisation. 
 # In this case, we are experimental limited (due to the size, strength and spatial expansion of the organoid and our objective) and can not image the
 # complete matrix deformation field around the organoid. To obtain higher accuracy for a cropped deformation field, 
-# we perform the force reconstruction in a larger volume and interpolate the data on a larger mesh as follows.
+# we perform the force reconstruction in a volume with increased z-height. 
 #
 # +------------------+-------+
 # | Mesh Parameter   | Value |
@@ -125,18 +125,18 @@ for result in results:
 # +------------------+-------+
 # | mesh_size_same   | False |
 # +------------------+-------+
-# | mesh_size_x      |  1000 |
+# | mesh_size_x      |  738  |
 # +------------------+-------+
-# | mesh_size_y      |  1000 |
+# | mesh_size_y      |  738  |
 # +------------------+-------+
-# | mesh_size_z      |  1000 |
+# | mesh_size_z      |  738  |
 # +------------------+-------+
 # | reference_stack  |'first'|
 # +------------------+-------+
 #
 
 # define the parameters to generate the solver mesh and interpolate the piv mesh onto it
-params = {'reference_stack': 'first', 'element_size': 30, 'mesh_size_same': False, 'mesh_size_x': 1000.0, 'mesh_size_y': 1000.0, 'mesh_size_z': 1000.0}
+params = {'reference_stack': 'first', 'element_size': 30, 'mesh_size_same': False, 'mesh_size_x': 738, 'mesh_size_y': 738, 'mesh_size_z': 738}
 
 # iterate over all the results objects
 for result in results:
@@ -155,7 +155,7 @@ for result in results:
 # Calculating the Forces
 # ----------------------
 # Define the material model and run the regularisation to fit the measured deformations and get the forces. Here we define a low convergence criterion
-# and let the algorithm run for the maximal amount of steps that we define to 900. Afterwards, we can check the regularisation_results in the console or
+# and let the algorithm run for the maximal amount of steps that we define to 1400. Afterwards, we can check the regularisation_results in the console or
 # in the graphical user interface.
 #
 # +--------------------+---------+
@@ -177,14 +177,14 @@ for result in results:
 # +--------------------------+---------+
 # | stepper                  |    0.33 |
 # +--------------------------+---------+
-# | i_max                    |    900  |
+# | i_max                    |   1400  |
 # +--------------------------+---------+
 # | rel_conv_crit            |  1e-7  |
 # +--------------------------+---------+
 #
 
 # define the parameters to generate the solver mesh and interpolate the piv mesh onto it
-params = {'k': 6062.0, 'd0': 0.0025, 'lambda_s': 0.0804, 'ds':  0.034, 'alpha': 10**10, 'stepper': 0.33, 'i_max': 900, 'rel_conv_crit': 1e-7}
+params = {'k': 6062.0, 'd0': 0.0025, 'lambda_s': 0.0804, 'ds':  0.034, 'alpha': 10**10, 'stepper': 0.33, 'i_max': 1400, 'rel_conv_crit': 1e-7}
 
 # iterate over all the results objects
 for result in results:
