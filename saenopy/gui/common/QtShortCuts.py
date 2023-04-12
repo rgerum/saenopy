@@ -1222,21 +1222,23 @@ class QDragableColor(QtWidgets.QLabel):
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 from matplotlib.colors import LinearSegmentedColormap
-mpl.colormaps.register(LinearSegmentedColormap('red', {'red': ((0,0,0),(1,1,1)), 'green': ((0,0,0),(1,0,0)), 'blue': ((0.0,  0.0, 0.0), (1,  0, 0))}))
-mpl.colormaps.register(LinearSegmentedColormap('orange', {'red': ((0,0,0),(1,1,1)), 'green': ((0,0,0),(1,0.5,0.5)), 'blue': ((0.0,  0.0, 0.0), (1,  0, 0))}))
-mpl.colormaps.register(LinearSegmentedColormap('yellow', {'red': ((0,0,0),(1,1,1)), 'green': ((0,0,0),(1,1,1)), 'blue': ((0.0,  0.0, 0.0), (1,  0, 0))}))
-mpl.colormaps.register(LinearSegmentedColormap('lime', {'red': ((0,0,0),(1,0.5,0.5)), 'green': ((0,0,0),(1,1,1)), 'blue': ((0.0,  0.0, 0.0), (1,  0, 0))}))
-mpl.colormaps.register(LinearSegmentedColormap('green', {'red': ((0,0,0),(1,0,0)), 'green': ((0,0,0),(1,1,1)), 'blue': ((0.0,  0.0, 0.0), (1,  0, 0))}))
-mpl.colormaps.register(LinearSegmentedColormap('mint', {'red': ((0,0,0),(1,0,0)), 'green': ((0,0,0),(1,1,1)), 'blue': ((0.0,  0.0, 0.0), (1,  0.5, 0.5))}))
-mpl.colormaps.register(LinearSegmentedColormap('cyan', {'red': ((0,0,0),(1,0,0)), 'green': ((0,0,0),(1,1,1)), 'blue': ((0.0,  0.0, 0.0), (1, 1, 1))}))
-mpl.colormaps.register(LinearSegmentedColormap('navy', {'red': ((0,0,0),(1,0,0)), 'green': ((0,0,0),(1,0.5,0.5)), 'blue': ((0.0,  0.0, 0.0), (1, 1, 1))}))
-mpl.colormaps.register(LinearSegmentedColormap('blue', {'red': ((0,0,0),(1,0,0)), 'green': ((0,0,0),(1,0,0)), 'blue': ((0.0,  0.0, 0.0), (1,  1, 1))}))
-mpl.colormaps.register(LinearSegmentedColormap('purple', {'red': ((0,0,0),(1,0.5,0.5)), 'green': ((0,0,0),(1,0,0)), 'blue': ((0.0,  0.0, 0.0), (1,  1, 1))}))
-mpl.colormaps.register(LinearSegmentedColormap('magenta', {'red': ((0,0,0),(1,1,1)), 'green': ((0,0,0),(1,0,0)), 'blue': ((0.0,  0.0, 0.0), (1,  1, 1))}))
-mpl.colormaps.register(LinearSegmentedColormap('grape', {'red': ((0,0,0),(1,1,1)), 'green': ((0,0,0),(1,0,0)), 'blue': ((0.0,  0.0, 0.0), (1,  0.5, 0.5))}))
-#mpl.colormaps.register(LinearSegmentedColormap('redd', {'red': ((0.0,  0.0, 0.0), (1,  1, 1))}))
-#mpl.colormaps.register(LinearSegmentedColormap('greenn', {'green': ((0.0,  0.0, 0.0), (1,  1, 1))}))
-
+try:
+    mpl.colormaps.register(LinearSegmentedColormap('red', {'red': ((0,0,0),(1,1,1)), 'green': ((0,0,0),(1,0,0)), 'blue': ((0.0,  0.0, 0.0), (1,  0, 0))}))
+    mpl.colormaps.register(LinearSegmentedColormap('orange', {'red': ((0,0,0),(1,1,1)), 'green': ((0,0,0),(1,0.5,0.5)), 'blue': ((0.0,  0.0, 0.0), (1,  0, 0))}))
+    mpl.colormaps.register(LinearSegmentedColormap('yellow', {'red': ((0,0,0),(1,1,1)), 'green': ((0,0,0),(1,1,1)), 'blue': ((0.0,  0.0, 0.0), (1,  0, 0))}))
+    mpl.colormaps.register(LinearSegmentedColormap('lime', {'red': ((0,0,0),(1,0.5,0.5)), 'green': ((0,0,0),(1,1,1)), 'blue': ((0.0,  0.0, 0.0), (1,  0, 0))}))
+    mpl.colormaps.register(LinearSegmentedColormap('green', {'red': ((0,0,0),(1,0,0)), 'green': ((0,0,0),(1,1,1)), 'blue': ((0.0,  0.0, 0.0), (1,  0, 0))}))
+    mpl.colormaps.register(LinearSegmentedColormap('mint', {'red': ((0,0,0),(1,0,0)), 'green': ((0,0,0),(1,1,1)), 'blue': ((0.0,  0.0, 0.0), (1,  0.5, 0.5))}))
+    mpl.colormaps.register(LinearSegmentedColormap('cyan', {'red': ((0,0,0),(1,0,0)), 'green': ((0,0,0),(1,1,1)), 'blue': ((0.0,  0.0, 0.0), (1, 1, 1))}))
+    mpl.colormaps.register(LinearSegmentedColormap('navy', {'red': ((0,0,0),(1,0,0)), 'green': ((0,0,0),(1,0.5,0.5)), 'blue': ((0.0,  0.0, 0.0), (1, 1, 1))}))
+    mpl.colormaps.register(LinearSegmentedColormap('blue', {'red': ((0,0,0),(1,0,0)), 'green': ((0,0,0),(1,0,0)), 'blue': ((0.0,  0.0, 0.0), (1,  1, 1))}))
+    mpl.colormaps.register(LinearSegmentedColormap('purple', {'red': ((0,0,0),(1,0.5,0.5)), 'green': ((0,0,0),(1,0,0)), 'blue': ((0.0,  0.0, 0.0), (1,  1, 1))}))
+    mpl.colormaps.register(LinearSegmentedColormap('magenta', {'red': ((0,0,0),(1,1,1)), 'green': ((0,0,0),(1,0,0)), 'blue': ((0.0,  0.0, 0.0), (1,  1, 1))}))
+    mpl.colormaps.register(LinearSegmentedColormap('grape', {'red': ((0,0,0),(1,1,1)), 'green': ((0,0,0),(1,0,0)), 'blue': ((0.0,  0.0, 0.0), (1,  0.5, 0.5))}))
+    #mpl.colormaps.register(LinearSegmentedColormap('redd', {'red': ((0.0,  0.0, 0.0), (1,  1, 1))}))
+    #mpl.colormaps.register(LinearSegmentedColormap('greenn', {'green': ((0.0,  0.0, 0.0), (1,  1, 1))}))
+except:
+    print ("Did not update colormaps since colormaps with identical names already existing. ")
 
 class SuperQLabel(QtWidgets.QLabel):
     def __init__(self, *args, **kwargs):
