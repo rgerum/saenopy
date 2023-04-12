@@ -33,7 +33,7 @@ class DeformationDetector(PipelineModule):
 
         with QtShortCuts.QVBoxLayout(self) as layout:
             layout.setContentsMargins(0, 0, 0, 0)
-            with CheckAbleGroup(self, "find deformations (piv)").addToLayout() as self.group:
+            with CheckAbleGroup(self, "find deformations (piv)", url="https://saenopy.readthedocs.io/en/latest/interface_solver.html#detect-deformations").addToLayout() as self.group:
                 with QtShortCuts.QVBoxLayout() as layout:
                     with QtShortCuts.QHBoxLayout():
                         self.input_elementsize = QtShortCuts.QInputNumber(None, "piv elem. size", 15.0, step=1,

@@ -52,7 +52,7 @@ class MeshCreator(PipelineModule):
 
         with QtShortCuts.QVBoxLayout(self) as layout:
             layout.setContentsMargins(0, 0, 0, 0)
-            with CheckAbleGroup(self, "interpolate mesh").addToLayout() as self.group:
+            with CheckAbleGroup(self, "interpolate mesh", url="https://saenopy.readthedocs.io/en/latest/interface_solver.html#create-finite-element-mesh").addToLayout() as self.group:
 
                 with QtShortCuts.QVBoxLayout():
 

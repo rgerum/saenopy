@@ -30,7 +30,7 @@ class Regularizer(PipelineModule):
 
         with QtShortCuts.QVBoxLayout(self) as layout:
             layout.setContentsMargins(0, 0, 0, 0)
-            with CheckAbleGroup(self, "fit forces (regularize)").addToLayout() as self.group:
+            with CheckAbleGroup(self, "fit forces (regularize)", url="https://saenopy.readthedocs.io/en/latest/interface_solver.html#fit-deformations-and-calculate-forces").addToLayout() as self.group:
 
                 with QtShortCuts.QVBoxLayout() as main_layout:
                     with QtShortCuts.QGroupBox(None, "Material Parameters") as self.material_parameters:

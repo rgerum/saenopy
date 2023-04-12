@@ -215,7 +215,7 @@ class Spoiler(QtWidgets.QWidget):
 class CheckAbleGroup(QtWidgets.QWidget, QtShortCuts.EnterableLayout):
     value_changed = QtCore.Signal(bool)
     main_layout = None
-    def __init__(self, parent=None, title='', animationDuration=300):
+    def __init__(self, parent=None, title='', animationDuration=300, url=None):
         super().__init__(parent=parent)
 
         self.headerLine = QtWidgets.QFrame()
@@ -236,6 +236,13 @@ class CheckAbleGroup(QtWidgets.QWidget, QtShortCuts.EnterableLayout):
                 headerLine.setFrameShape(QtWidgets.QFrame.HLine)
                 headerLine.setFrameShadow(QtWidgets.QFrame.Sunken)
                 headerLine.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Maximum)
+
+                #QtShortCuts.current_layout.addStretch()
+                if url is not None:
+                    self.label2 = QtWidgets.QPushButton(qta.icon("fa5s.question"), "").addToLayout()
+                    #self.label2.setMaximumWidth(30)
+                    self.label2.setStyleSheet("QPushButton { border: none; background: none; }")
+                    self.label2.clicked.connect(lambda x: QtGui.QDesktopServices.openUrl(QtCore.QUrl(url)))
             self.child_widget = QtWidgets.QWidget().addToLayout()
         self.layout = self
         self.value = self.toggleButton.value
