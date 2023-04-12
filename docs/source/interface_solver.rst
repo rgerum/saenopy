@@ -48,12 +48,102 @@ be downloaded to a user directory and directly opened in saenopy.
 
 Detect Deformations
 -------------------
-TODO
+
+piv element size
+~~~~~~~~~~~~~~~~
+The size of the mesh used by the Particle Image Velocimetry (PIV) algorithm.
+The algorithm searches for deformations at points
+`piv_element_size` μm apart.
+Smaller element sizes result in longer run times for the piv step.
+To reduce information loss
+when interpolating to a new mesh, it may be advantageous to use the same mesh size as the final mesh or an integer multiple of it.
+
+.. figure:: images/parameters/piv_mesh_size.png
+
+window size
+~~~~~~~~~~~
+The size of the search window for the piv algorithm.
+A rectangle with a width of `search_window` μm around each node in the target image is searched
+in the reference image. The resulting offset is the measured deformation.
+Larger search windows result in longer run times for the piv step.
+
+.. figure:: images/parameters/window_size.png
+
+signoise
+~~~~~~~~
+The signal to noise ratio threshold. Points with more noise are set to "nan" (not a number). Nan values are nodes where
+no deformation has been found and are therefore not constrained when fitting deformations.
+
+driftcorrection
+~~~~~~~~~~~~~~~
+Whether to apply a drift correction by subtracting the median deformation from the found deformations. This is useful if
+the target stack has a global shift with respect to the reference stack.
+
 
 Create Finite Element Mesh
 --------------------------
-TODO
+reference stack
+~~~~~~~~~~~~~~~
+This parameter can have values depending on the type of experiment. If the experiment has a
+specified reference stack (with the relaxed cell) the only option will be:
+
+    - reference stack
+
+If the measurement does not have such a stack but is a time measurement, the options are
+whether to just use the difference between subsequent stacks as the deformations ("next"), or to
+use the median of all stacks as a reference stack ("median").
+
+    - next
+    - median
+
+mesh element size
+~~~~~~~~~~~~~~~~~
+The element size for the mesh to which the mesh from the PIV step will be interpolated.
+Smaller element sizes will produce a finer mesh, which will capture more detail of the deformation field, but will take longer to
+but will take longer to calculate in the Fit Forces step.
+To reduce the loss of information
+when interpolating to a new mesh, it may be beneficial to use the same mesh size as the final mesh or an integral multiple of it.
+
+.. figure:: images/parameters/mesh_size.png
+
+
+mesh size same
+~~~~~~~~~~~~~~
+Whether to use the same mesh size as the piv mesh. If unchecked, a custom mesh size can be specified. Smaller mesh sizes
+then the PIV mesh would cut off information. Larger mesh sizes can be good if the piv mesh is very small and the spatial decay of the
+and the spatial decay of the deformation field is not well captured. Larger mesh sizes can lead to more accurate force
+reconstructions.
 
 Fit Deformations and Calculate Forces
 -------------------------------------
-TODO
+
+Material Parameters
+~~~~~~~~~~~~~~~~~~~
+The material parameters `k`, `d_0`, `lambda_s`, and `d_s` are explained in the section
+:ref:`SectionMaterial`.
+
+Regularisation Parameters
+~~~~~~~~~~~~~~~~~~~~~~~~~
+alpha
+~~~~~
+How much to regularise the forces.
+This is the most important parameter of the regularisation step.
+A high alpha value makes the regularisation procedure focus more on obtaining small
+forces then to match the measured deformation field well. A low alpha value results in a good fit of the measured
+deformations but can lead to more higher forces and thus increases the chance to obtain spurious forces that only explain
+the measurement noise from measuring the displacement field.
+
+stepper
+~~~~~~~
+The step width of one regularisation step. In case everything would be completely linear without material or geometrical
+non-linearities, a stepper of 1 would result in a perfect fit within one iteration.
+
+i_max
+~~~~~
+The maximum number of iterations after which to stop the fitting procedure if the rel_conv_crit did not terminate the
+iteration earlier.
+
+rel_conv_crit
+~~~~~~~~~~~~~
+The relative convergence criterion. If the standard deviation of the energy of the last 6 iterations divided my the mean
+does not exceed this value, the fitting procedure is considered converged and iterations are stopped.
