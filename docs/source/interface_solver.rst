@@ -67,10 +67,10 @@ A rectangle with a width of `search_window` μm around each node in the target i
 in the reference image. The resulting offset is the measured deformation.
 Larger search windows result in longer run times for the piv step.
 An appropriate window size should be chosen that is large enough to capture the
- magnitude of the deformations (~4 larger than the largest deformation magnitude)
-  but not overly large to smear the deformation field and reduce the spatial resolution. 
+magnitude of the deformations (~4 larger than the largest deformation magnitude) 
+but not overly large to smear the deformation field and reduce the spatial resolution. 
 For an increased spatial resolution it is often helpful to have a reasonable
- overlap between adjacent windows (e.g. 50% by using windowsize = 2 * elementsize).
+overlap between adjacent windows (e.g. 50% by using windowsize = 2 * elementsize).
 
 .. figure:: images/parameters/window_size.png
 
