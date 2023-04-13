@@ -66,13 +66,20 @@ The size of the search window for the piv algorithm.
 A rectangle with a width of `search_window` μm around each node in the target image is searched
 in the reference image. The resulting offset is the measured deformation.
 Larger search windows result in longer run times for the piv step.
+An appropriate window size should be chosen that is large enough to capture the
+ magnitude of the deformations (~4 larger than the largest deformation magnitude)
+  but not overly large to smear the deformation field and reduce the spatial resolution. 
+For an increased spatial resolution it is often helpful to have a reasonable
+ overlap between adjacent windows (e.g. 50% by using windowsize = 2 * elementsize).
 
 .. figure:: images/parameters/window_size.png
 
 signoise
 ~~~~~~~~
-The signal to noise ratio threshold. Points with more noise are set to "nan" (not a number). Nan values are nodes where
-no deformation has been found and are therefore not constrained when fitting deformations.
+The signal to noise ratio threshold. Points with higher noise are set to "nan" (not a number). Nan values are nodes where
+no deformation has been found and are therefore not constrained when fitting deformations. 
+Default is 1.3, that replaces deformations with a signal-to-noise ratio < 1.3 with "nan".
+
 
 driftcorrection
 ~~~~~~~~~~~~~~~
@@ -85,16 +92,18 @@ Create Finite Element Mesh
 reference stack
 ~~~~~~~~~~~~~~~
 This parameter can have values depending on the type of experiment. If the experiment has a
-specified reference stack (with the relaxed cell) the only option will be:
+specified reference stack (with the relaxed cell) the appropriate option will be:
 
     - reference stack
 
-If the measurement does not have such a stack but is a time measurement, the options are
-whether to just use the difference between subsequent stacks as the deformations ("next"), or to
-use the median of all stacks as a reference stack ("median").
+If the measurement is a timeseries, the options are whether to just use the difference 
+between subsequent stacks as the deformations ("next"), or to use the median of all stacks Adding
+as a reference stack ("median"). It is also possible to specify an individual timepoint 
+(e.g. after cell seeding or relaxation) by using the "reference stack" option. 
 
     - next
     - median
+    - reference stack
 
 mesh element size
 ~~~~~~~~~~~~~~~~~
