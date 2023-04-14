@@ -54,6 +54,7 @@ piv element size
 The size of the mesh used by the Particle Image Velocimetry (PIV) algorithm.
 The algorithm searches for deformations at points
 `piv_element_size` μm apart.
+
 Smaller element sizes result in longer run times for the piv step.
 To reduce information loss
 when interpolating to a new mesh, it may be advantageous to use the same mesh size as the final mesh or an integer multiple of it.
@@ -65,6 +66,7 @@ window size
 The size of the search window for the piv algorithm.
 A rectangle with a width of `search_window` μm around each node in the target image is searched
 in the reference image. The resulting offset is the measured deformation.
+
 Larger search windows result in longer run times for the piv step.
 An appropriate window size should be chosen that is large enough to capture the
 magnitude of the deformations (~4 larger than the largest deformation magnitude) 
@@ -98,7 +100,7 @@ specified reference stack (with the relaxed cell) the appropriate option will be
 
 If the measurement is a timeseries, the options are whether to just use the difference 
 between subsequent stacks as the deformations ("next"), or to use the median of all stacks Adding
-as a reference stack ("median"). It is also possible to specify an individual timepoint 
+as a reference stack ("median"). It is also possible to specify an individual time point
 (e.g. after cell seeding or relaxation) by using the "reference stack" option. 
 
     - next
@@ -123,13 +125,19 @@ then the PIV mesh would cut off information. Larger mesh sizes can be good if th
 and the spatial decay of the deformation field is not well captured. Larger mesh sizes can lead to more accurate force
 reconstructions.
 
+.. figure:: images/parameters/mesh_total_size.png
+
 Fit Deformations and Calculate Forces
 -------------------------------------
 
 Material Parameters
 ~~~~~~~~~~~~~~~~~~~
-The material parameters `k`, `d_0`, `lambda_s`, and `d_s` are explained in the section
+The material parameters :math:`k`, :math:`d_0`, :math:`\lambda_s`, and :math:`d_s` are explained in the section
 :ref:`SectionMaterial`.
+
+.. figure:: images/fiber.png
+    :width: 70%
+
 
 Regularisation Parameters
 ~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -137,15 +145,21 @@ alpha
 ~~~~~
 How much to regularise the forces.
 This is the most important parameter of the regularisation step.
-A high alpha value makes the regularisation procedure focus more on obtaining small
-forces then to match the measured deformation field well. A low alpha value results in a good fit of the measured
+
+A **low alpha** value results in a good fit of the measured
 deformations but can lead to more higher forces and thus increases the chance to obtain spurious forces that only explain
 the measurement noise from measuring the displacement field.
+
+A **high alpha** value makes the regularisation procedure focus more on obtaining small
+forces then to match the measured deformation field well. This can lead to a weak force field.
+
+.. figure:: images/parameters/different_alphas.png
 
 stepper
 ~~~~~~~
 The step width of one regularisation step. In case everything would be completely linear without material or geometrical
-non-linearities, a stepper of 1 would result in a perfect fit within one iteration.
+non-linearities, a stepper of 1 would result in a perfect fit within one iteration. Small stepper values increase the
+number of iterations needed to find a solution.
 
 i_max
 ~~~~~
