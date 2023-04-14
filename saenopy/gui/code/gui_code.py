@@ -76,6 +76,7 @@ class MainWindowCode(QtWidgets.QWidget):
                 self.console = Console(self, self.editor)#QtWidgets.QTextEdit()
                 self.console.setStyleSheet("background-color: #1e1f22; color: #bcbec4")
                 self.console.setReadOnly(True)
+                self.console.setFont(font)
 
                 self.splitter = QtWidgets.QSplitter().addToLayout()
                 self.splitter.addWidget(self.editor)

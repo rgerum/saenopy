@@ -24,6 +24,10 @@ class OpenScript(QtWidgets.QWidget):
 
     def update(self, tup) -> None:
         text, pipe = tup
+        # implement carriage return for tqdm progress bar
+        if len(text) and text[0] == "\r":
+            text = text[1:]
+            self.console = self.console.rpartition("<br>")[0] + "<br>"
         text = html.escape(text).replace("\n", "<br>").replace(" ", "&nbsp;")
         if pipe == "stderr":
             text = re.sub(r"File&nbsp;&quot;(.*?)&quot;,&nbsp;line&nbsp;(\d*)", r"File &quot;<a href=\1#\2 style='color: #548af7'>\1</a>&quot;, line \2", text)
