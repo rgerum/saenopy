@@ -240,6 +240,7 @@ class CheckAbleGroup(QtWidgets.QWidget, QtShortCuts.EnterableLayout):
                 #QtShortCuts.current_layout.addStretch()
                 if url is not None:
                     self.label2 = QtWidgets.QPushButton(qta.icon("fa5s.question"), "").addToLayout()
+                    self.label2.setToolTip("open the documentation in the browser")
                     #self.label2.setMaximumWidth(30)
                     self.label2.setStyleSheet("QPushButton { border: none; background: none; }")
                     self.label2.clicked.connect(lambda x: QtGui.QDesktopServices.openUrl(QtCore.QUrl(url)))

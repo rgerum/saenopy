@@ -35,20 +35,20 @@ class Regularizer(PipelineModule):
                 with QtShortCuts.QVBoxLayout() as main_layout:
                     with QtShortCuts.QGroupBox(None, "Material Parameters") as self.material_parameters:
                         with QtShortCuts.QHBoxLayout() as layout2:
-                            self.input_k = QtShortCuts.QInputString(None, "k", "1645", type=float)
-                            self.input_d0 = QtShortCuts.QInputString(None, "d_0", "0.0008", type=float)
-                            self.input_lamda_s = QtShortCuts.QInputString(None, "λ_s", "0.0075", type=float)
-                            self.input_ds = QtShortCuts.QInputString(None, "d_s", "0.033", type=float)
+                            self.input_k = QtShortCuts.QInputString(None, "k", "1645", type=float, tooltip="the stiffness of the material's fibers")
+                            self.input_d0 = QtShortCuts.QInputString(None, "d_0", "0.0008", type=float, tooltip="the bluckling strength of the material's fibers")
+                            self.input_lamda_s = QtShortCuts.QInputString(None, "λ_s", "0.0075", type=float, tooltip="the length at which strain stiffening of the material's fibers starts")
+                            self.input_ds = QtShortCuts.QInputString(None, "d_s", "0.033", type=float, tooltip="the strain stiffening strength of the material's fibers")
 
                     with QtShortCuts.QGroupBox(None, "Regularisation Parameters") as self.material_parameters:
                         with QtShortCuts.QHBoxLayout(None) as layout:
-                            self.input_alpha = QtShortCuts.QInputString(None, "alpha", "1e10", type="exp")
-                            self.input_stepper = QtShortCuts.QInputString(None, "stepper", "0.33", type=float)
+                            self.input_alpha = QtShortCuts.QInputString(None, "alpha", "1e10", type="exp", tooltip="the strength of the regularisation (higher values mean weaker forces)")
+                            self.input_stepper = QtShortCuts.QInputString(None, "stepper", "0.33", type=float, tooltip="the step with of the iteration algorithm")
                         with QtShortCuts.QHBoxLayout(None) as layout:
-                            self.input_imax = QtShortCuts.QInputNumber(None, "i_max", 100, float=False)
-                            self.input_conv_crit = QtShortCuts.QInputString(None, "rel_conv_crit", 0.01, type=float)
+                            self.input_imax = QtShortCuts.QInputNumber(None, "i_max", 100, float=False, tooltip="the maximum number of iterations after which to abort the iteration algorithm")
+                            self.input_conv_crit = QtShortCuts.QInputString(None, "rel_conv_crit", 0.01, type=float, tooltip="the convergence criterion of the iteration algorithm")
 
-                    self.input_button = QtShortCuts.QPushButton(None, "calculate forces", self.start_process)
+                    self.input_button = QtShortCuts.QPushButton(None, "calculate forces", self.start_process, tooltip="run the force calculation")
 
                     self.canvas = MatplotlibWidget(self).addToLayout()
                     #NavigationToolbar(self.canvas, self).addToLayout()

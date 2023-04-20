@@ -58,9 +58,9 @@ class MeshCreator(PipelineModule):
 
                     with QtShortCuts.QHBoxLayout() as layout2:
                         self.input_reference = QtShortCuts.QInputChoice(None, "reference stack", "next",
-                                                                        ["next", "median"])
+                                                                        ["next", "median"], tooltip="the reference for the deformations")
                         self.input_reference.setEnabled(False)
-                        self.input_element_size = QtShortCuts.QInputNumber(None, "mesh elem. size", 7, unit="μm")
+                        self.input_element_size = QtShortCuts.QInputNumber(None, "mesh elem. size", 7, unit="μm", tooltip="the element size of the regularisatio mesh")
                         #with QtShortCuts.QHBoxLayout() as layout2:
                         self.input_inner_region = QtShortCuts.QInputNumber(None, "inner region", 100, unit="μm")
                         self.input_inner_region.setVisible(False)
@@ -68,11 +68,11 @@ class MeshCreator(PipelineModule):
                         self.input_thinning_factor.setVisible(False)
                         layout2.addStretch()
                     with QtShortCuts.QHBoxLayout():
-                        self.input_mesh_size_same = QtShortCuts.QInputBool(None, "mesh size same as stack", True, value_changed=self.valueChanged)
+                        self.input_mesh_size_same = QtShortCuts.QInputBool(None, "mesh size same as stack", True, value_changed=self.valueChanged, tooltip="make the mesh size the same as the piv mesh")
                     with QtShortCuts.QHBoxLayout():
-                        self.input_mesh_size_x = QtShortCuts.QInputNumber(None, "x", 200, step=1, name_post="μm")
-                        self.input_mesh_size_y = QtShortCuts.QInputNumber(None, "y", 200, step=1, name_post="μm")
-                        self.input_mesh_size_z = QtShortCuts.QInputNumber(None, "z", 200, step=1, name_post="μm")
+                        self.input_mesh_size_x = QtShortCuts.QInputNumber(None, "x", 200, step=1, name_post="μm", tooltip="the custom new mesh size")
+                        self.input_mesh_size_y = QtShortCuts.QInputNumber(None, "y", 200, step=1, name_post="μm", tooltip="the custom new mesh size")
+                        self.input_mesh_size_z = QtShortCuts.QInputNumber(None, "z", 200, step=1, name_post="μm", tooltip="the custom new mesh size")
                         #self.input_mesh_size_label = QtWidgets.QLabel("μm").addToLayout()
                     self.valueChanged()
 
