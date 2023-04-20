@@ -90,9 +90,9 @@ class StackDisplay(PipelineModule):
                             resource_icon("slice2.ico"),
                             resource_icon("slice_all.ico"),
                         ], group=False, tooltip=["Show only the current z slice",
-                                                "Show a maximum intensity projection over +-5 z slices",
-                                                "Show a maximum intensity projection over +-10 z slices",
-                                                "Show a maximum intensity projection over all z slices"])
+                                                 "Show a maximum intensity projection over +-5 z slices",
+                                                 "Show a maximum intensity projection over +-10 z slices",
+                                                 "Show a maximum intensity projection over all z slices"])
                         self.button_z_proj.valueChanged.connect(lambda value: self.setZProj([0, 5, 10, 1000][value]))
                         self.button_z_proj.valueChanged.connect(
                             lambda value: parent.shared_properties.change_property("button_z_proj", value, self))
@@ -117,7 +117,6 @@ class StackDisplay(PipelineModule):
 
                     self.t_slider = QTimeSlider(connected=self.z_slider_value_changed).addToLayout()
                     self.tab.parent().t_slider = self.t_slider
-
 
         self.view1.link(self.view2)
         self.current_tab_selected = True
@@ -183,9 +182,6 @@ class StackDisplay(PipelineModule):
 
     def update_display(self):
         return
-        if self.check_available(self.result):
-            self.scale1.setScale(self.result.stack[0].voxel_size)
-            self.scale2.setScale(self.result.stack[1].voxel_size)
 
     def property_changed(self, name, value):
         if name == "z_slider":
@@ -420,6 +416,3 @@ class ModuleScaleBar(QtWidgets.QGroupBox):
         self.scalebar_text.setPos(-pixel-20-25, -20-30)
         self.scalebar_text.setTextWidth(pixel+50)
         self.scalebar_text.setHtml(u"<center>%d&thinsp;µm</center>" % mu)
-
-
-

@@ -209,16 +209,12 @@ def showVectorField(plotter: QtInteractor, obj: Solver, field: np.ndarray, name:
                 xmax, ymax, zmax = obj_R.max(axis=0)
             else:
                 ((xmin, ymin, zmin), (xmax, ymax, zmax)) = stack_min_max
-            #plotter.show_bounds(bounds=[xmin, xmax, ymin, ymax, zmin, zmax], grid='front', location='outer', all_edges=True,
-            #                    show_xlabels=False, show_ylabels=False, show_zlabels=False,
-            #                    xlabel=" ", ylabel=" ", zlabel=" ", render=False)
             corners = np.asarray([[xmin, ymin, zmin], [xmax, ymin, zmin], [xmin, ymax, zmin], [xmax, ymax, zmin],
                                    [xmin, ymin, zmax], [xmax, ymin, zmax], [xmin, ymax, zmax], [xmax, ymax, zmax]])
             grid = pv.ExplicitStructuredGrid(np.asarray([2, 2, 2]), corners)
             plotter.add_mesh(grid, style='wireframe', render_lines_as_tubes=True, line_width=2, show_edges=True, name="border")
         elif show_grid == 3 and stack_shape is not None:
             xmin, xmax = -stack_shape[0]/2*scale, stack_shape[0]/2*scale
-            #print(xmin,ymin)
             ymin, ymax = -stack_shape[1]/2*scale, stack_shape[1]/2*scale
             zmin, zmax = -stack_shape[2]/2*scale, stack_shape[2]/2*scale
             corners = np.asarray([[xmin, ymin, zmin], [xmax, ymin, zmin], [xmin, ymax, zmin], [xmax, ymax, zmin],

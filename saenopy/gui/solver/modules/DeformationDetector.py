@@ -138,32 +138,6 @@ class DeformationDetector(PipelineModule):
 
         if M.hasNodeVar("U_measured"):
             showVectorField2(self, M, "U_measured")
-            if 0:
-                image = self.vtk_toolbar.show_image.value()
-                if image:
-                    stack = self.result.stack[self.t_slider.value()+1]
-                    im = stack[:, :, self.z_slider.value(), self.vtk_toolbar.channel_select.value()]
-                    if self.result.stack_parameter["z_project_name"] == "maximum":
-                        start = np.clip(self.z_slider.value() - self.result.stack_parameter["z_project_range"], 0,
-                                        stack.shape[2])
-                        end = np.clip(self.z_slider.value() + self.result.stack_parameter["z_project_range"], 0, stack.shape[2])
-                        im = stack[:, :, start:end, self.vtk_toolbar.channel_select.value()]
-                        im = np.max(im, axis=2)
-                    else:
-                        (min, max) = np.percentile(im, (1, 99))
-                        im = im.astype(np.float32) - min
-                        im = im.astype(np.float64) * 255 / (max - min)
-                        im = np.clip(im, 0, 255).astype(np.uint8)
-
-                    display_image = [im, stack.voxel_size, self.z_slider.value()-stack.shape[2]/2]
-                    if self.vtk_toolbar.show_image.value() == 2:
-                        display_image[2] = -stack.shape[2]/2
-                else:
-                    display_image = None
-
-                showVectorField(plotter, M, M.getNodeVar("U_measured"), "U_measured",
-                                scalebar_max=self.vtk_toolbar.getScaleMax(), show_nan=self.vtk_toolbar.use_nans.value(),
-                                display_image=display_image, show_grid=self.vtk_toolbar.show_grid.value(), stack_shape=self.result.stack[0].shape[:3]*self.result.stack[0].voxel_size)
 
         if cam_pos is not None:
             plotter.camera_position = cam_pos
@@ -174,7 +148,6 @@ class DeformationDetector(PipelineModule):
             stack_deformed = self.result.stack[0]
             overlap = 1 - (self.input_elementsize.value() / self.input_win.value())
             stack_size = np.array(stack_deformed.shape)[:3] * voxel_size1 - self.input_win.value()
-            # self.label.setText(f"Deformation grid with {unit_size:.1f}μm elements.\nTotal region is {stack_size}.")
             self.label.setText(
                 f"""Overlap between neighbouring windows\n(size={self.input_win.value()}µm or {(self.input_win.value() / np.array(voxel_size1)).astype(int)} px) is choosen \n to {int(overlap * 100)}% for an elementsize of {self.input_elementsize.value():.1f}μm elements.\nTotal region is {stack_size}.""")
         else:

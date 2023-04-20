@@ -170,49 +170,15 @@ class VTK_Toolbar(QtWidgets.QWidget):
             self.button.clicked.connect(lambda x: self.plotter.isometric_view())
 
             def save():
-                if 1:
-                    new_path = QtWidgets.QFileDialog.getSaveFileName(None, "Save Images", os.getcwd())
-                    # if we got one, set it
-                    if new_path:
-                        if isinstance(new_path, tuple):
-                            new_path = new_path[0]
-                        else:
-                            new_path = str(new_path)
-                        print(new_path)
-                        self.plotter.screenshot(new_path)
-                    return
-                outer_self = self
-
-                class PlotDialog(QtWidgets.QDialog):
-                    def __init__(self, parent):
-                        super().__init__(parent)
-                        with QtShortCuts.QVBoxLayout(self) as layout:
-                            self.plotter = QtInteractor(self, theme=outer_self.plotter.theme, auto_update=False)
-                            layout.addWidget(self.plotter)
-                            outer_self.update_display(self.plotter)
-                            #showVectorField(self.plotter, outer_self.result.mesh_piv, "U_measured")
-                            self.button2 = QtWidgets.QPushButton(qta.icon("mdi.floppy"), "").addToLayout()
-                            self.button2.setToolTip("save")
-                            self.button2.clicked.connect(self.save)
-
-                    def save(self):
-                        new_path = QtWidgets.QFileDialog.getSaveFileName(None, "Save Images", os.getcwd())
-                        # if we got one, set it
-                        if new_path:
-                            if isinstance(new_path, tuple):
-                                new_path = new_path[0]
-                            else:
-                                new_path = str(new_path)
-                            print(new_path)
-                            self.plotter.screenshot(new_path)
-                        self.plotter.close()
-                        self.close()
-
-                    def close(self):
-                        self.plotter.close()
-
-                plot_diaolog = PlotDialog(self)
-                plot_diaolog.show()
+                new_path = QtWidgets.QFileDialog.getSaveFileName(None, "Save Images", os.getcwd())
+                # if we got one, set it
+                if new_path:
+                    if isinstance(new_path, tuple):
+                        new_path = new_path[0]
+                    else:
+                        new_path = str(new_path)
+                    print(new_path)
+                    self.plotter.screenshot(new_path)
 
             self.button2 = QtWidgets.QPushButton(qta.icon("mdi.floppy"), "").addToLayout()
             self.button2.setToolTip("save")
@@ -291,5 +257,3 @@ class VTK_Toolbar(QtWidgets.QWidget):
         self.plotter.theme = x
         self.plotter.set_background(self.plotter._theme.background)
         self.update_display()
-
-

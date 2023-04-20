@@ -210,53 +210,6 @@ class MeshCreator(PipelineModule):
             result.solver[i] = saenopy.interpolate_mesh(result.mesh_piv[i], displacement_list[i], params)
         # save the meshes
         result.save()
-            
-        return
-        solvers = []
-        mode = self.input_reference.value()
-        
-        if params["mesh_size_same"]:
-            x, y, z = (result.mesh_piv[0].R.max(axis=0) - result.mesh_piv[0].R.min(axis=0))*1e6
-            params["mesh_size_x"] = x
-            params["mesh_size_y"] = y
-            params["mesh_size_z"] = z
-
-        U = [M.getNodeVar("U_measured") for M in result.mesh_piv]
-        # correct for the median position
-        if result.stack_reference is None:# len(U) > 2:
-            xpos2 = np.cumsum(U, axis=0)  # mittlere position
-            if mode == "first":
-                xpos2 -= xpos2[0]
-            elif mode == "median":
-                xpos2 -= np.nanmedian(xpos2, axis=0)  # aktuelle abweichung von
-            elif mode == "last":
-                xpos2 -= xpos2[-1]
-            elif mode == "next":
-                xpos2 = U
-        else:
-            xpos2 = U
-        for i in range(len(result.mesh_piv)):
-            M = result.mesh_piv[i]
-            points, cells = saenopy.multigridHelper.getScaledMesh(params["element_size"]*1e-6,
-                                          params["inner_region"]*1e-6,
-                                          np.array([params["mesh_size_x"], params["mesh_size_y"],
-                                                     params["mesh_size_z"]])*1e-6 / 2,
-                                          [0, 0, 0], params["thinning_factor"])
-
-            R = (M.R - np.min(M.R, axis=0)) - (np.max(M.R, axis=0) - np.min(M.R, axis=0)) / 2
-            U_target = saenopy.getDeformations.interpolate_different_mesh(R, xpos2[i], points)
-
-            border_idx = getNodesWithOneFace(cells)
-            inside_mask = np.ones(points.shape[0], dtype=bool)
-            inside_mask[border_idx] = False
-
-            M = saenopy.Solver()
-            M.setNodes(points)
-            M.setTetrahedra(cells)
-            M.setTargetDisplacements(U_target, inside_mask)
-
-            solvers.append(M)
-        result.solver = solvers
 
     def get_code(self) -> Tuple[str, str]:
         import_code = ""
