@@ -51,17 +51,11 @@ class Regularizer(PipelineModule):
                     self.input_button = QtShortCuts.QPushButton(None, "calculate forces", self.start_process)
 
                     self.canvas = MatplotlibWidget(self).addToLayout()
-                    NavigationToolbar(self.canvas, self).addToLayout()
+                    #NavigationToolbar(self.canvas, self).addToLayout()
 
         with self.parent.tabs.createTab("Forces") as self.tab:
             with QtShortCuts.QVBoxLayout() as layout:
                 self.label_tab = QtWidgets.QLabel("The fitted regularized forces.").addToLayout()
-                if 0:
-                    self.canvas = MatplotlibWidget(self)
-                    layout.addWidget(self.canvas)
-                    layout.addWidget(NavigationToolbar(self.canvas, self))
-                else:
-                    pass #self.canvas = None
 
                 with QtShortCuts.QHBoxLayout() as layout:
                     self.plotter = QtInteractor(self, auto_update=False)  # , theme=pv.themes.DocumentTheme())
@@ -128,12 +122,15 @@ class Regularizer(PipelineModule):
                 self.canvas.figure.axes[0].semilogy(relrec[:, 1], ":", label="least squares loss")
                 self.canvas.figure.axes[0].semilogy(relrec[:, 2], "--", label="regularize loss")
                 self.canvas.figure.axes[0].legend()
-                self.canvas.figure.axes[0].set_xlabel("iteration")
-                self.canvas.figure.axes[0].set_ylabel("error")
                 self.canvas.figure.axes[0].spines["top"].set_visible(False)
                 self.canvas.figure.axes[0].spines["right"].set_visible(False)
+                ticks = self.canvas.figure.axes[0].get_xticks()
+                self.canvas.figure.axes[0].set_xticks([t for t in ticks if t < self.canvas.figure.axes[0].get_xlim()[1]*0.7])
+
+                self.canvas.figure.axes[0].text(0, 1, "error  ", ha="right", transform=self.canvas.figure.axes[0].transAxes)
+                self.canvas.figure.axes[0].text(1, 0, "\n\niteration", ha="right", va="center", transform=self.canvas.figure.axes[0].transAxes)
                 try:
-                    self.canvas.figure.tight_layout()
+                    self.canvas.figure.tight_layout(pad=0)
                 except np.linalg.LinAlgError:
                     pass
                 self.canvas.draw()
