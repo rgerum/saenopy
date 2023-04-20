@@ -67,8 +67,9 @@ class MeshCreator(PipelineModule):
                         self.input_thinning_factor = QtShortCuts.QInputNumber(None, "thinning factor", 0, step=0.1)
                         self.input_thinning_factor.setVisible(False)
                         layout2.addStretch()
-                    with QtShortCuts.QHBoxLayout() as layout2:
+                    with QtShortCuts.QHBoxLayout():
                         self.input_mesh_size_same = QtShortCuts.QInputBool(None, "mesh size same as stack", True, value_changed=self.valueChanged)
+                    with QtShortCuts.QHBoxLayout():
                         self.input_mesh_size_x = QtShortCuts.QInputNumber(None, "x", 200, step=1, name_post="μm")
                         self.input_mesh_size_y = QtShortCuts.QInputNumber(None, "y", 200, step=1, name_post="μm")
                         self.input_mesh_size_z = QtShortCuts.QInputNumber(None, "z", 200, step=1, name_post="μm")
