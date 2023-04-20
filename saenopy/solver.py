@@ -1817,7 +1817,11 @@ def interpolate_mesh(M: Solver, xpos2: np.ndarray, params: dict) -> Solver:
         params["mesh_size_x"] = x
         params["mesh_size_y"] = y
         params["mesh_size_z"] = z
-    
+    if params["mesh_size_x"] < params["element_size"]*2 or \
+       params["mesh_size_y"] < params["element_size"]*2 or \
+       params["mesh_size_z"] < params["element_size"]*2:
+        raise ValueError("Mesh size needs to be at least twice the element size.")
+
     # no thinning if no values are set
     if "inner_region" not in params:
         params["inner_region"] = x
