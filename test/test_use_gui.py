@@ -18,7 +18,7 @@ np.random.seed(1234)
 def files(random_path):
     file_structure = {
         "tmp": {
-            "run-1": [f"Pos004_S001_z{z:03d}_ch00.tif" for z in range(50)],
+            "run-1": [f"Pos{pos:03d}_S001_z{z:03d}_ch00.tif" for z in range(50) for pos in range(4,7)],
             "run-1-reference": [f"Pos004_S001_z{z:03d}_ch00.tif" for z in range(50)],
             "run-2-time": [f"Pos004_S001_z{z:03d}_t{t:02d}.tif" for z in range(50) for t in range(3)],
             "run-2-reference": [f"Pos004_S001_z{z:03d}_t00.tif" for z in range(50)],
@@ -33,8 +33,8 @@ def files(random_path):
 def files2(random_path):
     file_structure = {
         "tmp2": {
-            "run-1": [f"Pos004_S001_z{z:03d}_ch00.tif" for z in range(50)],
-            "run-1-reference": [f"Pos004_S001_z{z:03d}_ch00.tif" for z in range(50)],
+            "run-1": [f"Pos{pos:03d}_S001_z{z:03d}_ch00.tif" for z in range(50) for pos in range(4,7)],
+            "run-1-reference": [f"Pos{pos:03d}_S001_z{z:03d}_ch00.tif" for z in range(50) for pos in range(4,7)],
         },
         "saenopy": {"rgerum": []}
     }
@@ -80,7 +80,7 @@ def test_stack(files2, files, monkeypatch, catch_popup_error, app):
     # start the main gui
     from saenopy.gui.gui_master import MainWindow
     window: MainWindow = MainWindow()  # gui_master.py:MainWindow
-    window.changedTab(1)
+    window.setTab(1)
 
     # switch to the Solver part
     from saenopy.gui.solver.gui_solver import MainWindowSolver
@@ -90,6 +90,15 @@ def test_stack(files2, files, monkeypatch, catch_popup_error, app):
     from saenopy.gui.solver.modules.BatchEvaluate import BatchEvaluate
     batch_evaluate: BatchEvaluate = solver.deformations  # modules/BatchEvaluate.py:BatchEvaluate
 
+    run_example(app, monkeypatch, batch_evaluate)
+    #window.show()
+    #app.exec_()
+
+    copy_paste_params(app, window, monkeypatch, batch_evaluate)
+
+    loading(monkeypatch, batch_evaluate)
+
+def run_example(app, monkeypatch, batch_evaluate):
     from saenopy.gui.solver.modules.load_measurement_dialog import AddFilesDialog
     def handle_files(self: AddFilesDialog):
         # set the data stack
@@ -97,7 +106,7 @@ def test_stack(files2, files, monkeypatch, catch_popup_error, app):
 
         # set the reference stack
         self.reference_choice.setValue(1, send_signal=True)
-        self.stack_reference.input_filename.setValue("tmp2/run-1/Pos004_S001_z000_ch00.tif", send_signal=True)
+        self.stack_reference.input_filename.setValue("tmp2/run-1-reference/Pos004_S001_z000_ch00.tif", send_signal=True)
 
         # add voxels
         self.stack_crop.input_voxel_size.setValue("1, 1, 1", send_signal=True)
@@ -110,7 +119,7 @@ def test_stack(files2, files, monkeypatch, catch_popup_error, app):
         return True
 
     monkeypatch.setattr(AddFilesDialog, "exec", handle_files)
-    batch_evaluate.show_files()
+    batch_evaluate.add_measurement()
 
     # add them to the gui and select them
     batch_evaluate.list.setCurrentRow(0)
@@ -123,8 +132,10 @@ def test_stack(files2, files, monkeypatch, catch_popup_error, app):
     # change some parameters
     batch_evaluate.sub_module_deformation.setParameter("win_um", 30)
     batch_evaluate.sub_module_regularize.setParameter("i_max", 10)
-    print("params A", getattr(batch_evaluate.sub_module_deformation.result, batch_evaluate.sub_module_deformation.params_name + "_tmp"))
-    print("params C", getattr(batch_evaluate.sub_module_regularize.result, batch_evaluate.sub_module_regularize.params_name + "_tmp"))
+    print("params A", getattr(batch_evaluate.sub_module_deformation.result,
+                              batch_evaluate.sub_module_deformation.params_name + "_tmp"))
+    print("params C", getattr(batch_evaluate.sub_module_regularize.result,
+                              batch_evaluate.sub_module_regularize.params_name + "_tmp"))
 
     # schedule to run all
     batch_evaluate.run_all()
@@ -136,8 +147,8 @@ def test_stack(files2, files, monkeypatch, catch_popup_error, app):
     M = results[0].solver[0]
     print(M.U[M.reg_mask])
     print(results[0].solver[0].U.shape)
-    #assert sf4(M.U[M.reg_mask][0]) == sf4([-2.01259036e-38, -1.96865342e-38, -4.92921492e-38])
-    #91.64216076e-38 -3.15079497e-39  3.19069614e-39
+    # assert sf4(M.U[M.reg_mask][0]) == sf4([-2.01259036e-38, -1.96865342e-38, -4.92921492e-38])
+    # 91.64216076e-38 -3.15079497e-39  3.19069614e-39
 
     # apply the monkeypatch for requests.get to mock_get
     monkeypatch.setattr(QtWidgets.QFileDialog, "getSaveFileName", lambda *args: "tmp.py")
@@ -147,6 +158,55 @@ def test_stack(files2, files, monkeypatch, catch_popup_error, app):
     for i in range(10):
         batch_evaluate.tabs.setCurrentIndex(i)
 
+    # remove from list
+    batch_evaluate.list.act_delete.triggered.emit()
+
+
+def copy_paste_params(app, window, monkeypatch, batch_evaluate):
+    def handle_files(self: AddFilesDialog):
+        # set the data stack
+        self.stack_data.input_filename.setValue("tmp2/run-1/Pos004_S001_z000_ch00.tif", send_signal=True)
+        for prop in self.stack_data.active.property_selectors:
+            if prop.name == "Pos":
+                prop.check.setValue(True)
+                prop.check.valueChanged.emit(True)
+
+        # set the reference stack
+        self.reference_choice.setValue(1, send_signal=True)
+        self.stack_reference.input_filename.setValue("tmp2/run-1-reference/Pos004_S001_z000_ch00.tif", send_signal=True)
+        for prop in self.stack_reference.active.property_selectors:
+            if prop.name == "Pos":
+                prop.check.setValue(True)
+                prop.check.valueChanged.emit(True)
+
+        # add voxels
+        self.stack_crop.input_voxel_size.setValue("1, 1, 1", send_signal=True)
+
+        # set the output
+        self.outputText.setValue("tmp2/output")
+
+        # click "ok"
+        self.accept_new()
+        return True
+
+    monkeypatch.setattr(AddFilesDialog, "exec", handle_files)
+    batch_evaluate.add_measurement()
+
+    # add them to the gui and select them
+    batch_evaluate.list.setCurrentRow(0)
+
+    # copy the params
+    batch_evaluate.copy_params()
+
+    # assert that we can past the params
+    assert batch_evaluate.allow_paste()
+
+    # paste the params to the next measurement
+    batch_evaluate.list.setCurrentRow(1)
+    batch_evaluate.paste_params()
+
+
+def loading(monkeypatch, batch_evaluate):
     # raise for forgot voxel size
     with pytest.raises(QMessageBoxCritical, match="voxel size"):
         def handle_files(self: AddFilesDialog):
@@ -167,7 +227,7 @@ def test_stack(files2, files, monkeypatch, catch_popup_error, app):
             self.accept_new()
 
         monkeypatch.setattr(AddFilesDialog, "exec", handle_files)
-        batch_evaluate.show_files()
+        batch_evaluate.add_measurement()
 
     # raise for no reference stack
     with pytest.raises(QMessageBoxCritical, match="reference stack.*time"):
@@ -189,7 +249,7 @@ def test_stack(files2, files, monkeypatch, catch_popup_error, app):
             self.accept_new()
 
         monkeypatch.setattr(AddFilesDialog, "exec", handle_files)
-        batch_evaluate.show_files()
+        batch_evaluate.add_measurement()
 
 
     # raise for time stack but selected reference stack
@@ -213,7 +273,7 @@ def test_stack(files2, files, monkeypatch, catch_popup_error, app):
             self.accept_new()
 
         monkeypatch.setattr(AddFilesDialog, "exec", handle_files)
-        batch_evaluate.show_files()
+        batch_evaluate.add_measurement()
 
     # raise for no data stack
     with pytest.raises(QMessageBoxCritical, match="deformed state"):
@@ -235,7 +295,7 @@ def test_stack(files2, files, monkeypatch, catch_popup_error, app):
             self.accept_new()
 
         monkeypatch.setattr(AddFilesDialog, "exec", handle_files)
-        batch_evaluate.show_files()
+        batch_evaluate.add_measurement()
 
     # raise for no time delta
     with pytest.raises(QMessageBoxCritical, match="time"):
@@ -258,7 +318,7 @@ def test_stack(files2, files, monkeypatch, catch_popup_error, app):
             self.accept_new()
 
         monkeypatch.setattr(AddFilesDialog, "exec", handle_files)
-        batch_evaluate.show_files()
+        batch_evaluate.add_measurement()
 
     # load successfully
     def handle_files(self: AddFilesDialog):
@@ -280,25 +340,25 @@ def test_stack(files2, files, monkeypatch, catch_popup_error, app):
         return True
 
     monkeypatch.setattr(AddFilesDialog, "exec", handle_files)
-    batch_evaluate.show_files()
+    batch_evaluate.add_measurement()
 
     def handle_overwrite_dialog(self: FileExistsDialog):
         self.accept_overwrite()
         return True
     monkeypatch.setattr(FileExistsDialog, "exec", handle_overwrite_dialog)
-    batch_evaluate.show_files()
+    batch_evaluate.add_measurement()
 
     def handle_overwrite_dialog_read(self: FileExistsDialog):
         self.accept_read()
         return True
     monkeypatch.setattr(FileExistsDialog, "exec", handle_overwrite_dialog_read)
-    batch_evaluate.show_files()
+    batch_evaluate.add_measurement()
 
     def handle_overwrite_dialog_cancel(self: FileExistsDialog):
         self.accept_read()
         return True
     monkeypatch.setattr(FileExistsDialog, "exec", handle_overwrite_dialog_cancel)
-    batch_evaluate.show_files()
+    batch_evaluate.add_measurement()
 
     existing_file = list(Path("tmp/output").glob("*.npz"))[0]
     def handle_load_existing(self: AddFilesDialog):
@@ -313,7 +373,7 @@ def test_stack(files2, files, monkeypatch, catch_popup_error, app):
         return True
 
     monkeypatch.setattr(AddFilesDialog, "exec", handle_load_existing)
-    batch_evaluate.show_files()
+    batch_evaluate.add_measurement()
 
     def handle_download_example(self: AddFilesDialog):
         # select the existing file tab
@@ -327,4 +387,4 @@ def test_stack(files2, files, monkeypatch, catch_popup_error, app):
         return True
 
     monkeypatch.setattr(AddFilesDialog, "exec", handle_download_example)
-    batch_evaluate.show_files()
+    batch_evaluate.add_measurement()

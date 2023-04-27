@@ -77,7 +77,7 @@ class BatchEvaluate(QtWidgets.QWidget):
                 with QtShortCuts.QVBoxLayout() as layout:
                     layout.setContentsMargins(0, 0, 0, 0)
                     self.list = ListWidget(layout, add_item_button="add measurements", copy_params=True, allow_paste_callback=self.allow_paste)
-                    self.list.addItemClicked.connect(self.show_files)
+                    self.list.addItemClicked.connect(self.add_measurement)
                     self.list.signal_act_copy_clicked.connect(self.copy_params)
                     self.list.signal_act_paste_clicked.connect(self.paste_params)
                     self.list.signal_act_paths_clicked.connect(self.path_editor)
@@ -297,22 +297,29 @@ class BatchEvaluate(QtWidgets.QWidget):
             else:
                 self.list.item(j).setIcon(qta.icon("fa5.circle", options=[dict(color="gray")]))
 
-    def show_files(self):
-        settings = self.settings
-
+    def add_measurement(self):
         last_decision = None
         def do_overwrite(filename):
+            nonlocal last_decision
+
+            # if we are in demo mode always load the files
             if os.environ.get("DEMO") == "true":
                 return "read"
-            nonlocal last_decision
+
+            # if there is a last decistion stored use that
             if last_decision is not None:
                 return last_decision
+
+            # ask the user if they want to overwrite or read the existing file
             dialog = FileExistsDialog(self, filename)
             result = dialog.exec()
+            # if the user clicked cancel
             if not result:
                 return 0
+            # if the user wants to remember the last decision
             if dialog.use_for_all.value():
                 last_decision = dialog.mode
+            # return the decision
             return dialog.mode
 
         # getStack
@@ -320,18 +327,26 @@ class BatchEvaluate(QtWidgets.QWidget):
         if not dialog.exec():
             return
 
+        # create a new measurement object
         if dialog.mode == "new":
+            # if there was a reference stack selected
             if dialog.reference_choice.value() == 1:
                 reference_stack = dialog.stack_reference_input.text()
             else:
                 reference_stack = None
+
+            # the active selected stack
             active_stack = dialog.stack_data_input.text()
+
+            # if there was a time specified, get the time delta
             if "{t}" in active_stack:
                 time_delta = dialog.stack_data.getTimeDelta()
                 add_last_time_delta(dialog.stack_data.getTimeDelta())
             else:
                 time_delta = None
+
             try:
+                # load the stack
                 results = get_stacks(
                     active_stack,
                     reference_stack=reference_stack,
@@ -342,47 +357,26 @@ class BatchEvaluate(QtWidgets.QWidget):
                     exist_overwrite_callback=do_overwrite,
                 )
             except Exception as err:
+                # notify the user if errors occured
                 QtWidgets.QMessageBox.critical(self, "Load Stacks", str(err))
                 raise
             else:
+                # store the last voxel size
                 add_last_voxel_size(dialog.stack_data.getVoxelSize())
-
+                # add the loaded measruement objects
                 for data in results:
                     self.add_data(data)
 
-        elif dialog.mode == "pair":
-            results = get_stacks(
-                [dialog.input_relaxed.text(), dialog.input_deformed.text()],
-                output_path=dialog.outputText.value(),
-                voxel_size=dialog.stack_relaxed.getVoxelSize(),
-                exist_overwrite_callback=do_overwrite,
-            )
-
-            add_last_voxel_size(dialog.stack_relaxed.getVoxelSize())
-
-            for data in results:
-                self.add_data(data)
-        elif dialog.mode == "time":
-            results = get_stacks(
-                dialog.input_relaxed2.text(),
-                output_path=dialog.outputText2.value(),
-                voxel_size=dialog.stack_before2.getVoxelSize(),
-                time_delta=dialog.stack_before2.getTimeDelta(),
-                exist_overwrite_callback=do_overwrite,
-            )
-            add_last_voxel_size(dialog.stack_before2.getVoxelSize())
-            add_last_time_delta(dialog.stack_before2.getTimeDelta())
-
-            for data in results:
-                self.add_data(data)
+        # load existing files
         elif dialog.mode == "existing":
-            for file in glob.glob(dialog.outputText3.value(), recursive=True):
-                data = Result.load(file)
-                self.add_data(data)
-        elif dialog.mode == "example":
+            self.load_from_path(dialog.outputText3.value())
 
+        # load from the examples database
+        elif dialog.mode == "example":
+            # get the date from the example referenced by name
             example = getExamples()[dialog.mode_data]
 
+            # generate a stack with the examples data
             results = get_stacks(
                 example["stack"],
                 reference_stack=example.get("reference_stack", None),
@@ -392,12 +386,14 @@ class BatchEvaluate(QtWidgets.QWidget):
                 crop=example.get("crop", None),
                 exist_overwrite_callback=do_overwrite,
             )
+            # load all the measurement objects
             for data in results:
                 data.piv_parameter = example["piv_parameter"]
                 data.interpolate_parameter = example["interpolate_parameter"]
                 data.solve_parameter = example["solve_parameter"]
                 self.add_data(data)
 
+        # update the icons
         self.update_icons()
 
     def listSelected(self):
