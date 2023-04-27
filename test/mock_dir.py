@@ -84,6 +84,5 @@ def random_path(tmp_path, monkeypatch):
     target_path = Path(tmp_path) / str(uuid.uuid4())
     target_path.mkdir(exist_ok=True)
     os.chdir(target_path)
-    print("*** path", target_path)
 
     monkeypatch.setattr(appdirs, "user_data_dir", lambda *args: Path(tmp_path) / "saenopy" / "rgerum")

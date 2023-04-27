@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 import pytest
-from qtpy import QtWidgets
+from qtpy import QtWidgets, QtGui
 import numpy as np
 from mock_dir import mock_dir, create_tif, random_path
 from pathlib import Path
@@ -12,34 +12,6 @@ from saenopy.gui.solver.gui_solver import MainWindowSolver
 from saenopy.gui.solver.modules.BatchEvaluate import BatchEvaluate
 from saenopy.gui.solver.modules.load_measurement_dialog import AddFilesDialog, FileExistsDialog
 np.random.seed(1234)
-
-
-@pytest.fixture
-def files(random_path):
-    file_structure = {
-        "tmp": {
-            "run-1": [f"Pos{pos:03d}_S001_z{z:03d}_ch00.tif" for z in range(50) for pos in range(4,7)],
-            "run-1-reference": [f"Pos004_S001_z{z:03d}_ch00.tif" for z in range(50)],
-            "run-2-time": [f"Pos004_S001_z{z:03d}_t{t:02d}.tif" for z in range(50) for t in range(3)],
-            "run-2-reference": [f"Pos004_S001_z{z:03d}_t00.tif" for z in range(50)],
-        },
-        "saenopy": {"rgerum": []}
-    }
-    print("*** Path", os.getcwd())
-    mock_dir(file_structure, callback=lambda file: create_tif(file, x=50, y=50))
-
-
-@pytest.fixture
-def files2(random_path):
-    file_structure = {
-        "tmp2": {
-            "run-1": [f"Pos{pos:03d}_S001_z{z:03d}_ch00.tif" for z in range(50) for pos in range(4,7)],
-            "run-1-reference": [f"Pos{pos:03d}_S001_z{z:03d}_ch00.tif" for z in range(50) for pos in range(4,7)],
-        },
-        "saenopy": {"rgerum": []}
-    }
-    print("*** Path", os.getcwd())
-    mock_dir(file_structure, callback=lambda file: create_tif(file, x=50, y=50))
 
 
 class QMessageBoxException(Exception):
@@ -57,27 +29,9 @@ def catch_popup_error(monkeypatch):
     monkeypatch.setattr(QtWidgets.QMessageBox, "critical", do_raise)
 
 
-def get_batch_evaluate() -> BatchEvaluate:
-    # start the main gui
-    window: MainWindow = MainWindow()  # gui_master.py:MainWindow
-    window.changedTab(1)
+app = QtWidgets.QApplication(sys.argv)
 
-    # switch to the Solver part
-    solver: MainWindowSolver = window.solver  # modules.py:MainWindow
-
-    # get the Evaluate part
-    batch_evaluate: BatchEvaluate = solver.deformations  # modules/BatchEvaluate.py:BatchEvaluate
-    return batch_evaluate
-
-
-@pytest.fixture
-def app():
-    app = QtWidgets.QApplication(sys.argv)
-    return app
-
-
-def test_stack(files2, files, monkeypatch, catch_popup_error, app):
-    # start the main gui
+def init_app():
     from saenopy.gui.gui_master import MainWindow
     window: MainWindow = MainWindow()  # gui_master.py:MainWindow
     window.setTab(1)
@@ -90,15 +44,21 @@ def test_stack(files2, files, monkeypatch, catch_popup_error, app):
     from saenopy.gui.solver.modules.BatchEvaluate import BatchEvaluate
     batch_evaluate: BatchEvaluate = solver.deformations  # modules/BatchEvaluate.py:BatchEvaluate
 
-    run_example(app, monkeypatch, batch_evaluate)
-    #window.show()
-    #app.exec_()
+    return app, window, solver, batch_evaluate
 
-    copy_paste_params(app, window, monkeypatch, batch_evaluate)
 
-    loading(monkeypatch, batch_evaluate)
+def test_run_example(monkeypatch, random_path, catch_popup_error):
+    app, window, solver, batch_evaluate = init_app()
 
-def run_example(app, monkeypatch, batch_evaluate):
+    file_structure = {
+        "tmp2": {
+            "run-1": [f"Pos{pos:03d}_S001_z{z:03d}_ch00.tif" for z in range(50) for pos in range(4,7)],
+            "run-1-reference": [f"Pos{pos:03d}_S001_z{z:03d}_ch00.tif" for z in range(50) for pos in range(4,7)],
+        },
+        "saenopy": {"rgerum": []}
+    }
+    mock_dir(file_structure, callback=lambda file: create_tif(file, x=50, y=50))
+
     from saenopy.gui.solver.modules.load_measurement_dialog import AddFilesDialog
     def handle_files(self: AddFilesDialog):
         # set the data stack
@@ -162,10 +122,21 @@ def run_example(app, monkeypatch, batch_evaluate):
     batch_evaluate.list.act_delete.triggered.emit()
 
 
-def copy_paste_params(app, window, monkeypatch, batch_evaluate):
+def test_copy_paste_params(monkeypatch, random_path, catch_popup_error):
+    app, window, solver, batch_evaluate = init_app()
+
+    file_structure = {
+        "tmp_copy_paste_params": {
+            "run-1": [f"Pos{pos:03d}_S001_z{z:03d}_ch00.tif" for z in range(50) for pos in range(4,7)],
+            "run-1-reference": [f"Pos{pos:03d}_S001_z{z:03d}_ch00.tif" for z in range(50) for pos in range(4,7)],
+        },
+        "saenopy": {"rgerum": []}
+    }
+    mock_dir(file_structure, callback=lambda file: create_tif(file, x=50, y=50))
+
     def handle_files(self: AddFilesDialog):
         # set the data stack
-        self.stack_data.input_filename.setValue("tmp2/run-1/Pos004_S001_z000_ch00.tif", send_signal=True)
+        self.stack_data.input_filename.setValue("tmp_copy_paste_params/run-1/Pos004_S001_z000_ch00.tif", send_signal=True)
         for prop in self.stack_data.active.property_selectors:
             if prop.name == "Pos":
                 prop.check.setValue(True)
@@ -173,7 +144,7 @@ def copy_paste_params(app, window, monkeypatch, batch_evaluate):
 
         # set the reference stack
         self.reference_choice.setValue(1, send_signal=True)
-        self.stack_reference.input_filename.setValue("tmp2/run-1-reference/Pos004_S001_z000_ch00.tif", send_signal=True)
+        self.stack_reference.input_filename.setValue("tmp_copy_paste_params/run-1-reference/Pos004_S001_z000_ch00.tif", send_signal=True)
         for prop in self.stack_reference.active.property_selectors:
             if prop.name == "Pos":
                 prop.check.setValue(True)
@@ -183,13 +154,18 @@ def copy_paste_params(app, window, monkeypatch, batch_evaluate):
         self.stack_crop.input_voxel_size.setValue("1, 1, 1", send_signal=True)
 
         # set the output
-        self.outputText.setValue("tmp2/output")
+        self.outputText.setValue("tmp_copy_paste_params/output")
 
         # click "ok"
         self.accept_new()
         return True
 
+    def handle_overwrite_dialog(self: FileExistsDialog):
+        self.accept_read()
+        return True
+
     monkeypatch.setattr(AddFilesDialog, "exec", handle_files)
+    monkeypatch.setattr(FileExistsDialog, "exec", handle_overwrite_dialog)
     batch_evaluate.add_measurement()
 
     # add them to the gui and select them
@@ -205,9 +181,51 @@ def copy_paste_params(app, window, monkeypatch, batch_evaluate):
     batch_evaluate.list.setCurrentRow(1)
     batch_evaluate.paste_params()
 
+    """ with problems """
 
-def loading(monkeypatch, batch_evaluate):
-    # raise for forgot voxel size
+    # add them to the gui and select them
+    batch_evaluate.list.setCurrentRow(0)
+    batch_evaluate.sub_module_deformation.result.piv_parameter_tmp = None
+
+    # copy the params
+    batch_evaluate.copy_params()
+
+    cb = QtGui.QGuiApplication.clipboard()
+    cb.setText("test", mode=cb.Clipboard)
+
+    # assert that we can past the params
+    assert not batch_evaluate.allow_paste()
+
+    # paste the params to the next measurement
+    batch_evaluate.list.setCurrentRow(1)
+    assert not batch_evaluate.paste_params()
+
+    cb = QtGui.QGuiApplication.clipboard()
+    cb.setText('{"a": 5}', mode=cb.Clipboard)
+
+    # assert that we can past the params
+    assert not batch_evaluate.allow_paste()
+
+    # paste the params to the next measurement
+    batch_evaluate.list.setCurrentRow(1)
+    assert not batch_evaluate.paste_params()
+
+
+def test_loading(monkeypatch, catch_popup_error, random_path):
+    app, window, solver, batch_evaluate = init_app()
+
+    file_structure = {
+        "tmp": {
+            "run-1": [f"Pos{pos:03d}_S001_z{z:03d}_ch00.tif" for z in range(50) for pos in range(4,7)],
+            "run-1-reference": [f"Pos004_S001_z{z:03d}_ch00.tif" for z in range(50)],
+            "run-2-time": [f"Pos004_S001_z{z:03d}_t{t:02d}.tif" for z in range(50) for t in range(3)],
+            "run-2-reference": [f"Pos004_S001_z{z:03d}_t00.tif" for z in range(50)],
+        },
+        "saenopy": {"rgerum": []}
+    }
+    mock_dir(file_structure, callback=lambda file: create_tif(file, x=50, y=50))
+
+    """ raise for forgot voxel size """
     with pytest.raises(QMessageBoxCritical, match="voxel size"):
         def handle_files(self: AddFilesDialog):
             # set the data stack
@@ -229,7 +247,7 @@ def loading(monkeypatch, batch_evaluate):
         monkeypatch.setattr(AddFilesDialog, "exec", handle_files)
         batch_evaluate.add_measurement()
 
-    # raise for no reference stack
+    """ raise for no reference stack """
     with pytest.raises(QMessageBoxCritical, match="reference stack.*time"):
         def handle_files(self: AddFilesDialog):
             # set the data stack
@@ -251,8 +269,7 @@ def loading(monkeypatch, batch_evaluate):
         monkeypatch.setattr(AddFilesDialog, "exec", handle_files)
         batch_evaluate.add_measurement()
 
-
-    # raise for time stack but selected reference stack
+    """ raise for time stack but selected reference stack """
     with pytest.raises(QMessageBoxCritical, match="reference state"):
         def handle_files(self: AddFilesDialog):
             # set the data stack
@@ -275,7 +292,7 @@ def loading(monkeypatch, batch_evaluate):
         monkeypatch.setattr(AddFilesDialog, "exec", handle_files)
         batch_evaluate.add_measurement()
 
-    # raise for no data stack
+    """ raise for no data stack"""
     with pytest.raises(QMessageBoxCritical, match="deformed state"):
         def handle_files(self: AddFilesDialog):
             # set the data stack
@@ -297,7 +314,7 @@ def loading(monkeypatch, batch_evaluate):
         monkeypatch.setattr(AddFilesDialog, "exec", handle_files)
         batch_evaluate.add_measurement()
 
-    # raise for no time delta
+    """ raise for no time delta """
     with pytest.raises(QMessageBoxCritical, match="time"):
         def handle_files(self: AddFilesDialog):
             # set the data stack
@@ -320,7 +337,7 @@ def loading(monkeypatch, batch_evaluate):
         monkeypatch.setattr(AddFilesDialog, "exec", handle_files)
         batch_evaluate.add_measurement()
 
-    # load successfully
+    """ load successfully """
     def handle_files(self: AddFilesDialog):
         # set the data stack
         self.stack_data.input_filename.setValue("tmp/run-1/Pos004_S001_z000_ch00.tif", send_signal=True)
@@ -355,22 +372,22 @@ def loading(monkeypatch, batch_evaluate):
     batch_evaluate.add_measurement()
 
     def handle_overwrite_dialog_cancel(self: FileExistsDialog):
-        self.accept_read()
-        return True
+       self.accept_read()
+       return True
     monkeypatch.setattr(FileExistsDialog, "exec", handle_overwrite_dialog_cancel)
     batch_evaluate.add_measurement()
 
     existing_file = list(Path("tmp/output").glob("*.npz"))[0]
     def handle_load_existing(self: AddFilesDialog):
-        # select the existing file tab
-        self.tabs.setCurrentIndex(1)
+       # select the existing file tab
+       self.tabs.setCurrentIndex(1)
 
-        # set the data stack
-        self.outputText3.setValue(existing_file, send_signal=True)
+       # set the data stack
+       self.outputText3.setValue(existing_file, send_signal=True)
 
-        # click "ok"
-        self.accept_existing()
-        return True
+       # click "ok"
+       self.accept_existing()
+       return True
 
     monkeypatch.setattr(AddFilesDialog, "exec", handle_load_existing)
     batch_evaluate.add_measurement()

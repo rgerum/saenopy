@@ -129,7 +129,8 @@ class BatchEvaluate(QtWidgets.QWidget):
         self.thread = None
         self.signal_task_finished.connect(self.run_finished)
 
-        self.load_from_path(sys.argv[1:])
+        # load paths
+        self.load_from_path([arg for arg in sys.argv if arg.endswith(".npz")])
 
     def copy_params(self):
         result = self.list.data[self.list.currentRow()][2]
@@ -145,6 +146,8 @@ class BatchEvaluate(QtWidgets.QWidget):
             for g in params[group]:
                 if type(params[group][g]) == np.bool_:
                     params[group][g] = bool(params[group][g])
+                if type(params[group][g]) == np.int64:
+                    params[group][g] = int(params[group][g])
         text = json.dumps(params, indent=2)
         cb = QtGui.QGuiApplication.clipboard()
         cb.setText(text, mode=cb.Clipboard)
@@ -172,7 +175,8 @@ class BatchEvaluate(QtWidgets.QWidget):
         result = self.list.data[self.list.currentRow()][2]
         params = ["piv_parameter", "interpolate_parameter", "solve_parameter"]
         for par in params:
-            setattr(result, par+"_tmp", data[par])
+            if par in data:
+                setattr(result, par+"_tmp", data[par])
         self.set_current_result.emit(result)
 
     def path_editor(self):
