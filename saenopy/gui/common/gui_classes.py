@@ -298,7 +298,7 @@ class ListWidget(QtWidgets.QListWidget):
         self.customContextMenuRequested.connect(self.list2_context_menu)
         self.itemChanged.connect(self.list2_checked_changed)
         self.itemChanged = self.itemChanged2
-        self.act_delete = QtWidgets.QAction(qta.icon("fa5.trash-alt"), "Delete", self)
+        self.act_delete = QtWidgets.QAction(qta.icon("fa5.trash-alt"), "Remove", self)
         self.act_delete.triggered.connect(self.delete_item)
 
         self.act_color = None
@@ -396,6 +396,7 @@ class ListWidget(QtWidgets.QListWidget):
         index = self.currentRow()
         self.data.pop(index)
         self.takeItem(index)
+        self.setCurrentRow(index)
 
     def setData(self, data):
         self.no_list_change = True

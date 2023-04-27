@@ -1,6 +1,8 @@
 import json
 import sys
 import os
+import traceback
+
 import qtawesome as qta
 from qtpy import QtCore, QtWidgets, QtGui
 import numpy as np
@@ -127,15 +129,7 @@ class BatchEvaluate(QtWidgets.QWidget):
         self.thread = None
         self.signal_task_finished.connect(self.run_finished)
 
-        for arg in sys.argv:
-            if arg.endswith(".npz"):
-                if "*" in arg:
-                    for url in glob.glob(arg, recursive=True):
-                        data = Result.load(url)
-                        self.list.addData(data.output, True, data, mpl.colors.to_hex(f"gray"))
-                else:
-                    data = Result.load(arg)
-                    self.list.addData(data.output, True, data, mpl.colors.to_hex(f"gray"))
+        self.load_from_path(sys.argv[1:])
 
     def copy_params(self):
         result = self.list.data[self.list.currentRow()][2]
@@ -263,21 +257,38 @@ class BatchEvaluate(QtWidgets.QWidget):
         event.acceptProposedAction()
 
     def dropEvent(self, event: QtCore.QEvent):
+        urls = []
         for url in event.mimeData().urls():
 
             url = url.toLocalFile()  # path()
 
             if url[0] == "/" and url[2] == ":":
                 url = url[1:]
-            if url.endswith(".npz"):
-                urls = [url]
-            else:
-                urls = glob.glob(url +"/**/*.npz", recursive=True)
-            for url in urls:
-                data = Result.load(url)
-                self.list.addData(data.output, True, data, mpl.colors.to_hex(f"gray"))
-                # app.processEvents()
+            urls.append(url)
+        self.load_from_path(urls)
+
+    def load_from_path(self, paths):
+        # make sure that paths is a list
+        if isinstance(paths, (str, Path)):
+            paths = [paths]
+
+        # iterate over all paths
+        for path in paths:
+            # if it is a directory search all saenopy files in it
+            path = Path(path)
+            if path.is_dir():
+                path = str(path) + "/**/*.npz"
+            # glob over the path (or just use the path if it does not contain a *)
+            for p in sorted(glob.glob(str(path), recursive=True)):
+                print(p)
+                try:
+                    self.add_data(Result.load(p))
+                except Exception as err:
+                    QtWidgets.QMessageBox.critical(self, "Open Files", f"File {p} is not a valid Saenopy file.")
         self.update_icons()
+
+    def add_data(self, data):
+        self.list.addData(data.output, True, data, mpl.colors.to_hex(f"gray"))
 
     def update_icons(self):
         for j in range(self.list.count( ) -1):
@@ -331,14 +342,13 @@ class BatchEvaluate(QtWidgets.QWidget):
                     exist_overwrite_callback=do_overwrite,
                 )
             except Exception as err:
-                QtWidgets.QMessageBox.critical(self, "Load Stacks",
-                                               str(err))
+                QtWidgets.QMessageBox.critical(self, "Load Stacks", str(err))
                 raise
             else:
                 add_last_voxel_size(dialog.stack_data.getVoxelSize())
 
                 for data in results:
-                    self.list.addData(data.output, True, data, mpl.colors.to_hex(f"gray"))
+                    self.add_data(data)
 
         elif dialog.mode == "pair":
             results = get_stacks(
@@ -351,7 +361,7 @@ class BatchEvaluate(QtWidgets.QWidget):
             add_last_voxel_size(dialog.stack_relaxed.getVoxelSize())
 
             for data in results:
-                self.list.addData(data.output, True, data, mpl.colors.to_hex(f"gray"))
+                self.add_data(data)
         elif dialog.mode == "time":
             results = get_stacks(
                 dialog.input_relaxed2.text(),
@@ -364,11 +374,11 @@ class BatchEvaluate(QtWidgets.QWidget):
             add_last_time_delta(dialog.stack_before2.getTimeDelta())
 
             for data in results:
-                self.list.addData(data.output, True, data, mpl.colors.to_hex(f"gray"))
+                self.add_data(data)
         elif dialog.mode == "existing":
             for file in glob.glob(dialog.outputText3.value(), recursive=True):
                 data = Result.load(file)
-                self.list.addData(data.output, True, data, mpl.colors.to_hex(f"gray"))
+                self.add_data(data)
         elif dialog.mode == "example":
 
             example = getExamples()[dialog.mode_data]
@@ -386,12 +396,12 @@ class BatchEvaluate(QtWidgets.QWidget):
                 data.piv_parameter = example["piv_parameter"]
                 data.interpolate_parameter = example["interpolate_parameter"]
                 data.solve_parameter = example["solve_parameter"]
-                self.list.addData(data.output, True, data, mpl.colors.to_hex(f"gray"))
+                self.add_data(data)
 
         self.update_icons()
 
     def listSelected(self):
-        if self.list.currentRow() is not None:
+        if self.list.currentRow() is not None and self.list.currentRow() < len(self.data):
             pipe = self.data[self.list.currentRow()][2]
             self.set_current_result.emit(pipe)
 
