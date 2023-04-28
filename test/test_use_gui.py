@@ -1,5 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+import shutil
+import uuid
+
 import pytest
 from qtpy import QtWidgets, QtGui
 import numpy as np
@@ -49,32 +52,75 @@ def init_app():
     return app, window, solver, batch_evaluate
 
 
-def test_run_example(monkeypatch, random_path, catch_popup_error):
+def in_random_dir():
+    def wrapper(func):
+        def wrapped(monkeypatch, random_path, catch_popup_error, *args, **kwargs):
+            # create a new test dir
+            test_dir = Path(str(uuid.uuid4()))
+            test_dir.mkdir(exist_ok=True)
+            test_dir = test_dir.absolute()
+            os.chdir(test_dir)
+            # call the function
+            func(monkeypatch, random_path, catch_popup_error, *args, **kwargs)
+            # back to the parent dir and remove the test dir
+            os.chdir(test_dir.parent)
+            shutil.rmtree(test_dir)
+        return wrapped
+    return wrapper
+
+@settings(suppress_health_check=(HealthCheck.function_scoped_fixture,), deadline=None)
+@given(use_time=st.booleans(), use_reference=st.booleans())
+@in_random_dir()
+def test_run_example(monkeypatch, random_path, catch_popup_error, use_time, use_reference):
+    # either time or reference must be used (or both)
+    if not use_time and not use_reference:
+        return
+    use_channels = use_time
+
     app, window, solver, batch_evaluate = init_app()
 
-    file_structure = {
-        "tmp2": {
-            "run-1": [f"Pos{pos:03d}_S001_z{z:03d}_ch00.tif" for z in range(50) for pos in range(4,7)],
-            "run-1-reference": [f"Pos{pos:03d}_S001_z{z:03d}_ch00.tif" for z in range(50) for pos in range(4,7)],
-        },
-        "saenopy": {"rgerum": []}
-    }
+    if use_time:
+        if use_reference:
+            file_structure = {
+                "run-1": [f"Pos004_S001_z{z:03d}_t{t:02d}_ch{ch:02d}.tif" for z in range(50) for t in range(3) for ch in range(2)],
+                "run-1-reference": [f"Pos004_S001_z{z:03d}_ch{ch:02d}.tif" for z in range(50) for ch in range(2)],
+            }
+        else:
+            file_structure = {
+                "run-1": [f"Pos004_S001_z{z:03d}_t{t:02d}_ch{ch:02d}.tif" for z in range(50) for t in range(3) for ch in range(2)],
+            }
+    else:
+        file_structure = {
+            "run-1": [f"Pos{pos:03d}_S001_z{z:03d}_ch{ch:02d}.tif" for z in range(50) for pos in range(4,7) for ch in range(2)],
+            "run-1-reference": [f"Pos{pos:03d}_S001_z{z:03d}_ch{ch:02d}.tif" for z in range(50) for pos in range(4,7) for ch in range(2)],
+        }
     mock_dir(file_structure, callback=lambda file: create_tif(file, x=50, y=50))
 
     from saenopy.gui.solver.modules.load_measurement_dialog import AddFilesDialog
     def handle_files(self: AddFilesDialog):
         # set the data stack
-        self.stack_data.input_filename.setValue("tmp2/run-1/Pos004_S001_z000_ch00.tif", send_signal=True)
+        if use_time:
+            self.stack_data.input_filename.setValue("run-1/Pos004_S001_z000_t00_ch00.tif", send_signal=True)
+            self.stack_data.active.t_prop.setValue("t", send_signal=True)
+            self.stack_crop.input_time_dt.setValue("1", send_signal=True)
+        else:
+            self.stack_data.input_filename.setValue("run-1/Pos004_S001_z000_ch00.tif", send_signal=True)
 
-        # set the reference stack
-        self.reference_choice.setValue(1, send_signal=True)
-        self.stack_reference.input_filename.setValue("tmp2/run-1-reference/Pos004_S001_z000_ch00.tif", send_signal=True)
+        if use_channels:
+            self.stack_data.active.c_prop.setValue("ch", send_signal=True)
+
+        if use_reference:
+            # set the reference stack
+            self.reference_choice.setValue(1, send_signal=True)
+            self.stack_reference.input_filename.setValue("run-1-reference/Pos004_S001_z000_ch00.tif", send_signal=True)
+            if use_channels:
+                self.stack_reference.active.c_prop.setValue("ch", send_signal=True)
 
         # add voxels
         self.stack_crop.input_voxel_size.setValue("1, 1, 1", send_signal=True)
 
         # set the output
-        self.outputText.setValue("tmp2/output")
+        self.outputText.setValue("output")
 
         # click "ok"
         self.accept_new()
@@ -88,7 +134,10 @@ def test_run_example(monkeypatch, random_path, catch_popup_error):
 
     results = [batch_evaluate.sub_module_deformation.result]
     results[0].stack[0].pack_files()
-    results[0].stack_reference.pack_files()
+    if use_time:
+        results[0].stack[1].pack_files()
+    if use_reference:
+        results[0].stack_reference.pack_files()
     assert batch_evaluate.sub_module_deformation.result != None
 
     # change some parameters
@@ -123,88 +172,6 @@ def test_run_example(monkeypatch, random_path, catch_popup_error):
     # remove from list
     batch_evaluate.list.act_delete.triggered.emit()
 
-
-def test_run_example_time(monkeypatch, random_path, catch_popup_error):
-    app, window, solver, batch_evaluate = init_app()
-
-    file_structure = {
-        "tmp2_time": {
-            "run-1": [f"Pos004_S001_z{z:03d}_t{t:02d}_ch{ch:02d}.tif" for z in range(50) for t in range(3) for ch in range(2)],
-            "run-1-reference": [f"Pos004_S001_z{z:03d}_ch00.tif" for z in range(50)],
-        },
-        "saenopy": {"rgerum": []}
-    }
-    mock_dir(file_structure, callback=lambda file: create_tif(file, x=50, y=50))
-
-    from saenopy.gui.solver.modules.load_measurement_dialog import AddFilesDialog
-    def handle_files(self: AddFilesDialog):
-        # set the data stack
-        self.stack_data.input_filename.setValue("tmp2_time/run-1/Pos004_S001_z000_t00_ch00.tif", send_signal=True)
-        self.stack_data.active.t_prop.setValue("t", send_signal=True)
-        self.stack_data.active.c_prop.setValue("ch", send_signal=True)
-
-        # set the reference stack
-        self.reference_choice.setValue(0, send_signal=True)
-        #self.stack_reference.input_filename.setValue("tmp2_time/run-1-reference/Pos004_S001_z000_ch00.tif", send_signal=True)
-
-        # add voxels
-        self.stack_crop.input_voxel_size.setValue("1, 1, 1", send_signal=True)
-        self.stack_crop.input_time_dt.setValue("1", send_signal=True)
-
-        # set the output
-        self.outputText.setValue("tmp2_time/output")
-
-        # click "ok"
-        self.accept_new()
-        return True
-
-    monkeypatch.setattr(AddFilesDialog, "exec", handle_files)
-    batch_evaluate.add_measurement()
-
-    # add them to the gui and select them
-    batch_evaluate.list.setCurrentRow(0)
-
-    print("result", batch_evaluate.sub_module_deformation.result)
-    #window.show()
-    #app.exec_()
-
-    results = [batch_evaluate.sub_module_deformation.result]
-    results[0].stack[0].pack_files()
-    results[0].stack[1].pack_files()
-    #results[0].stack_reference.pack_files()
-    assert batch_evaluate.sub_module_deformation.result != None
-
-    # change some parameters
-    batch_evaluate.sub_module_deformation.setParameter("win_um", 30)
-    batch_evaluate.sub_module_regularize.setParameter("i_max", 10)
-    print("params A", getattr(batch_evaluate.sub_module_deformation.result,
-                              batch_evaluate.sub_module_deformation.params_name + "_tmp"))
-    print("params C", getattr(batch_evaluate.sub_module_regularize.result,
-                              batch_evaluate.sub_module_regularize.params_name + "_tmp"))
-
-    # schedule to run all
-    batch_evaluate.run_all()
-    # wait until they are processed
-    while batch_evaluate.current_task_id < len(batch_evaluate.tasks):
-        app.processEvents()
-
-    # check the result
-    M = results[0].solver[0]
-    print(M.U[M.reg_mask])
-    print(results[0].solver[0].U.shape)
-    # assert sf4(M.U[M.reg_mask][0]) == sf4([-2.01259036e-38, -1.96865342e-38, -4.92921492e-38])
-    # 91.64216076e-38 -3.15079497e-39  3.19069614e-39
-
-    # apply the monkeypatch for requests.get to mock_get
-    monkeypatch.setattr(QtWidgets.QFileDialog, "getSaveFileName", lambda *args: "tmp.py")
-    batch_evaluate.generate_code()
-
-    # open all the tabs
-    for i in range(10):
-        batch_evaluate.tabs.setCurrentIndex(i)
-
-    # remove from list
-    batch_evaluate.list.act_delete.triggered.emit()
 
 @settings(suppress_health_check=(HealthCheck.function_scoped_fixture,), deadline=None)
 @given(use_time=st.booleans())
