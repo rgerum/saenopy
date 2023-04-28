@@ -1,0 +1,10 @@
+[run]
+omit =
+    # omit anything in a .cache directory anywhere
+    */.cache/*
+    # omit everything in test/
+    test/*
+    saenopy/unused/*
+    # do not cover orientation and spheroid gui for now
+    saenopy/gui/orientation
+    saenopy/gui/spheroid
