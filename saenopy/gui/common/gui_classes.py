@@ -536,3 +536,16 @@ class QProcess(QtCore.QObject):
         self.finished.emit()
 
 
+def wrap_string(func):
+    def call(*args, **kwargs):
+        new_path = func(*args, **kwargs)
+        if new_path:
+            if isinstance(new_path, tuple):
+                new_path = new_path[0]
+            else:
+                new_path = str(new_path)
+        return new_path
+    return call
+
+QtWidgets.QFileDialog.getSaveFileName = wrap_string(QtWidgets.QFileDialog.getSaveFileName)
+QtWidgets.QFileDialog.getOpenFileName = wrap_string(QtWidgets.QFileDialog.getOpenFileName)

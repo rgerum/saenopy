@@ -162,10 +162,6 @@ class StackDisplay(PipelineModule):
         new_path = QtWidgets.QFileDialog.getSaveFileName(None, "Save Images", os.getcwd())
         # if we got one, set it
         if new_path:
-            if isinstance(new_path, tuple):
-                new_path = new_path[0]
-            else:
-                new_path = str(new_path)
             new_path = new_path.strip(".gif").strip("_relaxed.tif").strip("_deformed.tif")
             new_path = Path(new_path)
             print(new_path.parent / (new_path.stem + "_deformed.tif"))

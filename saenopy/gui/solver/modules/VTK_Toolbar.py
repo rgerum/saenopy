@@ -173,10 +173,6 @@ class VTK_Toolbar(QtWidgets.QWidget):
                 new_path = QtWidgets.QFileDialog.getSaveFileName(None, "Save Images", os.getcwd())
                 # if we got one, set it
                 if new_path:
-                    if isinstance(new_path, tuple):
-                        new_path = new_path[0]
-                    else:
-                        new_path = str(new_path)
                     print(new_path)
                     self.plotter.screenshot(new_path)
 

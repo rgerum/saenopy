@@ -161,8 +161,7 @@ def test_run_example(monkeypatch, random_path, catch_popup_error, use_time, use_
     # assert sf4(M.U[M.reg_mask][0]) == sf4([-2.01259036e-38, -1.96865342e-38, -4.92921492e-38])
     # 91.64216076e-38 -3.15079497e-39  3.19069614e-39
 
-    # apply the monkeypatch for requests.get to mock_get
-    monkeypatch.setattr(QtWidgets.QFileDialog, "getSaveFileName", lambda *args: "tmp.py")
+    monkeypatch.setattr(QtWidgets.QFileDialog, "getSaveFileName", lambda *args: "tmp")
     batch_evaluate.generate_code()
 
     # open all the tabs

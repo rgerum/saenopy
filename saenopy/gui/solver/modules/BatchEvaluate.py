@@ -178,10 +178,6 @@ class BatchEvaluate(QtWidgets.QWidget):
     def generate_code(self):
         new_path = QtWidgets.QFileDialog.getSaveFileName(None, "Save Session as Script", os.getcwd(), "Python File (*.py)")
         if new_path:
-            if isinstance(new_path, tuple):
-                new_path = new_path[0]
-            else:
-                new_path = str(new_path)
             # ensure filename ends in .py
             if not new_path.endswith(".py"):
                 new_path += ".py"

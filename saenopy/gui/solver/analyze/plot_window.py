@@ -87,10 +87,6 @@ class PlottingWindow(QtWidgets.QWidget):
     def save(self):
         new_path = QtWidgets.QFileDialog.getSaveFileName(None, "Save Session", os.getcwd(), "JSON File (*.json)")
         if new_path:
-            if isinstance(new_path, tuple):
-                new_path = new_path[0]
-            else:
-                new_path = str(new_path)
             list_new = []
             for item in self.list.data:
                 list_new.append({"name": item[0], "selected": item[1], "color": item[3], "paths": []})
@@ -103,10 +99,6 @@ class PlottingWindow(QtWidgets.QWidget):
     def load(self):
         new_path = QtWidgets.QFileDialog.getOpenFileName(None, "Load Session", os.getcwd(), "JSON File (*.json)")
         if new_path:
-            if isinstance(new_path, tuple):
-                new_path = new_path[0]
-            else:
-                new_path = str(new_path)
             with open(new_path, "r") as fp:
                 list_new = json.load(fp)
             self.list.clear()

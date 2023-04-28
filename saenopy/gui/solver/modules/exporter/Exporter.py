@@ -565,10 +565,6 @@ class ExportViewer(PipelineModule):
     def save_parameters(self):
         new_path = QtWidgets.QFileDialog.getSaveFileName(None, "Save Parameters", os.getcwd(), "JSON File (*.json)")
         if new_path:
-            if isinstance(new_path, tuple):
-                new_path = new_path[0]
-            else:
-                new_path = str(new_path)
             if not new_path.endswith(".json"):
                 new_path += ".json"
             with open(new_path, "w") as fp:
@@ -577,10 +573,6 @@ class ExportViewer(PipelineModule):
     def load_parameters(self):
         new_path = QtWidgets.QFileDialog.getOpenFileName(None, "Load Parameters", os.getcwd(), "JSON File (*.json)")
         if new_path:
-            if isinstance(new_path, tuple):
-                new_path = new_path[0]
-            else:
-                new_path = str(new_path)
             try:
                 with open(new_path, "r") as fp:
                     self.set_parameters(json.load(fp))

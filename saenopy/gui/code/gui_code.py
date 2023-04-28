@@ -101,12 +101,7 @@ class MainWindowCode(QtWidgets.QWidget):
     def load(self):
         new_path = QtWidgets.QFileDialog.getOpenFileName(None, "Open Script", os.getcwd(), "Python File (*.py)")
         if new_path:
-            if isinstance(new_path, tuple):
-                new_path = new_path[0]
-            else:
-                new_path = str(new_path)
-            if new_path:
-                self.do_load(new_path)
+            self.do_load(new_path)
 
     def do_load(self, open_script):
         # open a script

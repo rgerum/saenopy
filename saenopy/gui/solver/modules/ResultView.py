@@ -216,10 +216,6 @@ class ResultView(PipelineModule):
         new_path = QtWidgets.QFileDialog.getSaveFileName(self, "Save Image", os.getcwd(), "Image Files (*.jpg, *.png)")
         # if we got one, set it
         if new_path:
-            if isinstance(new_path, tuple):
-                new_path = new_path[0]
-            else:
-                new_path = str(new_path)
             imageio.imsave(new_path, self.plotter.image)
             print("saved", new_path)
 
