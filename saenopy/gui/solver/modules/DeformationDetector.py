@@ -19,6 +19,7 @@ from .PipelineModule import PipelineModule
 from .QTimeSlider import QTimeSlider
 from .VTK_Toolbar import VTK_Toolbar
 from .showVectorField import showVectorField, showVectorField2
+from .code_export import get_code
 
 
 class CamPos:
@@ -214,15 +215,8 @@ class DeformationDetector(PipelineModule):
             "my_piv_params": self.result.piv_parameter_tmp
         }
 
-        code_lines = inspect.getsource(code).split("\n")[1:]
-        indent = len(code_lines[0]) - len(code_lines[0].lstrip())
-        code = "\n".join(line[indent:] for line in code_lines)
+        code = get_code(code, data)
 
-        for key, value in data.items():
-            if isinstance(value, str):
-                code = code.replace(key, "'" + value + "'")
-            else:
-                code = code.replace(key, str(value))
         return import_code, code
 
 

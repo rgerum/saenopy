@@ -5,7 +5,6 @@ import numpy as np
 
 from qimage2ndarray import array2qimage
 import imageio
-import inspect
 
 from pathlib import Path
 
@@ -24,6 +23,7 @@ from saenopy.gui.common.resources import resource_icon
 
 from .PipelineModule import PipelineModule
 from .QTimeSlider import QTimeSlider
+from .code_export import get_code
 
 
 class StackDisplay(PipelineModule):
@@ -255,8 +255,8 @@ class StackDisplay(PipelineModule):
             self.z_slider.setToolTip(f"set z position\ncurrent position {self.z_slider.value()}")
 
     def get_code(self) -> Tuple[str, str]:
-
         import_code = ""
+
         if self.result.time_delta is None:
             if self.result.stack_reference is not None:
                 def code(filename, reference_stack1, output1, voxel_size1, result_file, crop1):  # pragma: no cover
@@ -343,18 +343,7 @@ class StackDisplay(PipelineModule):
                     result_file=str(self.result.output),
                 )
 
-        code_lines = inspect.getsource(code).split("\n")[1:]
-        indent = len(code_lines[0]) - len(code_lines[0].lstrip())
-        code = "\n".join(line[indent:] for line in code_lines)
-
-        for key, value in data.items():
-            if isinstance(value, str):
-                if "\\" in value:
-                    code = code.replace(key, "r'" + value + "'")
-                else:
-                    code = code.replace(key, "'" + value + "'")
-            else:
-                code = code.replace(key, str(value))
+        code = get_code(code, data)
         return import_code, code
 
 

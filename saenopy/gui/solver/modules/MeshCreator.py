@@ -41,6 +41,7 @@ from .QTimeSlider import QTimeSlider
 from .VTK_Toolbar import VTK_Toolbar
 from .showVectorField import showVectorField, showVectorField2
 from .DeformationDetector import CamPos
+from .code_export import get_code
 
 
 class MeshCreator(PipelineModule):
@@ -234,13 +235,5 @@ class MeshCreator(PipelineModule):
             "my_mesh_params": self.result.interpolate_parameter_tmp,
         }
 
-        code_lines = inspect.getsource(code).split("\n")[1:]
-        indent = len(code_lines[0]) - len(code_lines[0].lstrip())
-        code = "\n".join(line[indent:] for line in code_lines)
-
-        for key, value in data.items():
-            if isinstance(value, str):
-                code = code.replace(key, "'" + value + "'")
-            else:
-                code = code.replace(key, str(value))
+        code = get_code(code, data)
         return import_code, code
