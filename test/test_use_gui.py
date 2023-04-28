@@ -169,6 +169,27 @@ def test_run_example(monkeypatch, random_path, catch_popup_error, use_time, use_
     for i in range(10):
         batch_evaluate.tabs.setCurrentIndex(i)
 
+    """ functions of stack_display """
+    batch_evaluate.sub_module_stacks.button_display_single.setValue(True, send_signal=True)
+    batch_evaluate.sub_module_stacks.button_display_single.setValue(False, send_signal=True)
+    if use_channels:
+        batch_evaluate.sub_module_stacks.channel_select.setValue("01", send_signal=True)
+
+    batch_evaluate.sub_module_stacks.button_z_proj.setValue(1)
+    batch_evaluate.sub_module_stacks.button_z_proj.setValue(2)
+    batch_evaluate.sub_module_stacks.button_z_proj.setValue(3)
+
+    batch_evaluate.sub_module_stacks.contrast_enhance.setValue(1)
+    batch_evaluate.sub_module_stacks.button.clicked.emit()
+
+    monkeypatch.setattr(QtWidgets.QFileDialog, "getSaveFileName", lambda *args: "export.tif")
+    batch_evaluate.sub_module_stacks.button2.clicked.emit()
+
+    if use_time:
+        batch_evaluate.sub_module_stacks.t_slider.setValue(1)
+
+    batch_evaluate.sub_module_stacks.z_slider.setValue(1)
+
     # remove from list
     batch_evaluate.list.act_delete.triggered.emit()
 
