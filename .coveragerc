@@ -6,5 +6,5 @@ omit =
     test/*
     saenopy/unused/*
     # do not cover orientation and spheroid gui for now
-    saenopy/gui/orientation
-    saenopy/gui/spheroid
+    saenopy/gui/orientation/*
+    saenopy/gui/spheroid/*
