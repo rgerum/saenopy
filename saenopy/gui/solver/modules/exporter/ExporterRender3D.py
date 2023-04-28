@@ -4,8 +4,8 @@ import pyvista as pv
 import numpy as np
 import matplotlib.pyplot as plt
 
-from saenopy.gui.solver.modules.FiberViewer import process_stack, join_stacks
-from .ExportRenderCommon import get_time_text, getVectorFieldImage, get_mesh_arrows, get_mesh_extent
+from saenopy.gui.solver.modules.exporter.FiberViewer import process_stack, join_stacks
+from saenopy.gui.solver.modules.exporter.ExportRenderCommon import get_time_text, getVectorFieldImage, get_mesh_arrows, get_mesh_extent
 
 
 def render_3d(params, result, plotter, exporter=None):

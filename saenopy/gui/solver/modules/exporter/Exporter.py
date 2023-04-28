@@ -16,13 +16,13 @@ from pathlib import Path
 from saenopy import Result
 from saenopy.gui.common import QtShortCuts, QExtendedGraphicsView
 from saenopy.gui.common.resources import resource_path
-from saenopy.gui.solver.modules.FiberViewer import ChannelProperties
-from saenopy.gui.solver.modules.ExporterRender3D import render_3d
-from saenopy.gui.solver.modules.ExporterRender2D import render_2d
+from saenopy.gui.solver.modules.exporter.FiberViewer import ChannelProperties
+from saenopy.gui.solver.modules.exporter.ExporterRender3D import render_3d
+from saenopy.gui.solver.modules.exporter.ExporterRender2D import render_2d
 
-from .PipelineModule import PipelineModule
-from .QTimeSlider import QTimeSlider
-from .VTK_Toolbar import VTK_Toolbar
+from saenopy.gui.solver.modules.PipelineModule import PipelineModule
+from saenopy.gui.solver.modules.QTimeSlider import QTimeSlider
+from saenopy.gui.solver.modules.VTK_Toolbar import VTK_Toolbar
 
 
 class Writer:

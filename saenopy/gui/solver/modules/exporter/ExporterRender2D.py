@@ -5,8 +5,8 @@ import matplotlib
 import matplotlib.pyplot as plt
 from saenopy.gui.common.resources import resource_path
 
-from .showVectorField import getVectorFieldImage
-from .ExportRenderCommon import get_time_text, getVectorFieldImage, get_mesh_arrows
+from saenopy.gui.solver.modules.showVectorField import getVectorFieldImage
+from saenopy.gui.solver.modules.exporter.ExportRenderCommon import get_time_text, getVectorFieldImage, get_mesh_arrows
 
 
 def render_2d(params, result, exporter=None):

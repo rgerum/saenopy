@@ -1,7 +1,6 @@
 import json
 import sys
 import os
-import traceback
 
 import qtawesome as qta
 from qtpy import QtCore, QtWidgets, QtGui
@@ -9,24 +8,12 @@ import numpy as np
 import glob
 import threading
 from pathlib import Path
-import re
 import matplotlib as mpl
-import appdirs
-import time
 
-import saenopy
-import saenopy.multigridHelper
-import saenopy.getDeformations
-import saenopy.multigridHelper
-import saenopy.materials
 from saenopy import get_stacks
 from saenopy import Result
 from saenopy.gui.common import QtShortCuts
 from saenopy.gui.common.gui_classes import ListWidget
-from saenopy.gui.common.stack_selector import StackSelector
-from saenopy.gui.common.resources import resource_path
-from saenopy.gui.common.stack_selector_crop import StackSelectorCrop
-from saenopy.gui.common.stack_preview import StackPreview
 from saenopy.gui.common.stack_selector_tif import add_last_voxel_size, add_last_time_delta
 
 from .DeformationDetector import DeformationDetector
@@ -35,7 +22,7 @@ from .MeshCreator import MeshCreator
 from .Regularizer import Regularizer
 from .ResultView import ResultView
 from .StackDisplay import StackDisplay
-from .Exporter import ExportViewer
+from saenopy.gui.solver.modules.exporter.Exporter import ExportViewer
 from .load_measurement_dialog import AddFilesDialog, FileExistsDialog
 from .path_editor import start_path_change
 from saenopy.examples import getExamples
