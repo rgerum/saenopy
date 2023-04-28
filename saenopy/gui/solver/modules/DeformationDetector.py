@@ -28,6 +28,7 @@ class CamPos:
 
 class DeformationDetector(PipelineModule):
     pipeline_name = "find deformations"
+    use_thread = False
 
     def __init__(self, parent: "BatchEvaluate", layout):
         super().__init__(parent, layout)
@@ -172,7 +173,7 @@ class DeformationDetector(PipelineModule):
             count -= 1
 
         for i in range(count):
-            p = ProcessSimple(getDeformation, (i, result, params), {}, self.processing_progress)
+            p = ProcessSimple(getDeformation, (i, result, params), {}, self.processing_progress, use_thread=self.use_thread)
             p.start()
             result.mesh_piv[i] = p.join()
 

@@ -174,7 +174,7 @@ class StackDisplay(PipelineModule):
                 stack1, stack2 = self.result.stack[t][:, :, :, z, c], self.result.stack[t + 1][:, :, :, z, c]
             tifffile.imsave(new_path.parent / (new_path.stem + "_relaxed.tif"), stack1)
             tifffile.imsave(new_path.parent / (new_path.stem + "_deformed.tif"), stack2)
-            imageio.mimsave(new_path.parent / (new_path.stem + ".gif"), [stack1, stack2], fps=2)
+            imageio.mimsave(new_path.parent / (new_path.stem + ".gif"), [stack1, stack2], duration=1000 * 1./2)
 
     def update_display(self):
         return

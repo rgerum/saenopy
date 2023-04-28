@@ -456,21 +456,52 @@ def call_func(func: callable, queue_in: Queue, queue_out: Queue):
     queue_out.put(returns)
 
 
+class PseudoPipe:
+    def __init__(self, progress_signal):
+        self.progress_signal = progress_signal
+    def put(self, data):
+        self.progress_signal.emit(data)
+
+import threading
+
+class ConciseRobustResult(threading.Thread):
+    def run(self):
+        try:
+            if self._target is not None:
+                self.result = self._target(*self._args, **self._kwargs)
+        finally:
+            # Avoid a refcycle if the thread is running a function with
+            # an argument that has a member that points to the thread.
+            del self._target, self._args, self._kwargs
+
+
 class ProcessSimple:
-    def __init__(self, target, args=[], kwargs={}, progress_signal=None):
-        self.queue_in = Queue()
-        self.queue_out = Queue()
+    thread = None
+    process = None
+
+    def __init__(self, target, args=[], kwargs={}, progress_signal=None, use_thread=False):
         self.args = args
         self.kwargs = kwargs
         self.progress_signal = progress_signal
-        self.process = Process(target=call_func, args=(target, self.queue_in, self.queue_out))
+        if use_thread:
+            self.thread = ConciseRobustResult(target=target, args=tuple([PseudoPipe(progress_signal)]+list(args)), kwargs=kwargs)
+        else:
+            self.queue_in = Queue()
+            self.queue_out = Queue()
+            self.process = Process(target=call_func, args=(target, self.queue_in, self.queue_out))
 
     def start(self):
-        self.process.start()
-        self.queue_in.put(self.args)
-        self.queue_in.put(self.kwargs)
+        if self.thread is not None:
+            self.thread.start()
+        else:
+            self.process.start()
+            self.queue_in.put(self.args)
+            self.queue_in.put(self.kwargs)
 
     def join(self):
+        if self.thread:
+            self.thread.join(timeout=10)
+            return self.thread.result
         while True:
             result = self.queue_out.get()
             if isinstance(result, SignalReturn):

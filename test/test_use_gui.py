@@ -140,6 +140,9 @@ def test_run_example(monkeypatch, random_path, catch_popup_error, use_time, use_
     pos = "006"
     batch_evaluate.add_measurement()
 
+    # use a thread instead of a process
+    batch_evaluate.sub_module_deformation.use_thread = True
+
     # uncheck the other items
     batch_evaluate.list.item(1).setCheckState(False)
     batch_evaluate.list.item(2).setCheckState(False)
@@ -187,7 +190,7 @@ def test_run_example(monkeypatch, random_path, catch_popup_error, use_time, use_
     batch_evaluate.sub_module_stacks.button_display_single.setValue(True, send_signal=True)
     batch_evaluate.sub_module_stacks.button_display_single.setValue(False, send_signal=True)
     if use_channels:
-        batch_evaluate.sub_module_stacks.channel_select.setValue("01", send_signal=True)
+        batch_evaluate.sub_module_stacks.channel_select.setValue(1, send_signal=True)
 
     batch_evaluate.sub_module_stacks.button_z_proj.setValue(1)
     batch_evaluate.sub_module_stacks.button_z_proj.setValue(2)
