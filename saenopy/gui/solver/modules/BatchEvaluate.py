@@ -393,11 +393,9 @@ class QProgressBar(QtWidgets.QProgressBar):
     signal_start = QtCore.Signal(int)
     signal_progress = QtCore.Signal(int)
 
-    def __init__(self, layout=None):
+    def __init__(self):
         super().__init__()
         self.setOrientation(QtCore.Qt.Horizontal)
-        if layout is not None:
-            layout.addWidget(self)
         self.signal_start.connect(lambda i: self.setRange(0, i))
         self.signal_progress.connect(lambda i: self.setValue(i))
 

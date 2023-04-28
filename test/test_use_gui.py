@@ -82,12 +82,12 @@ def test_run_example(monkeypatch, random_path, catch_popup_error, use_time, use_
     if use_time:
         if use_reference:
             file_structure = {
-                "run-1": [f"Pos004_S001_z{z:03d}_t{t:02d}_ch{ch:02d}.tif" for z in range(50) for t in range(3) for ch in range(2)],
-                "run-1-reference": [f"Pos004_S001_z{z:03d}_ch{ch:02d}.tif" for z in range(50) for ch in range(2)],
+                "run-1": [f"Pos{pos:03d}_S001_z{z:03d}_t{t:02d}_ch{ch:02d}.tif" for z in range(50) for pos in range(4,7) for t in range(3) for ch in range(2)],
+                "run-1-reference": [f"Pos{pos:03d}_S001_z{z:03d}_ch{ch:02d}.tif" for z in range(50) for pos in range(4,7)  for ch in range(2)],
             }
         else:
             file_structure = {
-                "run-1": [f"Pos004_S001_z{z:03d}_t{t:02d}_ch{ch:02d}.tif" for z in range(50) for t in range(3) for ch in range(2)],
+                "run-1": [f"Pos{pos:03d}_S001_z{z:03d}_t{t:02d}_ch{ch:02d}.tif" for z in range(50) for pos in range(4,7)  for t in range(3) for ch in range(2)],
             }
     else:
         file_structure = {
@@ -96,15 +96,21 @@ def test_run_example(monkeypatch, random_path, catch_popup_error, use_time, use_
         }
     mock_dir(file_structure, callback=lambda file: create_tif(file, x=50, y=50))
 
-    from saenopy.gui.solver.modules.load_measurement_dialog import AddFilesDialog
+    def handle_overwrite_dialog(self: FileExistsDialog):
+        self.accept_overwrite()
+        return True
+
+    monkeypatch.setattr(FileExistsDialog, "exec", handle_overwrite_dialog)
+
     def handle_files(self: AddFilesDialog):
+        nonlocal pos
         # set the data stack
         if use_time:
-            self.stack_data.input_filename.setValue("run-1/Pos004_S001_z000_t00_ch00.tif", send_signal=True)
+            self.stack_data.input_filename.setValue(f"run-1/Pos{pos}_S001_z000_t00_ch00.tif", send_signal=True)
             self.stack_data.active.t_prop.setValue("t", send_signal=True)
             self.stack_crop.input_time_dt.setValue("1", send_signal=True)
         else:
-            self.stack_data.input_filename.setValue("run-1/Pos004_S001_z000_ch00.tif", send_signal=True)
+            self.stack_data.input_filename.setValue(f"run-1/Pos{pos}_S001_z000_ch00.tif", send_signal=True)
 
         if use_channels:
             self.stack_data.active.c_prop.setValue("ch", send_signal=True)
@@ -112,7 +118,7 @@ def test_run_example(monkeypatch, random_path, catch_popup_error, use_time, use_
         if use_reference:
             # set the reference stack
             self.reference_choice.setValue(1, send_signal=True)
-            self.stack_reference.input_filename.setValue("run-1-reference/Pos004_S001_z000_ch00.tif", send_signal=True)
+            self.stack_reference.input_filename.setValue(f"run-1-reference/Pos{pos}_S001_z000_ch00.tif", send_signal=True)
             if use_channels:
                 self.stack_reference.active.c_prop.setValue("ch", send_signal=True)
 
@@ -120,14 +126,23 @@ def test_run_example(monkeypatch, random_path, catch_popup_error, use_time, use_
         self.stack_crop.input_voxel_size.setValue("1, 1, 1", send_signal=True)
 
         # set the output
-        self.outputText.setValue("output")
+        self.outputText.setValue(f"output_{pos}")
 
         # click "ok"
         self.accept_new()
         return True
 
     monkeypatch.setattr(AddFilesDialog, "exec", handle_files)
+    pos = "004"
     batch_evaluate.add_measurement()
+    pos = "005"
+    batch_evaluate.add_measurement()
+    pos = "006"
+    batch_evaluate.add_measurement()
+
+    # uncheck the other items
+    batch_evaluate.list.item(1).setCheckState(False)
+    batch_evaluate.list.item(2).setCheckState(False)
 
     # add them to the gui and select them
     batch_evaluate.list.setCurrentRow(0)
@@ -189,7 +204,18 @@ def test_run_example(monkeypatch, random_path, catch_popup_error, use_time, use_
 
     batch_evaluate.sub_module_stacks.z_slider.setValue(1)
 
+    batch_evaluate.list.setCurrentRow(0)
+    batch_evaluate.list.setCurrentRow(1)
+    batch_evaluate.list.setCurrentRow(2)
+
     # remove from list
+    batch_evaluate.list.setCurrentRow(2)
+    batch_evaluate.list.act_delete.triggered.emit()
+
+    batch_evaluate.list.setCurrentRow(1)
+    batch_evaluate.list.act_delete.triggered.emit()
+
+    batch_evaluate.list.setCurrentRow(0)
     batch_evaluate.list.act_delete.triggered.emit()
 
 
@@ -395,6 +421,10 @@ def test_loading(monkeypatch, catch_popup_error, random_path):
     }
     mock_dir(file_structure, callback=lambda file: create_tif(file, x=50, y=50))
 
+    """ cancel measurement dialog """
+    monkeypatch.setattr(AddFilesDialog, "exec", lambda *args: False)
+    batch_evaluate.add_measurement()
+
     """ raise for forgot voxel size """
     with pytest.raises(QMessageBoxCritical, match="voxel size"):
         def handle_files(self: AddFilesDialog):
@@ -529,24 +559,25 @@ def test_loading(monkeypatch, catch_popup_error, random_path):
     monkeypatch.setattr(AddFilesDialog, "exec", handle_files)
     batch_evaluate.add_measurement()
 
+    """ overwrite dialog cancel """
+    monkeypatch.setattr(FileExistsDialog, "exec", lambda self: False)
+    batch_evaluate.add_measurement()
+
+    """ overwrite dialog overwrite """
     def handle_overwrite_dialog(self: FileExistsDialog):
         self.accept_overwrite()
         return True
     monkeypatch.setattr(FileExistsDialog, "exec", handle_overwrite_dialog)
     batch_evaluate.add_measurement()
 
+    """ overwrite dialog read """
     def handle_overwrite_dialog_read(self: FileExistsDialog):
         self.accept_read()
         return True
     monkeypatch.setattr(FileExistsDialog, "exec", handle_overwrite_dialog_read)
     batch_evaluate.add_measurement()
 
-    def handle_overwrite_dialog_cancel(self: FileExistsDialog):
-       self.accept_read()
-       return True
-    monkeypatch.setattr(FileExistsDialog, "exec", handle_overwrite_dialog_cancel)
-    batch_evaluate.add_measurement()
-
+    """ open existing files """
     existing_file = list(Path("tmp/output").glob("*.npz"))[0]
     def handle_load_existing(self: AddFilesDialog):
        # select the existing file tab
@@ -562,6 +593,7 @@ def test_loading(monkeypatch, catch_popup_error, random_path):
     monkeypatch.setattr(AddFilesDialog, "exec", handle_load_existing)
     batch_evaluate.add_measurement()
 
+    """ download examples """
     def handle_download_example(self: AddFilesDialog):
         # select the existing file tab
         self.tabs.setCurrentIndex(2)
