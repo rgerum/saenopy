@@ -184,15 +184,15 @@ def load_gmsh(filename):
         unique_indices = np.unique(tetrahedra[tetrahedra[:, 0] != -1])
         index_lookup = np.ones(max([tetrahedra.max() + 1, unique_indices.max() + 1]), dtype=int) * np.nan
         index_lookup[unique_indices] = np.arange(len(unique_indices), dtype=int)
-        M.setNodes(nodes)#[unique_indices, :])
-        M.setTetrahedra(tetrahedra)#index_lookup[tetrahedra])
+        M.set_nodes(nodes)#[unique_indices, :])
+        M.set_tetrahedra(tetrahedra)#index_lookup[tetrahedra])
     else:
         from .FiniteBodyForcesHex import FiniteBodyForces
         M = FiniteBodyForces()
         unique_indices = np.unique(tetrahedra)
         index_lookup = np.ones(max([tetrahedra.max()+1, unique_indices.max()+1]), dtype=int)*np.nan
         index_lookup[unique_indices] = np.arange(len(unique_indices), dtype=int)
-        M.setNodes(nodes[unique_indices, :])
+        M.set_nodes(nodes[unique_indices, :])
         M.setHexahedra(index_lookup[tetrahedra])
 
     return M
@@ -507,18 +507,18 @@ def load_gmsh(filename):
         #index_lookup = np.ones(max([tetrahedra.max() + 1, unique_indices.max() + 1]), dtype=int) * np.nan
         #index_lookup[unique_indices] = np.arange(len(unique_indices), dtype=int)
         if 0:
-            M.setNodes(nodes[unique_indices, :])
-            M.setTetrahedra(index_lookup[tetrahedra])
+            M.set_nodes(nodes[unique_indices, :])
+            M.set_tetrahedra(index_lookup[tetrahedra])
         else:
-            M.setNodes(nodes)
-            M.setTetrahedra(tetrahedra)
+            M.set_nodes(nodes)
+            M.set_tetrahedra(tetrahedra)
     else:
         from .FiniteBodyForcesHex import FiniteBodyForces
         M = FiniteBodyForces()
         unique_indices = np.unique(tetrahedra)
         index_lookup = np.ones(max([tetrahedra.max()+1, unique_indices.max()+1]), dtype=int)*np.nan
         index_lookup[unique_indices] = np.arange(len(unique_indices), dtype=int)
-        M.setNodes(nodes[unique_indices, :])
+        M.set_nodes(nodes[unique_indices, :])
         M.setHexahedra(index_lookup[tetrahedra])
 
     return M

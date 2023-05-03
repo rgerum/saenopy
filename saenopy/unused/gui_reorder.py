@@ -22,7 +22,7 @@ import matplotlib.pyplot as plt
 import glob
 import imageio
 import threading
-import saenopy.multigridHelper
+import saenopy.multigrid_helper
 import saenopy.materials
 from saenopy.gui.common.stack_selector import StackSelector
 import matplotlib as mpl

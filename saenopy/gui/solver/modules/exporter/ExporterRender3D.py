@@ -238,7 +238,7 @@ def render_3d_arrows(params, result, plotter):
 
     # plot center points if desired
     if params_arrows.get("use_center", False):
-        center = obj.getCenter(mode="Force")
+        center = obj.get_center(mode="Force")
         plotter.add_points(np.array([center])*1e6, color='m', point_size=10, render=False, name="center")
     else:
         plotter.remove_actor("center")

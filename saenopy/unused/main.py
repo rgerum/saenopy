@@ -7,9 +7,9 @@ import numpy as np
 from saenopy.solver import Solver
 from saenopy.unused.VirtualBeads import VirtualBeads
 from saenopy.unused.configHelper import loadDefaults, loadConfigFile, parseValue, saveConfigFile
-from saenopy.loadHelpers import loadMeshCoords, loadMeshTets, loadBoundaryConditions, loadConfiguration, makeBoxmesh, load
+from saenopy.unused.load_helpers import loadMeshCoords, loadMeshTets, loadBoundaryConditions, loadConfiguration, make_box_mesh, load
 from saenopy.materials import SemiAffineFiberMaterial
-from saenopy.materials import saveEpsilon
+from saenopy.materials import save_epsilon
 
 
 def main():
@@ -58,19 +58,19 @@ def main():
     # ------ START OF MODULE buildBeams --------------------------------------///
     print("BUILD BEAMS")
 
-    M.setBeams(int(np.floor(np.sqrt(int(CFG["BEAMS"]) * np.pi + 0.5))))
+    M.set_beams(int(np.floor(np.sqrt(int(CFG["BEAMS"]) * np.pi + 0.5))))
     # saveBeams(M.s, os.path.join(outdir, "beams.dat"))
 
     # precompute the material model
     print("EPSILON PARAMETERS", CFG["K_0"], CFG["D_0"], CFG["L_S"], CFG["D_S"])
     epsilon = SemiAffineFiberMaterial(CFG["K_0"], CFG["D_0"], CFG["L_S"],
                                       CFG["D_S"])  # , max=CFG["EPSMAX"], step=CFG["EPSSTEP"])
-    M.setMaterialModel(epsilon)
+    M.set_material_model(epsilon)
 
     if CFG["SAVEEPSILON"]:
-        saveEpsilon(M.epsilon, os.path.join(outdir, "epsilon.dat"), CFG)
-        saveEpsilon(M.epsbar, os.path.join(outdir, "epsbar.dat"), CFG)
-        saveEpsilon(M.epsbarbar, os.path.join(outdir, "epsbarbar.dat"), CFG)
+        save_epsilon(M.epsilon, os.path.join(outdir, "epsilon.dat"), CFG)
+        save_epsilon(M.epsbar, os.path.join(outdir, "epsbar.dat"), CFG)
+        save_epsilon(M.epsbarbar, os.path.join(outdir, "epsbarbar.dat"), CFG)
 
     # ------ END OF MODULE buildBeams --------------------------------------///
 
@@ -79,7 +79,7 @@ def main():
 
         print("MAKE BOXMESH")
 
-        makeBoxmesh(M, CFG)
+        make_box_mesh(M, CFG)
 
         print(M.N_c, " coords")
 
@@ -107,16 +107,16 @@ def main():
             U = None
 
         print("SET MESH DATA")
-        M.setNodes(R)
+        M.set_nodes(R)
         print("done")
-        M.setTetrahedra(T)
+        M.set_tetrahedra(T)
         print("done")
         if U is not None:
             U[var] = np.nan
         if f_ext is not None:
             f_ext[~var] = np.nan
         if U is not None and f_ext is not None:
-            M.setBoundaryCondition(U, f_ext)
+            M.set_boundary_condition(U, f_ext)
         print("done")
 
         # ------ End OF MODULE loadMesh -------------------------------------- #
@@ -212,7 +212,7 @@ def main():
                 B.loadGuess(M, os.path.join(indir, CFG["UGUESS"]))
             B.findDisplacements(stackr, stacka, M, float(CFG["VB_REGPARA"]))
             if CFG["REFINEDISPLACEMENTS"]:
-                M._computeConnections()
+                M._compute_connections()
                 B.refineDisplacements(stackr, stacka, M, float(CFG["VB_REGPARAREF"]))
 
             if CFG["SUBTRACTMEDIANDISPL"]:
@@ -239,7 +239,7 @@ def main():
             B.loadUfound(os.path.join(indir, CFG["UFOUND"]), os.path.join(indir, CFG["SFOUND"]))
             displacements = B.U_found
             displacements[~B.vbead] = np.nan
-            M.setTargetDisplacements(displacements)
+            M.set_target_displacements(displacements)
 
             if CFG["MODE"] == "computation":
                 M.loadConfiguration(os.path.join(indir, CFG["UFOUND"]))
@@ -269,7 +269,7 @@ def main():
                         goodbeadcount += 1
 
                 doreg = goodbeadcount > badbeadcount
-                M.setTargetDisplacements(B.U_found)
+                M.set_target_displacements(B.U_found)
             doreg = True
 
             if doreg:
@@ -308,8 +308,8 @@ def main():
                 else:
                     M.loadBoundaryConditions(os.path.join(indir, CFG["BCOND"]))
 
-                M._computePhi()
-                M._computeConnections()
+                M._compute_phi()
+                M._compute_connections()
                 # B.computeOutOfStack(M)
                 if CFG["REGMETHOD"] == "laplace":
                     M._computeLaplace()
@@ -317,7 +317,7 @@ def main():
                 if CFG["REGMETHOD"] == "laplace":
                     B.computeConconnections_Laplace(M)
 
-                M._updateGloFAndK()
+                M._update_glo_f_and_k()
 
                 results["L"] = "0.0"
                 results["MISFIT"] = "0.0"
@@ -337,10 +337,10 @@ def main():
                 else:
                     M.loadBoundaryConditions(os.path.join(indir, CFG["BCOND"]))
 
-                M._computePhi()
-                M._computeConnections()
+                M._compute_phi()
+                M._compute_connections()
 
-                M._updateGloFAndK()
+                M._update_glo_f_and_k()
 
                 #  ------ END OF MODULE computeResults -------------------------------------- // /
 

@@ -186,7 +186,7 @@ for result in results:
     result.solve_parameter = params
     for index, M in enumerate(result.solver):
         # set the material model
-        M.setMaterialModel(saenopy.materials.SemiAffineFiberMaterial(
+        M.set_material_model(saenopy.materials.SemiAffineFiberMaterial(
             params["k"],
             params["d0"],
             params["lambda_s"],

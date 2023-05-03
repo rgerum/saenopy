@@ -88,7 +88,7 @@ Option B
 # Basic approach that does not incluse all information
 from glob import glob
 from saenopy.solver import Mesh, Result
-from saenopy.getDeformations import getStack, Stack
+from saenopy.get_deformations import getStack, Stack
 import saenopy
 import os
 

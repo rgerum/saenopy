@@ -7,9 +7,9 @@ import inspect
 from typing import Tuple
 
 import saenopy
-import saenopy.multigridHelper
+import saenopy.multigrid_helper
 from saenopy import Result
-import saenopy.getDeformations
+import saenopy.get_deformations
 import saenopy.materials
 from saenopy.gui.common import QtShortCuts
 from saenopy.gui.common.gui_classes import CheckAbleGroup, MatplotlibWidget, NavigationToolbar
@@ -153,7 +153,7 @@ class Regularizer(PipelineModule):
             def callback(M, relrec, i, imax):
                 self.iteration_finished.emit(result, relrec, i, imax)
 
-            M.setMaterialModel(saenopy.materials.SemiAffineFiberMaterial(
+            M.set_material_model(saenopy.materials.SemiAffineFiberMaterial(
                                params["k"],
                                params["d0"] if params["d0"] != "None" else None,
                                params["lambda_s"] if params["lambda_s"] != "None" else None,
@@ -198,7 +198,7 @@ class Regularizer(PipelineModule):
             M = self.result.solver[self.t_slider.value()]
             center = None
             if self.vtk_toolbar.use_center.value() is True:
-                center = M.getCenter(mode="Force")
+                center = M.get_center(mode="Force")
             display_image = getVectorFieldImage(self)
             if len(self.result.stack):
                 stack_shape = np.array(self.result.stack[0].shape[:3]) * np.array(self.result.stack[0].voxel_size)
@@ -238,7 +238,7 @@ class Regularizer(PipelineModule):
                 result.solve_parameter = params
                 for index, M in enumerate(result.solver):
                     # set the material model
-                    M.setMaterialModel(saenopy.materials.SemiAffineFiberMaterial(
+                    M.set_material_model(saenopy.materials.SemiAffineFiberMaterial(
                         params["k"],
                         params["d0"],
                         params["lambda_s"],

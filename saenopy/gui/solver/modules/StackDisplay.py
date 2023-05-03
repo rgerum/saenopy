@@ -12,10 +12,10 @@ from typing import Tuple
 import tifffile
 
 import saenopy
-import saenopy.multigridHelper
+import saenopy.multigrid_helper
 from saenopy.gui.common import QtShortCuts, QExtendedGraphicsView
-import saenopy.getDeformations
-import saenopy.multigridHelper
+import saenopy.get_deformations
+import saenopy.multigrid_helper
 import saenopy.materials
 from saenopy import Result
 from saenopy.gui.common.resources import resource_icon

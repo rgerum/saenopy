@@ -14,7 +14,7 @@ import vtk
 from pyvistaqt import QtInteractor
 
 import saenopy
-import saenopy.multigridHelper
+import saenopy.multigrid_helper
 from saenopy.gui import QtShortCuts, QExtendedGraphicsView
 from saenopy.gui.common.stack_selector import StackSelector
 import imageio
@@ -23,8 +23,8 @@ import matplotlib.pyplot as plt
 import glob
 import imageio
 import threading
-import saenopy.getDeformations
-import saenopy.multigridHelper
+import saenopy.get_deformations
+import saenopy.multigrid_helper
 import saenopy.materials
 
 if QtCore.qVersion() >= "5.":
@@ -105,8 +105,8 @@ class DeformationDetector(QtWidgets.QWidget):
             if np.any(np.array(voxel_size1) != np.array(voxel_size2)):
                 return self.detection_error.emit("The two stacks do not have the same voxel size.")
             if 1:
-                stack_deformed = self.stack_deformed.getStack()
-                stack_relaxed = self.stack_relaxed.getStack()
+                stack_deformed = self.stack_deformed.get_stack()
+                stack_relaxed = self.stack_relaxed.get_stack()
                 if np.any(np.array(stack_deformed.shape) != np.array(stack_relaxed.shape)):
                     return self.detection_error.emit("The two stacks do not have the same voxel count.")
                 self.M = saenopy.getDeformations.getDisplacementsFromStacks(stack_deformed, stack_relaxed,
@@ -183,16 +183,16 @@ class MeshCreator(QtWidgets.QWidget):
 
     def interpolation_thread(self):
         M = self.deformation_detector.M
-        points, cells = saenopy.multigridHelper.getScaledMesh(float(self.input_element_size.value())*1e-6,
-                                      float(self.input_inner_region.value())*1e-6,
-                                      (np.max(M.R, axis=0) - np.min(M.R, axis=0)) / 2,
-                                      [0, 0, 0], self.input_thinning_factor.value())
+        points, cells = saenopy.multigridHelper.get_scaled_mesh(float(self.input_element_size.value()) * 1e-6,
+                                                                float(self.input_inner_region.value()) * 1e-6,
+                                                                (np.max(M.R, axis=0) - np.min(M.R, axis=0)) / 2,
+                                                                [0, 0, 0], self.input_thinning_factor.value())
 
         U_target = saenopy.getDeformations.interpolate_different_mesh(M.R, M.U_target, points)
         self.M = saenopy.Solver()
-        self.M.setNodes(points)
-        self.M.setTetrahedra(cells)
-        self.M.setTargetDisplacements(U_target)
+        self.M.set_nodes(points)
+        self.M.set_tetrahedra(cells)
+        self.M.set_target_displacements(U_target)
 
         self.point_cloud = pv.PolyData(self.M.R)
         self.point_cloud.point_arrays["f"] = -self.M.f
@@ -280,7 +280,7 @@ class Regularizer(QtWidgets.QWidget):
         def callback(M, relrec):
             self.iteration_finished.emit(relrec)
 
-        M.setMaterialModel(saenopy.materials.SemiAffineFiberMaterial(
+        M.set_material_model(saenopy.materials.SemiAffineFiberMaterial(
                            float(self.input_k.value()),
                            float(self.input_d0.value()),
                            float(self.input_lamda_s.value()),

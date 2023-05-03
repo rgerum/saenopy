@@ -24,11 +24,11 @@ import pandas as pd
 import matplotlib as mpl
 
 import saenopy
-import saenopy.multigridHelper
-from saenopy.multigridHelper import getScaledMesh, getNodesWithOneFace
-import saenopy.getDeformations
+import saenopy.multigrid_helper
+from saenopy.multigrid_helper import get_scaled_mesh, get_nodes_with_one_face
+import saenopy.get_deformations
 import saenopy.materials
-from saenopy.stack import Stack, getStack, format_glob
+from saenopy.stack import Stack, get_stack, format_glob
 from saenopy.saveable import Saveable
 from saenopy import Result
 from saenopy.gui.common import QtShortCuts, QExtendedGraphicsView

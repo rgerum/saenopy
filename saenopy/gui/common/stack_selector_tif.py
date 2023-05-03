@@ -7,7 +7,7 @@ import tifffile
 from qtpy import QtWidgets
 from saenopy.gui.common import QtShortCuts
 import appdirs
-from saenopy.stack import readTiff
+from saenopy.stack import read_tiff
 from typing import List
 
 
@@ -275,7 +275,7 @@ class StackSelectorTif(QtWidgets.QWidget):
 
         #self.parent_selector.setZCount(len(d))
         self.d = d
-        im = readTiff(d.iloc[0].filename)
+        im = read_tiff(d.iloc[0].filename)
         if len(im.shape) == 3:
             im = im[:, :, 0]
         self.stack = np.zeros((im.shape[0], im.shape[1], len(d)), dtype=im.dtype)

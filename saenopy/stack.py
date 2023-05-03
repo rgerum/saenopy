@@ -29,7 +29,7 @@ class Stack(Saveable):
     leica_file = None
 
     def __init__(self, template=None, voxel_size=None, filename=None, shape=None, channels=None, image_filenames=None, crop=None, **kwargs):
-        print("stack",template)
+        print("stack", template)
         if template is None:
             if isinstance(filename, list):
                 template = filenames_to_channel_template(filename)
@@ -95,7 +95,7 @@ class Stack(Saveable):
         if self.leica_file is not None:
             return (self.leica_file.dims.y, self.leica_file.dims.x, self.leica_file.dims.z, 1)
         if self._shape is None:
-            im = readTiff(self.image_filenames[0][0])
+            im = read_tiff(self.image_filenames[0][0])
             if self.crop is not None and "x" in self.crop:
                 im = im[:, slice(*self.crop["x"])]
             if self.crop is not None and "y" in self.crop:
@@ -155,7 +155,7 @@ class Stack(Saveable):
 
     def __array__(self) -> np.ndarray:
         return self[:, :, :, :, 0]
-        return getStack(self.images)
+        return get_stack(self.images)
 
 
 def filenames_to_channel_template(filenames):
@@ -213,7 +213,7 @@ def template_to_array(filename, crop):
 
 def load_image_files_to_nparray(image_filenames, crop=None):
     if isinstance(image_filenames, str):
-        im = readTiff(image_filenames)
+        im = read_tiff(image_filenames)
         if len(im.shape) == 2:
             im = im[:, :, None]
         if crop is not None and "x" in crop:
@@ -225,7 +225,7 @@ def load_image_files_to_nparray(image_filenames, crop=None):
         return [load_image_files_to_nparray(i, crop) for i in image_filenames]
 
 
-def readTiff(image_filenames):
+def read_tiff(image_filenames):
     if re.match(r".*\.tiff?(\[.*\])?$", str(image_filenames)):
         image_filenames = str(image_filenames)
         page = 0
@@ -241,7 +241,7 @@ def readTiff(image_filenames):
     return im
 
 
-def getStack(filename):
+def get_stack(filename):
     if isinstance(filename, str):
         images = glob.glob(filename)
     else:

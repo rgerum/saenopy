@@ -25,7 +25,7 @@ from .StackDisplay import StackDisplay
 from saenopy.gui.solver.modules.exporter.Exporter import ExportViewer
 from .load_measurement_dialog import AddFilesDialog, FileExistsDialog
 from .path_editor import start_path_change
-from saenopy.examples import getExamples
+from saenopy.examples import get_examples
 
 
 class SharedProperties:
@@ -361,7 +361,7 @@ class BatchEvaluate(QtWidgets.QWidget):
         # load from the examples database
         elif dialog.mode == "example":
             # get the date from the example referenced by name
-            example = getExamples()[dialog.mode_data]
+            example = get_examples()[dialog.mode_data]
 
             # generate a stack with the examples data
             results = get_stacks(

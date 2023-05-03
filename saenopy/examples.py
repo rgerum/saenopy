@@ -25,7 +25,7 @@ def reporthook(count, block_size, total_size, msg=None):
     sys.stdout.flush()
 
 
-def downloadFiles(url, target_folder=None, progress_callback=None):
+def download_files(url, target_folder=None, progress_callback=None):
     file = Path(url).name
     target = Path(file)
     output_folder = Path(target.stem)
@@ -43,21 +43,20 @@ def downloadFiles(url, target_folder=None, progress_callback=None):
         os.remove(file_download_path)
 
 
-def loadExample(name, target_folder=None, progress_callback=None):
+def load_example(name, target_folder=None, progress_callback=None):
     if target_folder is None:
         target_folder = appdirs.user_data_dir("saenopy", "rgerum")
     if name == "ClassicSingleCellTFM":
-        downloadFiles("https://github.com/rgerum/saenopy/releases/download/v0.7.4/1_ClassicSingleCellTFM.zip", target_folder, progress_callback=progress_callback)
+        download_files("https://github.com/rgerum/saenopy/releases/download/v0.7.4/1_ClassicSingleCellTFM.zip", target_folder, progress_callback=progress_callback)
     if name == "DynamicalSingleCellTFM":
-        downloadFiles("https://github.com/rgerum/saenopy/releases/download/v0.7.4/2_DynamicalSingleCellTFM.zip", target_folder, progress_callback=progress_callback)
+        download_files("https://github.com/rgerum/saenopy/releases/download/v0.7.4/2_DynamicalSingleCellTFM.zip", target_folder, progress_callback=progress_callback)
     if name == "OrganoidTFM":
-        downloadFiles("https://github.com/rgerum/saenopy/releases/download/v0.7.4/4_OrganoidTFM.zip", target_folder, progress_callback=progress_callback)
+        download_files("https://github.com/rgerum/saenopy/releases/download/v0.7.4/4_OrganoidTFM.zip", target_folder, progress_callback=progress_callback)
     if name == "BrightfieldTFM":
-        downloadFiles("https://github.com/rgerum/saenopy/releases/download/v0.7.4/6_BrightfieldNK92Data.zip", target_folder, progress_callback=progress_callback)
+        download_files("https://github.com/rgerum/saenopy/releases/download/v0.7.4/6_BrightfieldNK92Data.zip", target_folder, progress_callback=progress_callback)
     
 
-
-def getExamples():
+def get_examples():
     example_path = Path(appdirs.user_data_dir("saenopy", "rgerum"))
     image_path = Path(resource_path("thumbnails"))
     return {
@@ -94,7 +93,7 @@ def getExamples():
             "piv_parameter": {'win_um': 40.0, 'elementsize': 30.0, 'signoise_filter': 1.3, 'drift_correction': True},
             "interpolate_parameter": {'reference_stack': 'first', 'element_size': 30, 'inner_region': 100.0, 'thinning_factor': 0, 'mesh_size_same': False, 'mesh_size_x': 738.0, 'mesh_size_y': 738.0, 'mesh_size_z': 738.0},
             "solve_parameter": {'k': 6062.0, 'd0': 0.0025, 'lambda_s': 0.0804, 'ds':  0.034, 'alpha':  10**10, 'stepper': 0.33, 'i_max': 1400,  'rel_conv_crit': 1e-7},
-    },
+        },
         "BrightfieldTFM": {
             "desc": "Traction forces around an immune cell in collagen 1.2mg/ml calculated on simple brightfield images",
             "img": image_path / "BFTFM_2.png",
@@ -108,6 +107,4 @@ def getExamples():
             "solve_parameter": {'k': 6062.0, 'd0': 0.0025, 'lambda_s': 0.0804, 'ds':  0.034, 'alpha':  10**11, 'stepper': 0.33, 'i_max': 300, 'rel_conv_crit': 0.01},
 
         },
-    
-
     }

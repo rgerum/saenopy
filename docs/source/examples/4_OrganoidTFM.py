@@ -40,7 +40,7 @@ import saenopy
 
 
 # download the data
-saenopy.loadExample("OrganoidTFM")
+saenopy.load_example("OrganoidTFM")
 
 # %%
 # Loading the Stacks
@@ -191,7 +191,7 @@ for result in results:
     result.solve_parameter = params
     for M in result.solver:
         # set the material model
-        M.setMaterialModel(saenopy.materials.SemiAffineFiberMaterial(
+        M.set_material_model(saenopy.materials.SemiAffineFiberMaterial(
             params["k"],
             params["d0"],
             params["lambda_s"],

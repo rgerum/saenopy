@@ -1,11 +1,11 @@
 import numpy as np
-from .buildBeams import buildBeams
+from .build_beams import build_beams
 from .materials import Material
 from typing import Sequence
 from scipy.interpolate import interp1d
 
 
-def getQuadrature(N: int, xmin: float, xmax: float) -> (np.ndarray, np.ndarray):
+def get_quadrature(N: int, xmin: float, xmax: float) -> (np.ndarray, np.ndarray):
     """
     Provides N quadrature points for an integration from xmin to xmax together with their weights.
 
@@ -32,27 +32,27 @@ def getQuadrature(N: int, xmin: float, xmax: float) -> (np.ndarray, np.ndarray):
         points = [0]
         w = [2]
 
-    if N == 2:
+    elif N == 2:
         points = [-np.sqrt(1 / 3), np.sqrt(1 / 3)]
         w = [1, 1]
 
-    if N == 3:
+    elif N == 3:
         points = [-np.sqrt(3 / 5), 0, np.sqrt(3 / 5)]
         w = [5 / 9, 8 / 9, 5 / 9]
 
-    if N == 4:
+    elif N == 4:
         points = [-np.sqrt(3 / 7 - 2 / 7 * np.sqrt(6 / 5)), +np.sqrt(3 / 7 - 2 / 7 * np.sqrt(6 / 5)),
                   -np.sqrt(3 / 7 + 2 / 7 * np.sqrt(6 / 5)), +np.sqrt(3 / 7 + 2 / 7 * np.sqrt(6 / 5))]
         w = [(18 + np.sqrt(30)) / 36, (18 + np.sqrt(30)) / 36, (18 - np.sqrt(30)) / 36, (18 - np.sqrt(30)) / 36]
 
-    if N == 5:
+    elif N == 5:
         points = [0,
                   -1 / 3 * np.sqrt(5 - 2 * np.sqrt(10 / 7)), +1 / 3 * np.sqrt(5 - 2 * np.sqrt(10 / 7)),
                   -1 / 3 * np.sqrt(5 + 2 * np.sqrt(10 / 7)), +1 / 3 * np.sqrt(5 + 2 * np.sqrt(10 / 7))]
         w = [128 / 225, (322 + 13 * np.sqrt(70)) / 900, (322 + 13 * np.sqrt(70)) / 900, (322 - 13 * np.sqrt(70)) / 900,
              (322 - 13 * np.sqrt(70)) / 900]
 
-    if N > 5:
+    else:
         raise ValueError()
 
     points = np.array(points)
@@ -63,7 +63,7 @@ def getQuadrature(N: int, xmin: float, xmax: float) -> (np.ndarray, np.ndarray):
     return points, w
 
 
-def combineQuadrature(p1_w1: Sequence, p2_w2: Sequence) -> (np.ndarray, np.ndarray, np.ndarray):
+def combine_quadrature(p1_w1: Sequence, p2_w2: Sequence) -> (np.ndarray, np.ndarray, np.ndarray):
     """
     Combine the quadratures of two different axes.
 
@@ -90,7 +90,7 @@ def combineQuadrature(p1_w1: Sequence, p2_w2: Sequence) -> (np.ndarray, np.ndarr
     return x, y, w
 
 
-def getShearRheometerStress(gamma: np.ndarray, material: Material, s: np.ndarray = None) -> (np.ndarray, np.ndarray):
+def get_shear_rheometer_stress(gamma: np.ndarray, material: Material, s: np.ndarray = None) -> (np.ndarray, np.ndarray):
     r"""
     This function returns the stress the material model generates when subjected to a shear strain,
     as seen in a shear rheometer.
@@ -127,7 +127,7 @@ def getShearRheometerStress(gamma: np.ndarray, material: Material, s: np.ndarray
 
     """
     if s is None:
-        s = buildBeams(30)
+        s = build_beams(30)
 
     F = np.eye(3)
     F = np.tile(F, (gamma.shape[0], 1, 1))
@@ -144,11 +144,11 @@ def getShearRheometerStress(gamma: np.ndarray, material: Material, s: np.ndarray
     return gamma[:-1] + np.diff(gamma) / 2, dW
 
 
-def getShearRheometerStressRotation(gamma, material, H=1e-3, R=10e-3, s=30, q=2):
+def get_shear_rheometer_stress_rotation(gamma, material, H=1e-3, R=10e-3, s=30, q=2):
     if isinstance(s, int):
-        s = buildBeams(s)
+        s = build_beams(s)
 
-    x_r, z_h, w = combineQuadrature(getQuadrature(q, 0, 1), getQuadrature(q, 0, 1))
+    x_r, z_h, w = combine_quadrature(get_quadrature(q, 0, 1), get_quadrature(q, 0, 1))
 
     F = np.zeros((gamma.shape[0], len(z_h), 3, 3))
     theta = gamma * H / R
@@ -172,10 +172,10 @@ def getShearRheometerStressRotation(gamma, material, H=1e-3, R=10e-3, s=30, q=2)
     return gamma[:-1] + np.diff(gamma) / 2, dW
 
 
-def getStretchThinning(gamma_h, gamma_v, material, s=None):
+def get_stretch_thinning(gamma_h, gamma_v, material, s=None):
     r"""
     This function returns the vertical thinning (strain in z direction) of the material model
-    when the material model is stretched horizonally (strain in x direction), as seen in a stretcher device.
+    when the material model is stretched horizontally (strain in x direction), as seen in a stretcher device.
 
     The strain in x and z direction is described using the following deformation gradient :math:`\mathbf{F}`:
 
@@ -208,7 +208,7 @@ def getStretchThinning(gamma_h, gamma_v, material, s=None):
         The vertical strain that minimizes the energy for the horizontal strain.
     """
     if s is None:
-        s = buildBeams(30)
+        s = build_beams(30)
 
     F00, F22 = np.meshgrid(gamma_v, gamma_h)
     F11 = np.ones_like(F00)
@@ -223,7 +223,7 @@ def getStretchThinning(gamma_h, gamma_v, material, s=None):
     return gamma_h, gamma_v[index]
 
 
-def getExtensionalRheometerStress(gamma, material, s=None):
+def get_extensional_rheometer_stress(gamma, material, s=None):
     r"""
     This function returns the stress the material model generates when subjected to an extensional strain,
     as seen in an extensional rheometer.
@@ -260,7 +260,7 @@ def getExtensionalRheometerStress(gamma, material, s=None):
         The resulting stress.
     """
     if s is None:
-        s = buildBeams(30)
+        s = build_beams(30)
 
     F = np.eye(3)
     F = np.tile(F, (gamma.shape[0], 1, 1))
@@ -338,10 +338,10 @@ def minimize_old(cost_data: list, parameter_start: Sequence, method='Nelder-Mead
     plots = []
 
     for func, data, params in cost_data:
-        if func == getStretchThinning:
+        if func == get_stretch_thinning:
             def func(x, material):
                 lambda_v = np.arange(0, 1.1, 0.01)
-                return getStretchThinning(x, lambda_v, material)
+                return get_stretch_thinning(x, lambda_v, material)
         c, p = get_cost_function(func, data, params, x_sample=x_sample, MaterialClass=MaterialClass)
         costs.append(c)
         plots.append(p)
@@ -371,10 +371,10 @@ def minimize_old(cost_data: list, parameter_start: Sequence, method='Nelder-Mead
 
         for func in subplot_dict:
             subplot_dict[func] = plt.subplot(1, subplot_index, subplot_dict[func])
-            if func == getShearRheometerStress or func == getExtensionalRheometerStress:
+            if func == get_shear_rheometer_stress or func == get_extensional_rheometer_stress:
                 plt.xlabel("strain")
                 plt.ylabel("stress")
-            if func == getStretchThinning:
+            if func == get_stretch_thinning:
                 plt.xlabel("horizontal stretch")
                 plt.ylabel("vertical contraction")
 
@@ -385,7 +385,7 @@ def minimize_old(cost_data: list, parameter_start: Sequence, method='Nelder-Mead
     return sol.x, plot_all
 
 
-def getMaping(p, func, indices):
+def get_maping(p, func, indices):
     m = func(p)
     mapping = []
     for i in range(len(p)):
@@ -412,8 +412,8 @@ def minimize(cost_data: list, parameter_start: Sequence, method='Powell', maxfev
     plots_stretch = []
 
     for func, data, params in cost_data:
-        if func == getStretchThinning:
-            mapping_stretch |= getMaping(parameter_start, params, [1])
+        if func == get_stretch_thinning:
+            mapping_stretch |= get_maping(parameter_start, params, [1])
 
             def getCost(func, data, params):
                 stretchx = data[:, 0]
@@ -429,7 +429,7 @@ def minimize(cost_data: list, parameter_start: Sequence, method='Powell', maxfev
                     parameter_start[mapping_stretch] = p
                     p = params(parameter_start)
                     material1 = MaterialClass(*p)
-                    x, y = getStretchThinning(lambda_h, lambda_v, material1)
+                    x, y = get_stretch_thinning(lambda_h, lambda_v, material1)
                     stretchy2 = interp1d(x, y, fill_value=np.nan, bounds_error=False)(stretchx)
                     cost = np.nansum((stretchy2 - stretchy) ** 2)
                     return cost
@@ -438,17 +438,17 @@ def minimize(cost_data: list, parameter_start: Sequence, method='Powell', maxfev
                     material = MaterialClass(*params(parameter_start))
                     plt.plot(stretchx, stretchy, "o", label="data")
 
-                    x, y = getStretchThinning(lambda_h, lambda_v, material)
+                    x, y = get_stretch_thinning(lambda_h, lambda_v, material)
                     plt.plot(x, y, "r-", lw=3, label="model")
                 return cost, plot_me
             cost, plot = getCost(func, data, params)
             costs_stretch.append(cost)
             plots_stretch.append(plot)
 
-        if func == getShearRheometerStress:
-            mapping_shear |= getMaping(parameter_start, params, [0, 2, 3])
+        if func == get_shear_rheometer_stress:
+            mapping_shear |= get_maping(parameter_start, params, [0, 2, 3])
 
-            def getCost(func, data, params):
+            def get_cost(func, data, params):
                 shearx = data[:, 0]
                 sheary = data[:, 1]
 
@@ -464,7 +464,7 @@ def minimize(cost_data: list, parameter_start: Sequence, method='Powell', maxfev
                     parameter_start[mapping_shear] = p
                     p = params(parameter_start)
                     material1 = MaterialClass(*p)
-                    x, y = getShearRheometerStress(gamma, material1)
+                    x, y = get_shear_rheometer_stress(gamma, material1)
                     stretchy2 = interp1d(x, y, fill_value=np.nan, bounds_error=False)(shearx)
                     cost = np.nansum((np.log(stretchy2) - np.log(sheary)) ** 2 * weights)
                     return cost
@@ -473,12 +473,12 @@ def minimize(cost_data: list, parameter_start: Sequence, method='Powell', maxfev
                     material = MaterialClass(*params(parameter_start))
                     plt.loglog(shearx, sheary, "o", label="data")
 
-                    x, y = getShearRheometerStress(gamma, material)
+                    x, y = get_shear_rheometer_stress(gamma, material)
                     plt.loglog(x, y, "r-", lw=3, label="model")
 
                 return cost, plot_me
 
-            cost, plot = getCost(func, data, params)
+            cost, plot = get_cost(func, data, params)
             costs_shear.append(cost)
             plots_shear.append(plot)
 

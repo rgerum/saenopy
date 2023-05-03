@@ -740,9 +740,9 @@ class ExportViewer(PipelineModule):
                 M = self.result.mesh_piv[self.t_slider.value()]
 
             if M is not None:
-                if M.hasNodeVar("U_measured"):
+                if M.has_node_var("U_measured"):
                     # showVectorField2(self, M, "U_measured")
-                    field = M.getNodeVar("U_measured")
+                    field = M.get_node_var("U_measured")
                     factor = 0.1 * self.vtk_toolbar.arrow_scale.value()
                     name = "U_measured"
                     colormap = self.vtk_toolbar.colormap_chooser.value()
@@ -769,7 +769,7 @@ class ExportViewer(PipelineModule):
             if M is not None:
                 center = None
                 if self.vtk_toolbar2.use_center.value() is True:
-                    center = M.getCenter(mode="Force")
+                    center = M.get_center(mode="Force")
                 field = -M.f * M.reg_mask[:, None]
                 factor = 0.15 * self.vtk_toolbar2.arrow_scale.value()
                 name = "f"

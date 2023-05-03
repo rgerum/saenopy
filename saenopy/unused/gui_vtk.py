@@ -14,7 +14,7 @@ import vtk
 from pyvistaqt import QtInteractor
 
 import saenopy
-import saenopy.multigridHelper
+import saenopy.multigrid_helper
 from saenopy.gui import QtShortCuts, QExtendedGraphicsView
 import imageio
 

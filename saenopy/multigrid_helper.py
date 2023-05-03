@@ -1,11 +1,10 @@
 import numpy as np
 import pandas as pd
 import time
-from typing import Union
 from nptyping import NDArray, Shape, Float, Int, Bool
 
 
-def createMesh(count: int = None, element_width: float = None, box_width: float = None, tesselation_mode: str = "6") \
+def create_mesh(count: int = None, element_width: float = None, box_width: float = None, tesselation_mode: str = "6") \
         -> (NDArray[Shape["N_c, 3"], Float], NDArray[Shape["N_t, 4"], Int]):
     if isinstance(box_width, (int, float)):
         box_width = [box_width, box_width, box_width]
@@ -24,29 +23,29 @@ def createMesh(count: int = None, element_width: float = None, box_width: float 
         count = [int(np.round(box_width[i] / element_width[i])) for i in range(3)]
 
     # R, T = createBoxMesh(*[np.linspace(-box_width[i]/2, box_width[i]/2, count[i]) for i in range(3)])
-    R, T = createBoxMesh(np.linspace(0, box_width[0], count[0]+1),
-                         np.linspace(-box_width[1] / 2, box_width[1] / 2, count[1]+1),
-                         np.linspace(-box_width[2] / 2, box_width[2] / 2, count[2]+1),
-                         tesselation_mode=tesselation_mode,
-                         )
+    R, T = create_box_mesh(np.linspace(0, box_width[0], count[0] + 1),
+                           np.linspace(-box_width[1] / 2, box_width[1] / 2, count[1]+1),
+                           np.linspace(-box_width[2] / 2, box_width[2] / 2, count[2]+1),
+                           tesselation_mode=tesselation_mode,
+                           )
     return R, T
 
 
-def createSolverBoxMesh(count=None, element_width=None, box_width=None, material=None, tesselation_mode="6"):
+def create_solver_box_mesh(count=None, element_width=None, box_width=None, material=None, tesselation_mode="6"):
     from saenopy import Solver
     M = Solver()
     if material is not None:
-        M.setMaterialModel(material)
+        M.set_material_model(material)
 
-    R, T = createMesh(count, element_width, box_width, tesselation_mode=tesselation_mode)
+    R, T = create_mesh(count, element_width, box_width, tesselation_mode=tesselation_mode)
 
-    M.setNodes(R)
-    M.setTetrahedra(T)
+    M.set_nodes(R)
+    M.set_tetrahedra(T)
 
     return M
 
 
-def createBoxMesh(x, y=None, z=None, tesselation_mode="6"):
+def create_box_mesh(x, y=None, z=None, tesselation_mode="6"):
     if y is None:
         y = x
     if z is None:
@@ -54,11 +53,11 @@ def createBoxMesh(x, y=None, z=None, tesselation_mode="6"):
     mesh = np.array(np.meshgrid(x, y, z, indexing="ij")).reshape(3, -1).T
     R = np.zeros(mesh.shape)
     R[:, :] = mesh
-    T = makeBoxmeshTets(len(x), len(y), len(z), tesselation_mode=tesselation_mode)
+    T = make_box_mesh_tets(len(x), len(y), len(z), tesselation_mode=tesselation_mode)
     return R, T
 
 
-def makeBoxmeshCoords(dx, nx, rin, mulout, tesselation_mode="6"):
+def make_box_mesh_coords(dx, nx, rin, mulout, tesselation_mode="6"):
     ny = nx
     nz = nx
     dy = dx
@@ -93,7 +92,7 @@ def makeBoxmeshCoords(dx, nx, rin, mulout, tesselation_mode="6"):
 from numba import njit
 
 @njit()
-def makeBoxmeshTets(nx, ny=None, nz=None, grain=1, tesselation_mode="6"):
+def make_box_mesh_tets(nx, ny=None, nz=None, grain=1, tesselation_mode="6"):
     if ny is None:
         ny = nx
     if nz is None:
@@ -161,15 +160,13 @@ def makeBoxmeshTets(nx, ny=None, nz=None, grain=1, tesselation_mode="6"):
     return np.array(T, dtype=np.int64)
 
 
-def getFaces(T):
-    return np.sort(np.array(T[:, [[0,1,2], [0,1,3], [0,2,3], [1,2,3]]]).reshape(-1, 3), axis=1)
-
-def getFaceCounts(faces):
+def get_face_counts(faces):
     face_counts = pd.Series([str(s)[1:-1] for s in np.sort(faces, axis=1)]).value_counts()
     face_counts.index = [tuple(int(i) for i in s.split(" ") if i != "") for s in face_counts.index]
     return face_counts
 
-def getNodesWithOneFace(T):
+
+def get_nodes_with_one_face(T):
     # get the faces of the tetrahedrons
     faces = np.sort(np.array(T[:, [[0, 1, 2], [0, 1, 3], [0, 2, 3], [1, 2, 3]]]).reshape(-1, 3), axis=1)
     # encode the faces as integers
@@ -183,7 +180,7 @@ def getNodesWithOneFace(T):
     return np.unique(np.array([single_faces % maxi, (single_faces // maxi) % maxi, (single_faces // maxi ** 2) % maxi]))
 
 
-def getFaces_old(T):
+def _get_faces_old(T):
     faces = []
     faces_of_T = []
     for tet in T:
@@ -204,7 +201,7 @@ def getFaces_old(T):
     return np.array(faces), np.array(faces_of_T)
 
 
-def getScaling(voxel_in, size_in, size_out, center, a):
+def get_scaling(voxel_in, size_in, size_out, center, a):
     old_settings = np.seterr(all='ignore')  # seterr to known value
 
     np.seterr(all='ignore')
@@ -228,16 +225,17 @@ def getScaling(voxel_in, size_in, size_out, center, a):
                                                                                                np.inf) ** 2 + center
     return y
 
-def getScaledMesh(voxel_in, size_in, size_out, center, a, tesselation_mode="6"):
+
+def get_scaled_mesh(voxel_in, size_in, size_out, center, a, tesselation_mode="6"):
     if isinstance(size_out, (int, float)):
         size_out = [size_out]*3
-    x = getScaling(voxel_in, size_in, size_out[0], center[0], a)
-    y = getScaling(voxel_in, size_in, size_out[1], center[1], a)
-    z = getScaling(voxel_in, size_in, size_out[2], center[1], a)
+    x = get_scaling(voxel_in, size_in, size_out[0], center[0], a)
+    y = get_scaling(voxel_in, size_in, size_out[1], center[1], a)
+    z = get_scaling(voxel_in, size_in, size_out[2], center[1], a)
 
-
-    R, T = createBoxMesh(x, y, z, tesselation_mode=tesselation_mode)
+    R, T = create_box_mesh(x, y, z, tesselation_mode=tesselation_mode)
     return R, T
+
 
 def getTetrahedraFromHexahedra(hexs):
     T = []
@@ -271,7 +269,7 @@ def getTetrahedraVolumnes(T, R):
     return V
 
 
-def setActiveFields(nx, grain, val):
+def set_active_fields(nx, grain, val):
     ny = nx
     nz = nx
     var = [0] * nx * ny * nz
@@ -285,7 +283,7 @@ def setActiveFields(nx, grain, val):
     return val
 
 
-def getTetrahedraVolumnes(T, R):
+def get_tetrahedra_volumnes(T, R):
     # define the helper matrix chi
     Chi = np.zeros((4, 3))
     Chi[0, :] = [-1, -1, -1]
@@ -302,7 +300,7 @@ def getTetrahedraVolumnes(T, R):
     return V
 
 
-def subdivideTetrahedra(T, R):
+def subdivide_tetrahedra(T, R):
     centroids = np.mean(R[T], axis=1)
     T2 = []
     for index, tet in enumerate(T):
@@ -315,9 +313,9 @@ def subdivideTetrahedra(T, R):
     return np.array(T2), np.concatenate((R, centroids))
 
 
-def tetsToHex(T, R):
-    F, Fi = getFaces(T)
-    L, Li = getLinesTetrahedra(T)
+def tets_to_hex(T, R):
+    F, Fi = get_faces(T)
+    L, Li = get_lines_tetrahedra(T)
 
     centroids = np.mean(R[T], axis=1)
     face_centers = np.mean(R[F], axis=1)
@@ -337,9 +335,10 @@ def tetsToHex(T, R):
 
     return np.array(H), np.concatenate((R, centroids, face_centers, line_centers))
 
-def subdivideHexahedra(T, R):
-    F, Fi = getFacesHexahedra(T)
-    L, Li = getLinesHexahedra(T)
+
+def subdivide_hexahedra(T, R):
+    F, Fi = get_faces_hexahedra(T)
+    L, Li = get_lines_hexahedra(T)
 
     centroids = np.mean(R[T], axis=1)
     face_centers = np.mean(R[F], axis=1)
@@ -368,7 +367,7 @@ def subdivideHexahedra(T, R):
     return np.array(H), np.concatenate((R, centroids, face_centers, line_centers))
 
 
-def getTetrahedraFromHexahedra(hexs):
+def get_tetrahedra_from_hexahedra(hexs):
     T = []
     for h in hexs:
         i1, i2, i3, i4, i5, i6, i7, i8 = h
@@ -384,7 +383,7 @@ def getTetrahedraFromHexahedra(hexs):
     return np.array(T)
 
 
-def getTetrahedraVolumnes(R, T):
+def get_tetrahedra_volumnes(R, T):
     # define the helper matrix chi
     Chi = np.zeros((4, 3))
     Chi[0, :] = [-1, -1, -1]
@@ -401,13 +400,13 @@ def getTetrahedraVolumnes(R, T):
     return V
 
 
-def getHexahedraVolumnes(H, R):
-    T = getTetrahedraFromHexahedra(H)
-    V = getTetrahedraVolumnes(T, R).reshape(H.shape[0], -1)
+def get_hexahedra_volumnes(H, R):
+    T = get_tetrahedra_from_hexahedra(H)
+    V = get_tetrahedra_volumnes(T, R).reshape(H.shape[0], -1)
     return np.sum(V, axis=1)
 
 
-def getFaces(T):
+def get_faces(T):
     faces = []
     faces_of_T = []
     for tet in T:
@@ -429,7 +428,7 @@ def getFaces(T):
 
 
 @njit()
-def getLinesTetrahedra(T):
+def get_lines_tetrahedra(T):
     lines = []
     lines_of_T = []
     for i in range(T.shape[0]):
@@ -456,7 +455,7 @@ def getLinesTetrahedra(T):
 
 
 
-def getLinesTetrahedra2(T):
+def get_lines_tetrahedra2(T):
     indi = np.array([[i, j] for i in range(4) for j in range(i + 1, 4)], dtype=int)
     lines = set()
     for tet in T:
@@ -464,7 +463,7 @@ def getLinesTetrahedra2(T):
     return np.array([tuple(l) for l in lines])
 
 
-def getLinesHexahedra(T):
+def get_lines_hexahedra(T):
     lines = []
     lines_of_T = []
     for tet in T:
@@ -486,7 +485,7 @@ def getLinesHexahedra(T):
         lines_of_T.append(line_indices)
     return np.array(lines), np.array(lines_of_T)
 
-def getFacesHexahedra(T):
+def get_faces_hexahedra(T):
     faces = []
     faces_of_T = []
     for tet in T:
@@ -513,7 +512,7 @@ def getFacesHexahedra(T):
     return np.array(faces), np.array(faces_of_T)
 
 
-def getStrain(M, stress, stepper=0.066, rel_conv_crit=0.01, verbose=False, callback=None):
+def get_strain(M, stress, stepper=0.066, rel_conv_crit=0.01, verbose=False, callback=None):
     t = time.time()
 
     left = (M.R[:, 0] == np.min(M.R[:, 0]))
@@ -545,8 +544,8 @@ def getStrain(M, stress, stepper=0.066, rel_conv_crit=0.01, verbose=False, callb
     # initial_displacement[:, 0] = (lambd-1)*M.R[:, 0]
 
     # give the boundary conditions and initial displacement guess to the solver
-    M.setBoundaryCondition(displacement, force)
-    M.setInitialDisplacements(initial_displacement)
+    M.set_boundary_condition(displacement, force)
+    M.set_initial_displacements(initial_displacement)
 
     M.solve_boundarycondition(stepper=stepper, verbose=verbose, rel_conv_crit=rel_conv_crit,
                               callback=callback)
@@ -556,7 +555,7 @@ def getStrain(M, stress, stepper=0.066, rel_conv_crit=0.01, verbose=False, callb
     return strain
 
 
-def getStress(M, lambd, stepper=0.066, rel_conv_crit=0.01, verbose=False, callback=None):
+def get_stress(M, lambd, stepper=0.066, rel_conv_crit=0.01, verbose=False, callback=None):
     t = time.time()
 
     left = (M.R[:, 0] == np.min(M.R[:, 0]))
@@ -588,8 +587,8 @@ def getStress(M, lambd, stepper=0.066, rel_conv_crit=0.01, verbose=False, callba
     initial_displacement[:, 0] = lambd * (M.R[:, 0] - x_min)
 
     # give the boundary condutions and initial displacement guess to the solver
-    M.setBoundaryCondition(displacement, force)
-    M.setInitialDisplacements(initial_displacement)
+    M.set_boundary_condition(displacement, force)
+    M.set_initial_displacements(initial_displacement)
 
     M.solve_boundarycondition(stepper=stepper, verbose=verbose, rel_conv_crit=rel_conv_crit,
                               callback=callback)
@@ -603,7 +602,7 @@ def getStress(M, lambd, stepper=0.066, rel_conv_crit=0.01, verbose=False, callba
     return stress
 
 
-def getBorder(R: NDArray[Shape["N_c, 3"], Float], width=0.5e-6) \
+def get_border(R: NDArray[Shape["N_c, 3"], Float], width=0.5e-6) \
                -> NDArray[Shape["N_c"], Bool]:
     minR = np.min(R, axis=0)
     maxR = np.max(R, axis=0)
@@ -613,13 +612,14 @@ def getBorder(R: NDArray[Shape["N_c, 3"], Float], width=0.5e-6) \
              (R[:, 2] < minR[2] + width) | (R[:, 2] > maxR[2] - width)
     return border
 
-def getBoxMeshSurface(T: NDArray[Shape["N_t, 4"], Int]) -> NDArray[Shape["N_surface"], Int]:
+
+def get_box_mesh_surface(T: NDArray[Shape["N_t, 4"], Int]) -> NDArray[Shape["N_surface"], Int]:
     node_uses = pd.Series(T.ravel()).value_counts().sort_index()
     surface = node_uses != 20
     return surface
 
 
-def plotMesh(R, T, ax=None):
+def plot_mesh(R, T, ax=None):
     if ax is None:
         from mpl_toolkits import mplot3d
         import matplotlib.pyplot as plt
@@ -649,7 +649,7 @@ def plotMesh(R, T, ax=None):
     ax.set_zlim(center[2]-max_width/2, center[2]+max_width/2)
 
 
-def removeNodes(R: NDArray[Shape["N_c, 3"], Float], T: NDArray[Shape["N_t, 4"], Int], remove_indices) \
+def remove_nodes(R: NDArray[Shape["N_c, 3"], Float], T: NDArray[Shape["N_t, 4"], Int], remove_indices) \
         -> (NDArray[Shape["N_c, 3"], Float], NDArray[Shape["N_t, 4"], Int]):
     """ removes the nodes with the provided indices from the mesh """
     R2 = R[~remove_indices].copy()

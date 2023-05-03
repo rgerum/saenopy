@@ -55,7 +55,7 @@ def showVectorField2(self, M, points_name):
     try:
         field = getattr(M, points_name)
     except AttributeError:
-        field = M.getNodeVar(points_name)
+        field = M.get_node_var(points_name)
 
     if len(self.result.stack):
         stack_shape = np.array(self.result.stack[0].shape[:3])*np.array(self.result.stack[0].voxel_size)

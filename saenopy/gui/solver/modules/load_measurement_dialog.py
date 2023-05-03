@@ -3,16 +3,16 @@ from qtpy import QtCore, QtWidgets, QtGui
 import time
 
 import saenopy
-import saenopy.multigridHelper
-import saenopy.getDeformations
-import saenopy.multigridHelper
+import saenopy.multigrid_helper
+import saenopy.get_deformations
+import saenopy.multigrid_helper
 import saenopy.materials
 from saenopy.gui.common import QtShortCuts
 from saenopy.gui.common.stack_selector import StackSelector
 from saenopy.gui.common.stack_selector_crop import StackSelectorCrop
 from saenopy.gui.common.stack_preview import StackPreview
 
-from saenopy.examples import getExamples
+from saenopy.examples import get_examples
 
 
 class AddFilesDialog(QtWidgets.QDialog):
@@ -90,7 +90,7 @@ class AddFilesDialog(QtWidgets.QDialog):
                         self.button_addList5 = QtShortCuts.QPushButton(None, "ok", self.accept_existing)
 
                 with self.tabs.createTab("Examples") as self.tab4:
-                    examples = getExamples()
+                    examples = get_examples()
                     self.example_buttons = []
                     with QtShortCuts.QHBoxLayout() as lay:
                         for example_name, properties in examples.items():
@@ -140,7 +140,7 @@ class AddFilesDialog(QtWidgets.QDialog):
         self.accept()
 
     def load_example(self, example_name):
-        saenopy.loadExample(example_name, None, self.reporthook)
+        saenopy.load_example(example_name, None, self.reporthook)
         self.mode = "example"
         self.mode_data = example_name
         self.accept()

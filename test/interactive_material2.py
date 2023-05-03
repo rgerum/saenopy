@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 from matplotlib.widgets import Slider, Button, RadioButtons
 
 from saenopy.materials import SemiAffineFiberMaterial
-from saenopy.macro import getShearRheometerStress
+from saenopy.macro import get_shear_rheometer_stress
 import saenopy
 material = SemiAffineFiberMaterial(900, 0.0004, 0.0075, 0.033)
 
@@ -12,8 +12,8 @@ plt.subplots_adjust(left=0.25, bottom=0.40)
 
 gamma = np.arange(0.005, 0.3, 0.0001)
 M = saenopy.Solver()
-M.setBeams()
-x, y = getShearRheometerStress(gamma, material, M.s)
+M.set_beams()
+x, y = get_shear_rheometer_stress(gamma, material, M.s)
 #y = material.stiffness(gamma)
 
 l, = plt.plot(x, y, lw=2)
@@ -41,7 +41,7 @@ def update(val):
     lamda_s = slambdas.val
     d_s = sds.val
     material = SemiAffineFiberMaterial(k, d_0, lamda_s, d_s)
-    x, y = getShearRheometerStress(gamma, material, M.s)
+    x, y = get_shear_rheometer_stress(gamma, material, M.s)
     l.set_ydata(y)
     fig.canvas.draw_idle()
 

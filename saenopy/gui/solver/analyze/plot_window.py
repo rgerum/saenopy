@@ -156,8 +156,8 @@ class PlottingWindow(QtWidgets.QWidget):
                     res.resulting_data.append({
                         "t": i*res.time_delta if res.time_delta else 0,
                         "strain_energy": M.E_glo,
-                        "contractility": M.getContractility(center_mode="force"),
-                        "polarity": M.getPolarity(),
+                        "contractility": M.get_contractility(center_mode="force"),
+                        "polarity": M.get_polarity(),
                         "99_percentile_deformation": np.nanpercentile(np.linalg.norm(M.U_target[M.reg_mask], axis=1), 99),
                         "99_percentile_force": np.nanpercentile(np.linalg.norm(M.f[M.reg_mask], axis=1), 99),
                         "filename": file,

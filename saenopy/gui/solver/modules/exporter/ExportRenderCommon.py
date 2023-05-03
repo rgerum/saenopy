@@ -6,8 +6,8 @@ def get_mesh_arrows(params, result):
     if params["arrows"] == "piv":
         if result is not None:
             M = result.mesh_piv[params["time"]["t"]]
-            if M is not None and M.hasNodeVar("U_measured"):
-                return M, M.getNodeVar("U_measured"), params["deformation_arrows"], "U_measured"
+            if M is not None and M.has_node_var("U_measured"):
+                return M, M.get_node_var("U_measured"), params["deformation_arrows"], "U_measured"
     elif params["arrows"] == "target deformations":
         M = result.solver[params["time"]["t"]]
         if M is not None:
@@ -26,7 +26,7 @@ def get_mesh_arrows(params, result):
 def get_mesh_extent(params, result):
     if params["arrows"] == "piv":
         M = result.mesh_piv[params["time"]["t"]]
-        if M is not None and M.hasNodeVar("U_measured"):
+        if M is not None and M.has_node_var("U_measured"):
             return [M.R.min(axis=0) * 1e6, M.R.max(axis=0) * 1e6]
     elif params["arrows"] == "target deformations":
         M = result.solver[params["time"]["t"]]

@@ -4,7 +4,7 @@ import numpy as np
 import scipy.sparse as ssp
 
 from saenopy.solver import Solver
-from saenopy.conjugateGradient import cg
+from saenopy.conjugate_gradient import cg
 from saenopy.unused.stack3DHelper import crosscorrelateStacks, getSubstack, findLocalDisplacement
 
 
@@ -117,7 +117,7 @@ class VirtualBeads:
         M.var = var
         M.f_ext = f_ext
         self.U_guess = U
-        M._computeConnections()
+        M._compute_connections()
 
     def updateLocalWeigth(self, M, method):
 
@@ -615,17 +615,17 @@ class VirtualBeads:
 
         # if the shape tensors are not valid, calculate them
         if self.M.Phi_valid is False:
-            self.M._computePhi()
+            self.M._compute_phi()
 
         # if the connections are not valid, calculate them
         if self.M.connections_valid is False:
-            self.M._computeConnections()
+            self.M._compute_connections()
 
         self.localweight = np.ones(M.N_c)
 
         # update the forces on each tetrahedron and the global stiffness tensor
         print("going to update glo f and K")
-        M._updateGloFAndK()
+        M._update_glo_f_and_k()
 
         # log and store values (if a target file was provided)
         if relrecname is not None:
@@ -646,7 +646,7 @@ class VirtualBeads:
             uu = self._solve_regularization_CG(M, stepper, REG_SOLVER_PRECISION)
 
             # update the forces on each tetrahedron and the global stiffness tensor
-            M._updateGloFAndK()
+            M._update_glo_f_and_k()
 
             print("Round", i + 1, " |du|=", uu)
 

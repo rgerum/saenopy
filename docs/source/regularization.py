@@ -11,7 +11,7 @@ from saenopy.materials import SemiAffineFiberMaterial
 
 # provide a material model
 material = SemiAffineFiberMaterial(1645, 0.0008, 1.0075, 0.033)
-M.setMaterialModel(material)
+M.set_material_model(material)
 
 import numpy as np
 
@@ -36,9 +36,9 @@ T = np.array([[0, 1, 7, 2],
               [0, 7, 5, 2]])
 
 # provide the node data
-M.setNodes(R)
+M.set_nodes(R)
 # and the tetrahedron data
-M.setTetrahedra(T)
+M.set_tetrahedra(T)
 
 # the displacements of the nodes which shall be fitted
 # during the solving
@@ -52,7 +52,7 @@ U = np.array([[0   , 0, 0],  # 0
               [0   , 0, 0]]) # 7
 
 # hand the displacements over to the class instance
-M.setTargetDisplacements(U)
+M.set_target_displacements(U)
 
 # call the regularisation
 M.solve_regularized(stepper=0.1, alpha=0.001);

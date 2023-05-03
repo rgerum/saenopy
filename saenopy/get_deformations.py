@@ -1,10 +1,3 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Thu Oct 15 11:41:50 2020
-
-@author: david
-"""
-
 import numpy as np
 from openpiv.pyprocess3D import extended_search_area_piv3D
 from scipy import interpolate
@@ -22,18 +15,18 @@ def get_displacements_from_stacks(stack_relaxed, stack_deformed, win_um, element
     # mean over the rgb channels
     stack_deformed = np.mean(np.array(stack_deformed), axis=2)
     stack_relaxed = np.mean(np.array(stack_relaxed), axis=2)
-    M = getDisplacementsFromStacks_old(stack_deformed, stack_relaxed, voxel_size1,
-                                        win_um=win_um,
-                                        fac_overlap=fac_overlap,
-                                        signoise_filter=signoise_filter,
-                                        drift_correction=drift_correction,
-                                        return_mesh=True)
+    M = _get_displacements_from_stacks_old(stack_deformed, stack_relaxed, voxel_size1,
+                                           win_um=win_um,
+                                           fac_overlap=fac_overlap,
+                                           signoise_filter=signoise_filter,
+                                           drift_correction=drift_correction,
+                                           return_mesh=True)
     # center
     M.R = (M.R - np.min(M.R, axis=0)) - (np.max(M.R, axis=0) - np.min(M.R, axis=0)) / 2
     return M
 
 
-def sig2noise_filtering( u, v, sig2noise, w=None, threshold = 1.3):
+def sig2noise_filtering(u, v, sig2noise, w=None, threshold=1.3):
     """
     As integrted into OpenPiv Jun 19, 2020.
     Since OpenPIV changed this function lateron, we use this version
@@ -51,19 +44,19 @@ def sig2noise_filtering( u, v, sig2noise, w=None, threshold = 1.3):
     return u, v, ind
 
 
-def replace_outliers( u, v, w=None, method='localmean', max_iter=5, tol=1e-3, kernel_size=1):
+def replace_outliers(u, v, w=None, method='localmean', max_iter=5, tol=1e-3, kernel_size=1):
     """
-    As integrted into OpenPiv Jun 19, 2020.
-    Since OpenPIV changed several functions lateron, we use this version
-    to replace outliers with np.nan dependend on the signal2noise ratio here
+    As integrated into OpenPiv Jun 19, 2020.
+    Since OpenPIV changed several functions later on, we use this version
+    to replace outliers with np.nan depending on the signal2noise ratio
 
-    Replace invalid vectors in an velocity field using an iterative image inpainting algorithm.
+    Replace invalid vectors in a velocity field using an iterative image inpainting algorithm.
 
     The algorithm is the following:
 
     1) For each element in the arrays of the ``u`` and ``v`` components, replace it by a weighted average
-       of the neighbouring elements which are not invalid themselves. The weights depends
-       of the method type. If ``method=localmean`` weight are equal to 1/( (2*kernel_size+1)**2 -1 )
+       of the neighbouring elements which are not invalid themselves. The weights depend
+       on the method type. If ``method=localmean`` weight are equal to 1/( (2*kernel_size+1)**2 -1 )
 
     2) Several iterations are needed if there are adjacent invalid elements.
        If this is the case, inforation is "spread" from the edges of the missing
@@ -104,15 +97,16 @@ def replace_outliers( u, v, w=None, method='localmean', max_iter=5, tol=1e-3, ke
     vf = replace_nans_py(v, method=method, max_iter=max_iter, tol=tol, kernel_size=kernel_size)
 
     if isinstance(w, np.ndarray):
-        wf =  replace_nans_py(w, method=method, max_iter=max_iter, tol=tol, kernel_size=kernel_size)
+        wf = replace_nans_py(w, method=method, max_iter=max_iter, tol=tol, kernel_size=kernel_size)
         return uf, vf, wf
 
     return uf, vf
 
-def get_dist(kernel,kernel_size):
+
+def get_dist(kernel, kernel_size):
     """
-    As integrted into OpenPiv Jun 19, 2020.
-    Since OpenPIV changed several functions lateron, we use this version
+    As integrated into OpenPiv Jun 19, 2020.
+    Since OpenPIV changed several functions later on, we use this version
     """
     # generates a map of distances to the center of the kernel. This is later used to generate disk-shaped kernels and
     # fill in distance based weights
@@ -134,9 +128,9 @@ def get_dist(kernel,kernel_size):
 
 def replace_nans_py(array, max_iter, tol, kernel_size = 2, method = 'disk'):
     """
-    As integrted into OpenPiv Jun 19, 2020.
-    Since OpenPIV changed several functions lateron, we use this version
-    to replace outliers with np.nan dependend on the signal2noise ratio here
+    As integrated into OpenPiv Jun 19, 2020.
+    Since OpenPIV changed several functions later on, we use this version
+    to replace outliers with np.nan depend ing on the signal2noise ratio
 
 
     Replace NaN elements in an array using an iterative image inpainting algorithm.
@@ -227,28 +221,29 @@ def replace_nans_py(array, max_iter, tol, kernel_size = 2, method = 'disk'):
 
         # for each NaN element
         for k in range(n_nans):
-            ind = nan_indices[k] #2 or 3 indices indicating the position of a nan element
+            ind = nan_indices[k]  # 2 or 3 indices indicating the position of a nan element
             # init to 0.0
             replaced_new[k] = 0.0
             n = 0.0
 
             # generating a list of indices of the convolution window in the array
-            slice_indices = np.array(np.meshgrid(*[range(i-kernel_size,i+kernel_size+1) for i in ind]))
-            slice_indices = np.reshape(slice_indices,( n_dim, (2 * kernel_size + 1) ** n_dim), order="C").T
+            slice_indices = np.array(np.meshgrid(*[range(i-kernel_size, i+kernel_size+1) for i in ind]))
+            slice_indices = np.reshape(slice_indices, (n_dim, (2 * kernel_size + 1) ** n_dim), order="C").T
 
             # loop over the kernel
             for s_index, k_index in zip(slice_indices, kernel_indices):
-                s_index = tuple(s_index) # this is necessary for numpy array indexing
+                s_index = tuple(s_index)  # this is necessary for numpy array indexing
                 k_index = tuple(k_index)
 
-                # skip if we are outside of array boundaries, if the array element is nan or if the kernel element is zero
-                if all([s >= 0 and s < bound for s, bound  in zip(s_index, filled.shape)]):
+                # skip if we are outside of array boundaries, if the array element is nan or
+                # if the kernel element is zero
+                if all([s >= 0 and s < bound for s, bound in zip(s_index, filled.shape)]):
                     if not np.isnan(filled[s_index]) and kernel[k_index] != 0:
-                    # convolve kernel with original array
+                        # convolve kernel with original array
                         replaced_new[k] = replaced_new[k] + filled[s_index] * kernel[k_index]
                         n = n + kernel[k_index]
 
-                    # divide value by effective number of added elements
+            # divide value by effective number of added elements
             if n > 0:
                 replaced_new[k] = replaced_new[k] / n
             else:
@@ -258,18 +253,18 @@ def replace_nans_py(array, max_iter, tol, kernel_size = 2, method = 'disk'):
         for k in range(n_nans):
             filled[tuple(nan_indices[k])] = replaced_new[k]
 
-        # elements is below a certain tolerance
+        # elements are below a certain tolerance
         if np.mean((replaced_new - replaced_old) ** 2) < tol:
             break
         else:
-                replaced_old = replaced_new
+            replaced_old = replaced_new
     return filled
 
 
 # Full 3D Deformation analysis
-def getDisplacementsFromStacks_old(stack_deformed, stack_relaxed, voxel_size, win_um=12, fac_overlap=0.6,
-                               signoise_filter=1.3, drift_correction=True, return_mesh=False):
-    from saenopy.multigridHelper import createBoxMesh
+def _get_displacements_from_stacks_old(stack_deformed, stack_relaxed, voxel_size, win_um=12, fac_overlap=0.6,
+                                       signoise_filter=1.3, drift_correction=True, return_mesh=False):
+    from saenopy.multigrid_helper import create_box_mesh
     from saenopy import Solver
 
     # set properties
@@ -307,9 +302,9 @@ def getDisplacementsFromStacks_old(stack_deformed, stack_relaxed, voxel_size, wi
                z * stack_deformed.shape[2] * dw / u.shape[2])
 
     # create a box mesh - convert to meters for saenopy conversion
-    R, T = createBoxMesh(np.unique(y.ravel()) * 1e-6,  # saeno x
-                         np.unique(x.ravel()) * 1e-6,  # saeno y
-                         np.unique(z.ravel()) * 1e-6)  # saeno z
+    R, T = create_box_mesh(np.unique(y.ravel()) * 1e-6,  # saeno x
+                           np.unique(x.ravel()) * 1e-6,  # saeno y
+                           np.unique(z.ravel()) * 1e-6)  # saeno z
 
     # bring deformations in right order (switch from OpenPIV conversion ot saenopy conversion)
     # - convert to meters for saenopy conversion
@@ -318,15 +313,15 @@ def getDisplacementsFromStacks_old(stack_deformed, stack_relaxed, voxel_size, wi
     if return_mesh is True:
         from saenopy.solver import Mesh
         M = Mesh(R, T)
-        M.setNodeVar("U_measured", U)
+        M.set_node_var("U_measured", U)
         return M
     M = Solver()
     # provide the node data
-    M.setNodes(R)
+    M.set_nodes(R)
     # and the tetrahedron data
-    M.setTetrahedra(T)
+    M.set_tetrahedra(T)
     # set the deformations
-    M.setTargetDisplacements(U)
+    M.set_target_displacements(U)
     return M
 
 
@@ -347,7 +342,7 @@ def interpolate_different_mesh(R, U, Rnew):
     """
     Interpolate Deformations (or any quantity) from one mesh to another.
     
-    Nonoverlapping regimes between meshes are filled with nans - linear interpolation.
+    Non overlapping regimes between meshes are filled with nans - linear interpolation.
 
     Parameters
     ----------

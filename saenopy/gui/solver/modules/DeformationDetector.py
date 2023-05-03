@@ -8,12 +8,12 @@ import tqdm
 from typing import Tuple
 
 import saenopy
-import saenopy.multigridHelper
+import saenopy.multigrid_helper
 import saenopy.materials
 from saenopy import Result
 from saenopy.gui.common import QtShortCuts
 from saenopy.gui.common.gui_classes import CheckAbleGroup, QProcess, ProcessSimple
-import saenopy.getDeformations
+import saenopy.get_deformations
 
 from .PipelineModule import PipelineModule
 from .QTimeSlider import QTimeSlider
@@ -138,7 +138,7 @@ class DeformationDetector(PipelineModule):
         plotter.interactor.setToolTip(
             str(self.result.piv_parameter) + f"\nNodes {self.result.mesh_piv[0].R.shape[0]}\nTets {self.result.mesh_piv[0].T.shape[0]}")
 
-        if M.hasNodeVar("U_measured"):
+        if M.has_node_var("U_measured"):
             showVectorField2(self, M, "U_measured")
 
         if cam_pos is not None:

@@ -28,6 +28,7 @@ def get_iterator(values, name="", iter=None):
                 t[name] = v
                 yield t
 
+
 def process_line(filename, output_path):
     results = []
 
@@ -100,6 +101,7 @@ def process_line(filename, output_path):
         if "t" in d1.columns:
             results[-1]["times"] = natsort.natsorted(d1.t.unique())
     return results
+
 
 def get_stacks(filename, output_path, voxel_size, time_delta=None, reference_stack=None,
                crop=None,
@@ -285,11 +287,13 @@ class Result(Saveable):
                 self.mesh_piv = [None] * (len(self.stack) - 1)
             self.solver = [None] * (len(self.mesh_piv))
 
-    def save(self):
+    def save(self, filename: str = None):
+        if filename is not None:
+            self.output = filename
         Path(self.output).parent.mkdir(exist_ok=True, parents=True)
         super().save(self.output)
 
-    def clear_cache(self, solver_id):
+    def clear_cache(self, solver_id: int):
         # only if there is a solver
         if self.solver[solver_id] is None:
             return
@@ -300,7 +304,7 @@ class Result(Saveable):
         # create a new solver object from the data
         self.solver[solver_id] = Solver.from_dict(data_dict)
 
-    def on_load(self, filename):
+    def on_load(self, filename: str):
         self.output = str(Path(filename))
 
     def __repr__(self):

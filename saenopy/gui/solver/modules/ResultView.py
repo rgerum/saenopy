@@ -92,10 +92,10 @@ class ResultView(PipelineModule):
         # self.M.setMaterialModel(SemiAffineFiberMaterial(1645, 0.0008, 0.0075, 0.033), generate_lookup=False)
         if self.M.material_model is None:
             print("Warning using default material parameters")
-            self.M.setMaterialModel(SemiAffineFiberMaterial(1449, 0.00215, 0.055, 0.032), generate_lookup=False)
+            self.M.set_material_model(SemiAffineFiberMaterial(1449, 0.00215, 0.055, 0.032), generate_lookup=False)
         self.M._check_relax_ready()
         self.M._prepare_temporary_quantities()
-        self.point_cloud2["stiffness"] = self.M.getMaxTetStiffness() / 6
+        self.point_cloud2["stiffness"] = self.M.get_max_tet_stiffness() / 6
 
     point_cloud = None
 

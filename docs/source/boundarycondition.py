@@ -12,7 +12,7 @@ from saenopy.materials import SemiAffineFiberMaterial
 
 # provide a material model
 material = SemiAffineFiberMaterial(1645, 0.0008, 1.0075, 0.033)
-M.setMaterialModel(material)
+M.set_material_model(material)
 
 import numpy as np
 
@@ -38,9 +38,9 @@ T = np.array([[0, 1, 3, 5],
               [3, 5, 6, 7]])
 
 # provide the node data
-M.setNodes(R)
+M.set_nodes(R)
 # the tetrahedron data
-M.setTetrahedra(T)
+M.set_tetrahedra(T)
 
 # the displacement boundary conditions of the nodes
 # if a displacement boundary condition is given, the node will be fixed
@@ -68,7 +68,7 @@ F_ext = np.array([[np.nan, np.nan, np.nan],  # 0
                   [-2.5  ,  0.   ,  0.   ]]) # 7
 
 # and the boundary condition
-M.setBoundaryCondition(U, F_ext)
+M.set_boundary_condition(U, F_ext)
 
 # relax the mesh and move the "varible" nodes
 M.solve_boundarycondition();

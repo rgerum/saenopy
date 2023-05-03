@@ -4,7 +4,7 @@ import numba
 from saenopy.saveable import Saveable
 
 
-def saveEpsilon(epsilon, fname, CFG):
+def save_epsilon(epsilon, fname, CFG):
     """
     Save the material function to a file, e.g. for further plotting.
     """
@@ -20,7 +20,7 @@ def saveEpsilon(epsilon, fname, CFG):
     np.save(fname.replace(".dat", ".npy"), np.array([lambd, epsilon]).T)
 
 
-def sampleAndIntegrateFunction(func, min, max, step, zero_point=0, maximal_value=10e10):
+def sample_and_integrate_function(func, min, max, step, zero_point=0, maximal_value=10e10):
     def iToX(i):
         return i * step + min
 
@@ -42,7 +42,7 @@ def sampleAndIntegrateFunction(func, min, max, step, zero_point=0, maximal_value
     int_int_y -= int_int_y[xToI(zero_point)]
 
     @njit()
-    def lookUpY(x):
+    def look_up_y(x):
         shape = x.shape
         x = x.flatten()
         # we now have to pass this though the non-linearity function w (material model)
@@ -69,7 +69,7 @@ def sampleAndIntegrateFunction(func, min, max, step, zero_point=0, maximal_value
 
         return res0.reshape(shape), res1.reshape(shape), res2.reshape(shape)
 
-    return lookUpY
+    return look_up_y
 
 
 class Material:
@@ -85,8 +85,16 @@ class Material:
         # to be overloaded by a material implementation
         return s
 
+    def energy(self, param):
+        # to be overloaded by a material implementation
+        raise NotImplemented
+
+    def force(self, param):
+        # to be overloaded by a material implementation
+        raise NotImplemented
+
     def generate_look_up_table(self):
-        return sampleAndIntegrateFunction(self.stiffness, self.min, self.max, self.step)
+        return sample_and_integrate_function(self.stiffness, self.min, self.max, self.step)
 
     def __str__(self):
         return self.__class__.__name__+"("+", ".join(key+"="+str(value) for key, value in self.parameters.items())+")"
@@ -121,6 +129,7 @@ class SemiAffineFiberMaterial(Material, Saveable):
         return ["SemiAffineFiberMaterial", self.k, self.d0, self.lambda_s, self.ds]
 
     def __init__(self, k, d0=None, lambda_s=None, ds=None):
+        super().__init__()
         # parameters
         self.k = k
         self.d0 = d0 if d0 is not None and d0 >= 0 else None    

@@ -3,7 +3,7 @@
 import os
 import unittest
 import numpy as np
-from saenopy.multigridHelper import createBoxMesh
+from saenopy.multigrid_helper import create_box_mesh
 
 import sys
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "package"))
@@ -22,15 +22,15 @@ class Test_DataFile(unittest.TestCase):
         pass
 
     def testStretch(self):
-        R, T = createBoxMesh(np.linspace(-0.5, 0.5, 10))
+        R, T = create_box_mesh(np.linspace(-0.5, 0.5, 10))
 
         M = Solver()
-        M.setNodes(R)
-        M.setTetrahedra(T)
+        M.set_nodes(R)
+        M.set_tetrahedra(T)
 
         # provide a material model
         material = SemiAffineFiberMaterial(2)
-        M.setMaterialModel(material)
+        M.set_material_model(material)
 
         def getForce(lambd, stepper=0.066, verbose=False):
             global convergence
@@ -53,8 +53,8 @@ class Test_DataFile(unittest.TestCase):
 
             initial_displacement[:, 0] = M.R[:, 0] / 1 * d
 
-            M.setBoundaryCondition(displacement, force)
-            M.setInitialDisplacements(initial_displacement)
+            M.set_boundary_condition(displacement, force)
+            M.set_initial_displacements(initial_displacement)
             convergence = M.solve_boundarycondition(stepper=stepper, verbose=verbose)
             return np.mean(np.concatenate((M.f[left, 0], -M.f[right, 0])))
 
