@@ -882,141 +882,6 @@ class Solver(Saveable):
 
     """ helper methods """
 
-    def smoothen(self):
-        ddu = 0
-        for c in range(self.N_c):
-            if self.var[c]:
-                A = self.K_glo[c][c]
-
-                f = self.f[c]
-
-                du = np.linalg.inv(A) * f
-
-                self.U[c] += du
-
-                ddu += np.linalg.norm(du)
-
-    def computeStiffening(self, results):
-
-        uu = self.U.copy()
-
-        Ku = self._mulK(uu)
-
-        kWithStiffening = np.sum(uu * Ku)
-        k1 = self.CFG["K_0"]
-
-        ds0 = self.CFG["D_0"]
-
-        self.epsilon, self.epsbar, self.epsbarbar = SemiAffineFiberMaterial(k1, ds0, 0, 0, self.CFG)
-
-        self._updateGloFAndK()
-
-        uu = self.U.copy()
-
-        Ku = self._mulK(uu)
-
-        kWithoutStiffening = np.sum(uu, Ku)
-
-        results["STIFFENING"] = kWithStiffening / kWithoutStiffening
-
-        self.computeEpsilon()
-
-    # def contractility(R, f):
-    #     B = np.einsum("ni,ni,nj->j", f, f, R) - np.einsum("kj,ki,ki->j", f, R, f)
-
-    #     A = np.sum(np.einsum("ij,kl,kl->kij", np.eye(3), f, f) - np.einsum("ki,kj->kij", f, f), axis=0)
-
-    #     Rcms = np.linalg.inv(A) @ B
-
-    #     RR = R - Rcms
-    #     contractility = np.sum(np.einsum("ki,ki->k", RR, f) / np.linalg.norm(RR, axis=1))
-    #     return contractility
-
-    # def computeForceMoments(self, rmax):
-    #     results = {}
-
-    #     inner = np.linalg.norm(self.R, axis=1) < rmax
-    #     f = self.f[inner]
-    #     R = self.R[inner]
-
-    #     fsum = np.sum(f, axis=0)
-
-    #     # B1 += self.R[c] * np.sum(f**2)
-    #     B1 = np.einsum("ni,ni,nj->j", f, f, R)
-    #     # B2 += f * (self.R[c] @ f)
-    #     B2 = np.einsum("ki,ki,kj->j", f, R, f)
-
-    #     # A += I * np.sum(f**2) - np.outer(f, f)
-    #     A = np.sum(np.einsum("ij,kl,kl->kij", np.eye(3), f, f) - np.einsum("ki,kj->kij", f, f), axis=0)
-
-    #     B = B1 - B2
-
-    #     Rcms = np.linalg.inv(A) @ B
-
-    #     results["FSUM_X"] = fsum[0]
-    #     results["FSUM_Y"] = fsum[1]
-    #     results["FSUM_Z"] = fsum[2]
-    #     results["FSUMABS"] = np.linalg.norm(fsum)
-
-    #     results["CMS_X"] = Rcms[0]
-    #     results["CMS_Y"] = Rcms[1]
-    #     results["CMS_Z"] = Rcms[2]
-
-    #     RR = R - Rcms
-    #     contractility = np.sum(np.einsum("ki,ki->k", RR, f) / np.linalg.norm(RR, axis=1))
-
-    #     results["CONTRACTILITY"] = contractility
-
-    #     vecs = buildBeams(150)
-
-    #     eR = RR / np.linalg.norm(RR, axis=1)[:, None]
-    #     f = self.f[inner]
-
-    #     # (eR @ vecs[b]) * (vecs[b] @ self.f_glo[c])
-    #     ff = np.sum(np.einsum("ni,bi->nb", eR, vecs) * np.einsum("bi,ni->nb", vecs, f), axis=0)
-    #     # (RR @ vecs[b]) * (vecs[b] @ self.f_glo[c])
-    #     mm = np.sum(np.einsum("ni,bi->nb", RR, vecs) * np.einsum("bi,ni->nb", vecs, f), axis=0)
-
-    #     bmax = np.argmax(mm)
-    #     fmax = ff[bmax]
-    #     mmax = mm[bmax]
-
-    #     bmin = np.argmin(mm)
-    #     fmin = ff[bmin]
-    #     mmin = mm[bmin]
-
-    #     vmid = np.cross(vecs[bmax], vecs[bmin])
-    #     vmid = vmid / np.linalg.norm(vmid)
-
-    #     # (eR @ vmid) * (vmid @ self.f_glo[c])
-    #     fmid = np.sum(np.einsum("ni,i->n", eR, vmid) * np.einsum("i,ni->n", vmid, f), axis=0)
-    #     # (RR @ vmid) * (vmid @ self.f_glo[c])
-    #     mmid = np.sum(np.einsum("ni,i->n", RR, vmid) * np.einsum("i,ni->n", vmid, f), axis=0)
-
-    #     results["FMAX"] = fmax
-    #     results["MMAX"] = mmax
-    #     results["VMAX_X"] = vecs[bmax][0]
-    #     results["VMAX_Y"] = vecs[bmax][1]
-    #     results["VMAX_Z"] = vecs[bmax][2]
-
-    #     results["FMID"] = fmid
-    #     results["MMID"] = mmid
-    #     results["VMID_X"] = vmid[0]
-    #     results["VMID_Y"] = vmid[1]
-    #     results["VMID_Z"] = vmid[2]
-
-    #     results["FMIN"] = fmin
-    #     results["MMIN"] = mmin
-    #     results["VMIN_X"] = vecs[bmin][0]
-    #     results["VMIN_Y"] = vecs[bmin][1]
-    #     results["VMIN_Z"] = vecs[bmin][2]
-
-    #     results["E_GLO"] = self.E_glo
-
-    #     results["POLARITY"] = fmax / contractility
-
-    #     return results
-
     def getPolarity(self) -> float:
 
         inner = self.reg_mask
@@ -1057,173 +922,6 @@ class Solver(Saveable):
         fmax = ff[bmax]
 
         return fmax / contractility
-
-    def storePrincipalStressAndStiffness(self, sbname, sbminname, epkname):
-        return # TODO
-        sbrec = []
-        sbminrec = []
-        epkrec = []
-
-        for tt in range(self.N_T):
-            if tt % 100 == 0:
-                print("computing principa stress and stiffness",
-                      (np.floor((tt / (self.N_T + 0.0)) * 1000) + 0.0) / 10.0, "          ", end="\r")
-
-            u_T = np.zeros((3, 4))
-            for t in range(4):
-                for i in range(3):
-                    u_T[i][t] = self.U[self.T[tt][t]][i]
-
-            FF = u_T @ self.Phi[tt]
-
-            F = FF + np.eye(3)
-
-            P = np.zeros((3, 3))
-            K = np.zeros((3, 3, 3, 3))
-
-            for b in range(self.N_b):
-                s_bar = F @ self.s[b]
-
-                deltal = abs(s_bar) - 1.0
-
-                if deltal > dlbmax:
-                    bmax = b
-                    dlbmax = deltal
-
-                if deltal < dlbmin:
-                    bmin = b
-                    dlbmin = deltal
-
-                li = np.round((deltal - self.dlmin) / self.dlstep)
-
-                if li > ((self.dlmax - self.dlmin) / self.dlstep):
-                    li = ((self.dlmax - self.dlmin) / self.dlstep) - 1
-
-                self.E += self.epsilon[li] / (self.N_b + 0.0)
-
-                P += np.outer(self.s[b], s_bar) @ self.epsbar[li] * (1.0 / (deltal + 1.0) / (self.N_b + 0.0))
-
-                dEdsbar = -1.0 * (self.epsbar[li] / (deltal + 1.0)) / (self.N_b + 0.0)
-
-                dEdsbarbar = (((deltal + 1.0) * self.epsbarbar[li] - self.epsbar[li]) / (
-                        (deltal + 1.0) * (deltal + 1.0) * (deltal + 1.0))) / (self.N_b + 0.0)
-
-                for i in range(3):
-                    for j in range(3):
-                        for k in range(3):
-                            for l in range(3):
-                                K[i][j][k][l] += dEdsbarbar * self.s[b][i] * self.s[b][k] * s_bar[j] * s_bar[l]
-                                if j == l:
-                                    K[i][j][k][l] -= dEdsbar * self.s[b][i] * self.s[b][k]
-
-            p = (P * self.s[bmax]) @ self.s[bmax]
-
-            kk = 0
-
-            for i in range(3):
-                for j in range(3):
-                    for k in range(3):
-                        for l in range(3):
-                            kk += K[i][j][k][l] * self.s[bmax][i] * self.s[bmax][j] * self.s[bmax][k] * self.s[bmax][l]
-
-            sbrec.append(F * self.s[bmax])
-            sbminrec.append(F * self.s[bmin])
-            epkrec.append(np.array([self.E, p, kk]))
-
-        np.savetxt(sbname, sbrec)
-        print(sbname, "stored.")
-        np.savetxt(sbminname, sbminrec)
-        print(sbminname, "stored.")
-        np.savetxt(epkname, epkrec)
-        print(epkname, "stored.")
-
-    def storeRAndU(self, Rname: str, Uname: str):
-        Rrec = []
-        Urec = []
-
-        for c in range(self.N_c):
-            Rrec.append(self.R[c])
-            Urec.append(self.U[c])
-
-        np.savetxt(Rname, Rrec)
-        print(Rname, "stored.")
-        np.savetxt(Uname, Urec)
-        print(Uname, "stored.")
-
-    def storeF(self, Fname: str):
-        Frec = []
-
-        for c in range(self.N_c):
-            Frec.append(self.f[c])
-
-        np.savetxt(Fname, Frec)
-        print(Fname, "stored.")
-
-    def storeFden(self, Fdenname: str):
-        Vr = np.zeros(self.N_c)
-
-        for tt in range(self.N_T):
-            for t in range(4):
-                Vr[self.T[tt][t]] += self.V[tt] * 0.25
-
-        Frec = []
-        for c in range(self.N_c):
-            Frec.append(self.f[c] / Vr[c])
-
-        np.savetxt(Fdenname, Frec)
-        print(Fdenname, "stored.")
-
-    def storeEandV(self, Rname: str, EVname: str):
-        Rrec = []
-        EVrec = []
-
-        for t in range(self.N_T):
-            N = np.mean(np.array([self.R[self.T[t][i]] for i in range(4)]), axis=0)
-
-            Rrec.append(N)
-
-            EVrec.append([self.E[t], self.V[t]])
-
-        np.savetxt(Rname, Rrec)
-        print(Rname, "stored.")
-
-        np.savetxt(EVname, EVrec)
-        print(EVname, "stored.")
-
-    def plotMesh(self, use_displacement: bool = True, edge_color: str = None, alpha: float = 0.2):
-        import mpl_toolkits.mplot3d as a3
-        import matplotlib.pyplot as plt
-        from matplotlib import _pylab_helpers
-
-        if _pylab_helpers.Gcf.get_active() is None:
-            axes = a3.Axes3D(plt.figure())
-        else:
-            axes = plt.gca()
-
-        if use_displacement:
-            points = self.R+self.U
-            if edge_color is None:
-                edge_color = "red"
-        else:
-            points = self.R
-            if edge_color is None:
-                edge_color = "blue"
-
-        vts = points[self.T, :]
-        helper = np.array([[0, 1], [0, 2], [0, 3], [1, 2], [1, 3], [2, 3]])
-        tri = a3.art3d.Line3DCollection(vts[:, helper].reshape(-1, 2, 3))
-        tri.set_alpha(alpha)
-        tri.set_edgecolor(edge_color)
-        axes.add_collection3d(tri)
-        axes.plot(points[:, 0], points[:, 1], points[:, 2], 'ko')
-        axes.set_aspect('equal')
-
-    def viewMesh(self, f1: float, f2: float):
-        from saenopy.unused.meshViewer import MeshViewer
-
-        L = getLinesTetrahedra2(self.T)
-
-        return MeshViewer(self.R, L, self.f, self.U, f1, f2)
 
     def getCenter(self, mode="force", border=None) -> NDArray[Shape["3"], Float]:
         f = self.f
@@ -1275,83 +973,21 @@ class Solver(Saveable):
 
         return Rcms
 
-    def getParrallelAndPerpendicularForces(self):
-        # Plot perpendicular forces only
-        f = self.f
-        R = self.R
-        if self.reg_mask is not None:
-            f = self.f * self.reg_mask[:, None]
-        # get center of force field
-        Rcms = self.getCenter(mode="force")
-        RR = R - Rcms
-        RRnorm = RR/ np.linalg.norm(RR, axis=1)[:,None]
-        fnorm = f / np.linalg.norm(f, axis=1)[:,None]
-        f2 = np.sum(RRnorm * fnorm, axis=1)[:,None] * f
-        f3 = np.cross(RRnorm, f)
-        return f2, f3
-
-    def force_ratio_outer_to_inner(self, width_outer=5e-6):
-        """
-        Divides the Cubus in an outer and inner part, where the outer part
-        is defined as everything closer than width_outer (default ist 14 um)
-        to the edge of the stack.
-
-        Then computes the ratio of the mean forces in the outer part divided by
-        the mean forces within the inner part.
-
-        This ratio can be used to distinguish Drift from pulling cells.
-        A pulling cell will have a lower ratio (meaning higher forces in the inner part)
-        whereas drift/rotation often shows high forces at the edges (outer part) and
-        therefore has a higher value.
-        """
-
-        f = self.f
-        R = self.R
-        # exclude counter forces
-        if self.reg_mask is not None:
-            f = self.f * self.reg_mask[:, None]
-        # mask the data points in the outer layer (closer to the outer border than
-        # width_outer and for the inner shell the remaining inner volume
-        outer_layer = (((R[:,0])>(R[:,0].max()-width_outer)) | ((R[:,0]) < (R[:,0].min()+width_outer)))\
-            | (((R[:,1])>(R[:,1].max()-width_outer)) | ((R[:,1]) < (R[:,1].min()+width_outer)))\
-                | (((R[:,2])>(R[:,2].max()-width_outer)) | ((R[:,2]) < (R[:,2].min()+width_outer)))
-
-        # mask the regions
-        f_inner = f[~outer_layer]
-        f_outer = f[outer_layer]
-
-        # compute the mean forces of each layer
-        mean_abs_f_inner = np.nanmean(np.linalg.norm(f_inner,axis=1))
-        mean_abs_f_outer = np.nanmean(np.linalg.norm(f_outer,axis=1))
-        #print (mean_abs_f_inner,mean_abs_f_outer)
-        ratio =  mean_abs_f_outer / mean_abs_f_inner
-        #print (ratio)
-        return ratio
-
-    def ratio_deformation_z_component(self):
-        """
-        Calculate the sum of the absolute deformations for each direction.
-        Returns the fraction of the z-components.
-        Can be usefull to discard stacks with high drift in z-direction, for
-        example due to fast stage movement & gel wobbling
-        """
-        try:
-            # sum up the absolute deformations component wise
-            sumx = np.nansum(np.abs(self.U_target[:,0]))
-            sumy = np.nansum(np.abs(self.U_target[:,1]))
-            sumz = np.nansum(np.abs(self.U_target[:,2]))
-            # calculate the fraction of the z-component
-            ratioz = sumz / (sumx+sumy+sumz)
-        except:
-            ratioz = np.nan
-        return ratioz
-
-    def getContractility(self, center_mode="force", r_max=None) -> str:
+    def getContractility(self, center_mode="force", r_max=None, width_outer=None) -> str:
         f = self.f
         R = self.R
 
         if self.reg_mask is not None:
             f = self.f * self.reg_mask[:, None]
+
+        if width_outer is not None:
+            # mask the data points in the outer layer (closer to the outer border than
+            # width_outer and for the inner shell the remaining inner volume
+            outer_layer = (((R[:, 0]) > (R[:, 0].max() - width_outer)) | ((R[:, 0]) < (R[:, 0].min() + width_outer))) \
+                          | (((R[:, 1]) > (R[:, 1].max() - width_outer)) | ((R[:, 1]) < (R[:, 1].min() + width_outer))) \
+                          | (((R[:, 2]) > (R[:, 2].max() - width_outer)) | ((R[:, 2]) < (R[:, 2].min() + width_outer)))
+            # now ignore the forces in the border region
+            f[outer_layer] = np.nan
 
         # get center of force field
         Rcms = self.getCenter(mode=center_mode)
@@ -1369,355 +1005,7 @@ class Solver(Saveable):
         contractility = np.nansum(np.einsum("ki,ki->k", RRnorm, f))
         return contractility
 
-
-    def getContractilityIgnoreBorder(self, width_outer=5e-6, center_mode="force") -> float:
-        """
-        Computes the contractility value while ignoring all force vectors that
-        are located within at the borders (outer shell with width_outer).
-        For Drift/Rotation we often find high forces here.
-        """
-        f_org = self.f.copy()
-        f = self.f
-        R = self.R
-        # exclude counter forces
-        if self.reg_mask is not None:
-            f = self.f * self.reg_mask[:, None]
-        # mask the data points in the outer layer (closer to the outer border than
-        # width_outer and for the inner shell the remaining inner volume
-        outer_layer = (((R[:,0])>(R[:,0].max()-width_outer)) | ((R[:,0]) < (R[:,0].min()+width_outer)))\
-            | (((R[:,1])>(R[:,1].max()-width_outer)) | ((R[:,1]) < (R[:,1].min()+width_outer)))\
-                | (((R[:,2])>(R[:,2].max()-width_outer)) | ((R[:,2]) < (R[:,2].min()+width_outer)))
-        # now ignore the forces in the border region
-        f[outer_layer] = np.nan
-        # get center of complete force field and set as origin
-        Rcms_all = self.getCenter(mode=center_mode)
-        RR = R - Rcms_all
-
-        RRnorm = RR / np.linalg.norm(RR, axis=1)[:, None]
-        contractility = np.nansum(np.einsum("ki,ki->k", RRnorm, f))
-        
-        # go back to original forcefield
-        self.f = f_org        
-
-        return contractility
-
-    def getContractilityUnbiasedEpicenter(self,  r_max=None):
-        """
-        Computes a contractility value, that uses an unbiased center approach.
-        Instead of computing the center from all force vectors, which will bias
-        the location (as a result of optimization), here we split the image stack into +x,-x half-spaces
-        +y,-y half-spaces and +z,-z half-spaces around the initially found center.
-        Then we compute the center of the force vectors within this half-sphere and
-        compute the contractility of the force components in the opposing half-space
-        onto this center (e.g. -x halfspace values uses the center from +x half-sphere).
-        We then add up the derived contractility values from -x and +x components (same for -+y and -+z)
-        and  compute the final unbiased contractility as mean value of all 3 dimension.
-
-        returns the unbiased contractility value
-        """
-
-        ### first get the initial center of the whole force field withe
-        ## the biased Center method
-        f = self.f
-        R = self.R
-        if self.reg_mask is not None:
-            f = self.f * self.reg_mask[:, None]
-        # get center of complete force field and set as origin
-        Rcms_all = self.getCenter(mode="Force")
-        RR = R - Rcms_all
-        #if r_max specified only use forces within this distance to cell for contractility
-        if r_max:
-            inner = np.linalg.norm(RR, axis=1) < r_max
-            f = f[inner]
-            RR = RR[inner]
-        RRnorm = RR / np.linalg.norm(RR, axis=1)[:, None]
-        contractility = np.nansum(np.einsum("ki,ki->k", RRnorm, f))
-        #print ("Contractility (Biased): "+str(contractility))
-        try:
-            # UNBIASED EPICENTER
-            # create new solver object for subvolumes and mask only the forces in that area
-            subvolume_minus_x,subvolume_plus_x = Solver(),Solver()
-            subvolume_minus_y,subvolume_plus_y =  Solver(),Solver()
-            subvolume_minus_z,subvolume_plus_z =  Solver(),Solver()
-
-            ### now fill all empty solvers with identical data frrom original solver
-            subvolumes = [subvolume_minus_x,subvolume_plus_x,
-                          subvolume_minus_y,subvolume_plus_y,
-                          subvolume_minus_z,subvolume_plus_z]
-
-            for sub in subvolumes:
-                sub.f = self.f.copy()
-                sub.R = self.R.copy()
-                sub.reg_mask = self.reg_mask.copy()
-
-            ### select only the forces in the certain subvolumes
-            subvolume_minus_x.f[RR[:,0]>0] = 0
-            subvolume_plus_x.f[RR[:,0]<0] =  0
-            subvolume_minus_y.f[RR[:,1]>0] = 0
-            subvolume_plus_y.f[RR[:,1]<0] = 0
-            subvolume_minus_z.f[RR[:,2]>0] = 0
-            subvolume_plus_z.f[RR[:,2]<0] = 0
-
-            ### get center of all individual subvolumes
-            center_subs = []
-            # do same getCenter calculation for each individual subvolume
-            for sub in subvolumes:
-                if sub.reg_mask is not None:
-                    f_sub = sub.f * sub.reg_mask[:, None]
-                # get center of complete force field and set as origin
-                center_subs.append(sub.getCenter(mode="Force"))
-
-            #### switch the order to compare +x cube with -x center; same for all coordinated
-            center_subs_unbiased = [center_subs[1],center_subs[0],
-                                    center_subs[3],center_subs[2],
-                                    center_subs[5],center_subs[4]]
-
-
-            ### now compute contractility for all subvolumes with the unbiased center
-            subvalues = []
-            # do same Contractility calculation for each subvolume with theopposing center
-            for n,sub in enumerate(subvolumes):
-                if sub.reg_mask is not None:
-                    f_sub = sub.f * sub.reg_mask[:, None]
-                # get center of complete force field and set as origin
-                RR_sub = R - center_subs_unbiased[n]
-                #if r_max specified only use forces within this distance to cell for contractility
-                if r_max:
-                    inner = np.linalg.norm(RR_sub, axis=1) < r_max
-                    f_sub = f_sub[inner]
-                    RR_sub = RR_sub[inner]
-                # contactility for each subvolume
-                RRnorm_sub = RR_sub / np.linalg.norm(RR_sub, axis=1)[:, None]
-                contractility = np.nansum(np.einsum("ki,ki->k", RRnorm_sub, f_sub ))
-                subvalues.append(contractility)
-            ### now add up both x components, both y components and both z components
-            Contractility_components = [subvalues[0]+subvalues[1],
-                                        subvalues[2]+subvalues[3],
-                                        subvalues[4]+subvalues[5]]
-            # print (Contractility_components)
-            # Mean Vaule of all three dimension as final unbiased Contractility
-            Contractility_unbiased_epicenter = np.nanmean(Contractility_components)
-            #print ("Contractility (Unbiased): "+str(Contractility_unbiased_epicenter))
-        ## if not enough data points to compute the center in the subvolumes we
-        ## go back to the contractility of the whole stack
-        ## think of np.nan here... ?
-        except:
-            Contractility_unbiased_epicenter = contractility
-
-
-        return Contractility_unbiased_epicenter
-
-
-    def max_deformation_projection(self):
-        # perform a maximal deformation z-projection to the deformation field
-        # input is the solver object, output ist projection in the
-        # form [x,y,dx,dy] for a quiver plot
-
-        # go through the z planes in the image and append x,y,dx,dy to a list
-        slide = []
-        for z in np.unique(self.R[:,2]):
-            mask = (self.R[:,2] == z)
-            x = (self.R[mask][:,0])
-            y = (self.R[mask][:,1])
-            dx = self.U_target[mask][:,0]
-            dy = self.U_target[mask][:,1]
-            slide.append ([x,y,dx,dy])
-        slide = np.array(slide)
-        # maximum deformation z projection of our deformatin fields
-        proj_dx, proj_dy = [],[]
-        for xycord in range(len(slide[0][0])) :
-            # find at which z index we have the largest deformation
-            deformation_z = np.sqrt(slide[:,2,xycord]**2+slide[:,3,xycord]**2)
-            index_max = np.where(deformation_z==np.nanmax(deformation_z))[0][0]
-            #append this value to list
-            proj_dx.append(slide[:,2,xycord][index_max])
-            proj_dy.append(slide[:,3,xycord][index_max])
-        # our final projection , just take xy indici from the first slide (since these are equal for all slices anyway..)
-        projection =  [slide[0][0],slide[0][1],proj_dx,proj_dy]
-        return projection
-
-
-
-    def getContractilityDeformations(self, center_mode="deformation", r_max=None):
-           u = self.U_target
-           R = self.R
-
-           # get center of force field
-           Rcms = self.getCenter(mode=center_mode)
-           RR = R - Rcms
-
-           #if r_max specified only use forces within this distance to cell for contractility
-           if r_max:
-               inner = np.linalg.norm(RR, axis=1) < r_max
-               u = u[inner]
-               RR = RR[inner]
-
-           RRnorm = RR / np.linalg.norm(RR, axis=1)[:, None]
-           # * -1 since deformations are opposed to forces
-           contractility = -1 *  np.nansum(np.einsum("ki,ki->k", RRnorm, u))
-           return contractility
-
-
-    def getPerpendicularForces(self, center_mode="force", r_max=None):
-         f = self.f
-         R = self.R
-
-         if self.reg_mask is not None:
-             f = self.f * self.reg_mask[:, None]
-
-         # get center of force field
-         Rcms = self.getCenter(mode=center_mode)
-         RR = R - Rcms
-
-         #if r_max specified only use forces within this distance to cell for contractility
-         if r_max:
-            inner = np.linalg.norm(RR, axis=1) < r_max
-            f = f[inner]
-            RR = RR[inner]
-
-         RRnorm = RR / np.linalg.norm(RR, axis=1)[:, None]
-         anti_contractility = np.nansum(np.linalg.norm(np.cross(RRnorm, f), axis=1))
-         return anti_contractility
-
-    def getPerpendicularDeformations(self, center_mode="deformation", r_max=None):
-         u = self.U_target
-         R = self.R
-
-         # get center of force field
-         Rcms = self.getCenter(mode=center_mode)
-         RR = R - Rcms
-
-         #if r_max specified only use forces within this distance to cell for contractility
-         if r_max:
-            inner = np.linalg.norm(RR, axis=1) < r_max
-            u = u[inner]
-            RR = RR[inner]
-
-         RRnorm = RR / np.linalg.norm(RR, axis=1)[:, None]
-         anti_contractility = np.nansum(np.linalg.norm(np.cross(RRnorm, u), axis=1))
-         return anti_contractility
-
-    def getCentricity(self, center_mode = "force", r_max=None):
-         # ration between forces towards cell center and perpendicular forces
-         Centricity = self.getContractility(center_mode=center_mode, r_max=r_max) / self.getPerpendicularForces(center_mode=center_mode, r_max=r_max)
-         return Centricity
-
-    def getCentricityDeformations(self, center_mode = "deformation", r_max=None):
-         # ration between forces towards cell center and perpendicular forces
-         Centricity = self.getContractilityDeformations(center_mode=center_mode, r_max=r_max) / self.getPerpendicularDeformations(center_mode=center_mode, r_max=r_max)
-         return Centricity
-
-
-    def forces_to_excel(self, output_folder=None, name="results.xlsx", r_max=25e-6, center_mode = "force", width_outer = 5e-6):
-        import pandas as pd
-        # Evaluate Force statistics and save to excel file in outpoutfolder if given
-        # initialize result dictionary
-        results = { 'r_max':[],
-                    'center_mode':[],
-                    'Strain_Energy': [],
-                    'Force_sum_abs': [],
-                    'Force_sum_abs_rmax': [],
-                    'Contractility': [],
-                    'ContractilityIgnoreBorder': [],
-                    'Contractility_unbiased': [],
-                    'force_ratio_outer_to_inner': [],
-                    'ratio_deformation_z_component': [],
-                    'Contractility_rmax': [],
-                    'Force_perpendicular': [],
-                    'Centricity_force': [],
-                    'Centricity_deformations': [],
-                    'Centricity_deformations_rmax': [],
-                    'Center_x': [], 'Center_y': [], 'Center_z': [],
-                    'Median_Deformation': [], 'Maximal_Deformation': [], '99_Percentile_Deformation': [],
-                    'Median_Force': [], 'Maximal_Force': [], '99_Percentile_Force': [],
-                    #'RMS_Deformation_per_node': [],'RMS_Deformation': [],
-                    'RMS_Deformation_normed': [],
-                    'Contractility_deformations': [],
-                    #'Iterations': [],
-                  }
-
-
-        # fill values
-        inner = np.linalg.norm(self.R, axis=1) < r_max
-        results["r_max"].append(r_max)
-        results["center_mode"].append(center_mode)
-        results["Strain_Energy"].append(self.E_glo)
-        results["Force_sum_abs"].append(np.nansum(np.linalg.norm(self.f[self.reg_mask],axis=1)))
-        results["Force_sum_abs_rmax"].append(np.nansum(np.linalg.norm(self.f[self.reg_mask & inner],axis=1)))
-        results["Contractility"].append(self.getContractility(center_mode=center_mode))
-        results["ContractilityIgnoreBorder"].append(self.getContractilityIgnoreBorder(width_outer = width_outer, center_mode=center_mode))
-        results["Contractility_unbiased"].append(self.getContractilityUnbiasedEpicenter())
-        results["force_ratio_outer_to_inner"].append(self.force_ratio_outer_to_inner(width_outer = width_outer))
-        results["ratio_deformation_z_component"].append(self.ratio_deformation_z_component())
-        results["Contractility_rmax"].append(self.getContractility(center_mode=center_mode,r_max=r_max))
-        results["Force_perpendicular"].append(self.getPerpendicularForces(center_mode=center_mode))
-        results["Centricity_force"].append(self.getCentricity(center_mode=center_mode))
-        results["Centricity_deformations"].append(self.getCentricityDeformations(center_mode=center_mode))
-        results["Centricity_deformations_rmax"].append(self.getCentricityDeformations(r_max=r_max,center_mode=center_mode))
-        results["Contractility_deformations"].append(self.getContractilityDeformations(center_mode=center_mode))
-        results["Center_x"].append(self.getCenter(mode=center_mode)[0])
-        results["Center_y"].append(self.getCenter(mode=center_mode)[1])
-        results["Center_z"].append(self.getCenter(mode=center_mode)[2])
-        results["Median_Deformation"].append(np.nanmedian(np.linalg.norm(self.U_target[self.reg_mask],axis=1)))
-        results["Maximal_Deformation"].append(np.nanmax(np.linalg.norm(self.U_target[self.reg_mask],axis=1)))
-        results["99_Percentile_Deformation"].append(np.nanpercentile(np.linalg.norm(self.U_target[self.reg_mask],axis=1),99))
-        results["Median_Force"].append(np.nanmedian(np.linalg.norm(self.f[self.reg_mask],axis=1)))
-        results["Maximal_Force"].append(np.nanmax(np.linalg.norm(self.f[self.reg_mask],axis=1)))
-        results["99_Percentile_Force"].append(np.nanpercentile(np.linalg.norm(self.f[self.reg_mask],axis=1),99))
-        # calculate RMS of deformations ; RMS normed to the amount of nodes;
-        # RMS normed (to the 99 percentile); RMS of only the 99 percentile (normed to the maximal of those)
-        # rms = np.sqrt(np.nanmean((self.U[self.reg_mask]-self.U_target[self.reg_mask])**2))
-        # results["RMS_Deformation"].append( rms  )
-        # results["RMS_Deformation_per_node"].append( rms / self.R.shape[0] )
-        rms_percentage = np.sqrt(np.nanmean((self.U[self.reg_mask] -  self.U_target[self.reg_mask] ) **2)) / \
-                  np.nanpercentile(np.linalg.norm(self.U_target[self.reg_mask],axis=1),99)
-        results["RMS_Deformation_normed"].append( rms_percentage )
-
-
-        # regularization steps
-        #number_iterations = len(self.regularisation_results)
-        #results["Iterations"].append(number_iterations)
-
-        # save result.xlsx
-        if output_folder:
-            df = pd.DataFrame.from_dict(results)
-            df.to_excel(os.path.join(output_folder,name))
-        return results
-
-
-
-    def load_old(self, filename: str):
-        data = np.load(filename, allow_pickle=True)
-
-        if "R" in data:
-            self.setNodes(data["R"])
-        if "T" in data:
-            self.setTetrahedra(data["T"])
-        if "U_fixed" in data:
-            #print(data["U_fixed"].shape)
-            #print(data["f_target"].shape)
-            self.setBoundaryCondition(data["f_target"], data["f_target"])
-
-        for param in data:
-            setattr(self, param, data[param])
-        return self
-        #if self.U_fixed is not None:
-        #    self.var = np.any(np.isnan(self.U_fixed), axis=1)
-        #if self.U_target_mask is not None:
-        #    self.U_target_mask = np.any(~np.isnan(self.U_target_mask), axis=1)
-
-    def vtk(self):
-        import pyvista as pv
-        point_cloud = pv.PolyData(self.R)
-        #point_cloud.point_arrays["f"] = self.f
-        #point_cloud.point_arrays["U"] = self.U
-        point_cloud["U_target"] = self.U_target
-        return point_cloud
-
-    def plot(self, name="U", scale=None, vmin=None, vmax=None, cmap="turbo", export=None, camera_position=None, window_size=None, shape=None, pyvista_theme = "document"):
-        #if getattr(self, "point_cloud", None) is None:
-        #    self.point_cloud = self.vtk()
-
+    def plot(self, name="U", scale=None, vmin=None, vmax=None, cmap="turbo", export=None, camera_position=None, window_size=None, shape=None, pyvista_theme="document"):
         import pyvista as pv
         import matplotlib.pyplot as plt
         if export is not None:
@@ -1742,7 +1030,6 @@ class Solver(Saveable):
             point_cloud.point_arrays[n] = getattr(self, n)
             point_cloud.point_arrays[n+"_mag"] = np.linalg.norm(getattr(self, n), axis=1)
 
-
             # generate the arrows
             arrows = point_cloud.glyph(orient=n, scale=n+"_mag", factor=s)
             print(n, s)
@@ -1754,13 +1041,12 @@ class Solver(Saveable):
                     cmap = "jet"
             # add the mesh
             plotter.add_mesh(point_cloud, colormap=cmap, scalars=n+"_mag")
-            # colorrange if specified
+            # color range if specified
             if vmin is not None and vmax is not None:
                 plotter.add_mesh(arrows, colormap=cmap, name="arrows",clim=[vmin, vmax])
                 plotter.update_scalar_bar_range([vmin, vmax])
             else:
                 plotter.add_mesh(arrows, colormap=cmap, name="arrows")
-
 
             plotter.show_grid()
 
@@ -1772,9 +1058,6 @@ class Solver(Saveable):
 
 # needs to stay here instead of top to prevent circular import
 from saenopy.result_file import Result
-
-def save(filename: str, M: Solver):
-    M.save(filename)
 
 
 def load_solver(filename: str) -> Solver:
@@ -1794,11 +1077,11 @@ def subtract_reference_state(mesh_piv, mode):
     U = [M.getNodeVar("U_measured") for M in mesh_piv]
     # correct for the median position
     if len(U) > 2:
-        xpos2 = np.cumsum(U, axis=0)  # mittlere position
+        xpos2 = np.cumsum(U, axis=0)
         if mode == "first":
             xpos2 -= xpos2[0]
         elif mode == "median":
-            xpos2 -= np.nanmedian(xpos2, axis=0)  # aktuelle abweichung von
+            xpos2 -= np.nanmedian(xpos2, axis=0)
         elif mode == "last":
             xpos2 -= xpos2[-1]
         elif mode == "next":
@@ -1811,9 +1094,9 @@ def subtract_reference_state(mesh_piv, mode):
 def interpolate_mesh(M: Solver, xpos2: np.ndarray, params: dict) -> Solver:
     import saenopy
     from saenopy.multigridHelper import getScaledMesh, getNodesWithOneFace
-    
+
+    x, y, z = (M.R.max(axis=0) - M.R.min(axis=0)) * 1e6
     if params["mesh_size_same"]:
-        x, y, z = (M.R.max(axis=0) - M.R.min(axis=0))*1e6
         params["mesh_size_x"] = x
         params["mesh_size_y"] = y
         params["mesh_size_z"] = z
