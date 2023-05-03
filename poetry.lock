@@ -552,6 +552,21 @@ files = [
 ]
 
 [[package]]
+name = "decopatch"
+version = "1.4.10"
+description = "Create decorators easily in python."
+category = "main"
+optional = false
+python-versions = "*"
+files = [
+    {file = "decopatch-1.4.10-py2.py3-none-any.whl", hash = "sha256:e151f7f93de2b1b3fd3f3272dcc7cefd1a69f68ec1c2d8e288ecd9deb36dc5f7"},
+    {file = "decopatch-1.4.10.tar.gz", hash = "sha256:957f49c93f4150182c23f8fb51d13bb3213e0f17a79e09c8cca7057598b55720"},
+]
+
+[package.dependencies]
+makefun = ">=1.5.0"
+
+[[package]]
 name = "decorator"
 version = "5.1.1"
 description = "Decorators for Humans"
@@ -1486,6 +1501,18 @@ files = [
 altgraph = ">=0.17"
 
 [[package]]
+name = "makefun"
+version = "1.15.1"
+description = "Small library to dynamically create python functions."
+category = "main"
+optional = false
+python-versions = "*"
+files = [
+    {file = "makefun-1.15.1-py2.py3-none-any.whl", hash = "sha256:a63cfc7b47a539c76d97bd4fdb833c7d0461e759fd1225f580cb4be6200294d4"},
+    {file = "makefun-1.15.1.tar.gz", hash = "sha256:40b0f118b6ded0d8d78c78f1eb679b8b6b2462e3c1b3e05fb1b2da8cd46b48a5"},
+]
+
+[[package]]
 name = "markupsafe"
 version = "2.1.2"
 description = "Safely add untrusted strings to HTML/XML markup."
@@ -2279,6 +2306,22 @@ files = [
     {file = "pycparser-2.21-py2.py3-none-any.whl", hash = "sha256:8ee45429555515e1f6b185e78100aea234072576aa43ab53aefcae078162fca9"},
     {file = "pycparser-2.21.tar.gz", hash = "sha256:e644fdec12f7872f86c58ff790da456218b10f863970249516d60a5eaca77206"},
 ]
+
+[[package]]
+name = "pyfields"
+version = "1.7.0"
+description = "Define fields in python classes. Easily."
+category = "main"
+optional = false
+python-versions = "*"
+files = [
+    {file = "pyfields-1.7.0-py2.py3-none-any.whl", hash = "sha256:e1bed02cf5768eccd58d9c5b4e263729732c04297f32721746230c26e3ffc8d3"},
+    {file = "pyfields-1.7.0.tar.gz", hash = "sha256:3827207f55557ff9300cd157993e6e513126c3f683bb7974a1bb077600b32a55"},
+]
+
+[package.dependencies]
+makefun = "*"
+valid8 = ">=5.0"
 
 [[package]]
 name = "pygments"
@@ -3475,6 +3518,23 @@ secure = ["certifi", "cryptography (>=1.3.4)", "idna (>=2.0.0)", "ipaddress", "p
 socks = ["PySocks (>=1.5.6,!=1.5.7,<2.0)"]
 
 [[package]]
+name = "valid8"
+version = "5.1.2"
+description = "Yet another validation lib ;). Provides tools for general-purpose variable validation, function inputs/outputs validation as well as class fields validation. All entry points raise consistent ValidationError including all contextual details, with dynamic inheritance of ValueError/TypeError as appropriate."
+category = "main"
+optional = false
+python-versions = "*"
+files = [
+    {file = "valid8-5.1.2-py2.py3-none-any.whl", hash = "sha256:cb545f1898085a9d0270eba1f0533c51e4c8e999ff397164c805b5c6b7a627a0"},
+    {file = "valid8-5.1.2.tar.gz", hash = "sha256:2a49bfe4679f92e0bcf6b61453bd1f0cb430044df2c358e85139206c9a98b765"},
+]
+
+[package.dependencies]
+decopatch = "*"
+makefun = "*"
+six = "*"
+
+[[package]]
 name = "vtk"
 version = "9.2.6"
 description = "VTK is an open-source toolkit for 3D computer graphics, image processing, and visualization"
@@ -3652,4 +3712,4 @@ docs = ["nbsphinx", "sphinx", "sphinx-gallery", "sphinx-rtd-theme"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.8,<3.12"
-content-hash = "1cf42c5b9e3392d1bb38271ed01a6263b59b0d70d848005892df1a133e0d0f15"
+content-hash = "f79a0bb2e2e96bf76408f7e80ec57fbde5f7f02c649fa293b5659797b6256042"

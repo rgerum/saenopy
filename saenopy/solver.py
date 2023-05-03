@@ -5,6 +5,7 @@ import numpy as np
 import scipy.sparse as ssp
 
 from numba import njit
+from pyfields import field
 from typing import Union
 from nptyping import NDArray, Shape, Float, Int, Bool
 
@@ -53,7 +54,7 @@ class Mesh(Saveable):
 
     def set_tetrahedra(self, data: NDArray[Shape["N_t, 4"], Int]):
         """
-        Provide mesh connectivity. Nodes have to be connected by tetrahedra. Each tetraherdon consts of the indices of
+        Provide mesh connectivity. Nodes have to be connected by tetrahedra. Each tetrahedron consts of the indices of
         the 4 vertices which it connects.
 
         Parameters
@@ -85,30 +86,61 @@ class Mesh(Saveable):
     def has_node_var(self, name: str):
         return name in self.node_vars
 
+from valid8 import ValidationFailure
 
-class Solver(Saveable):
+class InvalidShape(ValidationFailure):
+    help_msg = '{msg} (shape {target_shape}) found shape ({data_shape})'
+
+def check_tetrahedra_scalar_field(self, data: NDArray[Shape["N_c"], Float]):
+    if data is None:
+        return True
+    data = np.asarray(data)
+    if len(data.shape) != 1 or (self.T is not None and data.shape[0] != self.T.shape[0]):
+        raise InvalidShape(data, data_shape=data.shape, target_shape=(self.T.shape[0],),
+                           msg="Tetrahedral field needs to be scalar")
+
+def check_node_scalar_field(self, data: NDArray[Shape["N_c"], Float]):
+    if data is None:
+        return True
+    data = np.asarray(data)
+    if len(data.shape) != 1 or (self.R is not None and data.shape[0] != self.R.shape[0]):
+        raise InvalidShape(data, data_shape=data.shape, target_shape=(self.R.shape[0],),
+                           msg="Node field needs to be scalar")
+
+def check_node_vector_field(self, data: NDArray[Shape["N_c"], Float]):
+    if data is None:
+        return True
+    data = np.asarray(data)
+    if len(data.shape) != 2 or (self.R is not None and data.shape[0] != self.R.shape[0]) or data.shape[1] != 3:
+        raise InvalidShape(data, data_shape=data.shape, target_shape=(self.R.shape[0], 3),
+                           msg="Node field needs to be vectorial")
+
+class SolverMesh(Mesh):
     __save_parameters__ = ["R", "T", "U", "f", "U_fixed", "U_target", "U_target_mask", "f_target", "E_glo", "var",
-                           "regularisation_results", "reg_mask", "regularisation_parameters", "material_model"]
+                           "reg_mask"]
+    N_T = 0  # the number of tetrahedra
+    N_c = 0  # the number of vertices
 
-    R: NDArray[Shape["N_c, 3"], Float] = None  # the 3D positions of the vertices, dimension: N_c x 3
-    T: NDArray[Shape["N_t, 4"], Int] = None  # the tetrahedra' 4 corner vertices (defined by index), dimensions: N_T x 4
-    E: NDArray[Shape["N_t"], Float] = None  # the energy stored in each tetrahedron, dimensions: N_T
-    V: NDArray[Shape["N_t"], Float] = None  # the volume of each tetrahedron, dimensions: N_T
-    var: NDArray[Shape["N_c"], Bool] = None  # a bool if a node is movable
+    E: NDArray[Shape["N_t"], Float] = field(doc="the energy stored in each tetrahedron, dimensions: N_T",
+                                            validators=check_tetrahedra_scalar_field, default=None)
+    V: NDArray[Shape["N_t"], Float] = field(doc="the volume of each tetrahedron, dimensions: N_T",
+                                            validators=check_tetrahedra_scalar_field, default=None)
+    var: NDArray[Shape["N_c"], Bool] = field(doc="a bool if a node is movable", validators=check_node_scalar_field, default=None)
 
-    Phi: NDArray[Shape["N_t, 4, 3"], Float] = None  # the shape tensor of each tetrahedron, dimensions: N_T x 4 x 3
+    Phi: NDArray[Shape["N_t, 4, 3"], Float] = field(doc="the shape tensor of each tetrahedron, dimensions: N_T x 4 x 3", default=None)
     Phi_valid = False
-    U: NDArray[Shape["N_c, 3"], Float] = None  # the displacements of each node, dimensions: N_c x 3
-    U_fixed: NDArray[Shape["N_c, 3"], Float] = None
-    U_target: NDArray[Shape["N_c, 3"], Float] = None
-    U_target_mask: NDArray[Shape["N_c"], Bool] = None
-    reg_mask: NDArray[Shape["N_c"], Bool] = None
+    U: NDArray[Shape["N_c, 3"], Float] = field(doc="the displacements of each node, dimensions: N_c x 3",
+                                               validators=check_node_vector_field, default=None)
+    U_fixed: NDArray[Shape["N_c, 3"], Float] = field(validators=check_node_vector_field, default=None)
+    U_target: NDArray[Shape["N_c, 3"], Float] = field(validators=check_node_vector_field, default=None)
+    U_target_mask: NDArray[Shape["N_c"], Bool] = field(validators=check_node_scalar_field, default=None)
+    reg_mask: NDArray[Shape["N_c"], Bool] = field(validators=check_node_scalar_field, default=None)
 
-    f: NDArray[Shape["N_c, 3"], Float] = None  # the global forces on each node, dimensions: N_c x 3
-    f_target: NDArray[Shape["N_c, 3"], Float] = None  # the external forces on each node, dimensions: N_c x 3
+    f: NDArray[Shape["N_c, 3"], Float] = field(doc="the global forces on each node, dimensions: N_c x 3",
+                                               validators=check_node_vector_field, default=None)
+    f_target: NDArray[Shape["N_c, 3"], Float] = field(doc="the external forces on each node, dimensions: N_c x 3",
+                                                      validators=check_node_vector_field, default=None)
     K_glo: NDArray[Shape["N_c, N_c, 3, 3"], Float] = None  # the global stiffness tensor, dimensions: N_c x N_c x 3 x 3
-
-    Laplace = None
 
     E_glo: float = 0  # the global energy
 
@@ -116,8 +148,10 @@ class Solver(Saveable):
     connections: NDArray[Shape["N_con, 2"], Int] = None
     connections_valid = False
 
-    N_T = 0  # the number of tetrahedra
-    N_c = 0  # the number of vertices
+
+class Solver(Saveable):
+    __save_parameters__ = ["mesh", "regularisation_results", "regularisation_parameters", "material_model"]
+    mesh: SolverMesh
 
     s: NDArray[Shape["N_b, 3"], Float] = None  # the beams, dimensions N_b x 3
     N_b = 0  # the number of beams
@@ -135,6 +169,9 @@ class Solver(Saveable):
         "iterpolate_mesh": [],
     ]
     '''
+    def __init__(self, **kwargs):
+        self.mesh = SolverMesh()
+        super().__init__(**kwargs)
 
     def set_nodes(self, data: NDArray[Shape["N_c, 3"], Float]):
         """
@@ -145,23 +182,18 @@ class Solver(Saveable):
         data : ndarray
             The coordinates of the vertices. Dimensions Nx3
         """
-        # check the input
-        data = np.asarray(data)
-        assert len(data.shape) == 2, "Mesh node data needs to be Nx3."
-        assert data.shape[1] == 3, "Mesh vertices need to have 3 spacial coordinate."
+        self.mesh.set_nodes(data)
 
-        # store the loaded node coordinates
-        self.R = data.astype(np.float64)
         # schedule to recalculate the shape tensors
-        self.Phi_valid = False
+        self.mesh.Phi_valid = False
 
         # store the number of vertices
-        self.N_c = data.shape[0]
+        self.mesh.N_c = data.shape[0]
 
-        self.var = np.ones(self.N_c, dtype=bool)
-        self.U = np.zeros((self.N_c, 3))
-        self.f = np.zeros((self.N_c, 3))
-        self.f_target = np.zeros((self.N_c, 3))
+        self.mesh.var = np.ones(self.mesh.N_c, dtype=bool)
+        self.mesh.U = np.zeros((self.mesh.N_c, 3))
+        self.mesh.f = np.zeros((self.mesh.N_c, 3))
+        self.mesh.f_target = np.zeros((self.mesh.N_c, 3))
 
     def set_boundary_condition(self, displacements: NDArray[Shape["N_c, 3"], Float] = None,
                                forces: NDArray[Shape["N_c, 3"], Float] = None):
@@ -180,24 +212,24 @@ class Solver(Saveable):
 
         # initialize 0 displacement for each node
         if displacements is None:
-            self.U = np.zeros((self.N_c, 3))
+            self.mesh.U = np.zeros((self.mesh.N_c, 3))
         else:
             displacements = np.asarray(displacements, dtype=np.float64)
-            assert displacements.shape == (self.N_c, 3)
-            self.var = np.any(np.isnan(displacements), axis=1)
-            self.U_fixed = displacements
-            self.U[~self.var] = displacements[~self.var]
+            assert displacements.shape == (self.mesh.N_c, 3)
+            self.mesh.var = np.any(np.isnan(displacements), axis=1)
+            self.mesh.U_fixed = displacements
+            self.mesh.U[~self.mesh.var] = displacements[~self.mesh.var]
 
         # initialize global and external forces
         if forces is None:
-            self.f_target = np.zeros((self.N_c, 3))
+            self.mesh.f_target = np.zeros((self.mesh.N_c, 3))
         else:
             self._set_external_forces(forces)
             # if no displacements where given, take the variable nodes from the nans in the force list
             if displacements is None:
-                self.var = ~np.any(np.isnan(forces), axis=1)
+                self.mesh.var = ~np.any(np.isnan(forces), axis=1)
             # if not, check if the fixed displacements have no force
-            elif np.all(np.isnan(self.f_target[~self.var])) is False:
+            elif np.all(np.isnan(self.mesh.f_target[~self.mesh.var])) is False:
                 print("WARNING: Forces for fixed vertices were specified. These boundary conditions cannot be"
                       "fulfilled", file=sys.stderr)
 
@@ -212,8 +244,8 @@ class Solver(Saveable):
         """
         # check the input
         displacements = np.asarray(displacements)
-        assert displacements.shape == (self.N_c, 3)
-        self.U[self.var] = displacements[self.var].astype(np.float64)
+        assert displacements.shape == (self.mesh.N_c, 3)
+        self.mesh.U[self.mesh.var] = displacements[self.mesh.var].astype(np.float64)
 
     def _set_external_forces(self, forces: NDArray[Shape["N_c, 3"], Float]):
         """
@@ -227,8 +259,8 @@ class Solver(Saveable):
         """
         # check the input
         forces = np.asarray(forces)
-        assert forces.shape == (self.N_c, 3)
-        self.f_target = forces.astype(np.float64)
+        assert forces.shape == (self.mesh.N_c, 3)
+        self.mesh.f_target = forces.astype(np.float64)
 
     def set_tetrahedra(self, data: NDArray[Shape["N_t, 4"], Int]):
         """
@@ -240,28 +272,20 @@ class Solver(Saveable):
         data : ndarray
             The node indices of the 4 corners. Dimensions Nx4
         """
-        # check the input
-        data = np.asarray(data)
-        assert len(data.shape) == 2, "Mesh tetrahedra needs to be Nx4."
-        assert data.shape[1] == 4, "Mesh tetrahedra need to have 4 corners."
-        assert 0 <= data.min(), "Mesh tetrahedron node indices are not allowed to be negative."
-        assert data.max() < self.N_c, "Mesh tetrahedron node indices cannot be bigger than the number of vertices."
-
-        # store the tetrahedron data (needs to be int indices)
-        self.T = data.astype(int)
+        self.mesh.set_tetrahedra(data)
 
         # the number of tetrahedra
-        self.N_T = data.shape[0]
+        self.mesh.N_T = data.shape[0]
 
         # Phi is a 4x3 tensor for every tetrahedron
-        self.Phi = np.zeros((self.N_T, 4, 3))
+        self.mesh.Phi = np.zeros((self.mesh.N_T, 4, 3))
 
         # initialize the volume and energy of each tetrahedron
-        self.V = np.zeros(self.N_T)
-        self.E = np.zeros(self.N_T)
+        self.mesh.V = np.zeros(self.mesh.N_T)
+        self.mesh.E = np.zeros(self.mesh.N_T)
 
         # schedule to recalculate the shape tensors
-        self.Phi_valid = False
+        self.mesh.Phi_valid = False
 
         # schedule to recalculate the connections
         self.connections_valid = False
@@ -302,10 +326,10 @@ class Solver(Saveable):
             from scipy.sparse.sputils import get_index_dtype
 
         # calculate the indices for "update_f_glo"
-        y, x = np.meshgrid(np.arange(3), self.T.ravel())
-        self.force_distribute_coordinates = (x.ravel(), y.ravel())
+        y, x = np.meshgrid(np.arange(3), self.mesh.T.ravel())
+        self.mesh.force_distribute_coordinates = (x.ravel(), y.ravel())
 
-        self.force_distribute_coordinates = tuple(self.force_distribute_coordinates[i].astype(dtype=get_index_dtype(maxval=max(self.force_distribute_coordinates[i].shape))) for i in range(2))
+        self.mesh.force_distribute_coordinates = tuple(self.mesh.force_distribute_coordinates[i].astype(dtype=get_index_dtype(maxval=max(self.mesh.force_distribute_coordinates[i].shape))) for i in range(2))
 
         # calculate the indices for "update_K_glo"
         @njit()
@@ -337,11 +361,11 @@ class Solver(Saveable):
             stiffness_distribute_coordinates2 = np.array(stiffness_distribute_coordinates2)
             return filter_in.ravel(), (stiffness_distribute_coordinates2[:, 0], stiffness_distribute_coordinates2[:, 1])
 
-        self.filter_in, self.stiffness_distribute_coordinates2 = numba_get_pair_coordinates(self.T, self.var)
+        self.mesh.filter_in, self.stiffness_distribute_coordinates2 = numba_get_pair_coordinates(self.mesh.T, self.mesh.var)
         self.stiffness_distribute_coordinates2 = np.array(self.stiffness_distribute_coordinates2, dtype=get_index_dtype(maxval=max(self.stiffness_distribute_coordinates2[0].shape)))
 
         # remember that for the current configuration the connections have been calculated
-        self.connections_valid = True
+        self.mesh.connections_valid = True
 
     def _compute_phi(self):
         """
@@ -355,35 +379,35 @@ class Solver(Saveable):
         Chi[3, :] = [0, 0, 1]
 
         # tetrahedron matrix B (linear map of the undeformed tetrahedron T onto the primitive tetrahedron P)
-        B = self.R[self.T[:, 1:4]] - self.R[self.T[:, 0]][:, None, :]
+        B = self.mesh.R[self.mesh.T[:, 1:4]] - self.mesh.R[self.mesh.T[:, 0]][:, None, :]
         B = B.transpose(0, 2, 1)
 
         # calculate the volume of the tetrahedron
-        self.V = np.abs(np.linalg.det(B)) / 6.0
-        sum_zero = np.sum(self.V == 0)
-        if np.sum(self.V == 0):
+        self.mesh.V = np.abs(np.linalg.det(B)) / 6.0
+        sum_zero = np.sum(self.mesh.V == 0)
+        if np.sum(self.mesh.V == 0):
             print("WARNING: found %d elements with volume of 0. Removing those elements." % sum_zero)
-            self.set_tetrahedra(self.T[self.V != 0])
+            self.set_tetrahedra(self.mesh.T[self.mesh.V != 0])
             return self._compute_phi()
 
         # the shape tensor of the tetrahedron is defined as Chi * B^-1
-        self.Phi = Chi @ np.linalg.inv(B)
+        self.mesh.Phi = Chi @ np.linalg.inv(B)
 
         # remember that for the current configuration the shape tensors have been calculated
-        self.Phi_valid = True
+        self.mesh.Phi_valid = True
 
     """ relaxation """
 
     def _prepare_temporary_quantities(self):
         # test if one node of the tetrahedron is variable
         # only count the energy if not the whole tetrahedron is fixed
-        self._countEnergy = np.any(self.var[self.T], axis=1)
+        self._countEnergy = np.any(self.mesh.var[self.mesh.T], axis=1)
 
         # and the shape tensor with the beam
         # s*_tmb = Phi_tmj * s_jb  (t in [0, N_T], i,j in {x,y,z}, m in {1,2,3,4}), b in [0, N_b])
-        self._s_star = self.Phi @ self.s.T
+        self._s_star = self.mesh.Phi @ self.s.T
 
-        self._V_over_Nb = np.expand_dims(self.V, axis=1) / self.N_b
+        self._V_over_Nb = np.expand_dims(self.mesh.V, axis=1) / self.N_b
 
     def _update_glo_f_and_k(self):
         """
@@ -392,13 +416,13 @@ class Solver(Saveable):
         t_start = time.time()
         batchsize = 1000
 
-        self.E_glo = 0
-        f_glo = np.zeros((self.N_T, 4, 3))
-        K_glo = np.zeros((self.N_T, 4, 4, 3, 3))
+        self.mesh.E_glo = 0
+        f_glo = np.zeros((self.mesh.N_T, 4, 3))
+        K_glo = np.zeros((self.mesh.N_T, 4, 4, 3, 3))
 
-        for i in range(int(np.ceil(self.T.shape[0]/batchsize))):
+        for i in range(int(np.ceil(self.mesh.T.shape[0]/batchsize))):
             if self.verbose:
-                print("updating forces and stiffness matrix %d%%" % (i/int(np.ceil(self.T.shape[0]/batchsize))*100), end="\r")
+                print("updating forces and stiffness matrix %d%%" % (i/int(np.ceil(self.mesh.T.shape[0]/batchsize))*100), end="\r")
             t = slice(i*batchsize, (i+1)*batchsize)
 
             s_bar = self._get_s_bar(t)
@@ -409,14 +433,14 @@ class Solver(Saveable):
             self._update_f_glo(self._s_star[t], s_bar, dEdsbar, out=f_glo[t])
             self._update_K_glo(self._s_star[t], s_bar, dEdsbar, dEdsbarbar, out=K_glo[t])
 
-        # store the global forces in self.f_glo
+        # store the global forces in self.mesh.f_glo
         # transform from N_T x 4 x 3 -> N_v x 3
-        ssp.coo_matrix((f_glo.ravel(), self.force_distribute_coordinates), shape=self.f.shape).toarray(out=self.f)
+        ssp.coo_matrix((f_glo.ravel(), self.mesh.force_distribute_coordinates), shape=self.mesh.f.shape).toarray(out=self.mesh.f)
 
         # store the stiffness matrix K in self.K_glo
         # transform from N_T x 4 x 4 x 3 x 3 -> N_v * 3 x N_v * 3
-        self.K_glo = ssp.coo_matrix((K_glo.ravel()[self.filter_in], self.stiffness_distribute_coordinates2),
-                                shape=(self.N_c*3, self.N_c*3)).tocsr()
+        self.K_glo = ssp.coo_matrix((K_glo.ravel()[self.mesh.filter_in], self.stiffness_distribute_coordinates2),
+                                shape=(self.mesh.N_c*3, self.mesh.N_c*3)).tocsr()
         if self.verbose:
             print("updating forces and stiffness matrix finished %.2fs" % (time.time() - t_start))
 
@@ -427,11 +451,11 @@ class Solver(Saveable):
         t_start = time.time()
         batchsize = 10000
 
-        tetrahedra_stiffness = np.zeros(self.T.shape[0])
+        tetrahedra_stiffness = np.zeros(self.mesh.T.shape[0])
 
-        for i in range(int(np.ceil(self.T.shape[0]/batchsize))):
+        for i in range(int(np.ceil(self.mesh.T.shape[0]/batchsize))):
             if self.verbose:
-                print("updating forces and stiffness matrix %d%%" % (i/int(np.ceil(self.T.shape[0]/batchsize))*100), end="\r")
+                print("updating forces and stiffness matrix %d%%" % (i/int(np.ceil(self.mesh.T.shape[0]/batchsize))*100), end="\r")
             t = slice(i*batchsize, (i+1)*batchsize)
 
             s_bar = self._get_s_bar(t)
@@ -449,7 +473,7 @@ class Solver(Saveable):
         # u_tim  (t in [0, N_T], i in {x,y,z}, m in {1,2,3,4})
         # F is the linear map from T (the undeformed tetrahedron) to T' (the deformed tetrahedron)
         # F_tij = d_ij + u_tmi * Phi_tmj  (t in [0, N_T], i,j in {x,y,z}, m in {1,2,3,4})
-        F = np.eye(3) + np.einsum("tmi,tmj->tij", self.U[self.T[t]], self.Phi[t])
+        F = np.eye(3) + np.einsum("tmi,tmj->tij", self.mesh.U[self.mesh.T[t]], self.mesh.Phi[t])
 
         # multiply the F tensor with the beam
         # s'_tib = F_tij * s_jb  (t in [0, N_T], i,j in {x,y,z}, b in [0, N_b])
@@ -481,11 +505,11 @@ class Solver(Saveable):
     def _update_energy(self, epsilon_b: np.ndarray, t: np.ndarray):
         # sum the energy of this tetrahedron
         # E_t = eps_tb * V_t
-        self.E[t] = np.mean(epsilon_b, axis=1) * self.V[t]
+        self.mesh.E[t] = np.mean(epsilon_b, axis=1) * self.mesh.V[t]
 
         # only count the energy of the tetrahedron to the global energy if the tetrahedron has at least one
         # variable node
-        self.E_glo += np.sum(self.E[t][self._countEnergy[t]])
+        self.mesh.E_glo += np.sum(self.mesh.E[t][self._countEnergy[t]])
 
     def _update_f_glo(self, s_star: np.ndarray, s_bar: np.ndarray, dEdsbar: np.ndarray, out: np.ndarray):
         # f_tmi = s*_tmb * s'_tib * dEds'_tb  (t in [0, N_T], i in {x,y,z}, m in {1,2,3,4}, b in [0, N_b])
@@ -510,15 +534,15 @@ class Solver(Saveable):
         Checks whether everything is loaded to start a relaxation process.
         """
         # check if we have nodes
-        if self.R is None or self.R.shape[0] == 0:
+        if self.mesh.R is None or self.mesh.R.shape[0] == 0:
             raise ValueError("No nodes have yet been set. Call setNodes first.")
-        self.N_c = self.R.shape[0]
+        self.mesh.N_c = self.mesh.R.shape[0]
 
         # check if we have tetrahedra
-        if self.T is None or self.T.shape[0] == 0:
+        if self.mesh.T is None or self.mesh.T.shape[0] == 0:
             raise ValueError("No tetrahedra have yet been set. Call setTetrahedra first.")
-        self.N_T = self.T.shape[0]
-        self.E = np.zeros(self.N_T)
+        self.mesh.N_T = self.mesh.T.shape[0]
+        self.mesh.E = np.zeros(self.mesh.N_T)
 
         # check if we have a material model
         if self.material_model is None:
@@ -529,11 +553,11 @@ class Solver(Saveable):
             self.set_beams()
 
         # if the shape tensors are not valid, calculate them
-        if self.Phi_valid is False:
+        if self.mesh.Phi_valid is False:
             self._compute_phi()
 
         # if the connections are not valid, calculate them
-        if self.connections_valid is False:
+        if self.mesh.connections_valid is False:
             self._compute_connections()
 
     def solve_boundarycondition(self, stepper: float = 0.066, i_max: int = 300, i_min: int = 12, rel_conv_crit: float = 0.01, relrecname: str = None, verbose: bool = False, callback: callable = None):
@@ -570,7 +594,7 @@ class Solver(Saveable):
         # update the forces and stiffness matrix
         self._update_glo_f_and_k()
 
-        relrec = [[0, self.E_glo, np.sum(self.f[self.var] ** 2)]]
+        relrec = [[0, self.mesh.E_glo, np.sum(self.mesh.f[self.mesh.var] ** 2)]]
 
         start = time.time()
         # start the iteration
@@ -583,15 +607,15 @@ class Solver(Saveable):
             self._update_glo_f_and_k()
 
             # sum all squared forces of non fixed nodes
-            ff = np.sum((self.f[self.var] - self.f_target[self.var]) ** 2)
-            #ff = np.sum(self.f[self.var] ** 2)
+            ff = np.sum((self.mesh.f[self.mesh.var] - self.mesh.f_target[self.mesh.var]) ** 2)
+            #ff = np.sum(self.mesh.f[self.mesh.var] ** 2)
 
             # print and store status
             if self.verbose:
-                print("Newton ", i, ": du=", du, "  Energy=", self.E_glo, "  Residuum=", ff)
+                print("Newton ", i, ": du=", du, "  Energy=", self.mesh.E_glo, "  Residuum=", ff)
 
             # log and store values (if a target file was provided)
-            relrec.append([du, self.E_glo, ff])
+            relrec.append([du, self.mesh.E_glo, ff])
             if relrecname is not None:
                 np.savetxt(relrecname, relrec)
             if callback is not None:
@@ -622,19 +646,19 @@ class Solver(Saveable):
         Solve the displacements from the current stiffness tensor using conjugate gradient.
         """
         # calculate the difference between the current forces on the nodes and the desired forces
-        ff = self.f - self.f_target
+        ff = self.mesh.f - self.mesh.f_target
 
         # ignore the force deviations on fixed nodes
-        ff[~self.var, :] = 0
+        ff[~self.mesh.var, :] = 0
 
         # solve the conjugate gradient which solves the equation A x = b for x
         # where A is the stiffness matrix K_glo and b is the vector of the target forces
-        uu = cg(self.K_glo, ff.ravel(), maxiter=3 * self.N_c, tol=0.00001, verbose=self.verbose).reshape(ff.shape)
+        uu = cg(self.K_glo, ff.ravel(), maxiter=3 * self.mesh.N_c, tol=0.00001, verbose=self.verbose).reshape(ff.shape)
 
         # add the new displacements to the stored displacements
-        self.U[self.var] += uu[self.var] * stepper
+        self.mesh.U[self.mesh.var] += uu[self.mesh.var] * stepper
         # sum the applied displacements
-        du = np.sum(uu[self.var] ** 2) * stepper * stepper
+        du = np.sum(uu[self.mesh.var] ** 2) * stepper * stepper
 
         # return the total applied displacement
         return du
@@ -652,25 +676,25 @@ class Solver(Saveable):
             The displacements for each node. Dimensions N x 3
         """
         displacement = np.asarray(displacement)
-        assert displacement.shape == (self.N_c, 3)
-        self.U_target = displacement
+        assert displacement.shape == (self.mesh.N_c, 3)
+        self.mesh.U_target = displacement
         # only use displacements that are not nan
-        self.U_target_mask = np.any(~np.isnan(displacement), axis=1)
+        self.mesh.U_target_mask = np.any(~np.isnan(displacement), axis=1)
         # regularisation mask
         if reg_mask is not None:
-            assert reg_mask.shape == (self.N_c,), f"reg_mask should have the shape {(self.N_c,)} but has {reg_mask.shape}."
+            assert reg_mask.shape == (self.mesh.N_c,), f"reg_mask should have the shape {(self.mesh.N_c,)} but has {reg_mask.shape}."
             assert reg_mask.dtype == bool, f"reg_mask should have the type bool but has {reg_mask.dtype}."
-            self.reg_mask = reg_mask
+            self.mesh.reg_mask = reg_mask
         else:
-            self.reg_mask = np.ones_like(displacement[:, 0]).astype(np.bool)
+            self.mesh.reg_mask = np.ones_like(displacement[:, 0]).astype(np.bool)
 
     def _update_local_regularization_weigth(self, method: str):
 
         self.localweight[:] = 1
 
-        Fvalues = np.linalg.norm(self.f, axis=1)
-        #Fmedian = np.median(Fvalues[self.var])
-        Fmedian = np.median(Fvalues[self.var & self.reg_mask])
+        Fvalues = np.linalg.norm(self.mesh.f, axis=1)
+        #Fmedian = np.median(Fvalues[self.mesh.var])
+        Fmedian = np.median(Fvalues[self.mesh.var & self.mesh.reg_mask])
 
         if method == "singlepoint":
             self.localweight[int(self.CFG["REG_FORCEPOINT"])] = 1.0e-10
@@ -679,22 +703,22 @@ class Solver(Saveable):
             k = 4.685
 
             index = Fvalues < k * Fmedian
-            self.localweight[index * self.var] *= (1 - (Fvalues[index * self.var] / k / Fmedian) * (Fvalues[index * self.var] / k / Fmedian)) * (
-                    1 - (Fvalues[index * self.var] / k / Fmedian) * (Fvalues[index * self.var] / k / Fmedian))
-            self.localweight[~index * self.var] *= 1e-10
+            self.localweight[index * self.mesh.var] *= (1 - (Fvalues[index * self.mesh.var] / k / Fmedian) * (Fvalues[index * self.mesh.var] / k / Fmedian)) * (
+                    1 - (Fvalues[index * self.mesh.var] / k / Fmedian) * (Fvalues[index * self.mesh.var] / k / Fmedian))
+            self.localweight[~index * self.mesh.var] *= 1e-10
 
         if method == "cauchy":
             k = 2.385
 
             if Fmedian > 0:
-                self.localweight[self.var] *= 1.0 / (1.0 + np.power((Fvalues / k / Fmedian), 2.0))
+                self.localweight[self.mesh.var] *= 1.0 / (1.0 + np.power((Fvalues / k / Fmedian), 2.0))
             else:
                 self.localweight *= 1.0
 
         if method == "huber":
             k = 1.345
 
-            index = (Fvalues > (k * Fmedian)) & self.var
+            index = (Fvalues > (k * Fmedian)) & self.mesh.var
             self.localweight[index] = k * Fmedian / Fvalues[index]
 
         if method == "L1":
@@ -704,12 +728,12 @@ class Solver(Saveable):
                 self.localweight *= 1.0
 
         index = self.localweight < 1e-10
-        self.localweight[index & self.var] = 1e-10
+        self.localweight[index & self.mesh.var] = 1e-10
 
-        self.localweight[~self.reg_mask] = 0
+        self.localweight[~self.mesh.reg_mask] = 0
 
-        counter = np.sum(1.0 - self.localweight[self.var])
-        counterall = np.sum(self.var)
+        counter = np.sum(1.0 - self.localweight[self.mesh.var])
+        counterall = np.sum(self.mesh.var)
 
         if self.verbose:
             print("total weight: ", counter, "/", counterall)
@@ -719,24 +743,24 @@ class Solver(Saveable):
         self.KAK = KA @ self.K_glo
         self.A = self.I + self.KAK
 
-        self.b = (KA @ self.f.ravel()).reshape(self.f.shape)
+        self.b = (KA @ self.mesh.f.ravel()).reshape(self.mesh.f.shape)
 
-        index = self.var & self.U_target_mask
-        self.b[index] += self.U_target[index] - self.U[index]
+        index = self.mesh.var & self.mesh.U_target_mask
+        self.b[index] += self.mesh.U_target[index] - self.mesh.U[index]
 
     def _record_regularization_status(self, relrec: list, alpha: float, relrecname: str = None):
-        indices = self.var & self.U_target_mask
-        btemp = self.U_target[indices] - self.U[indices]
+        indices = self.mesh.var & self.mesh.U_target_mask
+        btemp = self.mesh.U_target[indices] - self.mesh.U[indices]
         uuf2 = np.sum(btemp ** 2)
         suuf = np.sum(np.linalg.norm(btemp, axis=1))
         bcount = btemp.shape[0]
 
-        u2 = np.sum(self.U[self.var]**2)
+        u2 = np.sum(self.mesh.U[self.mesh.var]**2)
 
-        f = np.zeros((self.N_c, 3))
-        f[self.var] = self.f[self.var]
+        f = np.zeros((self.mesh.N_c, 3))
+        f[self.mesh.var] = self.mesh.f[self.mesh.var]
 
-        ff = np.sum(np.sum(f**2, axis=1)*self.localweight*self.var)
+        ff = np.sum(np.sum(f**2, axis=1)*self.localweight*self.mesh.var)
 
         L = alpha*ff + uuf2
 
@@ -798,15 +822,15 @@ class Solver(Saveable):
         # set the verbosity level
         self.verbose = verbose
 
-        self.I = ssp.lil_matrix((self.U_target_mask.shape[0] * 3, self.U_target_mask.shape[0] * 3))
-        self.I.setdiag(np.repeat(self.U_target_mask, 3))
+        self.I = ssp.lil_matrix((self.mesh.U_target_mask.shape[0] * 3, self.mesh.U_target_mask.shape[0] * 3))
+        self.I.setdiag(np.repeat(self.mesh.U_target_mask, 3))
 
         # check if everything is prepared
         self._check_relax_ready()
 
         self._prepare_temporary_quantities()
 
-        self.localweight = np.ones(self.N_c)
+        self.localweight = np.ones(self.mesh.N_c)
 
         # update the forces on each tetrahedron and the global stiffness tensor
         if self.verbose:
@@ -867,29 +891,29 @@ class Solver(Saveable):
 
         # solve the conjugate gradient which solves the equation A x = b for x
         # where A is (I - KAK) (K: stiffness matrix, A: weight matrix) and b is (u_meas - u - KAf)
-        uu = cg(self.A, self.b.flatten(), maxiter=25*int(pow(self.N_c, 0.33333)+0.5), tol=self.N_c * solver_precision).reshape((self.N_c, 3))
+        uu = cg(self.A, self.b.flatten(), maxiter=25*int(pow(self.mesh.N_c, 0.33333)+0.5), tol=self.mesh.N_c * solver_precision).reshape((self.mesh.N_c, 3))
 
         # add the new displacements to the stored displacements
-        self.U += uu * stepper
+        self.mesh.U += uu * stepper
         # sum the applied displacements
         du = np.sum(uu ** 2) * stepper * stepper
 
         # return the total applied displacement
-        return np.sqrt(du/self.N_c)
+        return np.sqrt(du/self.mesh.N_c)
 
     """ helper methods """
 
     def get_polarity(self) -> float:
 
-        inner = self.reg_mask
-        f = self.f[inner]
-        R = self.R[inner]
+        inner = self.mesh.reg_mask
+        f = self.mesh.f[inner]
+        R = self.mesh.R[inner]
 
         fsum = np.sum(f, axis=0)
 
-        # B1 += self.R[c] * np.sum(f**2)
+        # B1 += self.mesh.R[c] * np.sum(f**2)
         B1 = np.einsum("ni,ni,nj->j", f, f, R)
-        # B2 += f * (self.R[c] @ f)
+        # B2 += f * (self.mesh.R[c] @ f)
         B2 = np.einsum("ki,ki,kj->j", f, R, f)
 
         # A += I * np.sum(f**2) - np.outer(f, f)
@@ -908,11 +932,11 @@ class Solver(Saveable):
         vecs = build_beams(150)
 
         eR = RR / np.linalg.norm(RR, axis=1)[:, None]
-        f = self.f[inner]
+        f = self.mesh.f[inner]
 
-        # (eR @ vecs[b]) * (vecs[b] @ self.f_glo[c])
+        # (eR @ vecs[b]) * (vecs[b] @ self.mesh.f_glo[c])
         ff = np.sum(np.einsum("ni,bi->nb", eR, vecs) * np.einsum("bi,ni->nb", vecs, f), axis=0)
-        # (RR @ vecs[b]) * (vecs[b] @ self.f_glo[c])
+        # (RR @ vecs[b]) * (vecs[b] @ self.mesh.f_glo[c])
         mm = np.sum(np.einsum("ni,bi->nb", RR, vecs) * np.einsum("bi,ni->nb", vecs, f), axis=0)
 
         bmax = np.argmax(mm)
@@ -921,17 +945,17 @@ class Solver(Saveable):
         return fmax / contractility
 
     def get_center(self, mode="force", border=None) -> NDArray[Shape["3"], Float]:
-        f = self.f
-        R = self.R
-        U = self.U
+        f = self.mesh.f
+        R = self.mesh.R
+        U = self.mesh.U
 
-        if self.reg_mask is not None:
-            f = self.f * self.reg_mask[:, None]
+        if self.mesh.reg_mask is not None:
+            f = self.mesh.f * self.mesh.reg_mask[:, None]
 
         if mode.lower() == "deformation":
-            # B1 += self.R[c] * np.sum(f**2)
+            # B1 += self.mesh.R[c] * np.sum(f**2)
             B1 = np.einsum("ni,ni,nj->j", U, U, R)
-            # B2 += f * (self.R[c] @ f)
+            # B2 += f * (self.mesh.R[c] @ f)
             B2 = np.einsum("ki,ki,kj->j", U, R, U)
             # A += I * np.sum(f**2) - np.outer(f, f)
             A = np.sum(np.einsum("ij,kl,kl->kij", np.eye(3), U, U) - np.einsum("ki,kj->kij", U, U), axis=0)
@@ -941,13 +965,13 @@ class Solver(Saveable):
 
         if mode.lower() == "deformation_target":
             # mode to calculate from PIV data directly
-            U = self.U_target
+            U = self.mesh.U_target
             # remove nanas from 3D PIV here to be able to do the calculations
             U[np.isnan(U)] = 0
 
-            # B1 += self.R[c] * np.sum(f**2)
+            # B1 += self.mesh.R[c] * np.sum(f**2)
             B1 = np.einsum("ni,ni,nj->j", U, U, R)
-            # B2 += f * (self.R[c] @ f)
+            # B2 += f * (self.mesh.R[c] @ f)
             B2 = np.einsum("ki,ki,kj->j", U, R, U)
             # A += I * np.sum(f**2) - np.outer(f, f)
             A = np.sum(np.einsum("ij,kl,kl->kij", np.eye(3), U, U) - np.einsum("ki,kj->kij", U, U), axis=0)
@@ -956,9 +980,9 @@ class Solver(Saveable):
             Rcms = np.linalg.inv(A) @ B
 
         if mode.lower() == "force":    # calculate Force center
-            # B1 += self.R[c] * np.sum(f**2)
+            # B1 += self.mesh.R[c] * np.sum(f**2)
             B1 = np.einsum("ni,ni,nj->j", f, f, R)
-            # B2 += f * (self.R[c] @ f)
+            # B2 += f * (self.mesh.R[c] @ f)
             B2 = np.einsum("ki,ki,kj->j", f, R, f)
             # A += I * np.sum(f**2) - np.outer(f, f)
             A = np.sum(np.einsum("ij,kl,kl->kij", np.eye(3), f, f) - np.einsum("ki,kj->kij", f, f), axis=0)
@@ -971,11 +995,11 @@ class Solver(Saveable):
         return Rcms
 
     def get_contractility(self, center_mode="force", r_max=None, width_outer=None) -> str:
-        f = self.f
-        R = self.R
+        f = self.mesh.f
+        R = self.mesh.R
 
-        if self.reg_mask is not None:
-            f = self.f * self.reg_mask[:, None]
+        if self.mesh.reg_mask is not None:
+            f = self.mesh.f * self.mesh.reg_mask[:, None]
 
         if width_outer is not None:
             # mask the data points in the outer layer (closer to the outer border than
@@ -1023,7 +1047,7 @@ class Solver(Saveable):
             else:
                 s = scale
 
-            point_cloud = pv.PolyData(self.R)
+            point_cloud = pv.PolyData(self.mesh.R)
             point_cloud.point_arrays[n] = getattr(self, n)
             point_cloud.point_arrays[n+"_mag"] = np.linalg.norm(getattr(self, n), axis=1)
 

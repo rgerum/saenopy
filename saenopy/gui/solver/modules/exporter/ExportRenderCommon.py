@@ -11,15 +11,15 @@ def get_mesh_arrows(params, result):
     elif params["arrows"] == "target deformations":
         M = result.solver[params["time"]["t"]]
         if M is not None:
-            return M, M.U_target, params["deformation_arrows"], "U_target"
+            return M.mesh, M.mesh.U_target, params["deformation_arrows"], "U_target"
     elif params["arrows"] == "fitted deformations":
         M = result.solver[params["time"]["t"]]
         if M is not None:
-            return M, M.U, params["deformation_arrows"], "U"
+            return M.mesh, M.mesh.U, params["deformation_arrows"], "U"
     elif params["arrows"] == "fitted forces":
         M = result.solver[params["time"]["t"]]
         if M is not None:
-            return M, -M.f * M.reg_mask[:, None], params["force_arrows"], "f"
+            return M.mesh, -M.mesh.f * M.mesh.reg_mask[:, None], params["force_arrows"], "f"
     return None, None, {}, ""
 
 
@@ -31,23 +31,23 @@ def get_mesh_extent(params, result):
     elif params["arrows"] == "target deformations":
         M = result.solver[params["time"]["t"]]
         if M is not None:
-            return [M.R.min(axis=0) * 1e6, M.R.max(axis=0) * 1e6]
+            return [M.mesh.R.min(axis=0) * 1e6, M.mesh.R.max(axis=0) * 1e6]
     elif params["arrows"] == "fitted deformations":
         M = result.solver[params["time"]["t"]]
         if M is not None:
-            return [M.R.min(axis=0) * 1e6, M.R.max(axis=0) * 1e6]
+            return [M.mesh.R.min(axis=0) * 1e6, M.mesh.R.max(axis=0) * 1e6]
     elif params["arrows"] == "fitted forces":
         M = result.solver[params["time"]["t"]]
         if M is not None:
-            return [M.R.min(axis=0) * 1e6, M.R.max(axis=0) * 1e6]
+            return [M.mesh.R.min(axis=0) * 1e6, M.mesh.R.max(axis=0) * 1e6]
     else:
         M = result.solver[params["time"]["t"]]
         if M is not None:
-            return [M.R.min(axis=0) * 1e6, M.R.max(axis=0) * 1e6]
+            return [M.mesh.R.min(axis=0) * 1e6, M.mesh.R.max(axis=0) * 1e6]
         else:
             M = result.mesh_piv[params["time"]["t"]]
             if M is not None:
-                return [M.R.min(axis=0) * 1e6, M.R.max(axis=0) * 1e6]
+                return [M.mesh.R.min(axis=0) * 1e6, M.mesh.R.max(axis=0) * 1e6]
     return None
 
 

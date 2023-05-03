@@ -127,7 +127,8 @@ class MeshCreator(PipelineModule):
             except (AttributeError, IndexError, TypeError):
                 valid = False
             if valid:
-                x, y, z = (self.result.mesh_piv[0].R.max(axis=0) - self.result.mesh_piv[0].R.min(axis=0))*1e6
+                mesh = self.result.mesh_piv[0]
+                x, y, z = (mesh.R.max(axis=0) - mesh.R.min(axis=0))*1e6
                 self.input_mesh_size_x.setValue(x)
                 self.setParameter("mesh_size_x", x)
                 self.input_mesh_size_y.setValue(y)
@@ -182,9 +183,10 @@ class MeshCreator(PipelineModule):
             if self.plotter.camera_position is not None and CamPos.cam_pos_initialized is True:
                 cam_pos = self.plotter.camera_position
             CamPos.cam_pos_initialized = True
-            self.plotter.interactor.setToolTip(str(self.result.interpolate_parameter)+f"\nNodes {self.result.solver[self.t_slider.value()].R.shape[0]}\nTets {self.result.solver[self.t_slider.value()].T.shape[0]}")
             M = self.result.solver[self.t_slider.value()]
-            showVectorField2(self, M, "U_target")
+            mesh = M.mesh
+            self.plotter.interactor.setToolTip(str(self.result.interpolate_parameter)+f"\nNodes {mesh.R.shape[0]}\nTets {mesh.T.shape[0]}")
+            showVectorField2(self, mesh, "U_target")
             if cam_pos is not None:
                 self.plotter.camera_position = cam_pos
         else:

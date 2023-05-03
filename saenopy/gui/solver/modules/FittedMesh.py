@@ -81,9 +81,10 @@ class FittedMesh(PipelineModule):
             if self.plotter.camera_position is not None and CamPos.cam_pos_initialized is True:
                 cam_pos = self.plotter.camera_position
             CamPos.cam_pos_initialized = True
-            self.plotter.interactor.setToolTip(str(self.result.solve_parameter)+f"\nNodes {self.result.solver[self.t_slider.value()].R.shape[0]}\nTets {self.result.solver[self.t_slider.value()].T.shape[0]}")
             M = self.result.solver[self.t_slider.value()]
-            showVectorField2(self, M, "U")
+            mesh = M.mesh
+            self.plotter.interactor.setToolTip(str(self.result.solve_parameter)+f"\nNodes {mesh.R.shape[0]}\nTets {mesh.T.shape[0]}")
+            showVectorField2(self, mesh, "U")
             #showVectorField(self.plotter, M, M.U, "U", factor=0.1, scalebar_max=self.vtk_toolbar.getScaleMax(), show_nan=self.vtk_toolbar.use_nans.value())
             if cam_pos is not None:
                 self.plotter.camera_position = cam_pos

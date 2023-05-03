@@ -194,8 +194,9 @@ class Regularizer(PipelineModule):
             if self.plotter.camera_position is not None and CamPos.cam_pos_initialized is True:
                 cam_pos = self.plotter.camera_position
             CamPos.cam_pos_initialized = True
-            self.plotter.interactor.setToolTip(str(self.result.solve_parameter)+f"\nNodes {self.result.solver[self.t_slider.value()].R.shape[0]}\nTets {self.result.solver[self.t_slider.value()].T.shape[0]}")
             M = self.result.solver[self.t_slider.value()]
+            mesh = M.mesh
+            self.plotter.interactor.setToolTip(str(self.result.solve_parameter)+f"\nNodes {mesh.R.shape[0]}\nTets {mesh.T.shape[0]}")
             center = None
             if self.vtk_toolbar.use_center.value() is True:
                 center = M.get_center(mode="Force")
@@ -205,12 +206,12 @@ class Regularizer(PipelineModule):
             else:
                 stack_shape = None
                 
-            if M.reg_mask is not None:
-                f =  -M.f * M.reg_mask[:, None]   
+            if M.mesh.reg_mask is not None:
+                f =  -M.mesh.f * M.mesh.reg_mask[:, None]
             else:
-                f =  -M.f
+                f =  -M.mesh.f
                 
-            showVectorField(self.plotter, M, f, "f", center=center,
+            showVectorField(self.plotter, M.mesh, f, "f", center=center,
                             factor=0.15 * self.vtk_toolbar.arrow_scale.value(),
                             colormap=self.vtk_toolbar.colormap_chooser.value(),
                             colormap2=self.vtk_toolbar.colormap_chooser2.value(),

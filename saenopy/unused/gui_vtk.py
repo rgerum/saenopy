@@ -196,16 +196,16 @@ class MainWindow(QtWidgets.QMainWindow):
         minR = np.min(R, axis=0)
         maxR = np.max(R, axis=0)
         
-        if self.M.reg_mask is None: 
+        if self.M.mesh.reg_mask is None:
             border = (R[:, 0] < minR[0] + 0.5e-6) | (R[:, 0] > maxR[0] - 0.5e-6) | \
                      (R[:, 1] < minR[1] + 0.5e-6) | (R[:, 1] > maxR[1] - 0.5e-6) | \
                      (R[:, 2] < minR[2] + 0.5e-6) | (R[:, 2] > maxR[2] - 0.5e-6)
-            self.M.reg_mask = ~border 
+            self.M.mesh.reg_mask = ~border
                  
 
         self.point_cloud = pv.PolyData(self.M.R)
-        self.point_cloud.point_arrays["f"] = -self.M.f*self.M.reg_mask[:, None]
-        self.point_cloud["f_mag"] = np.linalg.norm(self.M.f*self.M.reg_mask[:, None], axis=1)
+        self.point_cloud.point_arrays["f"] = -self.M.f*self.M.mesh.reg_mask[:, None]
+        self.point_cloud["f_mag"] = np.linalg.norm(self.M.f*self.M.mesh.reg_mask[:, None], axis=1)
         self.point_cloud.point_arrays["U"] = self.M.U
         self.point_cloud["U_mag"] = np.linalg.norm(self.M.U, axis=1)
         self.point_cloud.point_arrays["U_target"] = self.M.U_target
@@ -238,28 +238,28 @@ class MainWindow(QtWidgets.QMainWindow):
         minR = np.min(R, axis=0)
         maxR = np.max(R, axis=0)
         
-        if self.M.reg_mask is None: 
+        if self.M.mesh.reg_mask is None:
             border = (R[:, 0] < minR[0] + 0.5e-6) | (R[:, 0] > maxR[0] - 0.5e-6) | \
                      (R[:, 1] < minR[1] + 0.5e-6) | (R[:, 1] > maxR[1] - 0.5e-6) | \
                      (R[:, 2] < minR[2] + 0.5e-6) | (R[:, 2] > maxR[2] - 0.5e-6)
-            self.M.reg_mask = ~border 
+            self.M.mesh.reg_mask = ~border
                  
 
-        self.point_cloud = pv.PolyData(self.M.R)
-        self.point_cloud.point_arrays["f"] = -self.M.f*self.M.reg_mask[:, None]
-        self.point_cloud["f_mag"] = np.linalg.norm(self.M.f*self.M.reg_mask[:, None], axis=1)
-        self.point_cloud.point_arrays["U"] = self.M.U
-        self.point_cloud["U_mag"] = np.linalg.norm(self.M.U, axis=1)
-        self.point_cloud.point_arrays["U_target"] = self.M.U_target
-        self.point_cloud["U_target_mag"] = np.linalg.norm(self.M.U_target, axis=1)
+        self.point_cloud = pv.PolyData(self.M.mesh.R)
+        self.point_cloud.point_arrays["f"] = -self.M.mesh.f*self.M.mesh.reg_mask[:, None]
+        self.point_cloud["f_mag"] = np.linalg.norm(self.M.mesh.f*self.M.mesh.reg_mask[:, None], axis=1)
+        self.point_cloud.point_arrays["U"] = self.M.mesh.U
+        self.point_cloud["U_mag"] = np.linalg.norm(self.M.mesh.U, axis=1)
+        self.point_cloud.point_arrays["U_target"] = self.M.mesh.U_target
+        self.point_cloud["U_target_mag"] = np.linalg.norm(self.M.mesh.U_target, axis=1)
 
         self.point_cloud2 = None
 
         self.offset = np.min(self.M.R, axis=0)
         if 0:
             self.stats_label.setText(f"""
-            Nodes = {self.M.R.shape[0]}
-            Tets = {self.M.T.shape[0]}
+            Nodes = {self.M.mesh.R.shape[0]}
+            Tets = {self.M.mesh.T.shape[0]}
             """)
         self.replot()   
         
@@ -327,7 +327,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 arrows = self.point_cloud.glyph(orient="f", scale="f_mag", \
                                                 # Automatically scale maximal force to 15% of axis length
                                                 factor=0.15 * norm_stack_size / np.nanmax(
-                                                    np.linalg.norm(self.M.f*self.M.reg_mask[:,None], axis=1)))
+                                                    np.linalg.norm(self.M.mesh.f*self.M.mesh.reg_mask[:,None], axis=1)))
                 plotter.add_mesh(arrows, colormap='turbo', name="arrows", 
                                 scalar_bar_args=sargs, stitle = "Force [N]",
                                )

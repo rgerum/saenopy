@@ -770,7 +770,7 @@ class ExportViewer(PipelineModule):
                 center = None
                 if self.vtk_toolbar2.use_center.value() is True:
                     center = M.get_center(mode="Force")
-                field = -M.f * M.reg_mask[:, None]
+                field = -M.f * M.mesh.reg_mask[:, None]
                 factor = 0.15 * self.vtk_toolbar2.arrow_scale.value()
                 name = "f"
                 colormap = self.vtk_toolbar2.colormap_chooser.value()
@@ -807,7 +807,6 @@ class ExportViewer(PipelineModule):
                 self.view1.fitInView()
                 self.im = im
                 return
-
 
             self.render_view(True)
 

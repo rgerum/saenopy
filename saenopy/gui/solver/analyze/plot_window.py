@@ -158,8 +158,8 @@ class PlottingWindow(QtWidgets.QWidget):
                         "strain_energy": M.E_glo,
                         "contractility": M.get_contractility(center_mode="force"),
                         "polarity": M.get_polarity(),
-                        "99_percentile_deformation": np.nanpercentile(np.linalg.norm(M.U_target[M.reg_mask], axis=1), 99),
-                        "99_percentile_force": np.nanpercentile(np.linalg.norm(M.f[M.reg_mask], axis=1), 99),
+                        "99_percentile_deformation": np.nanpercentile(np.linalg.norm(M.U_target[M.mesh.reg_mask], axis=1), 99),
+                        "99_percentile_force": np.nanpercentile(np.linalg.norm(M.f[M.mesh.reg_mask], axis=1), 99),
                         "filename": file,
                     })
                 res.resulting_data = pd.DataFrame(res.resulting_data)

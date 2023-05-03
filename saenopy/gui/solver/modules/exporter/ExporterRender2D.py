@@ -253,10 +253,10 @@ def add_scalebar(pil_image, scale, image_scale, width, xpos, ypos, fontsize, pix
             font = ImageFont.truetype("times", font_size)
         # width and height of text elements
         text = "%d" % size_in_um
-        length_number = image.textsize(text, font=font)[0]
-        length_space = 0.5*image.textsize(" ", font=font)[0] # here we emulate a half-sized whitespace
-        length_unit = image.textsize(unit, font=font)[0]
-        height_number = image.textsize(text+unit, font=font)[1]
+        length_number = image.textlength(text, font=font)
+        length_space = 0.5*image.textlength(" ", font=font)  # here we emulate a half-sized whitespace
+        length_unit = image.textlength(unit, font=font)
+        height_number = image.textbbox((0, 0), text+unit, font=font)[3]
 
         total_length = length_number + length_space + length_unit
 
