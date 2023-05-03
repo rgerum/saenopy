@@ -40,10 +40,10 @@ Standalone
 You can download saenopy as a standalone application for windows or for linux:
 
 Windows
-https://github.com/rgerum/saenopy/releases/download/v0.8.0/saenopy.exe
+https://github.com/rgerum/saenopy/releases/download/v0.9.0/saenopy.exe
 
 Linux
-https://github.com/rgerum/saenopy/releases/download/v0.8.0/saenopy
+https://github.com/rgerum/saenopy/releases/download/v0.9.0/saenopy
 
 Using Python
 ~~~~~~~~~~~~
