@@ -253,14 +253,13 @@ class StackSelectorTif(QtWidgets.QWidget):
         from saenopy.stack import Stack
         if not self.use_time or t_prop_name == "None":
             d = d.sort_values(z_prop_name)
-            self.stack_obj = [Stack()]
+            self.stack_obj = [Stack("", (1, 1, 1), {}, image_filenames=[[str(f)] for f in d.filename])]
             self.stack_obj[0].image_filenames = [[str(f)] for f in d.filename]
         else:
             d = d.sort_values([t_prop_name, z_prop_name])
             self.stack_obj = []
             for t, dd in d.groupby(t_prop_name):
-                s = Stack()
-                s.image_filenames = [[str(f)] for f in dd.filename]
+                s = Stack("", (1, 1, 1), {}, image_filenames=[[str(f)] for f in dd.filename])
                 self.stack_obj.append(s)
 
         self.target_glob = self.format_template.format(**selected_props_dict)
