@@ -13,33 +13,27 @@ from saenopy.saveable import Saveable
 
 
 class Stack(Saveable):
-    __save_parameters__ = ['template', 'image_filenames', 'filename', 'voxel_size', 'shape', 'channels', 'crop', 'packed_files']
+    __save_parameters__ = ['template', 'voxel_size', 'crop', '_shape',
+                           'image_filenames', 'leica_file', 'channels',
+                           'packed_files']
     template: str = None
+    voxel_size: tuple = None
+    crop: dict = None
+
+    _shape = None
+
     image_filenames: list = None
+    leica_file = None
+    channels: list = None
 
     packed_files: list = None
 
-    images: list = None
-    input: str = ""
-    _shape = None
-    voxel_size: tuple = None
-    channels: list = None
-    images_channels: list = None
-
-    leica_file = None
-
-    def __init__(self, template=None, voxel_size=None, filename=None, shape=None, channels=None, image_filenames=None, crop=None, **kwargs):
-        print("stack", template)
-        if template is None:
-            if isinstance(filename, list):
-                template = filenames_to_channel_template(filename)
-            else:
-                template = filename
-        if template is not None:
-            template = template.replace("*", "{z}")
-        self.template = template
-        self.crop = crop
-        if image_filenames is None and template is not None:
+    def __init__(self, template: str, voxel_size: tuple, crop: dict = None, **kwargs):
+        # reconstruct the stack savable
+        super().__init__(template=template, voxel_size=voxel_size, crop=crop, **kwargs)
+        # if the stack has not been initialized
+        if self.image_filenames is None:
+            # check if the template is a leica file
             match = re.match(r"(.*)\{f\:(\d*)\}\{c\:(\d*)\}(?:\{t\:(\d*)\})?.lif", template)
             if match:
                 from saenopy.gui.common.lif_reader import LifFile
@@ -54,15 +48,9 @@ class Stack(Saveable):
                 for i in range(0, self.leica_file.channels):
                     if i != self.leica_channel:
                         self.channels.append(str(i))
+            # or a tiff file
             else:
                 self.image_filenames, self.channels = template_to_array(template, crop)
-        else:
-            self.image_filenames = image_filenames
-            self.channels = channels
-        if shape is not None:
-            self._shape = shape
-        self.voxel_size = voxel_size
-        super().__init__(**kwargs)
 
     def pack_files(self):
         images = np.array(self.image_filenames)[:, :]
@@ -110,7 +98,6 @@ class Stack(Saveable):
                 im = np.asarray(self.leica_file.get_frame(z, t=self.leica_time, c=int(self.channels[index[4]])))
                 images.append(im)
             images = np.asarray(images)
-            #np.asarray([self.leica_file.get_frame(z) for z in range(z_min, z_max)])
             images = images.transpose(1, 2, 0)[:, :, None, :]
             if isinstance(index[3], int):
                 images = images[:, :, :, 0]
@@ -123,25 +110,8 @@ class Stack(Saveable):
         images = np.swapaxes(images, 0, 2)
         return images[index[0], index[1], index[2]]
 
-        images = self.images
-        channel = 0
-        if len(index) == 4 and index[3] > 0 and self.images_channels is not None:
-            images = self.images_channels[index[3]-1]
-            channel = index[3]
-        if isinstance(index[2], slice):
-            return np.array([self.__getitem__(tuple([index[0], index[1], i, channel])) for i in range(index[2].start, index[2].stop, index[2].step if index[2].step is not None else 1)]).transpose(1, 2, 0)
-        try:
-            im = io.imread(images[index[2]])
-        except (IndexError, IOError) as err:
-            print("ERROR", err)
-            im = np.zeros(self.shape[:2])
-        if len(im.shape) == 3:
-            im = im[:, :, 0]
-        return im[index[0], index[1]]
-
     def __array__(self) -> np.ndarray:
         return self[:, :, :, :, 0]
-        return get_stack(self.images)
 
 
 def filenames_to_channel_template(filenames):
