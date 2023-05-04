@@ -76,7 +76,7 @@ def check_stack(stack, y0, x0, z0, c0, rgb0=1):
 
 def test_stack_one_channel(files_one_channel):
     # get z of filename
-    check_stack(Stack("tmp/run-1/Pos004_S001_z{z}_ch00.tif"), 20, 10, 2, 1)
+    check_stack(Stack("tmp/run-1/Pos004_S001_z{z}_ch00.tif", (1, 1, 1)), 20, 10, 2, 1)
 
     # raise an error if no reference stack and no time is provided
     with pytest.raises(ValueError, match='when not using a time series, a reference stack is required.'):
@@ -115,9 +115,9 @@ def test_stack_one_channel(files_one_channel):
 
 def test_stack_channels(files_channels):
     # ignore other channels
-    check_stack(Stack("tmp/run-2/Pos004_S001_z{z}_ch00.tif"), 20, 10, 2, 1)
+    check_stack(Stack("tmp/run-2/Pos004_S001_z{z}_ch00.tif", (1, 1, 1)), 20, 10, 2, 1)
     # incorporate other channels
-    check_stack(Stack("tmp/run-2/Pos004_S001_z{z}_ch{c:00}.tif"), 20, 10, 2, 3)
+    check_stack(Stack("tmp/run-2/Pos004_S001_z{z}_ch{c:00}.tif", (1, 1, 1)), 20, 10, 2, 3)
 
     # check load stack with reference stack
     results = get_stacks("tmp/run-2/Pos004_S001_z{z}_ch{c:00}.tif", "tmp/run-1", [1, 1, 1],
@@ -142,17 +142,17 @@ def test_stack_time(files_time):
 
 def test_crop(files_one_channel):
     # crop y
-    check_stack(Stack("tmp/run-1/Pos004_S001_z{z}_ch00.tif", crop={"y": [5, 15]}), 10, 10, 2, 1)
+    check_stack(Stack("tmp/run-1/Pos004_S001_z{z}_ch00.tif", (1, 1, 1), crop={"y": [5, 15]}), 10, 10, 2, 1)
     # crop x
-    check_stack(Stack("tmp/run-1/Pos004_S001_z{z}_ch00.tif", crop={"x": [2, 8]}), 20, 6, 2, 1)
+    check_stack(Stack("tmp/run-1/Pos004_S001_z{z}_ch00.tif", (1, 1, 1), crop={"x": [2, 8]}), 20, 6, 2, 1)
 
 
 def test_crop_z(files_z_pages):
     # use z of layers
-    check_stack(Stack("tmp/run-1/Pos004_S001_ch00.tif[z]"), 50, 50, 10, 1)
+    check_stack(Stack("tmp/run-1/Pos004_S001_ch00.tif[z]", (1, 1, 1)), 50, 50, 10, 1)
 
     # crop z
-    check_stack(Stack("tmp/run-1/Pos004_S001_ch00.tif[z]", crop={"z": [3, 6]}), 50, 50, 3, 1)
+    check_stack(Stack("tmp/run-1/Pos004_S001_ch00.tif[z]", (1, 1, 1), crop={"z": [3, 6]}), 50, 50, 3, 1)
 
     # with 3 rgb layers
-    #check_stack(Stack("tmp/run-1/Pos004_S001_z000_ch00.tif[z]"), 13, 11, 10, 1, rgb0=3)
+    #check_stack(Stack("tmp/run-1/Pos004_S001_z000_ch00.tif[z]", (1, 1, 1)), 13, 11, 10, 1, rgb0=3)

@@ -5,17 +5,17 @@ from typing import Sequence
 from scipy.interpolate import interp1d
 
 
-def get_quadrature(N: int, xmin: float, xmax: float) -> (np.ndarray, np.ndarray):
+def get_quadrature(n: int, x_min: float, x_max: float) -> (np.ndarray, np.ndarray):
     """
-    Provides N quadrature points for an integration from xmin to xmax together with their weights.
+    Provides N quadrature points for an integration from x_min to x_max together with their weights.
 
     Parameters
     ----------
-    N : int
+    n : int
         The number of quadrature points to use. Has to be 1 <= N <= 5.
-    xmin : float
+    x_min : float
         The start of the integration range
-    xmax : float
+    x_max : float
         The end of the integration range
 
     Returns
@@ -25,27 +25,27 @@ def get_quadrature(N: int, xmin: float, xmax: float) -> (np.ndarray, np.ndarray)
     w : np.ndarray
         The weights of the points
     """
-    if N < 1:
+    if n < 1:
         raise ValueError()
 
-    if N == 1:
+    if n == 1:
         points = [0]
         w = [2]
 
-    elif N == 2:
+    elif n == 2:
         points = [-np.sqrt(1 / 3), np.sqrt(1 / 3)]
         w = [1, 1]
 
-    elif N == 3:
+    elif n == 3:
         points = [-np.sqrt(3 / 5), 0, np.sqrt(3 / 5)]
         w = [5 / 9, 8 / 9, 5 / 9]
 
-    elif N == 4:
+    elif n == 4:
         points = [-np.sqrt(3 / 7 - 2 / 7 * np.sqrt(6 / 5)), +np.sqrt(3 / 7 - 2 / 7 * np.sqrt(6 / 5)),
                   -np.sqrt(3 / 7 + 2 / 7 * np.sqrt(6 / 5)), +np.sqrt(3 / 7 + 2 / 7 * np.sqrt(6 / 5))]
         w = [(18 + np.sqrt(30)) / 36, (18 + np.sqrt(30)) / 36, (18 - np.sqrt(30)) / 36, (18 - np.sqrt(30)) / 36]
 
-    elif N == 5:
+    elif n == 5:
         points = [0,
                   -1 / 3 * np.sqrt(5 - 2 * np.sqrt(10 / 7)), +1 / 3 * np.sqrt(5 - 2 * np.sqrt(10 / 7)),
                   -1 / 3 * np.sqrt(5 + 2 * np.sqrt(10 / 7)), +1 / 3 * np.sqrt(5 + 2 * np.sqrt(10 / 7))]
@@ -57,8 +57,8 @@ def get_quadrature(N: int, xmin: float, xmax: float) -> (np.ndarray, np.ndarray)
 
     points = np.array(points)
     w = np.array(w)
-    factor = (xmax - xmin) / 2
-    points = factor * points + (xmax + xmin) / 2
+    factor = (x_max - x_min) / 2
+    points = factor * points + (x_max + x_min) / 2
     w = w * factor
     return points, w
 
