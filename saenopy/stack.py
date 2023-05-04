@@ -61,20 +61,6 @@ class Stack(Saveable):
             self.channels = channels
         if shape is not None:
             self._shape = shape
-        if 0:
-            self.channels = channels
-            if channels is not None:
-                self.filename = filename
-                self.images = natsort.natsorted(glob.glob(filename[0]))
-                self.images_channels = []
-                for filename_pattern in filename[1:]:
-                    self.images_channels.append(natsort.natsorted(glob.glob(filename_pattern)))
-            elif isinstance(filename, str):
-                self.filename = str(filename)
-                self.images = natsort.natsorted(glob.glob(filename))
-            else:
-                self.filename = list(filename)
-                self.images = list(filename)
         self.voxel_size = voxel_size
         super().__init__(**kwargs)
 
