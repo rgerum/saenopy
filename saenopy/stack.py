@@ -1,13 +1,12 @@
-import glob as glob
 import re
 from pathlib import Path
 
-import imageio
 import natsort
 import numpy as np
 import pandas as pd
+
 import tifffile
-from skimage import io
+import imageio
 
 from saenopy.saveable import Saveable
 
@@ -78,7 +77,7 @@ class Stack(Saveable):
         return self._shape
 
     def get_image(self, z, channel):
-        return io.imread(self.image_filenames[z][channel])
+        return imageio.imread(self.image_filenames[z][channel])
 
     def __getitem__(self, index) -> np.ndarray:
         """ axes are y, x, rgb, z, c """
@@ -112,32 +111,6 @@ class Stack(Saveable):
 
     def __array__(self) -> np.ndarray:
         return self[:, :, :, :, 0]
-
-
-def filenames_to_channel_template(filenames):
-    for i in range(len(filenames[0])):
-        for file in filenames[1:]:
-            if file[:i] != filenames[0][:i]:
-                break
-        else:
-            continue
-        i -= 1
-        while filenames[0][i].isdigits():
-            i -= 1
-        i += 1
-        break
-    for j in range(len(filenames[0]) - 1, 0, -1):
-        for file in filenames[1:]:
-            if file[j:] != filenames[0][j:]:
-                break
-        else:
-            continue
-        j += 1
-        while filenames[0][j].isdigits():
-            j += 1
-        break
-    template = filenames[0][:i] + "{c:" + filenames[0][i:j] + "}" + filenames[0][j:]
-    return template
 
 
 def template_to_array(filename, crop):
@@ -195,18 +168,6 @@ def read_tiff(image_filenames):
         return page.asarray()
     im = imageio.imread(image_filenames)
     return im
-
-
-def get_stack(filename):
-    if isinstance(filename, str):
-        images = glob.glob(filename)
-    else:
-        images = list(filename)
-    im = io.imread(images[0], as_gray=True)
-    stack = np.zeros((im.shape[0], im.shape[1], len(images)), dtype=im.dtype)
-    for i, im in enumerate(images):
-        stack[:, :, i] = io.imread(im, as_gray=True)
-    return stack
 
 
 def format_glob(pattern):

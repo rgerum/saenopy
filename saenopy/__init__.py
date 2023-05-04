@@ -1,6 +1,3 @@
-from . import numba_overload
-from saenopy.unused.load import *
-from saenopy.unused.save import *
 from .solver import Solver, load, load_results
 from .result_file import get_stacks, Result
 from .get_deformations import get_displacements_from_stacks

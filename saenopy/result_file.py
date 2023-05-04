@@ -5,6 +5,7 @@ import os
 import natsort
 from typing import List
 import tifffile
+from PIL import Image
 from saenopy.stack import Stack, format_glob
 from saenopy.saveable import Saveable
 from saenopy.solver import Solver
@@ -84,7 +85,6 @@ def process_line(filename, output_path):
                 f = tifffile.TiffFile(filename)
                 file_shape = f.pages[0].shape
             else:
-                from PIL import Image
                 im = Image.open(filename)
                 file_shape = (im.height, im.width)
             if shape is None:

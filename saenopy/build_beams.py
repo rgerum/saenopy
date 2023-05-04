@@ -18,34 +18,30 @@ def make_from_polar(r: float, theta: float, phi: float) -> np.ndarray:
     return np.array([x, y, z])
 
 
-def build_beams(N: int) -> np.ndarray:
+def build_beams(n: int) -> np.ndarray:
     """
     Builds a sphere of unit vectors with N beams in the xy plane.
     """
-    N = int(np.floor(np.sqrt(int(N) * np.pi + 0.5)))
+    n = int(np.floor(np.sqrt(int(n) * np.pi + 0.5)))
 
     # start with an empty list
     beams = []
 
     # iterate over the whole angle in the xy plane
-    for i in range(N):
+    for i in range(n):
         # get the Nth part of the total rotation
-        theta = (2 * np.pi / N) * i
+        theta = (2 * np.pi / n) * i
 
         # estimate how many vectors we need to cover the phi angle (for the z direction)
-        jmax = int(np.floor(N * np.sin(theta) + 0.5))
+        j_max = int(np.floor(n * np.sin(theta) + 0.5))
 
         # iterate over those angles to get beams in every direction
-        for j in range(jmax):
+        for j in range(j_max):
             # get the phi angle
-            phi = (2 * np.pi / jmax) * j
+            phi = (2 * np.pi / j_max) * j
 
             # and create a unit vector from the polar coordinates theta and phi
             beams.append(make_from_polar(1.0, theta, phi))
 
     # return all the vectors
     return np.array(beams)
-
-
-def save_beams(beams: np.ndarray, fname: str):
-    np.savetxt(fname, beams)

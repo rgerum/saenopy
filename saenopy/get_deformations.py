@@ -3,9 +3,11 @@ from openpiv.pyprocess3D import extended_search_area_piv3D
 from scipy import interpolate
 
 from nptyping import NDArray, Shape, Float
-from saenopy.mesh import Mesh, check_node_vector_field
 from pyfields import field
+
+from saenopy.mesh import Mesh, check_node_vector_field
 from saenopy.stack import Stack
+from saenopy.multigrid_helper import create_box_mesh
 
 
 class PivMesh(Mesh):
@@ -31,11 +33,11 @@ def get_displacements_from_stacks(stack_relaxed: Stack, stack_deformed: Stack, w
     stack_deformed = np.mean(np.array(stack_deformed), axis=2)
     stack_relaxed = np.mean(np.array(stack_relaxed), axis=2)
     piv_mesh = _get_displacements_from_stacks_old(stack_deformed, stack_relaxed, voxel_size1,
-                                           win_um=win_um,
-                                           fac_overlap=fac_overlap,
-                                           signoise_filter=signoise_filter,
-                                           drift_correction=drift_correction,
-                                           return_mesh=True)
+                                                  win_um=win_um,
+                                                  fac_overlap=fac_overlap,
+                                                  signoise_filter=signoise_filter,
+                                                  drift_correction=drift_correction,
+                                                  )
     # center
     piv_mesh.R = (piv_mesh.R - np.min(piv_mesh.R, axis=0)) - (np.max(piv_mesh.R, axis=0) - np.min(piv_mesh.R, axis=0)) / 2
     return piv_mesh
@@ -43,27 +45,24 @@ def get_displacements_from_stacks(stack_relaxed: Stack, stack_deformed: Stack, w
 
 def sig2noise_filtering(u, v, sig2noise, w=None, threshold=1.3):
     """
-    As integrted into OpenPiv Jun 19, 2020.
-    Since OpenPIV changed this function lateron, we use this version
-    to replace outliers with np.nan dependend on the signal2noise ratio here
+    As integrated into OpenPiv Jun 19, 2020.
+    Since OpenPIV changed this function later on, we use this version
+    to replace outliers with np.nan depending on the signal-to-noise ratio
     """
 
     ind = sig2noise < threshold
 
     u[ind] = np.nan
     v[ind] = np.nan
-    if isinstance(w, np.ndarray):
-        w[ind] = np.nan
-        return u, v, w, ind
-
-    return u, v, ind
+    w[ind] = np.nan
+    return u, v, w, ind
 
 
 def replace_outliers(u, v, w=None, method='localmean', max_iter=5, tol=1e-3, kernel_size=1):
     """
     As integrated into OpenPiv Jun 19, 2020.
     Since OpenPIV changed several functions later on, we use this version
-    to replace outliers with np.nan depending on the signal2noise ratio
+    to replace outliers with np.nan depending on the signal-to-noise ratio
 
     Replace invalid vectors in a velocity field using an iterative image inpainting algorithm.
 
@@ -278,11 +277,7 @@ def replace_nans_py(array, max_iter, tol, kernel_size = 2, method = 'disk'):
 
 # Full 3D Deformation analysis
 def _get_displacements_from_stacks_old(stack_deformed, stack_relaxed, voxel_size, win_um=12, fac_overlap=0.6,
-                                       signoise_filter=1.3, drift_correction=True, return_mesh=False):
-    from saenopy.multigrid_helper import create_box_mesh
-    from saenopy import Solver
-
-    # set properties
+                                       signoise_filter=1.3, drift_correction=True):    # set properties
     voxel_size = np.array(voxel_size)
     window_size = (win_um / voxel_size).astype(int)
     overlap = ((fac_overlap * win_um) / voxel_size).astype(int)
@@ -307,7 +302,7 @@ def _get_displacements_from_stacks_old(stack_deformed, stack_relaxed, voxel_size
         w -= np.nanmean(w)
 
     # filter deformations
-    uf, vf, wf, mask = sig2noise_filtering(u, v,sig2noise, w=w, threshold=signoise_filter)
+    uf, vf, wf, mask = sig2noise_filtering(u, v, sig2noise, w=w, threshold=signoise_filter)
     uf, vf, wf = replace_outliers(uf, vf, wf, max_iter=1, tol=100, kernel_size=2, method='disk')
 
     # get coordinates (by multiplication with the ratio of image dimension and deformation grid)
@@ -325,32 +320,10 @@ def _get_displacements_from_stacks_old(stack_deformed, stack_relaxed, voxel_size
     # - convert to meters for saenopy conversion
     U = np.vstack([v.ravel() * 1e-6, -u.ravel() * 1e-6, w.ravel() * 1e-6]).T
 
-    if return_mesh is True:
-        from saenopy.mesh import Mesh
-        M = PivMesh(R, T)
-        M.U_measured = U
-        return M
-    M = Solver()
-    # provide the node data
-    M.set_nodes(R)
-    # and the tetrahedron data
-    M.set_tetrahedra(T)
-    # set the deformations
-    M.set_target_displacements(U)
-    return M
-
-
-def center_field(U, R):
-    # find center of deformation field analog to force field in Saeno/Saenopy for deformation field
-    # U = U[~np.isnan(U)]
-    # R = R[~np.isnan(R)]
-    Usum = np.sum(U, axis=0)
-    B1 = np.einsum("kj,ki->j", R, U ** 2)
-    B2 = np.einsum("kj,ki,ki->j", U, R, U)
-    A = np.sum(np.einsum("ij,kl,kl->kij", np.eye(3), U, U) - np.einsum("ki,kj->kij", U, U), axis=0)
-    B = B1 - B2
-    center = np.linalg.inv(A) @ B
-    return center
+    from saenopy.mesh import Mesh
+    mesh = PivMesh(R, T)
+    mesh.U_measured = U
+    return mesh
 
 
 def interpolate_different_mesh(R, U, Rnew):
