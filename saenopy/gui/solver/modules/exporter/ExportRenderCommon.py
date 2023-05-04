@@ -5,9 +5,9 @@ import numpy as np
 def get_mesh_arrows(params, result):
     if params["arrows"] == "piv":
         if result is not None:
-            M = result.mesh_piv[params["time"]["t"]]
-            if M is not None and M.U_measured is not None:
-                return M, M.U_measured, params["deformation_arrows"], "U_measured"
+            mesh = result.mesh_piv[params["time"]["t"]]
+            if mesh is not None and mesh.U_measured is not None:
+                return mesh, mesh.U_measured, params["deformation_arrows"], "U_measured"
     elif params["arrows"] == "target deformations":
         M = result.solver[params["time"]["t"]]
         if M is not None:
@@ -25,9 +25,9 @@ def get_mesh_arrows(params, result):
 
 def get_mesh_extent(params, result):
     if params["arrows"] == "piv":
-        M = result.mesh_piv[params["time"]["t"]]
-        if M is not None and M.U_measured is not None:
-            return [M.R.min(axis=0) * 1e6, M.R.max(axis=0) * 1e6]
+        mesh = result.mesh_piv[params["time"]["t"]]
+        if mesh is not None and mesh.U_measured is not None:
+            return [mesh.R.min(axis=0) * 1e6, mesh.R.max(axis=0) * 1e6]
     elif params["arrows"] == "target deformations":
         M = result.solver[params["time"]["t"]]
         if M is not None:

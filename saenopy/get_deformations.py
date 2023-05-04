@@ -30,15 +30,15 @@ def get_displacements_from_stacks(stack_relaxed: Stack, stack_deformed: Stack, w
     # mean over the rgb channels
     stack_deformed = np.mean(np.array(stack_deformed), axis=2)
     stack_relaxed = np.mean(np.array(stack_relaxed), axis=2)
-    M = _get_displacements_from_stacks_old(stack_deformed, stack_relaxed, voxel_size1,
+    piv_mesh = _get_displacements_from_stacks_old(stack_deformed, stack_relaxed, voxel_size1,
                                            win_um=win_um,
                                            fac_overlap=fac_overlap,
                                            signoise_filter=signoise_filter,
                                            drift_correction=drift_correction,
                                            return_mesh=True)
     # center
-    M.R = (M.R - np.min(M.R, axis=0)) - (np.max(M.R, axis=0) - np.min(M.R, axis=0)) / 2
-    return M
+    piv_mesh.R = (piv_mesh.R - np.min(piv_mesh.R, axis=0)) - (np.max(piv_mesh.R, axis=0) - np.min(piv_mesh.R, axis=0)) / 2
+    return piv_mesh
 
 
 def sig2noise_filtering(u, v, sig2noise, w=None, threshold=1.3):
@@ -361,8 +361,8 @@ def interpolate_different_mesh(R, U, Rnew):
 
     Parameters
     ----------
-    R : Old coordinates (saenopy format: M.R)
-    U : Old deformations (saenopy format: M.U)
+    R : Old coordinates (saenopy format: M.mesh.R)
+    U : Old deformations (saenopy format: M.mesh.U)
     Rnew: New coordinates
 
     Returns

@@ -75,7 +75,7 @@ def save_vtp(filename, M):
         return repr(byts)[2:-1]
 
     xml = xml % (
-    M.R.shape[0], n_lines, to_binary(M.R.astype("float32")), to_binary(line_pairs.astype("uint32")), to_binary((np.arange(n_lines) * 2 + 2).astype("uint32")), to_binary(M.U.astype("float32")),
+    M.mesh.R.shape[0], n_lines, to_binary(M.mesh.R.astype("float32")), to_binary(line_pairs.astype("uint32")), to_binary((np.arange(n_lines) * 2 + 2).astype("uint32")), to_binary(M.U.astype("float32")),
     to_binary(M.f.astype("float32")))
     with open(ensure_file_extension(filename, ".vtp"), "w") as fp:
         fp.write(xml)
@@ -126,7 +126,7 @@ def save_vtu(filename, M):
     n_tets = M.T.shape[0]
 
     xml = xml % (
-        M.R.shape[0], M.T.shape[0], to_binary(M.R.astype("float32")),
+        M.mesh.R.shape[0], M.T.shape[0], to_binary(M.mesh.R.astype("float32")),
         to_binary(M.U.astype("float32")),
         to_binary(M.f.astype("float32")),
         to_binary(T.astype("uint32")),
@@ -147,7 +147,7 @@ def save_gmsh(filename, M):
     mesh : :py:class:`~.FiniteBodyForces.FiniteBodyForces`
         The mesh to save.
     """
-    nodes = M.R
+    nodes = M.mesh.R
     num_nodes = nodes.shape[0]
     tets = M.T+1
     num_tets = tets.shape[0]

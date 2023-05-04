@@ -74,9 +74,9 @@ def render_2d_arrows(params, result, pil_image, im_scale, aa_scale, display_imag
             d2 = d2.loc[(slice(None, None, skip), slice(None, None, skip)), :]
         return np.array([i for i in d2.index]), d2[["length", "angle"]]
 
-    M, field, params_arrows, name = get_mesh_arrows(params, result)
+    mesh, field, params_arrows, name = get_mesh_arrows(params, result)
 
-    if M is None:
+    if mesh is None:
         return pil_image
 
     scale_max = params_arrows["scale_max"] if params_arrows["autoscale"] else None
@@ -89,7 +89,7 @@ def render_2d_arrows(params, result, pil_image, im_scale, aa_scale, display_imag
         scale = 1e6 / display_image[1][0]
         offset = np.array(display_image[0].shape[0:2]) / 2
 
-        R = M.R.copy()
+        R = mesh.R.copy()
         field = field.copy()
         R = R[:, :2][:, ::-1] * scale + offset
         field = field[:, :2][:, ::-1] * scale * params_arrows["arrow_scale"]
@@ -105,7 +105,7 @@ def render_2d_arrows(params, result, pil_image, im_scale, aa_scale, display_imag
         z_min = z_center - params["averaging_size"] * 1e-6
         z_max = z_center + params["averaging_size"] * 1e-6
 
-        index = (z_min < M.R[:, 2]) & (M.R[:, 2] < z_max)
+        index = (z_min < mesh.R[:, 2]) & (mesh.R[:, 2] < z_max)
 
         R = R[index]
         field = field[index]

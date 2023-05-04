@@ -515,33 +515,33 @@ def get_faces_hexahedra(T):
 def get_strain(M, stress, stepper=0.066, rel_conv_crit=0.01, verbose=False, callback=None):
     t = time.time()
 
-    left = (M.R[:, 0] == np.min(M.R[:, 0]))
-    right = (M.R[:, 0] == np.max(M.R[:, 0]))
+    left = (M.mesh.R[:, 0] == np.min(M.mesh.R[:, 0]))
+    right = (M.mesh.R[:, 0] == np.max(M.mesh.R[:, 0]))
 
-    l, w, h = np.max(M.R, axis=0) - np.min(M.R, axis=0)
+    l, w, h = np.max(M.mesh.R, axis=0) - np.min(M.mesh.R, axis=0)
 
     A = w * h
 
     # omit two borders for the sum
-    sum_region = (M.R[left, 1] < np.max(M.R[left, 1])) & \
-                 (M.R[left, 2] < np.max(M.R[left, 2]))
-    count = M.R[left, 0][sum_region].shape[0]
+    sum_region = (M.mesh.R[left, 1] < np.max(M.mesh.R[left, 1])) & \
+                 (M.mesh.R[left, 2] < np.max(M.mesh.R[left, 2]))
+    count = M.mesh.R[left, 0][sum_region].shape[0]
     f = stress * A / count
 
-    # displacement boundary coundition is nan in the bluk and the border
-    displacement = np.zeros(M.R.shape)
+    # displacement boundary condition is nan in the bulk and the border
+    displacement = np.zeros(M.mesh.R.shape)
     displacement[:] = np.nan
     displacement[left, :] = 0
     # force boundary condition is 0 in the bulk
     # and f in the border
-    force = np.zeros(M.R.shape)
+    force = np.zeros(M.mesh.R.shape)
     force[:] = 0
     force[left, :] = np.nan
     force[right, 0] = -f
 
     # initial displacement is a uniform strain field in x direction
-    initial_displacement = np.zeros(M.R.shape)
-    # initial_displacement[:, 0] = (lambd-1)*M.R[:, 0]
+    initial_displacement = np.zeros(M.mesh.R.shape)
+    # initial_displacement[:, 0] = (lambd-1)*M.mesh.R[:, 0]
 
     # give the boundary conditions and initial displacement guess to the solver
     M.set_boundary_condition(displacement, force)
@@ -558,35 +558,35 @@ def get_strain(M, stress, stepper=0.066, rel_conv_crit=0.01, verbose=False, call
 def get_stress(M, lambd, stepper=0.066, rel_conv_crit=0.01, verbose=False, callback=None):
     t = time.time()
 
-    left = (M.R[:, 0] == np.min(M.R[:, 0]))
-    right = (M.R[:, 0] == np.max(M.R[:, 0]))
+    left = (M.mesh.R[:, 0] == np.min(M.mesh.R[:, 0]))
+    right = (M.mesh.R[:, 0] == np.max(M.mesh.R[:, 0]))
 
-    x_min = np.min(M.R[:, 0])
+    x_min = np.min(M.mesh.R[:, 0])
 
-    l, w, h = np.max(M.R, axis=0) - np.min(M.R, axis=0)
+    l, w, h = np.max(M.mesh.R, axis=0) - np.min(M.mesh.R, axis=0)
 
     A = w * h
 
     # displacement boundary coundition is nan in the bluk
     # and ad the border lambda in x and 0 in yz
-    displacement = np.zeros(M.R.shape)
+    displacement = np.zeros(M.mesh.R.shape)
     displacement[:] = np.nan
 
     displacement[left, :] = 0
 
     displacement[right, :] = 0
-    displacement[right, 0] = lambd * (M.R[right, 0] - x_min)
+    displacement[right, 0] = lambd * (M.mesh.R[right, 0] - x_min)
     # force boundary condition is 0 in the bulk
     # and nan in the border
-    force = np.zeros(M.R.shape)
+    force = np.zeros(M.mesh.R.shape)
     force[:] = 0
     force[right] = np.nan
 
     # initial displacement is a uniform strain field in x direction
-    initial_displacement = np.zeros(M.R.shape)
-    initial_displacement[:, 0] = lambd * (M.R[:, 0] - x_min)
+    initial_displacement = np.zeros(M.mesh.R.shape)
+    initial_displacement[:, 0] = lambd * (M.mesh.R[:, 0] - x_min)
 
-    # give the boundary condutions and initial displacement guess to the solver
+    # give the boundary conditions and initial displacement guess to the solver
     M.set_boundary_condition(displacement, force)
     M.set_initial_displacements(initial_displacement)
 
@@ -594,8 +594,8 @@ def get_stress(M, lambd, stepper=0.066, rel_conv_crit=0.01, verbose=False, callb
                               callback=callback)
 
     # omit two borders for the sum
-    sum_region = (M.R[right, 1] < np.max(M.R[right, 1])) & \
-                 (M.R[right, 2] < np.max(M.R[right, 2]))
+    sum_region = (M.mesh.R[right, 1] < np.max(M.mesh.R[right, 1])) & \
+                 (M.mesh.R[right, 2] < np.max(M.mesh.R[right, 2]))
 
     stress = -np.sum(M.f[right, 0][sum_region], axis=0) / A
     print("strain", lambd, "stress", stress, "duration", time.time() - t)

@@ -724,7 +724,7 @@ class ExportViewer(PipelineModule):
                         self.time_format.value())
 
     def get_current_arrow_data(self):
-        M = None
+        mesh = None
         field = None
         center = None
         name = ""
@@ -735,60 +735,64 @@ class ExportViewer(PipelineModule):
         skip = self.input_arrow_skip.value()
         if self.input_arrows.value() == "piv":
             if self.result is None:
-                M = None
+                mesh = None
             else:
-                M = self.result.mesh_piv[self.t_slider.value()]
+                mesh = self.result.mesh_piv[self.t_slider.value()]
 
-            if M is not None:
-                if M.U_measured is not None:
+            if mesh is not None:
+                if mesh.U_measured is not None:
                     # showVectorField2(self, M, "U_measured")
-                    field = M.U_measured
+                    field = mesh.U_measured
                     factor = 0.1 * self.vtk_toolbar.arrow_scale.value()
                     name = "U_measured"
                     colormap = self.vtk_toolbar.colormap_chooser.value()
-                    stack_min_max = [M.R.min(axis=0) * 1e6, M.R.max(axis=0) * 1e6]
+                    stack_min_max = [mesh.R.min(axis=0) * 1e6, mesh.R.max(axis=0) * 1e6]
         elif self.input_arrows.value() == "target deformations":
             M = self.result.solver[self.t_slider.value()]
             # showVectorField2(self, M, "U_target")
             if M is not None:
-                field = M.U_target
+                mesh = M.mesh
+                field = mesh.U_target
                 factor = 0.1 * self.vtk_toolbar.arrow_scale.value()
                 name = "U_target"
                 colormap = self.vtk_toolbar.colormap_chooser.value()
-                stack_min_max = [M.R.min(axis=0) * 1e6, M.R.max(axis=0) * 1e6]
+                stack_min_max = [mesh.R.min(axis=0) * 1e6, mesh.R.max(axis=0) * 1e6]
         elif self.input_arrows.value() == "fitted deformations":
             M = self.result.solver[self.t_slider.value()]
             if M is not None:
-                field = M.U
+                mesh = M.mesh
+                field = mesh.U
                 factor = 0.1 * self.vtk_toolbar.arrow_scale.value()
                 name = "U"
                 colormap = self.vtk_toolbar.colormap_chooser.value()
-                stack_min_max = [M.R.min(axis=0) * 1e6, M.R.max(axis=0) * 1e6]
+                stack_min_max = [mesh.R.min(axis=0) * 1e6, mesh.R.max(axis=0) * 1e6]
         elif self.input_arrows.value() == "fitted forces":
             M = self.result.solver[self.t_slider.value()]
             if M is not None:
+                mesh = M.mesh
                 center = None
                 if self.vtk_toolbar2.use_center.value() is True:
-                    center = M.get_center(mode="Force")
-                field = -M.f * M.mesh.reg_mask[:, None]
+                    center = mesh.get_center(mode="Force")
+                field = -mesh.f * mesh.mesh.reg_mask[:, None]
                 factor = 0.15 * self.vtk_toolbar2.arrow_scale.value()
                 name = "f"
                 colormap = self.vtk_toolbar2.colormap_chooser.value()
                 scale_max = self.vtk_toolbar2.getScaleMax()
-                stack_min_max = [M.R.min(axis=0) * 1e6, M.R.max(axis=0) * 1e6]
+                stack_min_max = [mesh.R.min(axis=0) * 1e6, mesh.R.max(axis=0) * 1e6]
                 skip = self.input_arrow_skip2.value()
         else:
             # get min/max of stack
             M = self.result.solver[self.t_slider.value()]
             if M is not None:
-                stack_min_max = [M.R.min(axis=0) * 1e6, M.R.max(axis=0) * 1e6]
+                mesh = M.mesh
+                stack_min_max = [mesh.R.min(axis=0) * 1e6, mesh.R.max(axis=0) * 1e6]
             else:
-                M = self.result.mesh_piv[self.t_slider.value()]
-                if M is not None:
-                    stack_min_max = [M.R.min(axis=0) * 1e6, M.R.max(axis=0) * 1e6]
+                mesh = self.result.mesh_piv[self.t_slider.value()]
+                if mesh is not None:
+                    stack_min_max = [mesh.R.min(axis=0) * 1e6, mesh.R.max(axis=0) * 1e6]
                 else:
                     stack_min_max = None
-        return M, field, center, name, colormap, factor, scale_max, stack_min_max, skip
+        return mesh, field, center, name, colormap, factor, scale_max, stack_min_max, skip
 
     def update_display(self):
         if self.no_update:

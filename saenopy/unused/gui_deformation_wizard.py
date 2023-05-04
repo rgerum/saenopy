@@ -134,8 +134,8 @@ class DeformationDetector(QtWidgets.QWidget):
                 self.M.save("tmp_deformation.npz")
             else:
                 self.M = saenopy.load("tmp_deformation.npz")
-                self.M.R += (np.max(self.M.R, axis=0) - np.min(self.M.R, axis=0))
-            self.point_cloud = pv.PolyData(self.M.R)
+                self.M.mesh.R += (np.max(self.M.mesh.R, axis=0) - np.min(self.M.mesh.R, axis=0))
+            self.point_cloud = pv.PolyData(self.M.mesh.R)
             self.point_cloud.point_arrays["f"] = -self.M.f
             self.point_cloud["f_mag"] = np.linalg.norm(self.M.f, axis=1)
             self.point_cloud.point_arrays["U"] = self.M.U
@@ -231,22 +231,22 @@ class MeshCreator(QtWidgets.QWidget):
         M = self.deformation_detector.M1
         points, cells = saenopy.multigridHelper.get_scaled_mesh(float(self.input_element_size.value()) * 1e-6,
                                                                 float(self.input_inner_region.value()) * 1e-6,
-                                                                (np.max(M.R, axis=0) - np.min(M.R, axis=0)) / 2,
+                                                                (np.max(M.mesh.R, axis=0) - np.min(M.mesh.R, axis=0)) / 2,
                                                                 [0, 0, 0], self.input_thinning_factor.value())
 
-        U_target = saenopy.getDeformations.interpolate_different_mesh(M.R, M.U_target, points)
+        U_target = saenopy.getDeformations.interpolate_different_mesh(M.mesh.R, M.U_target, points)
         self.M = saenopy.Solver()
         self.M.set_nodes(points)
         self.M.set_tetrahedra(cells)
         self.M.set_target_displacements(U_target)
 
-        self.point_cloud = pv.PolyData(self.M.R)
-        self.point_cloud.point_arrays["f"] = -self.M.f
-        self.point_cloud["f_mag"] = np.linalg.norm(self.M.f, axis=1)
-        self.point_cloud.point_arrays["U"] = self.M.U
-        self.point_cloud["U_mag"] = np.linalg.norm(self.M.U, axis=1)
-        self.point_cloud.point_arrays["U_target"] = self.M.U_target
-        self.point_cloud["U_target_mag"] = np.linalg.norm(self.M.U_target, axis=1)
+        self.point_cloud = pv.PolyData(self.M.mesh.R)
+        self.point_cloud.point_arrays["f"] = -self.M.mesh.f
+        self.point_cloud["f_mag"] = np.linalg.norm(self.M.mesh.f, axis=1)
+        self.point_cloud.point_arrays["U"] = self.M.mesh.U
+        self.point_cloud["U_mag"] = np.linalg.norm(self.M.mesh.U, axis=1)
+        self.point_cloud.point_arrays["U_target"] = self.M.mesh.U_target
+        self.point_cloud["U_target_mag"] = np.linalg.norm(self.M.mesh.U_target, axis=1)
 
         self.detection_finished.emit()
 
@@ -347,7 +347,7 @@ class Regularizer(QtWidgets.QWidget):
         M.solve_regularized(stepper=float(self.input_stepper.value()), i_max=self.input_imax.value(),
                             alpha=float(self.input_alpha.value()), callback=callback, verbose=True)
         self.M = M
-        self.point_cloud = pv.PolyData(self.M.R)
+        self.point_cloud = pv.PolyData(self.M.mesh.R)
         self.point_cloud.point_arrays["f"] = -self.M.f
         self.point_cloud["f_mag"] = np.linalg.norm(self.M.f, axis=1)
         self.point_cloud.point_arrays["U"] = self.M.U

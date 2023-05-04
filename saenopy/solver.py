@@ -1020,7 +1020,7 @@ def interpolate_mesh(M: Solver, xpos2: np.ndarray, params: dict) -> Solver:
     import saenopy
     from saenopy.multigrid_helper import get_scaled_mesh, get_nodes_with_one_face
 
-    x, y, z = (M.R.max(axis=0) - M.R.min(axis=0)) * 1e6
+    x, y, z = (M.mesh.R.max(axis=0) - M.mesh.R.min(axis=0)) * 1e6
     if params["mesh_size_same"]:
         params["mesh_size_x"] = x
         params["mesh_size_y"] = y
@@ -1042,7 +1042,7 @@ def interpolate_mesh(M: Solver, xpos2: np.ndarray, params: dict) -> Solver:
                                                                        params["mesh_size_z"]]) * 1e-6 / 2,
                                                              [0, 0, 0], params["thinning_factor"])
 
-    R = (M.R - np.min(M.R, axis=0)) - (np.max(M.R, axis=0) - np.min(M.R, axis=0)) / 2
+    R = (M.mesh.R - np.min(M.mesh.R, axis=0)) - (np.max(M.mesh.R, axis=0) - np.min(M.mesh.R, axis=0)) / 2
     U_target = saenopy.get_deformations.interpolate_different_mesh(R, xpos2, points)
 
     border_idx = get_nodes_with_one_face(cells)
