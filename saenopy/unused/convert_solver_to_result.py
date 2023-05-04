@@ -10,7 +10,8 @@ Option for newer saenopy version
  
 import os
 from saenopy import Solver
-from saenopy.solver import Result, Mesh
+from saenopy.solver import Result
+from saenopy.mesh import Mesh
 from glob import glob
 
 liste = glob(r"../Amp*_dist*.npz")

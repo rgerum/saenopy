@@ -38,7 +38,7 @@ class DeformationDetector(PipelineModule):
             with CheckAbleGroup(self, "find deformations (piv)", url="https://saenopy.readthedocs.io/en/latest/interface_solver.html#detect-deformations").addToLayout() as self.group:
                 with QtShortCuts.QVBoxLayout() as layout:
                     with QtShortCuts.QHBoxLayout():
-                        self.input_elementsize = QtShortCuts.QInputNumber(None, "piv elem. size", 15.0, step=1,
+                        self.input_element_size = QtShortCuts.QInputNumber(None, "piv elem. size", 15.0, step=1,
                                                                           value_changed=self.valueChanged,
                                                                           tooltip="the grid size for deformation detection")
 
@@ -46,9 +46,9 @@ class DeformationDetector(PipelineModule):
                                                                   value_changed=self.valueChanged, unit="μm",
                                                                   tooltip="the size of the volume to look for a match")
                     with QtShortCuts.QHBoxLayout():
-                        self.input_signoise = QtShortCuts.QInputNumber(None, "signoise", 1.3, step=0.1,
+                        self.input_signoise = QtShortCuts.QInputNumber(None, "signal to noise", 1.3, step=0.1,
                                                                        tooltip="the signal to noise ratio threshold value, values below are ignore")
-                        self.input_driftcorrection = QtShortCuts.QInputBool(None, "driftcorrection", True,
+                        self.input_driftcorrection = QtShortCuts.QInputBool(None, "drift correction", True,
                                                                             tooltip="remove the mean displacement to correct for a global drift")
                     self.label = QtWidgets.QLabel().addToLayout()
                     self.input_button = QtShortCuts.QPushButton(None, "detect deformations", self.start_process)
@@ -77,8 +77,7 @@ class DeformationDetector(PipelineModule):
 
         self.setParameterMapping("piv_parameter", {
             "win_um": self.input_win,
-            "elementsize": self.input_elementsize,
-            # "fac_overlap": self.input_overlap,
+            "element_size": self.input_element_size,
             "signoise_filter": self.input_signoise,
             "drift_correction": self.input_driftcorrection,
         })
@@ -127,19 +126,19 @@ class DeformationDetector(PipelineModule):
         CamPos.cam_pos_initialized = True
         plotter.interactor.setToolTip("")
         if self.result is None:
-            M = None
+            mesh = None
         else:
-            M = self.result.mesh_piv[self.t_slider.value()]
+            mesh = self.result.mesh_piv[self.t_slider.value()]
 
-        if M is None:
+        if mesh is None:
             plotter.show()
             return
 
         plotter.interactor.setToolTip(
-            str(self.result.piv_parameter) + f"\nNodes {self.result.mesh_piv[0].R.shape[0]}\nTets {self.result.mesh_piv[0].T.shape[0]}")
+            str(self.result.piv_parameter) + f"\nNodes {mesh.R.shape[0]}\nTets {mesh.T.shape[0]}")
 
-        if M.has_node_var("U_measured"):
-            showVectorField2(self, M, "U_measured")
+        if mesh.U_measured is not None:
+            showVectorField2(self, mesh, "U_measured")
 
         if cam_pos is not None:
             plotter.camera_position = cam_pos
@@ -148,10 +147,10 @@ class DeformationDetector(PipelineModule):
         if self.check_available(self.result):
             voxel_size1 = self.result.stack[0].voxel_size
             stack_deformed = self.result.stack[0]
-            overlap = 1 - (self.input_elementsize.value() / self.input_win.value())
+            overlap = 1 - (self.input_element_size.value() / self.input_win.value())
             stack_size = np.array(stack_deformed.shape)[:3] * voxel_size1 - self.input_win.value()
             self.label.setText(
-                f"""Overlap between neighbouring windows\n(size={self.input_win.value()}µm or {(self.input_win.value() / np.array(voxel_size1)).astype(int)} px) is choosen \n to {int(overlap * 100)}% for an elementsize of {self.input_elementsize.value():.1f}μm elements.\nTotal region is {stack_size}.""")
+                f"""Overlap between neighbouring windows\n(size={self.input_win.value()}µm or {(self.input_win.value() / np.array(voxel_size1)).astype(int)} px) is choosen \n to {int(overlap * 100)}% for an element_size of {self.input_element_size.value():.1f}μm elements.\nTotal region is {stack_size}.""")
         else:
             self.label.setText("")
 
@@ -206,7 +205,7 @@ class DeformationDetector(PipelineModule):
                     # and calculate the displacement between them
                     result.mesh_piv[i] = saenopy.get_displacements_from_stacks(stack1, stack2,
                                                                                params["win_um"],
-                                                                               params["elementsize"],
+                                                                               params["element_size"],
                                                                                params["signoise_filter"],
                                                                                params["drift_correction"])
                 # save the displacements
@@ -248,7 +247,7 @@ def getDeformation(progress, i, result, params):
             stack1, stack2 = result.stack_reference, result.stack[i]
         mesh_piv = saenopy.get_displacements_from_stacks(stack1, stack2,
                                                          params["win_um"],
-                                                         params["elementsize"],
+                                                         params["element_size"],
                                                          params["signoise_filter"],
                                                          params["drift_correction"])
     finally:

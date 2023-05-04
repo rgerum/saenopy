@@ -7,7 +7,8 @@ from typing import List
 import tifffile
 from saenopy.stack import Stack, format_glob
 from saenopy.saveable import Saveable
-from saenopy.solver import Mesh, Solver
+from saenopy.solver import Solver
+from saenopy.get_deformations import PivMesh
 
 
 def get_channel_placeholder(filename):
@@ -233,7 +234,7 @@ class Result(Saveable):
                            'interpolate_parameter', 'solve_parameter', 'solver',
                            '___save_name__', '___save_version__']
     ___save_name__ = "Result"
-    ___save_version__ = "1.1"
+    ___save_version__ = "1.2"
     output: str = None
     state: False
 
@@ -243,7 +244,7 @@ class Result(Saveable):
     template: str = None
 
     piv_parameter: dict = None
-    mesh_piv: List[Mesh] = None
+    mesh_piv: List[PivMesh] = None
 
     interpolate_parameter: dict = None
     solve_parameter: dict = None

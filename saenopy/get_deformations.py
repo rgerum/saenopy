@@ -2,15 +2,30 @@ import numpy as np
 from openpiv.pyprocess3D import extended_search_area_piv3D
 from scipy import interpolate
 
+from nptyping import NDArray, Shape, Float
+from saenopy.mesh import Mesh, check_node_vector_field
+from pyfields import field
+from saenopy.stack import Stack
 
-def get_displacements_from_stacks(stack_relaxed, stack_deformed, win_um, elementsize, signoise_filter, drift_correction):
-    fac_overlap = 1 - (elementsize/win_um)
+
+class PivMesh(Mesh):
+    __save_parameters__ = ["R", "T", "U_measured"]
+
+    U_measured: NDArray[Shape["N_c, 3"], Float] = field(doc="the measured displacements of each node, dimensions: N_c x 3",
+                                                        validators=check_node_vector_field, default=None)
+
+
+def get_displacements_from_stacks(stack_relaxed: Stack, stack_deformed: Stack, win_um: float,
+                                  element_size: float, signoise_filter: float, drift_correction: bool) -> PivMesh:
+    fac_overlap = 1 - (element_size/win_um)
     voxel_size1 = stack_deformed.voxel_size
     voxel_size2 = stack_relaxed.voxel_size
 
-    np.testing.assert_equal(voxel_size1, voxel_size2, f"The two stacks do not have the same voxel size. {voxel_size1}, {voxel_size2}")
+    np.testing.assert_equal(voxel_size1, voxel_size2,
+                            f"The two stacks do not have the same voxel size. {voxel_size1}, {voxel_size2}")
 
-    np.testing.assert_equal(stack_deformed.shape, stack_relaxed.shape, f"The two stacks do not have the same voxel count. {stack_deformed.shape}, {stack_relaxed.shape}")
+    np.testing.assert_equal(stack_deformed.shape, stack_relaxed.shape,
+                            f"The two stacks do not have the same voxel count. {stack_deformed.shape}, {stack_relaxed.shape}")
 
     # mean over the rgb channels
     stack_deformed = np.mean(np.array(stack_deformed), axis=2)
@@ -311,9 +326,9 @@ def _get_displacements_from_stacks_old(stack_deformed, stack_relaxed, voxel_size
     U = np.vstack([v.ravel() * 1e-6, -u.ravel() * 1e-6, w.ravel() * 1e-6]).T
 
     if return_mesh is True:
-        from saenopy.solver import Mesh
-        M = Mesh(R, T)
-        M.set_node_var("U_measured", U)
+        from saenopy.mesh import Mesh
+        M = PivMesh(R, T)
+        M.U_measured = U
         return M
     M = Solver()
     # provide the node data
