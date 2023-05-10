@@ -114,7 +114,7 @@ def main():  # pragma: no cover
         import ctypes
         myappid = 'fabrylab.saenopy.master'  # arbitrary string
         ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
-    print(sys.argv)
+
     window = MainWindow()
     window.show()
     try:

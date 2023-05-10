@@ -29,11 +29,12 @@ class ParameterMapping:
         # if the results instance does not have the parameter dictionary yet, create it
         if getattr(result, self.params_name + "_tmp", None) is None:
             setattr(result, self.params_name + "_tmp", {})
+
+        # set the widgets to the value if the value exits
+        params = getattr(result, self.params_name)
+        params_tmp = getattr(result, self.params_name + "_tmp")
         # iterate over the parameters
         for name, widget in self.parameter_dict.items():
-            # set the widgets to the value if the value exits
-            params = getattr(result, self.params_name)
-            params_tmp = getattr(result, self.params_name + "_tmp")
             if name not in params_tmp:
                 if params is not None and name in params:
                     params_tmp[name] = params[name]
@@ -52,10 +53,10 @@ class ParameterMapping:
         # if a result file is given
         if result is not None:
             self.ensure_tmp_params_initialized(result)
+            params_tmp = getattr(result, self.params_name + "_tmp")
             # iterate over the parameters
             for name, widget in self.parameter_dict.items():
                 # set the widgets to the value if the value exits
-                params_tmp = getattr(result, self.params_name + "_tmp")
                 widget.setValue(params_tmp[name])
 
 
@@ -88,10 +89,12 @@ class PipelineModule(QtWidgets.QWidget):
 
         self.processing_progress.connect(self.parent.progress)
 
+        self.parameter_mappings = []
+
     def setParameterMapping(self, params_name: str = None, parameter_dict: dict=None):
         self.params_name = params_name
-        if self.parameter_mappings is None:
-            self.parameter_mappings = []
+        if params_name is None:
+            return
         self.parameter_mappings.append(ParameterMapping(params_name, parameter_dict))
 
     current_result_plotted = False
@@ -226,7 +229,8 @@ class PipelineModule(QtWidgets.QWidget):
         try:
             self.process(result, **params)
             # store the parameters that have been used for evaluation
-            setattr(result, self.params_name, params.copy())
+            for mapping in self.parameter_mappings:
+                setattr(result, mapping.params_name, params[mapping.params_name].copy())
             result.save()
             setattr(result, self.params_name + "_state", "finished")
             self.parent.result_changed.emit(result)

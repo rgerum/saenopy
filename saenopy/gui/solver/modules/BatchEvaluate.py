@@ -376,9 +376,11 @@ class BatchEvaluate(QtWidgets.QWidget):
             )
             # load all the measurement objects
             for data in results:
-                data.piv_parameters = example["piv_parameter"]
-                data.mesh_parameters = example["interpolate_parameter"]
-                data.solve_parameters = example["solve_parameter"]
+                if getattr(data, "is_read", False) is False:
+                    data.piv_parameters = example["piv_parameters"]
+                    data.mesh_parameters = example["mesh_parameters"]
+                    data.material_parameters = example["material_parameters"]
+                    data.solve_parameters = example["solve_parameters"]
                 self.add_data(data)
 
         # update the icons

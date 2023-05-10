@@ -148,10 +148,12 @@ def get_stacks(filename, output_path, voxel_size, time_delta=None, reference_sta
                         break
                     if mode == "read":
                         data = Result.load(output)
+                        data.is_read = True
                         results.append(data)
                         continue
                 elif load_existing is True:
                     data = Result.load(output)
+                    data.is_read = True
                     results.append(data)
                     continue
 
@@ -187,10 +189,12 @@ def get_stacks(filename, output_path, voxel_size, time_delta=None, reference_sta
                         break
                     if mode == "read":
                         data = Result.load(output)
+                        data.is_read = True
                         results.append(data)
                         continue
                 elif load_existing is True:
                     data = Result.load(output)
+                    data.is_read = True
                     results.append(data)
                     continue
 
@@ -228,8 +232,9 @@ def common_end(values):
 
 
 class Result(Saveable):
-    __save_parameters__ = ['template', 'stack', 'stack_reference', 'time_delta', 'piv_parameter', 'mesh_piv',
-                           'interpolate_parameter', 'solve_parameter', 'solver',
+    __save_parameters__ = ['stack_parameters', 'stack', 'stack_reference', 'template',
+                           'time_delta', 'piv_parameters', 'mesh_piv',
+                           'mesh_parameters', 'material_parameters', 'solve_parameters', 'solver',
                            '___save_name__', '___save_version__']
     ___save_name__ = "Result"
     ___save_version__ = "1.2"
@@ -240,6 +245,7 @@ class Result(Saveable):
     stack: List[Stack] = None
     stack_reference: Stack = None
     template: str = None
+    time_delta: float = None
 
     piv_parameters: dict = None
     mesh_piv: List[PivMesh] = None
