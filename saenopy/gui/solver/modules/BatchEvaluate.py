@@ -122,9 +122,10 @@ class BatchEvaluate(QtWidgets.QWidget):
     def copy_params(self):
         result = self.list.data[self.list.currentRow()][2]
         params = {
-            "piv_parameter": result.piv_parameter_tmp,
-            "interpolate_parameter": result.interpolate_parameter_tmp,
-            "solve_parameter": result.solve_parameter_tmp,
+            "piv_parameters": result.piv_parameters_tmp,
+            "mesh_parameters": result.mesh_parameters_tmp,
+            "material_parameters": result.material_parameters_tmp,
+            "solve_parameters": result.solve_parameters_tmp,
         }
         print(params)
         for group in params:
@@ -144,9 +145,10 @@ class BatchEvaluate(QtWidgets.QWidget):
         text = cb.text(mode=cb.Clipboard)
         try:
             data = json.loads(text)
-            if "piv_parameter" in data and \
-                "interpolate_parameter" in data and \
-                "solve_parameter" in data:
+            if "piv_parameters" in data and \
+                "mesh_parameters" in data and \
+                "material_parameters" in data and \
+                "solve_parameters" in data:
                 return True
         except (ValueError, TypeError):
             return False
@@ -160,7 +162,7 @@ class BatchEvaluate(QtWidgets.QWidget):
         except ValueError:
             return False
         result = self.list.data[self.list.currentRow()][2]
-        params = ["piv_parameter", "interpolate_parameter", "solve_parameter"]
+        params = ["piv_parameters", "mesh_parameters", "material_parameters", "solve_parameters"]
         for par in params:
             if par in data:
                 setattr(result, par+"_tmp", data[par])

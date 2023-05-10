@@ -610,3 +610,11 @@ def test_loading(monkeypatch, catch_popup_error, random_path):
 
     monkeypatch.setattr(AddFilesDialog, "exec", handle_download_example)
     batch_evaluate.add_measurement()
+
+
+if __name__ == "__main__":
+    class monk():
+        def setattr(self, obj, name, value):
+            setattr(obj, name, value)
+
+    test_run_example(monk(), None, None, use_time=False, use_reference=True)
