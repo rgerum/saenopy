@@ -11,10 +11,10 @@ from saenopy.multigrid_helper import create_box_mesh
 
 
 class PivMesh(Mesh):
-    __save_parameters__ = ["R", "T", "U_measured"]
+    __save_parameters__ = ["nodes", "tetrahedra", "displacements_measured"]
 
-    U_measured: NDArray[Shape["N_c, 3"], Float] = field(doc="the measured displacements of each node, dimensions: N_c x 3",
-                                                        validators=check_node_vector_field, default=None)
+    displacements_measured: NDArray[Shape["N_c, 3"], Float] = field(doc="the measured displacements of each node, dimensions: N_c x 3",
+                                                                    validators=check_node_vector_field, default=None)
 
 
 def get_displacements_from_stacks(stack_relaxed: Stack, stack_deformed: Stack, window_size: float,
@@ -39,7 +39,7 @@ def get_displacements_from_stacks(stack_relaxed: Stack, stack_deformed: Stack, w
                                                   drift_correction=drift_correction,
                                                   )
     # center
-    piv_mesh.R = (piv_mesh.R - np.min(piv_mesh.R, axis=0)) - (np.max(piv_mesh.R, axis=0) - np.min(piv_mesh.R, axis=0)) / 2
+    piv_mesh.nodes = (piv_mesh.nodes - np.min(piv_mesh.nodes, axis=0)) - (np.max(piv_mesh.nodes, axis=0) - np.min(piv_mesh.nodes, axis=0)) / 2
     return piv_mesh
 
 
@@ -322,7 +322,7 @@ def _get_displacements_from_stacks_old(stack_deformed, stack_relaxed, voxel_size
 
     from saenopy.mesh import Mesh
     mesh = PivMesh(R, T)
-    mesh.U_measured = U
+    mesh.displacements_measured = U
     return mesh
 
 

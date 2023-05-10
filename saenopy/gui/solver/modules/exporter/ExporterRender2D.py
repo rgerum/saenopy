@@ -89,11 +89,11 @@ def render_2d_arrows(params, result, pil_image, im_scale, aa_scale, display_imag
         scale = 1e6 / display_image[1][0]
         offset = np.array(display_image[0].shape[0:2]) / 2
 
-        R = mesh.R.copy()
+        R = mesh.nodes.copy()
         field = field.copy()
         R = R[:, :2][:, ::-1] * scale + offset
         field = field[:, :2][:, ::-1] * scale * params_arrows["arrow_scale"]
-        if name == "f":
+        if name == "forces":
             field *= 1e4
 
         if scale_max is None:
@@ -105,7 +105,7 @@ def render_2d_arrows(params, result, pil_image, im_scale, aa_scale, display_imag
         z_min = z_center - params["averaging_size"] * 1e-6
         z_max = z_center + params["averaging_size"] * 1e-6
 
-        index = (z_min < mesh.R[:, 2]) & (mesh.R[:, 2] < z_max)
+        index = (z_min < mesh.nodes[:, 2]) & (mesh.nodes[:, 2] < z_max)
 
         R = R[index]
         field = field[index]

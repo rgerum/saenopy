@@ -150,16 +150,16 @@ class PlottingWindow(QtWidgets.QWidget):
                 continue
             try:
                 print("Add file", file)
-                res = Result.load(file)
+                res: Result = Result.load(file)
                 res.resulting_data = []
                 for i, M in enumerate(res.solver):
                     res.resulting_data.append({
                         "t": i*res.time_delta if res.time_delta else 0,
-                        "strain_energy": M.E_glo,
+                        "strain_energy": M.mesh.strain_energy,
                         "contractility": M.get_contractility(center_mode="force"),
                         "polarity": M.get_polarity(),
-                        "99_percentile_deformation": np.nanpercentile(np.linalg.norm(M.U_target[M.mesh.reg_mask], axis=1), 99),
-                        "99_percentile_force": np.nanpercentile(np.linalg.norm(M.f[M.mesh.reg_mask], axis=1), 99),
+                        "99_percentile_deformation": np.nanpercentile(np.linalg.norm(M.mesh.displacements_target[M.mesh.regularisation_mask], axis=1), 99),
+                        "99_percentile_force": np.nanpercentile(np.linalg.norm(M.mesh.forces[M.mesh.regularisation_mask], axis=1), 99),
                         "filename": file,
                     })
                 res.resulting_data = pd.DataFrame(res.resulting_data)

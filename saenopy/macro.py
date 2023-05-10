@@ -285,7 +285,7 @@ from saenopy.materials import SemiAffineFiberMaterial
 def fit_error(xy, xy0, w=None):
     # split the data
     x, y = xy
-    x0, y0 = xy0.T
+    x0, y0 = xy0.tetrahedra
     # interpolate the fit to ensure we have values at the correct x positions
     f = interpolate.interp1d(x, y, bounds_error=False)
     # evaluate the interpolated fit at the x0 values and calculate the squared difference to the y0 values

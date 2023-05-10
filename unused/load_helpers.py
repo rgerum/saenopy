@@ -38,7 +38,7 @@ def make_box_mesh(mesh, CFG):
     print("tets")
     mesh.set_tetrahedra(make_box_mesh_tets(nx, mesh.currentgrain))
     print("var")
-    mesh.var = set_active_fields(nx, mesh.currentgrain, True)
+    mesh.movable = set_active_fields(nx, mesh.currentgrain, True)
     print("done")
 
 

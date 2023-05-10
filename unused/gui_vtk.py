@@ -192,32 +192,32 @@ class MainWindow(QtWidgets.QMainWindow):
             vmin, vmax = np.nanpercentile(m, [1, 99.9])
             return np.clip((m-vmin)/(vmax-vmin), 0, 1)*(vmax-vmin)
 
-        R = self.M.mesh.R
+        R = self.M.mesh.nodes
         minR = np.min(R, axis=0)
         maxR = np.max(R, axis=0)
         
-        if self.M.mesh.reg_mask is None:
+        if self.M.mesh.regularisation_mask is None:
             border = (R[:, 0] < minR[0] + 0.5e-6) | (R[:, 0] > maxR[0] - 0.5e-6) | \
                      (R[:, 1] < minR[1] + 0.5e-6) | (R[:, 1] > maxR[1] - 0.5e-6) | \
                      (R[:, 2] < minR[2] + 0.5e-6) | (R[:, 2] > maxR[2] - 0.5e-6)
-            self.M.mesh.reg_mask = ~border
+            self.M.mesh.regularisation_mask = ~border
                  
 
-        self.point_cloud = pv.PolyData(self.M.mesh.R)
-        self.point_cloud.point_arrays["f"] = -self.M.mesh.f*self.M.mesh.reg_mask[:, None]
-        self.point_cloud["f_mag"] = np.linalg.norm(self.M.mesh.f*self.M.mesh.reg_mask[:, None], axis=1)
-        self.point_cloud.point_arrays["U"] = self.M.mesh.U
-        self.point_cloud["U_mag"] = np.linalg.norm(self.M.mesh.U, axis=1)
-        self.point_cloud.point_arrays["U_target"] = self.M.mesh.U_target
-        self.point_cloud["U_target_mag"] = np.linalg.norm(self.M.mesh.U_target, axis=1)
+        self.point_cloud = pv.PolyData(self.M.mesh.nodes)
+        self.point_cloud.point_arrays["f"] = -self.M.mesh.forces * self.M.mesh.regularisation_mask[:, None]
+        self.point_cloud["f_mag"] = np.linalg.norm(self.M.mesh.forces * self.M.mesh.regularisation_mask[:, None], axis=1)
+        self.point_cloud.point_arrays["U"] = self.M.mesh.displacements
+        self.point_cloud["U_mag"] = np.linalg.norm(self.M.mesh.displacements, axis=1)
+        self.point_cloud.point_arrays["U_target"] = self.M.mesh.displacements_target
+        self.point_cloud["U_target_mag"] = np.linalg.norm(self.M.mesh.displacements_target, axis=1)
 
         self.point_cloud2 = None
 
-        self.offset = np.min(self.M.mesh.R, axis=0)
+        self.offset = np.min(self.M.mesh.nodes, axis=0)
         if 0:
             self.stats_label.setText(f"""
-            Nodes = {self.M.mesh.R.shape[0]}
-            Tets = {self.M.mesh.T.shape[0]}
+            Nodes = {self.M.mesh.nodes.shape[0]}
+            Tets = {self.M.mesh.tetrahedra.shape[0]}
             """)
         self.replot()
     
@@ -234,39 +234,39 @@ class MainWindow(QtWidgets.QMainWindow):
             vmin, vmax = np.nanpercentile(m, [1, 99.9])
             return np.clip((m-vmin)/(vmax-vmin), 0, 1)*(vmax-vmin)
 
-        R = self.M.mesh.R
+        R = self.M.mesh.nodes
         minR = np.min(R, axis=0)
         maxR = np.max(R, axis=0)
         
-        if self.M.mesh.reg_mask is None:
+        if self.M.mesh.regularisation_mask is None:
             border = (R[:, 0] < minR[0] + 0.5e-6) | (R[:, 0] > maxR[0] - 0.5e-6) | \
                      (R[:, 1] < minR[1] + 0.5e-6) | (R[:, 1] > maxR[1] - 0.5e-6) | \
                      (R[:, 2] < minR[2] + 0.5e-6) | (R[:, 2] > maxR[2] - 0.5e-6)
-            self.M.mesh.reg_mask = ~border
+            self.M.mesh.regularisation_mask = ~border
                  
 
-        self.point_cloud = pv.PolyData(self.M.mesh.R)
-        self.point_cloud.point_arrays["f"] = -self.M.mesh.f*self.M.mesh.reg_mask[:, None]
-        self.point_cloud["f_mag"] = np.linalg.norm(self.M.mesh.f*self.M.mesh.reg_mask[:, None], axis=1)
-        self.point_cloud.point_arrays["U"] = self.M.mesh.U
-        self.point_cloud["U_mag"] = np.linalg.norm(self.M.mesh.U, axis=1)
-        self.point_cloud.point_arrays["U_target"] = self.M.mesh.U_target
-        self.point_cloud["U_target_mag"] = np.linalg.norm(self.M.mesh.U_target, axis=1)
+        self.point_cloud = pv.PolyData(self.M.mesh.nodes)
+        self.point_cloud.point_arrays["f"] = -self.M.mesh.forces * self.M.mesh.regularisation_mask[:, None]
+        self.point_cloud["f_mag"] = np.linalg.norm(self.M.mesh.forces * self.M.mesh.regularisation_mask[:, None], axis=1)
+        self.point_cloud.point_arrays["U"] = self.M.mesh.displacements
+        self.point_cloud["U_mag"] = np.linalg.norm(self.M.mesh.displacements, axis=1)
+        self.point_cloud.point_arrays["U_target"] = self.M.mesh.displacements_target
+        self.point_cloud["U_target_mag"] = np.linalg.norm(self.M.mesh.displacements_target, axis=1)
 
         self.point_cloud2 = None
 
-        self.offset = np.min(self.M.mesh.R, axis=0)
+        self.offset = np.min(self.M.mesh.nodes, axis=0)
         if 0:
             self.stats_label.setText(f"""
-            Nodes = {self.M.mesh.R.shape[0]}
-            Tets = {self.M.mesh.T.shape[0]}
+            Nodes = {self.M.mesh.nodes.shape[0]}
+            Tets = {self.M.mesh.tetrahedra.shape[0]}
             """)
         self.replot()   
         
         
         
     def calculateStiffness(self):
-        self.point_cloud2 = pv.PolyData(np.mean(self.M.mesh.R[self.M.mesh.T], axis=1))
+        self.point_cloud2 = pv.PolyData(np.mean(self.M.mesh.nodes[self.M.mesh.tetrahedra], axis=1))
         from saenopy.materials import SemiAffineFiberMaterial
         #self.M.setMaterialModel(SemiAffineFiberMaterial(1645, 0.0008, 0.0075, 0.033), generate_lookup=False)
         if self.M.material_parameters is not None:
@@ -313,7 +313,7 @@ class MainWindow(QtWidgets.QMainWindow):
         for i, name in enumerate(names):
             plotter.subplot(i//plotter.shape[1], i % plotter.shape[1])
             # scale plot with axis length later
-            norm_stack_size = np.abs(np.max(self.M.mesh.R)-np.min(self.M.mesh.R))
+            norm_stack_size = np.abs(np.max(self.M.mesh.nodes) - np.min(self.M.mesh.nodes))
             
 
             if name == "stiffness":
@@ -327,7 +327,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 arrows = self.point_cloud.glyph(orient="f", scale="f_mag",
                                                 # Automatically scale maximal force to 15% of axis length
                                                 factor=0.15 * norm_stack_size / np.nanmax(
-                                                    np.linalg.norm(self.M.mesh.f*self.M.mesh.reg_mask[:, None], axis=1)))
+                                                    np.linalg.norm(self.M.mesh.forces * self.M.mesh.regularisation_mask[:, None], axis=1)))
                 plotter.add_mesh(arrows, colormap='turbo', name="arrows",
                                 scalar_bar_args=sargs, stitle="Force [N]")
                 plotter.update_scalar_bar_range(np.nanpercentile(self.point_cloud["f_mag"], [50, 99.9]))
@@ -338,7 +338,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 arrows2 = self.point_cloud.glyph(orient="U_target", scale="U_target_mag",
                                                  # Automatically scale maximal force to 10% of axis length
                                                  factor=0.1 * norm_stack_size / np.nanmax(
-                                                     np.linalg.norm(self.M.mesh.U_target, axis=1)))
+                                                     np.linalg.norm(self.M.mesh.displacements_target, axis=1)))
                 plotter.add_mesh(arrows2, colormap='turbo', name="arrows2", stitle="Deformations [m]",
                                  scalar_bar_args=sargs)
                
@@ -349,9 +349,9 @@ class MainWindow(QtWidgets.QMainWindow):
                 #plotter.update_scalar_bar_range([0,1.5e-6])
             elif name == "U":
                   arrows3 = self.point_cloud.glyph(orient=name, scale=name + "_mag",
-                                                     # Automatically scale maximal force to 10% of axis length
-                                                     factor=0.1 * norm_stack_size / np.nanmax(
-                                                         np.linalg.norm(self.M.mesh.U, axis=1)))
+                                                   # Automatically scale maximal force to 10% of axis length
+                                                   factor=0.1 * norm_stack_size / np.nanmax(
+                                                         np.linalg.norm(self.M.mesh.displacements, axis=1)))
                   plotter.add_mesh(arrows3, colormap='turbo', name="arrows3", stitle="Rec. Deformations [m]",
                                    scalar_bar_args=sargs)
                   plotter.update_scalar_bar_range(np.nanpercentile(self.point_cloud["U_mag"], [50, 99.9]))

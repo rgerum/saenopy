@@ -163,7 +163,7 @@ def render_3d_arrows(params, result, plotter):
     arrow_opacity = params_arrows["arrow_opacity"]
 
     if field is not None:
-        obj_R = obj.R*1e6
+        obj_R = obj.nodes * 1e6
 
         if skip != 1:
             x_unique = len(np.unique(obj_R[:, 0]))
@@ -180,11 +180,11 @@ def render_3d_arrows(params, result, plotter):
         point_cloud.point_data[name] = field
         point_cloud.point_data[name + "_mag"] = np.linalg.norm(field, axis=1)
         # convert to common units
-        if name == "U_measured" or name == "U_target" or name == "U":
+        if name == "displacements_measured" or name == "displacements_target" or name == "displacements":
             # scale deformations to µN
             point_cloud.point_data[name + "_mag2"] = 1e6*point_cloud.point_data[name + "_mag"].copy()
             factor = 0.1 * params_arrows["arrow_scale"]
-        if name == "f":
+        if name == "forces":
             # scale forces to pN
             point_cloud.point_data[name + "_mag2"] = 1e12*point_cloud.point_data[name + "_mag"].copy()
             factor = 0.15 * params_arrows["arrow_scale"]
@@ -202,9 +202,9 @@ def render_3d_arrows(params, result, plotter):
         arrows = point_cloud.glyph(orient=name, scale=name + "_mag2", factor=factor)
 
         title = name
-        if name == "U_measured" or name == "U_target" or name == "U":
+        if name == "displacements_measured" or name == "displacements_target" or name == "displacements":
             title = "Deformations (µm)"
-        elif name == "f":
+        elif name == "forces":
             title = "Forces (pN)"
 
         # show the nan points

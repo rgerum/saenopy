@@ -37,12 +37,12 @@ class Test_DataFile(unittest.TestCase):
             print("lambd", lambd)
             d = lambd - 1
 
-            displacement = np.zeros(M.mesh.R.shape) * np.nan
-            force = np.zeros(M.mesh.R.shape)
+            displacement = np.zeros(M.mesh.nodes.shape) * np.nan
+            force = np.zeros(M.mesh.nodes.shape)
 
-            initial_displacement = np.zeros(M.mesh.R.shape)
-            left = M.mesh.R[:, 0] == -0.5
-            right = M.mesh.R[:, 0] == 0.5
+            initial_displacement = np.zeros(M.mesh.nodes.shape)
+            left = M.mesh.nodes[:, 0] == -0.5
+            right = M.mesh.nodes[:, 0] == 0.5
 
             displacement[left, :] = 0
             displacement[left, 0] = -d / 2
@@ -51,17 +51,17 @@ class Test_DataFile(unittest.TestCase):
             force[left] = np.nan
             force[right] = np.nan
 
-            initial_displacement[:, 0] = M.mesh.R[:, 0] / 1 * d
+            initial_displacement[:, 0] = M.mesh.nodes[:, 0] / 1 * d
 
             M.set_boundary_condition(displacement, force)
             M.set_initial_displacements(initial_displacement)
             convergence = M.solve_boundarycondition(step_size=step_size, verbose=verbose)
-            return np.mean(np.concatenate((M.mesh.f[left, 0], -M.mesh.f[right, 0])))
+            return np.mean(np.concatenate((M.mesh.forces[left, 0], -M.mesh.forces[right, 0])))
 
         getForce(1.01)
 
         for i in range(3):
-            np.testing.assert_almost_equal(-np.mean(M.mesh.U[R[:, i] < 0]), np.mean(M.mesh.U[R[:, i] > 0]))
+            np.testing.assert_almost_equal(-np.mean(M.mesh.displacements[R[:, i] < 0]), np.mean(M.mesh.displacements[R[:, i] > 0]))
 
 
 if __name__ == '__main__':

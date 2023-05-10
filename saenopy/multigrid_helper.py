@@ -11,10 +11,10 @@ def create_box_mesh(x, y=None, z=None, tesselation_mode="6"):
     if z is None:
         z = x
     mesh = np.array(np.meshgrid(x, y, z, indexing="ij")).reshape(3, -1).T
-    R = np.zeros(mesh.shape)
-    R[:, :] = mesh
-    T = make_box_mesh_tets(len(x), len(y), len(z), tesselation_mode=tesselation_mode)
-    return R, T
+    nodes = np.zeros(mesh.shape)
+    nodes[:, :] = mesh
+    tetrahedra = make_box_mesh_tets(len(x), len(y), len(z), tesselation_mode=tesselation_mode)
+    return nodes, tetrahedra
 
 
 
@@ -88,9 +88,9 @@ def make_box_mesh_tets(nx, ny=None, nz=None, grain=1, tesselation_mode="6"):  # 
     return np.array(T, dtype=np.int64)
 
 
-def get_nodes_with_one_face(T):
+def get_nodes_with_one_face(tetrahedra):
     # get the faces of the tetrahedrons
-    faces = np.sort(np.array(T[:, [[0, 1, 2], [0, 1, 3], [0, 2, 3], [1, 2, 3]]]).reshape(-1, 3), axis=1)
+    faces = np.sort(np.array(tetrahedra[:, [[0, 1, 2], [0, 1, 3], [0, 2, 3], [1, 2, 3]]]).reshape(-1, 3), axis=1)
     # encode the faces as integers
     maxi = np.max(faces) + 1
     face_index = faces[:, 0] * maxi ** 2 + faces[:, 1] * maxi ** 1 + faces[:, 2]

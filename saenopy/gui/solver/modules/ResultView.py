@@ -27,7 +27,7 @@ class ResultView(PipelineModule):
             with QtShortCuts.QVBoxLayout() as vlayout:
                 with QtShortCuts.QHBoxLayout() as layout_vert_plot:
                     self.input_checks = {}
-                    for name, dislay_name in {"U_target": "Target Deformations", "U": "Fitted Deformations", "f": "Forces", "stiffness": "Stiffness"}.items():
+                    for name, dislay_name in {"displacements_target": "Target Deformations", "displacements": "Fitted Deformations", "forces": "Forces", "stiffness": "Stiffness"}.items():
                         input_bool = QtShortCuts.QInputBool(layout_vert_plot, dislay_name, name != "stiffness")
                         input_bool.valueChanged.connect(self.replot)
                         self.input_checks[name] = input_bool
@@ -61,35 +61,35 @@ class ResultView(PipelineModule):
         if self.check_evaluated(self.result):
             self.M = self.result.solver[self.t_slider.value()]
             mesh = self.M.mesh
-            R = mesh.R
+            R = mesh.nodes
             minR = np.min(R, axis=0)
             maxR = np.max(R, axis=0)
 
-            if mesh.reg_mask is None:
+            if mesh.regularisation_mask is None:
                 border = (R[:, 0] < minR[0] + 0.5e-6) | (R[:, 0] > maxR[0] - 0.5e-6) | \
                          (R[:, 1] < minR[1] + 0.5e-6) | (R[:, 1] > maxR[1] - 0.5e-6) | \
                          (R[:, 2] < minR[2] + 0.5e-6) | (R[:, 2] > maxR[2] - 0.5e-6)
-                mesh.reg_mask = ~border
+                mesh.regularisation_mask = ~border
 
-            self.point_cloud = pv.PolyData(mesh.R)
-            self.point_cloud.point_data["f"] = -mesh.f * mesh.reg_mask[:, None]
-            self.point_cloud["f_mag"] = np.linalg.norm(mesh.f * mesh.reg_mask[:, None], axis=1)
-            self.point_cloud.point_data["U"] = mesh.U
-            self.point_cloud["U_mag"] = np.linalg.norm(mesh.U, axis=1)
-            self.point_cloud.point_data["U_target"] = mesh.U_target
-            self.point_cloud["U_target_mag"] = np.linalg.norm(mesh.U_target, axis=1)
-            nan_values = np.isnan(mesh.U_target[:, 0])
-            self.point_cloud["U_target_mag"][nan_values] = 0
+            self.point_cloud = pv.PolyData(mesh.nodes)
+            self.point_cloud.point_data["forces"] = -mesh.forces * mesh.regularisation_mask[:, None]
+            self.point_cloud["forces_mag"] = np.linalg.norm(mesh.forces * mesh.regularisation_mask[:, None], axis=1)
+            self.point_cloud.point_data["displacements"] = mesh.displacements
+            self.point_cloud["displacements_mag"] = np.linalg.norm(mesh.displacements, axis=1)
+            self.point_cloud.point_data["displacements_target"] = mesh.displacements_target
+            self.point_cloud["displacements_target_mag"] = np.linalg.norm(mesh.displacements_target, axis=1)
+            nan_values = np.isnan(mesh.displacements_target[:, 0])
+            self.point_cloud["displacements_target_mag"][nan_values] = 0
 
             self.point_cloud2 = None
 
-            self.offset = np.min(mesh.R, axis=0)
+            self.offset = np.min(mesh.nodes, axis=0)
             self.replot()
         else:
             self.plotter.interactor.setToolTip("")
 
     def calculateStiffness(self):
-        self.point_cloud2 = pv.PolyData(np.mean(self.M.mesh.R[self.M.mesh.T], axis=1))
+        self.point_cloud2 = pv.PolyData(np.mean(self.M.mesh.nodes[self.M.mesh.tetrahedra], axis=1))
         # self.M.setMaterialModel(SemiAffineFiberMaterial(1645, 0.0008, 0.0075, 0.033), generate_lookup=False)
         if self.M.material_model is None:
             print("Warning using default material parameters")
@@ -132,8 +132,8 @@ class ResultView(PipelineModule):
         render = plotter.render
         plotter.render = lambda *args: None
         try:
-            xmin, ymin, zmin = self.M.mesh.R.min(axis=0)
-            xmax, ymax, zmax = self.M.mesh.R.max(axis=0)
+            xmin, ymin, zmin = self.M.mesh.nodes.min(axis=0)
+            xmax, ymax, zmax = self.M.mesh.nodes.max(axis=0)
             # color bar design properties
             # Set a custom position and size
             sargs = dict(#position_x=0.05, position_y=0.95,
@@ -147,7 +147,7 @@ class ResultView(PipelineModule):
             for i, name in enumerate(names):
                 plotter.subplot(i // plotter.shape[1], i % plotter.shape[1])
                 # scale plot with axis length later
-                norm_stack_size = np.abs(np.max(self.M.mesh.R) - np.min(self.M.mesh.R))
+                norm_stack_size = np.abs(np.max(self.M.mesh.nodes) - np.min(self.M.mesh.nodes))
 
                 if name == "stiffness":
                     if self.point_cloud2 is None:
@@ -158,23 +158,23 @@ class ResultView(PipelineModule):
                     plotter.add_mesh(self.point_cloud2, colormap="turbo", point_size=4., render_points_as_spheres=True,
                                      scalar_bar_args=sargs2, opacity="linear")
                     plotter.update_scalar_bar_range(np.nanpercentile(self.point_cloud2["stiffness"], [50, 99.9]))
-                elif name == "f":
-                    arrows = self.point_cloud.glyph(orient="f", scale="f_mag",
+                elif name == "forces":
+                    arrows = self.point_cloud.glyph(orient="forces", scale="forces_mag",
                                                     # Automatically scale maximal force to 15% of axis length
                                                     factor=0.15 * norm_stack_size / np.nanmax(
-                                                        np.linalg.norm(self.M.mesh.f * self.M.mesh.reg_mask[:, None], axis=1)))
+                                                        np.linalg.norm(self.M.mesh.forces * self.M.mesh.regularisation_mask[:, None], axis=1)))
                     sargs2 = sargs.copy()
                     sargs2["title"] = "Force (N)"
                     plotter.add_mesh(arrows, colormap='turbo', name="arrows", scalar_bar_args=sargs2)
-                    plotter.update_scalar_bar_range(np.nanpercentile(self.point_cloud["f_mag"], [50, 99.9]))
+                    plotter.update_scalar_bar_range(np.nanpercentile(self.point_cloud["forces_mag"], [50, 99.9]))
                     # plot center points if desired
                     # plotter.add_points(np.array([self.M.getCenter(mode="Force")]), color='r')
 
-                elif name == "U_target":
+                elif name == "displacements_target":
                     arrows2 = self.point_cloud.glyph(orient=name, scale=name + "_mag",
                                                      # Automatically scale maximal force to 10% of axis length
                                                      factor=0.1 * norm_stack_size / np.nanmax(
-                                                         np.linalg.norm(self.M.mesh.U_target, axis=1)))
+                                                         np.linalg.norm(self.M.mesh.displacements_target, axis=1)))
                     sargs2 = sargs.copy()
                     sargs2["title"] = "Deformations (m)"
                     plotter.add_mesh(arrows2, colormap='turbo', name="arrows2", scalar_bar_args=sargs2)  #
@@ -184,11 +184,11 @@ class ResultView(PipelineModule):
 
                     plotter.update_scalar_bar_range(np.nanpercentile(self.point_cloud[name + "_mag"], [50, 99.9]))
                     # plotter.update_scalar_bar_range([0,1.5e-6])
-                elif name == "U":
+                elif name == "displacements":
                     arrows3 = self.point_cloud.glyph(orient=name, scale=name + "_mag",
                                                      # Automatically scale maximal force to 10% of axis length
                                                      factor=0.1 * norm_stack_size / np.nanmax(
-                                                         np.linalg.norm(self.M.mesh.U, axis=1)))
+                                                         np.linalg.norm(self.M.mesh.displacements, axis=1)))
                     sargs2 = sargs.copy()
                     sargs2["title"] = "Fitted Deformations [m]"
                     plotter.add_mesh(arrows3, colormap='turbo', name="arrows3", scalar_bar_args=sargs2)

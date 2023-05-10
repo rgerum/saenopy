@@ -56,7 +56,7 @@ def save_vtp(filename, M):
 </VTKFile>
 """
     line_pairs = set()
-    for tet in M.T:
+    for tet in M.tetrahedra:
         for i in range(4):
             for j in range(4):
                 t1, t2 = tet[i], tet[j]
@@ -75,8 +75,8 @@ def save_vtp(filename, M):
         return repr(byts)[2:-1]
 
     xml = xml % (
-    M.mesh.R.shape[0], n_lines, to_binary(M.mesh.R.astype("float32")), to_binary(line_pairs.astype("uint32")), to_binary((np.arange(n_lines) * 2 + 2).astype("uint32")), to_binary(M.U.astype("float32")),
-    to_binary(M.f.astype("float32")))
+        M.mesh.nodes.shape[0], n_lines, to_binary(M.mesh.nodes.astype("float32")), to_binary(line_pairs.astype("uint32")), to_binary((np.arange(n_lines) * 2 + 2).astype("uint32")), to_binary(M.displacements.astype("float32")),
+        to_binary(M.forces.astype("float32")))
     with open(ensure_file_extension(filename, ".vtp"), "w") as fp:
         fp.write(xml)
 
@@ -122,13 +122,13 @@ def save_vtu(filename, M):
         byts = base64.b64encode(np.array(a.nbytes, np.uint64).tobytes() + a.tobytes())
         return repr(byts)[2:-1]
 
-    T = M.T
-    n_tets = M.T.shape[0]
+    T = M.tetrahedra
+    n_tets = M.tetrahedra.shape[0]
 
     xml = xml % (
-        M.mesh.R.shape[0], M.T.shape[0], to_binary(M.mesh.R.astype("float32")),
-        to_binary(M.U.astype("float32")),
-        to_binary(M.f.astype("float32")),
+        M.mesh.nodes.shape[0], M.tetrahedra.shape[0], to_binary(M.mesh.nodes.astype("float32")),
+        to_binary(M.displacements.astype("float32")),
+        to_binary(M.forces.astype("float32")),
         to_binary(T.astype("uint32")),
         to_binary((np.arange(n_tets) * 4 + 4).astype("uint32")),
         to_binary((np.ones(n_tets, dtype=np.uint8) * 10).astype("uint8")),
@@ -147,9 +147,9 @@ def save_gmsh(filename, M):
     mesh : :py:class:`~.FiniteBodyForces.FiniteBodyForces`
         The mesh to save.
     """
-    nodes = M.mesh.R
+    nodes = M.mesh.nodes
     num_nodes = nodes.shape[0]
-    tets = M.T+1
+    tets = M.tetrahedra + 1
     num_tets = tets.shape[0]
 
     with open(ensure_file_extension(filename, ".msh"), "w") as fp:

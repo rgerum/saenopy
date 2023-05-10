@@ -740,32 +740,32 @@ class ExportViewer(PipelineModule):
                 mesh = self.result.mesh_piv[self.t_slider.value()]
 
             if mesh is not None:
-                if mesh.U_measured is not None:
-                    # showVectorField2(self, M, "U_measured")
-                    field = mesh.U_measured
+                if mesh.displacements_measured is not None:
+                    # showVectorField2(self, M, "displacements_measured")
+                    field = mesh.displacements_measured
                     factor = 0.1 * self.vtk_toolbar.arrow_scale.value()
-                    name = "U_measured"
+                    name = "displacements_measured"
                     colormap = self.vtk_toolbar.colormap_chooser.value()
-                    stack_min_max = [mesh.R.min(axis=0) * 1e6, mesh.R.max(axis=0) * 1e6]
+                    stack_min_max = [mesh.nodes.min(axis=0) * 1e6, mesh.nodes.max(axis=0) * 1e6]
         elif self.input_arrows.value() == "target deformations":
             M = self.result.solver[self.t_slider.value()]
-            # showVectorField2(self, M, "U_target")
+            # showVectorField2(self, M, "displacements_target")
             if M is not None:
                 mesh = M.mesh
-                field = mesh.U_target
+                field = mesh.displacements_target
                 factor = 0.1 * self.vtk_toolbar.arrow_scale.value()
-                name = "U_target"
+                name = "displacements_target"
                 colormap = self.vtk_toolbar.colormap_chooser.value()
-                stack_min_max = [mesh.R.min(axis=0) * 1e6, mesh.R.max(axis=0) * 1e6]
+                stack_min_max = [mesh.nodes.min(axis=0) * 1e6, mesh.nodes.max(axis=0) * 1e6]
         elif self.input_arrows.value() == "fitted deformations":
             M = self.result.solver[self.t_slider.value()]
             if M is not None:
                 mesh = M.mesh
-                field = mesh.U
+                field = mesh.displacements
                 factor = 0.1 * self.vtk_toolbar.arrow_scale.value()
-                name = "U"
+                name = "displacements"
                 colormap = self.vtk_toolbar.colormap_chooser.value()
-                stack_min_max = [mesh.R.min(axis=0) * 1e6, mesh.R.max(axis=0) * 1e6]
+                stack_min_max = [mesh.nodes.min(axis=0) * 1e6, mesh.nodes.max(axis=0) * 1e6]
         elif self.input_arrows.value() == "fitted forces":
             M = self.result.solver[self.t_slider.value()]
             if M is not None:
@@ -773,23 +773,23 @@ class ExportViewer(PipelineModule):
                 center = None
                 if self.vtk_toolbar2.use_center.value() is True:
                     center = mesh.get_center(mode="Force")
-                field = -mesh.f * mesh.mesh.reg_mask[:, None]
+                field = -mesh.forces * mesh.mesh.regularisation_mask[:, None]
                 factor = 0.15 * self.vtk_toolbar2.arrow_scale.value()
-                name = "f"
+                name = "forces"
                 colormap = self.vtk_toolbar2.colormap_chooser.value()
                 scale_max = self.vtk_toolbar2.getScaleMax()
-                stack_min_max = [mesh.R.min(axis=0) * 1e6, mesh.R.max(axis=0) * 1e6]
+                stack_min_max = [mesh.nodes.min(axis=0) * 1e6, mesh.nodes.max(axis=0) * 1e6]
                 skip = self.input_arrow_skip2.value()
         else:
             # get min/max of stack
             M = self.result.solver[self.t_slider.value()]
             if M is not None:
                 mesh = M.mesh
-                stack_min_max = [mesh.R.min(axis=0) * 1e6, mesh.R.max(axis=0) * 1e6]
+                stack_min_max = [mesh.nodes.min(axis=0) * 1e6, mesh.nodes.max(axis=0) * 1e6]
             else:
                 mesh = self.result.mesh_piv[self.t_slider.value()]
                 if mesh is not None:
-                    stack_min_max = [mesh.R.min(axis=0) * 1e6, mesh.R.max(axis=0) * 1e6]
+                    stack_min_max = [mesh.nodes.min(axis=0) * 1e6, mesh.nodes.max(axis=0) * 1e6]
                 else:
                     stack_min_max = None
         return mesh, field, center, name, colormap, factor, scale_max, stack_min_max, skip

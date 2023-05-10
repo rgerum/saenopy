@@ -19,16 +19,16 @@ liste = glob(r"../Amp*_dist*.npz")
 for d in liste: 
     M = Solver.load(d)
     # add PIV deformations to mesh if applicable
-    if M.U_target is not None:
-        piv_mesh = Mesh(M.mesh.R, M.mesh.T, node_vars={"U_target": M.mesh.U_target})
+    if M.displacements_target is not None:
+        piv_mesh = Mesh(M.mesh.nodes, M.mesh.tetrahedra, node_vars={"U_target": M.mesh.displacements_target})
         Result("Converted_"+os.path.basename(d),
                         mesh_piv=[piv_mesh], 
                         solver=[M]).save()
         
     else:
         #piv_mesh = Mesh(M.R,M.T, node_vars={"U_target":np.zeros_like(M.)})   
-        M.mesh.U_target = M.mesh.U
-        piv_mesh = Mesh(M.mesh.R, M.mesh.T, node_vars={"U_target": M.mesh.U})   ## overwrites now..
+        M.mesh.displacements_target = M.mesh.displacements
+        piv_mesh = Mesh(M.mesh.nodes, M.mesh.tetrahedra, node_vars={"U_target": M.mesh.displacements})   ## overwrites now..
         Result("Converted_"+os.path.basename(d),   
                        mesh_piv=[piv_mesh], 
                       solver=[M]).save()

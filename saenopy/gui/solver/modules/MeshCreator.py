@@ -194,8 +194,8 @@ class MeshCreator(PipelineModule):
             CamPos.cam_pos_initialized = True
             M = self.result.solver[self.t_slider.value()]
             mesh = M.mesh
-            self.plotter.interactor.setToolTip(str(self.result.mesh_parameters) + f"\nNodes {mesh.R.shape[0]}\nTets {mesh.T.shape[0]}")
-            showVectorField2(self, mesh, "U_target")
+            self.plotter.interactor.setToolTip(str(self.result.mesh_parameters) + f"\nNodes {mesh.nodes.shape[0]}\nTets {mesh.tetrahedra.shape[0]}")
+            showVectorField2(self, mesh, "displacements_target")
             if cam_pos is not None:
                 self.plotter.camera_position = cam_pos
         else:

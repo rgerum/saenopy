@@ -283,17 +283,17 @@ class Commander(QtWidgets.QWidget):
     def loadFile(self, filename):
         self.M = load(filename)
         self.stats_label.setText(f"""
-        Nodes = {self.M.mesh.R.shape[0]}
-        Tets = {self.M.mesh.T.shape[0]}
+        Nodes = {self.M.mesh.nodes.shape[0]}
+        Tets = {self.M.mesh.tetrahedra.shape[0]}
         """)
 
     def doPlotU(self):       
         if self.M is None:
             print("No deformation Field found")
             return
-        U = self.M.mesh.U  # U_target - M.U
+        U = self.M.mesh.displacements  # U_target - M.U
         factor = 1e6
-        R = self.M.mesh.R
+        R = self.M.mesh.nodes
         print(U.min(), U.max(), U.mean())
         lengths = np.linalg.norm(U, axis=1)
         print(U.shape, R.shape)
@@ -301,9 +301,9 @@ class Commander(QtWidgets.QWidget):
                   R[:, 0] * factor, R[:, 1] * factor, R[:, 2] * factor, filter_reg=(1, 1, 1), filter_def=np.nanpercentile(lengths, 0) * factor,
                   arrow_scale=0.05, quiv_args={"alpha": 0.8, "pivot": 'tail', "linewidth": 0.5, "length": 1})
         ax = plt.gca()
-        ax.set_xlim(self.M.mesh.R[:, 0].min() * 1e6, self.M.mesh.R[:, 0].max() * 1e6)
-        ax.set_ylim(self.M.mesh.R[:, 1].min() * 1e6, self.M.mesh.R[:, 1].max() * 1e6)
-        ax.set_zlim(self.M.mesh.R[:, 2].min() * 1e6, self.M.mesh.R[:, 2].max() * 1e6)
+        ax.set_xlim(self.M.mesh.nodes[:, 0].min() * 1e6, self.M.mesh.nodes[:, 0].max() * 1e6)
+        ax.set_ylim(self.M.mesh.nodes[:, 1].min() * 1e6, self.M.mesh.nodes[:, 1].max() * 1e6)
+        ax.set_zlim(self.M.mesh.nodes[:, 2].min() * 1e6, self.M.mesh.nodes[:, 2].max() * 1e6)
         #set_axes_equal(ax)
         self.canvas.draw()
         
@@ -313,9 +313,9 @@ class Commander(QtWidgets.QWidget):
         if self.M is None:
             print("No deformation Field found")
             return
-        U = self.M.mesh.U_target  # U_target - M.U
+        U = self.M.mesh.displacements_target  # U_target - M.U
         factor = 1e6
-        R = self.M.mesh.R
+        R = self.M.mesh.nodes
         print(U.min(), U.max(), U.mean())
         lengths = np.linalg.norm(U, axis=1)
         print(U.shape, R.shape)
@@ -323,9 +323,9 @@ class Commander(QtWidgets.QWidget):
                   R[:, 0] * factor, R[:, 1] * factor, R[:, 2] * factor, filter_reg=(1,1,1), filter_def=np.nanpercentile(lengths, 0) * factor,
                   arrow_scale = 0.05,quiv_args={"alpha":0.8, "pivot":'tail', "linewidth":0.5, "length":1})
         ax = plt.gca()
-        ax.set_xlim(self.M.mesh.R[:, 0].min() * 1e6, self.M.mesh.R[:, 0].max() * 1e6)
-        ax.set_ylim(self.M.mesh.R[:, 1].min() * 1e6, self.M.mesh.R[:, 1].max() * 1e6)
-        ax.set_zlim(self.M.mesh.R[:, 2].min() * 1e6, self.M.mesh.R[:, 2].max() * 1e6)
+        ax.set_xlim(self.M.mesh.nodes[:, 0].min() * 1e6, self.M.mesh.nodes[:, 0].max() * 1e6)
+        ax.set_ylim(self.M.mesh.nodes[:, 1].min() * 1e6, self.M.mesh.nodes[:, 1].max() * 1e6)
+        ax.set_zlim(self.M.mesh.nodes[:, 2].min() * 1e6, self.M.mesh.nodes[:, 2].max() * 1e6)
         #set_axes_equal(ax)
         self.canvas.draw()
 
@@ -334,9 +334,9 @@ class Commander(QtWidgets.QWidget):
         if self.M is None:
             print("No deformation Field found")
             return
-        U = self.M.mesh.f  # U_target - M.U
+        U = self.M.mesh.forces  # U_target - M.U
         factor = 1e6
-        R = self.M.mesh.R
+        R = self.M.mesh.nodes
         print(U.min(), U.max(), U.mean())
         lengths = np.linalg.norm(U, axis=1)
         print(U.shape, R.shape)

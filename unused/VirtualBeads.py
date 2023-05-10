@@ -71,7 +71,7 @@ class VirtualBeads:
     def allBeads(self, M):
         thresh = self.CFG["VB_SX"] * self.dX + 2.0 * self.CFG["DRIFT_STEP"]
 
-        self.vbead = np.zeros(M.N_c, dtype=bool)
+        self.vbead = np.zeros(M.number_nodes, dtype=bool)
 
         Scale = np.eye(3) * np.array([self.dX, self.dY, self.dZ])
 
@@ -79,8 +79,8 @@ class VirtualBeads:
 
         Trans = Scale
 
-        for t in range(M.N_c):
-            R = Trans @ M.R[t] + scaledShift
+        for t in range(M.number_nodes):
+            R = Trans @ M.nodes[t] + scaledShift
 
             if thresh < R[0] < (self.sX - thresh) and \
                     thresh < R[1] < (self.sY - thresh) and \
@@ -90,7 +90,7 @@ class VirtualBeads:
     def computeOutOfStack(self, M):
         thresh = self.CFG["VB_SX"] * self.dX + 2.0 * self.CFG["DRIFT_STEP"]
 
-        self.outofstack = np.array(M.N_c, dtype=bool)
+        self.outofstack = np.array(M.number_nodes, dtype=bool)
 
         Scale = np.eye(3) * np.array([self.dX, self.dY, self.dZ])
 
@@ -98,8 +98,8 @@ class VirtualBeads:
 
         Trans = Scale
 
-        for t in range(M.N_c):
-            R = Trans @ M.R[t] + scaledShift
+        for t in range(M.number_nodes):
+            R = Trans @ M.nodes[t] + scaledShift
 
             if thresh < R[0] < (self.sX - thresh) and \
                     thresh < R[1] < (self.sY - thresh) and \
@@ -114,7 +114,7 @@ class VirtualBeads:
     def loadGuess(self, M, ugname):
         from .loadHelpers import loadBoundaryConditions
         var, U, f_ext = loadBoundaryConditions(ugname)
-        M.var = var
+        M.movable = var
         M.f_ext = f_ext
         self.U_guess = U
         M._compute_connections()
@@ -124,7 +124,7 @@ class VirtualBeads:
         self.localweight[:] = 1
 
         Fvalues = np.linalg.norm(M.f_glo, axis=1)
-        Fmedian = np.median(Fvalues[M.var])
+        Fmedian = np.median(Fvalues[M.movable])
 
         if method == "singlepoint":
             self.localweight[int(self.CFG["REG_FORCEPOINT"])] = 1.0e-10
@@ -133,29 +133,29 @@ class VirtualBeads:
             k = 4.685
 
             index = Fvalues < k * Fmedian
-            self.localweight[index * M.var] *= (1 - (Fvalues / k / Fmedian) * (Fvalues / k / Fmedian)) * (
+            self.localweight[index * M.movable] *= (1 - (Fvalues / k / Fmedian) * (Fvalues / k / Fmedian)) * (
                     1 - (Fvalues / k / Fmedian) * (Fvalues / k / Fmedian))
-            self.localweight[~index * M.var] *= 1e-10
+            self.localweight[~index * M.movable] *= 1e-10
 
         if method == "cauchy":
             k = 2.385
 
             if Fmedian > 0:
-                self.localweight[M.var] *= 1.0 / (1.0 + np.power((Fvalues / k / Fmedian), 2.0))
+                self.localweight[M.movable] *= 1.0 / (1.0 + np.power((Fvalues / k / Fmedian), 2.0))
             else:
                 self.localweight *= 1.0
 
         if method == "huber":
             k = 1.345
 
-            index = (Fvalues > (k * Fmedian)) * M.var
+            index = (Fvalues > (k * Fmedian)) * M.movable
             self.localweight[index] = k * Fmedian / Fvalues[index]
 
         index = self.localweight < 1e-10
-        self.localweight[index * M.var] = 1e-10
+        self.localweight[index * M.movable] = 1e-10
 
-        counter = np.sum(1.0 - self.localweight[M.var])
-        counterall = np.sum(M.var)
+        counter = np.sum(1.0 - self.localweight[M.movable])
+        counterall = np.sum(M.movable)
 
         print("total weight: ", counter, "/", counterall)
 
@@ -170,10 +170,10 @@ class VirtualBeads:
         this means a has an indirect connection (or 2. order connection) to c
         """
         self.conconnections = []
-        for c1 in range(M.N_c):
+        for c1 in range(M.number_nodes):
             self.conconnections.append(set())
 
-        for c1 in range(M.N_c):
+        for c1 in range(M.number_nodes):
             for c2 in M.connections[c1]:
                 for c3 in M.connections[c2]:
                     if c3 not in self.conconnections[c1]:
@@ -185,11 +185,11 @@ class VirtualBeads:
         """
         self.conconnections = []
         self.oldconconnections = []
-        for c1 in range(M.N_c):
+        for c1 in range(M.number_nodes):
             self.oldconconnections[c1] = self.conconnections[c1]
             self.conconnections.append(set())
 
-        for c1 in range(M.N_c):
+        for c1 in range(M.number_nodes):
             for c2 in self.oldconconnections[c1]:
                 for c3 in self.oldconconnections[c2]:
                     if c3 not in self.conconnections[c1]:
@@ -571,30 +571,30 @@ class VirtualBeads:
                 Stemp = self.S_0[c]
 
     def _computeRegularizationAAndb(self, M, alpha):
-        KA = M.K_glo.multiply(np.repeat(self.localweight * alpha, 3)[None, :])
-        self.KAK = KA @ M.K_glo
+        KA = M.stiffness_tensor.multiply(np.repeat(self.localweight * alpha, 3)[None, :])
+        self.KAK = KA @ M.stiffness_tensor
         self.A = self.I + self.KAK
 
         self.b = (KA @ M.f_glo.ravel()).reshape(M.f_glo.shape)
 
-        index = M.var * self.vbead
-        self.b[index] += self.U_found[index] - M.U[index]
+        index = M.movable * self.vbead
+        self.b[index] += self.U_found[index] - M.displacements[index]
 
     def _recordRegularizationStatus(self, relrecname, M, relrec):
         alpha = self.CFG["ALPHA"]
 
-        indices = M.var & self.vbead
-        btemp = self.U_found[indices] - M.U[indices]
+        indices = M.movable & self.vbead
+        btemp = self.U_found[indices] - M.displacements[indices]
         uuf2 = np.sum(btemp ** 2)
         suuf = np.sum(np.linalg.norm(btemp, axis=1))
         bcount = btemp.shape[0]
 
-        u2 = np.sum(M.U[M.var] ** 2)
+        u2 = np.sum(M.displacements[M.movable] ** 2)
 
-        f = np.zeros((M.N_c, 3))
-        f[M.var] = M.f_glo[M.var]
+        f = np.zeros((M.number_nodes, 3))
+        f[M.movable] = M.f_glo[M.movable]
 
-        ff = np.sum(np.sum(f ** 2, axis=1) * self.localweight * M.var)
+        ff = np.sum(np.sum(f ** 2, axis=1) * self.localweight * M.movable)
 
         L = alpha * ff + uuf2
 
@@ -621,7 +621,7 @@ class VirtualBeads:
         if self.M.connections_valid is False:
             self.M._compute_connections()
 
-        self.localweight = np.ones(M.N_c)
+        self.localweight = np.ones(M.number_nodes)
 
         # update the forces on each tetrahedron and the global stiffness tensor
         print("going to update glo f and K")
@@ -674,16 +674,16 @@ class VirtualBeads:
 
         # solve the conjugate gradient which solves the equation A x = b for x
         # where A is (I - KAK) (K: stiffness matrix, A: weight matrix) and b is (u_meas - u - KAf)
-        uu = cg(self.A, self.b.flatten(), maxiter=25 * int(pow(M.N_c, 0.33333) + 0.5),
-                tol=M.N_c * REG_SOLVER_PRECISION).reshape((M.N_c, 3))
+        uu = cg(self.A, self.b.flatten(), maxiter=25 * int(pow(M.number_nodes, 0.33333) + 0.5),
+                tol=M.number_nodes * REG_SOLVER_PRECISION).reshape((M.number_nodes, 3))
 
         # add the new displacements to the stored displacements
-        self.M.U += uu * step_size
+        self.M.displacements += uu * step_size
         # sum the applied displacements
         du = np.sum(uu ** 2) * step_size * step_size
 
         # return the total applied displacement
-        return np.sqrt(du / M.N_c)
+        return np.sqrt(du / M.number_nodes)
 
     def storeUfound(self, Uname, Sname):
         np.savetxt(Uname, self.U_found)

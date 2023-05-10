@@ -135,10 +135,10 @@ class DeformationDetector(PipelineModule):
             return
 
         plotter.interactor.setToolTip(
-            str(self.result.piv_parameters) + f"\nNodes {mesh.R.shape[0]}\nTets {mesh.T.shape[0]}")
+            str(self.result.piv_parameters) + f"\nNodes {mesh.nodes.shape[0]}\nTets {mesh.tetrahedra.shape[0]}")
 
-        if mesh.U_measured is not None:
-            showVectorField2(self, mesh, "U_measured")
+        if mesh.displacements_measured is not None:
+            showVectorField2(self, mesh, "displacements_measured")
 
         if cam_pos is not None:
             plotter.camera_position = cam_pos

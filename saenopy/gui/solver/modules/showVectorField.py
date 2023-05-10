@@ -87,7 +87,7 @@ def showVectorField(plotter: QtInteractor, obj: Solver, field: np.ndarray, name:
         scale = 1  # 1e-6
 
         if field is not None:
-            obj_R = obj.R*1e6
+            obj_R = obj.nodes*1e6
 
             if skip != 1:
                 N = int(np.sqrt(obj_R.shape[0]))
@@ -105,10 +105,10 @@ def showVectorField(plotter: QtInteractor, obj: Solver, field: np.ndarray, name:
             point_cloud.point_data[name] = field
             point_cloud.point_data[name + "_mag"] = np.linalg.norm(field, axis=1)
             # convert to common units
-            if name == "U_measured" or name == "U_target" or name == "U":
+            if name == "displacements_measured" or name == "displacements_target" or name == "displacements":
                   # scale deformations to µN
                   point_cloud.point_data[name + "_mag2"] = 1e6*point_cloud.point_data[name + "_mag"].copy()
-            if name == "f":
+            if name == "forces":
                   # scale forces to pN
                   point_cloud.point_data[name + "_mag2"] = 1e12*point_cloud.point_data[name + "_mag"].copy()
             # hide nans
@@ -131,9 +131,9 @@ def showVectorField(plotter: QtInteractor, obj: Solver, field: np.ndarray, name:
             arrows = point_cloud.glyph(orient=name, scale=name + "_mag2", factor=factor)
 
             title = name
-            if name == "U_measured" or name == "U_target" or name == "U":
+            if name == "displacements_measured" or name == "displacements_target" or name == "displacements":
                 title = "Deformations (µm)"
-            elif name == "f":
+            elif name == "forces":
                 title = "Forces (pN)"
 
             sargs = dict(#position_x=0.05, position_y=0.95,
