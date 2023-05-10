@@ -606,7 +606,7 @@ class VirtualBeads:
 
         np.savetxt(relrecname, relrec)
 
-    def regularize(self, M, stepper=0.33, REG_SOLVER_PRECISION=1e-18, i_max=100, rel_conv_crit=0.01, alpha=1.0,
+    def regularize(self, M, step_size=0.33, REG_SOLVER_PRECISION=1e-18, max_iterations=100, rel_conv_crit=0.01, alpha=1.0,
                    method="huber", relrecname=None):
         self.I = ssp.lil_matrix((self.vbead.shape[0] * 3, self.vbead.shape[0] * 3))
         self.I.setdiag(np.repeat(self.vbead, 3))
@@ -634,7 +634,7 @@ class VirtualBeads:
 
         print("check before relax !")
         # start the iteration
-        for i in range(i_max):
+        for i in range(max_iterations):
             # compute the weight matrix
             if method != "normal":
                 self.updateLocalWeigth(M, method)
@@ -643,7 +643,7 @@ class VirtualBeads:
             self._computeRegularizationAAndb(M, alpha)
 
             # get and apply the displacements that solve the regularisation term
-            uu = self._solve_regularization_CG(M, stepper, REG_SOLVER_PRECISION)
+            uu = self._solve_regularization_CG(M, step_size, REG_SOLVER_PRECISION)
 
             # update the forces on each tetrahedron and the global stiffness tensor
             M._update_glo_f_and_k()
@@ -667,7 +667,7 @@ class VirtualBeads:
 
         return relrec
 
-    def _solve_regularization_CG(self, M, stepper=0.33, REG_SOLVER_PRECISION=1e-18):
+    def _solve_regularization_CG(self, M, step_size=0.33, REG_SOLVER_PRECISION=1e-18):
         """
         Solve the displacements from the current stiffness tensor using conjugate gradient.
         """
@@ -678,9 +678,9 @@ class VirtualBeads:
                 tol=M.N_c * REG_SOLVER_PRECISION).reshape((M.N_c, 3))
 
         # add the new displacements to the stored displacements
-        self.M.U += uu * stepper
+        self.M.U += uu * step_size
         # sum the applied displacements
-        du = np.sum(uu ** 2) * stepper * stepper
+        du = np.sum(uu ** 2) * step_size * step_size
 
         # return the total applied displacement
         return np.sqrt(du / M.N_c)

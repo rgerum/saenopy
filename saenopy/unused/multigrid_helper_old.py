@@ -512,7 +512,7 @@ def get_faces_hexahedra(T):
     return np.array(faces), np.array(faces_of_T)
 
 
-def get_strain(M, stress, stepper=0.066, rel_conv_crit=0.01, verbose=False, callback=None):
+def get_strain(M, stress, step_size=0.066, rel_conv_crit=0.01, verbose=False, callback=None):
     t = time.time()
 
     left = (M.mesh.R[:, 0] == np.min(M.mesh.R[:, 0]))
@@ -547,7 +547,7 @@ def get_strain(M, stress, stepper=0.066, rel_conv_crit=0.01, verbose=False, call
     M.set_boundary_condition(displacement, force)
     M.set_initial_displacements(initial_displacement)
 
-    M.solve_boundarycondition(stepper=stepper, verbose=verbose, rel_conv_crit=rel_conv_crit,
+    M.solve_boundarycondition(step_size=step_size, verbose=verbose, rel_conv_crit=rel_conv_crit,
                               callback=callback)
     strain = np.mean(M.U[right, 0] / l) - 1
 
@@ -555,7 +555,7 @@ def get_strain(M, stress, stepper=0.066, rel_conv_crit=0.01, verbose=False, call
     return strain
 
 
-def get_stress(M, lambd, stepper=0.066, rel_conv_crit=0.01, verbose=False, callback=None):
+def get_stress(M, lambd, step_size=0.066, rel_conv_crit=0.01, verbose=False, callback=None):
     t = time.time()
 
     left = (M.mesh.R[:, 0] == np.min(M.mesh.R[:, 0]))
@@ -590,7 +590,7 @@ def get_stress(M, lambd, stepper=0.066, rel_conv_crit=0.01, verbose=False, callb
     M.set_boundary_condition(displacement, force)
     M.set_initial_displacements(initial_displacement)
 
-    M.solve_boundarycondition(stepper=stepper, verbose=verbose, rel_conv_crit=rel_conv_crit,
+    M.solve_boundarycondition(step_size=step_size, verbose=verbose, rel_conv_crit=rel_conv_crit,
                               callback=callback)
 
     # omit two borders for the sum

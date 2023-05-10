@@ -17,9 +17,9 @@ class PivMesh(Mesh):
                                                         validators=check_node_vector_field, default=None)
 
 
-def get_displacements_from_stacks(stack_relaxed: Stack, stack_deformed: Stack, win_um: float,
-                                  element_size: float, signoise_filter: float, drift_correction: bool) -> PivMesh:
-    fac_overlap = 1 - (element_size/win_um)
+def get_displacements_from_stacks(stack_relaxed: Stack, stack_deformed: Stack, window_size: float,
+                                  element_size: float, signal_to_noise: float, drift_correction: bool) -> PivMesh:
+    fac_overlap = 1 - (element_size/window_size)
     voxel_size1 = stack_deformed.voxel_size
     voxel_size2 = stack_relaxed.voxel_size
 
@@ -33,9 +33,9 @@ def get_displacements_from_stacks(stack_relaxed: Stack, stack_deformed: Stack, w
     stack_deformed = np.mean(np.array(stack_deformed), axis=2)
     stack_relaxed = np.mean(np.array(stack_relaxed), axis=2)
     piv_mesh = _get_displacements_from_stacks_old(stack_deformed, stack_relaxed, voxel_size1,
-                                                  win_um=win_um,
+                                                  window_size=window_size,
                                                   fac_overlap=fac_overlap,
-                                                  signoise_filter=signoise_filter,
+                                                  signal_to_noise=signal_to_noise,
                                                   drift_correction=drift_correction,
                                                   )
     # center
@@ -276,11 +276,11 @@ def replace_nans_py(array, max_iter, tol, kernel_size = 2, method = 'disk'):
 
 
 # Full 3D Deformation analysis
-def _get_displacements_from_stacks_old(stack_deformed, stack_relaxed, voxel_size, win_um=12, fac_overlap=0.6,
-                                       signoise_filter=1.3, drift_correction=True):    # set properties
+def _get_displacements_from_stacks_old(stack_deformed, stack_relaxed, voxel_size, window_size=12, fac_overlap=0.6,
+                                       signal_to_noise=1.3, drift_correction=True):    # set properties
     voxel_size = np.array(voxel_size)
-    window_size = (win_um / voxel_size).astype(int)
-    overlap = ((fac_overlap * win_um) / voxel_size).astype(int)
+    window_size = (window_size / voxel_size).astype(int)
+    overlap = ((fac_overlap * window_size) / voxel_size).astype(int)
     du, dv, dw = voxel_size
     print("Calculate Deformations", stack_relaxed.shape, window_size, overlap)
 
@@ -302,7 +302,7 @@ def _get_displacements_from_stacks_old(stack_deformed, stack_relaxed, voxel_size
         w -= np.nanmean(w)
 
     # filter deformations
-    uf, vf, wf, mask = sig2noise_filtering(u, v, sig2noise, w=w, threshold=signoise_filter)
+    uf, vf, wf, mask = sig2noise_filtering(u, v, sig2noise, w=w, threshold=signal_to_noise)
     uf, vf, wf = replace_outliers(uf, vf, wf, max_iter=1, tol=100, kernel_size=2, method='disk')
 
     # get coordinates (by multiplication with the ratio of image dimension and deformation grid)

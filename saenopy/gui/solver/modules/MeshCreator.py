@@ -71,9 +71,9 @@ class MeshCreator(PipelineModule):
                     with QtShortCuts.QHBoxLayout():
                         self.input_mesh_size_same = QtShortCuts.QInputBool(None, "mesh size same as stack", True, value_changed=self.valueChanged, tooltip="make the mesh size the same as the piv mesh")
                     with QtShortCuts.QHBoxLayout():
-                        self.input_mesh_size_x = QtShortCuts.QInputNumber(None, "x", 200, step=1, name_post="μm", tooltip="the custom new mesh size")
-                        self.input_mesh_size_y = QtShortCuts.QInputNumber(None, "y", 200, step=1, name_post="μm", tooltip="the custom new mesh size")
-                        self.input_mesh_size_z = QtShortCuts.QInputNumber(None, "z", 200, step=1, name_post="μm", tooltip="the custom new mesh size")
+                        self.input_mesh_size_x = QtShortCuts.QInputNumber(None, "x", 200, step=1, unit="μm", tooltip="the custom new mesh size")
+                        self.input_mesh_size_y = QtShortCuts.QInputNumber(None, "y", 200, step=1, unit="μm", tooltip="the custom new mesh size")
+                        self.input_mesh_size_z = QtShortCuts.QInputNumber(None, "z", 200, step=1, unit="μm", tooltip="the custom new mesh size")
                         #self.input_mesh_size_label = QtWidgets.QLabel("μm").addToLayout()
                     self.valueChanged()
 

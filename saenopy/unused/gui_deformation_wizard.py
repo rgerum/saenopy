@@ -129,8 +129,8 @@ class DeformationDetector(QtWidgets.QWidget):
                 if np.any(np.array(stack_deformed.shape) != np.array(stack_relaxed.shape)):
                     return self.detection_error.emit("The two stacks do not have the same voxel count.")
                 self.M = saenopy.getDeformations.getDisplacementsFromStacks(stack_deformed, stack_relaxed,
-                                           voxel_size1, win_um=self.input_win.value(), fac_overlap=self.input_overlap.value(),
-                                           signoise_filter=self.input_signoise.value(), drift_correction=self.input_driftcorrection.value())
+                                           voxel_size1, window_size=self.input_win.value(), fac_overlap=self.input_overlap.value(),
+                                           signal_to_noise=self.input_signoise.value(), drift_correction=self.input_driftcorrection.value())
                 self.M.save("tmp_deformation.npz")
             else:
                 self.M = saenopy.load("tmp_deformation.npz")
@@ -282,7 +282,7 @@ class Regularizer(QtWidgets.QWidget):
         with QtShortCuts.QVBoxLayout(self.material_parameters) as layout:
             with QtShortCuts.QHBoxLayout(None) as layout2:
                 self.input_k = QtShortCuts.QInputString(None, "k", "1645", type=float)
-                self.input_d0 = QtShortCuts.QInputString(None, "d0", "0.0008", type=float)
+                self.input_d_0 = QtShortCuts.QInputString(None, "d_0", "0.0008", type=float)
             with QtShortCuts.QHBoxLayout(None) as layout2:
                 self.input_lamda_s = QtShortCuts.QInputString(None, "lamdba_s", "0.0075", type=float)
                 self.input_ds = QtShortCuts.QInputString(None, "ds", "0.033", type=float)
@@ -292,8 +292,8 @@ class Regularizer(QtWidgets.QWidget):
         with QtShortCuts.QVBoxLayout(self.material_parameters) as layout:
             self.input_alpha = QtShortCuts.QInputString(None, "alpha", "9", type=float)
             with QtShortCuts.QHBoxLayout(None) as layout:
-                self.input_stepper = QtShortCuts.QInputString(None, "stepper", "0.33", type=float)
-                self.input_imax = QtShortCuts.QInputNumber(None, "i_max", 100, float=False)
+                self.input_step_size = QtShortCuts.QInputString(None, "step_size", "0.33", type=float)
+                self.input_imax = QtShortCuts.QInputNumber(None, "max_iterations", 100, float=False)
 
         self.input_button = QtWidgets.QPushButton("calculate forces")
         main_layout.addWidget(self.input_button)
@@ -339,12 +339,12 @@ class Regularizer(QtWidgets.QWidget):
 
         M.set_material_model(saenopy.materials.SemiAffineFiberMaterial(
                            float(self.input_k.value()),
-                           float(self.input_d0.value()),
+                           float(self.input_d_0.value()),
                            float(self.input_lamda_s.value()),
                            float(self.input_ds.value()),
                            ))
 
-        M.solve_regularized(stepper=float(self.input_stepper.value()), i_max=self.input_imax.value(),
+        M.solve_regularized(step_size=float(self.input_step_size.value()), max_iterations=self.input_imax.value(),
                             alpha=float(self.input_alpha.value()), callback=callback, verbose=True)
         self.M = M
         self.point_cloud = pv.PolyData(self.M.mesh.R)

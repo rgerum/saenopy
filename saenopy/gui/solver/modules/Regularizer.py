@@ -37,17 +37,17 @@ class Regularizer(PipelineModule):
                     with QtShortCuts.QGroupBox(None, "Material Parameters") as self.material_parameters:
                         with QtShortCuts.QHBoxLayout() as layout2:
                             self.input_k = QtShortCuts.QInputString(None, "k", "1645", type=float, tooltip="the stiffness of the material's fibers")
-                            self.input_d0 = QtShortCuts.QInputString(None, "d_0", "0.0008", type=float, tooltip="the bluckling strength of the material's fibers")
+                            self.input_d_0 = QtShortCuts.QInputString(None, "d_0", "0.0008", type=float, tooltip="the bluckling strength of the material's fibers")
                             self.input_lamda_s = QtShortCuts.QInputString(None, "λ_s", "0.0075", type=float, tooltip="the length at which strain stiffening of the material's fibers starts")
-                            self.input_ds = QtShortCuts.QInputString(None, "d_s", "0.033", type=float, tooltip="the strain stiffening strength of the material's fibers")
+                            self.input_d_s = QtShortCuts.QInputString(None, "d_s", "0.033", type=float, tooltip="the strain stiffening strength of the material's fibers")
 
                     with QtShortCuts.QGroupBox(None, "Regularisation Parameters") as self.material_parameters:
                         with QtShortCuts.QHBoxLayout(None) as layout:
                             self.input_alpha = QtShortCuts.QInputString(None, "alpha", "1e10", type="exp", tooltip="the strength of the regularisation (higher values mean weaker forces)")
-                            self.input_stepper = QtShortCuts.QInputString(None, "stepper", "0.33", type=float, tooltip="the step with of the iteration algorithm")
+                            self.input_step_size = QtShortCuts.QInputString(None, "step size", "0.33", type=float, tooltip="the step with of the iteration algorithm")
                         with QtShortCuts.QHBoxLayout(None) as layout:
-                            self.input_imax = QtShortCuts.QInputNumber(None, "i_max", 100, float=False, tooltip="the maximum number of iterations after which to abort the iteration algorithm")
-                            self.input_conv_crit = QtShortCuts.QInputString(None, "rel_conv_crit", 0.01, type=float, tooltip="the convergence criterion of the iteration algorithm")
+                            self.input_imax = QtShortCuts.QInputNumber(None, "max iterations", 100, float=False, tooltip="the maximum number of iterations after which to abort the iteration algorithm")
+                            self.input_conv_crit = QtShortCuts.QInputString(None, "rel. conv. crit.", 0.01, type=float, tooltip="the convergence criterion of the iteration algorithm")
 
                     self.input_button = QtShortCuts.QPushButton(None, "calculate forces", self.start_process, tooltip="run the force calculation")
 
@@ -77,12 +77,12 @@ class Regularizer(PipelineModule):
 
         self.setParameterMapping("solve_parameter", {
             "k": self.input_k,
-            "d0": self.input_d0,
+            "d_0": self.input_d_0,
             "lambda_s": self.input_lamda_s,
-            "ds": self.input_ds,
+            "d_s": self.input_d_s,
             "alpha": self.input_alpha,
-            "stepper": self.input_stepper,
-            "i_max": self.input_imax,
+            "step_size": self.input_step_size,
+            "max_iterations": self.input_imax,
             "rel_conv_crit": self.input_conv_crit,
         })
 
@@ -155,12 +155,12 @@ class Regularizer(PipelineModule):
 
             M.set_material_model(saenopy.materials.SemiAffineFiberMaterial(
                                params["k"],
-                               params["d0"] if params["d0"] != "None" else None,
+                               params["d_0"] if params["d_0"] != "None" else None,
                                params["lambda_s"] if params["lambda_s"] != "None" else None,
                                params["ds"] if params["ds"] != "None" else None,
                                ))
 
-            M.solve_regularized(stepper=params["stepper"], i_max=params["i_max"],
+            M.solve_regularized(step_size=params["step_size"], max_iterations=params["max_iterations"],
                                 alpha=params["alpha"], rel_conv_crit=params["rel_conv_crit"],
                                 callback=callback, verbose=True)
 
@@ -241,12 +241,12 @@ class Regularizer(PipelineModule):
                     # set the material model
                     M.set_material_model(saenopy.materials.SemiAffineFiberMaterial(
                         params["k"],
-                        params["d0"],
+                        params["d_0"],
                         params["lambda_s"],
                         params["ds"],
                     ))
                     # find the regularized force solution
-                    M.solve_regularized(stepper=params["stepper"], i_max=params["i_max"], alpha=params["alpha"], rel_conv_crit=params["rel_conv_crit"], verbose=True)
+                    M.solve_regularized(step_size=params["step_size"], max_iterations=params["max_iterations"], alpha=params["alpha"], rel_conv_crit=params["rel_conv_crit"], verbose=True)
                     # save the forces
                     result.save()
                     # clear the cache of the solver

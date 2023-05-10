@@ -67,9 +67,9 @@ def get_examples():
             "stack": example_path / '1_ClassicSingleCellTFM/Deformed/Mark_and_Find_001/Pos*_S001_z{z}_ch{c:00}.tif',
             "reference_stack": example_path / '1_ClassicSingleCellTFM/Relaxed/Mark_and_Find_001/Pos*_S001_z{z}_ch{c:00}.tif',
             "output_path": example_path / '1_ClassicSingleCellTFM/example_output',
-            "piv_parameter": {'win_um': 35.0, 'element_size': 14.0, 'signoise_filter': 1.3, 'drift_correction': True},
+            "piv_parameter": {'window_size': 35.0, 'element_size': 14.0, 'signal_to_noise': 1.3, 'drift_correction': True},
             "interpolate_parameter": {'reference_stack': 'first', 'element_size': 14.0, 'inner_region': 200.0, 'thinning_factor': 0, 'mesh_size_same': True, 'mesh_size_x': 200.0, 'mesh_size_y': 200.0, 'mesh_size_z': 200.0},
-            "solve_parameter": {'k': 6062.0, 'd0': 0.0025, 'lambda_s': 0.0804, 'ds':  0.034, 'alpha': 10**10, 'stepper': 0.33, 'i_max': 400, 'rel_conv_crit': 0.009},
+            "solve_parameter": {'k': 6062.0, 'd_0': 0.0025, 'lambda_s': 0.0804, 'd_s':  0.034, 'alpha': 10**10, 'step_size': 0.33, 'max_iterations': 400, 'rel_conv_crit': 0.009},
         },
         "DynamicalSingleCellTFM": {
             "desc": "Single natural killer cell that migrated through 1.2mg/ml collagen, recorded for 24min.\n1 example",
@@ -78,9 +78,9 @@ def get_examples():
             "time_delta": 60,
             "stack": example_path / '2_DynamicalSingleCellTFM/data/Pos*_S001_t{t}_z{z}_ch{c:00}.tif',
             "output_path": example_path / '2_DynamicalSingleCellTFM/example_output',
-            "piv_parameter": {'win_um': 12.0, 'element_size': 4.0, 'signoise_filter': 1.3, 'drift_correction': True},
+            "piv_parameter": {'window_size': 12.0, 'element_size': 4.0, 'signal_to_noise': 1.3, 'drift_correction': True},
             "interpolate_parameter": {'reference_stack': 'median', 'element_size': 4.0, 'inner_region': 100.0, 'thinning_factor': 0, 'mesh_size_same': True, 'mesh_size_x': 200.0, 'mesh_size_y': 200.0, 'mesh_size_z': 200.0},
-            "solve_parameter": {'k': 1449.0, 'd0': 0.0022, 'lambda_s': 0.032, 'ds': 0.055, 'alpha':  10**10, 'stepper': 0.33, 'i_max': 100},
+            "solve_parameter": {'k': 1449.0, 'd_0': 0.0022, 'lambda_s': 0.032, 'd_s': 0.055, 'alpha':  10**10, 'step_size': 0.33, 'max_iterations': 100},
             "crop": {"z": (20, -20)},
         },
         "OrganoidTFM": {
@@ -90,9 +90,9 @@ def get_examples():
             "stack": example_path / '4_OrganoidTFM/Pos007_S001_t50_z{z}_ch00.tif',
             "reference_stack": example_path / '4_OrganoidTFM/Pos007_S001_t6_z{z}_ch00.tif',
             "output_path": example_path / '4_OrganoidTFM/example_output',
-            "piv_parameter": {'win_um': 40.0, 'element_size': 30.0, 'signoise_filter': 1.3, 'drift_correction': True},
+            "piv_parameter": {'window_size': 40.0, 'element_size': 30.0, 'signal_to_noise': 1.3, 'drift_correction': True},
             "interpolate_parameter": {'reference_stack': 'first', 'element_size': 30, 'inner_region': 100.0, 'thinning_factor': 0, 'mesh_size_same': False, 'mesh_size_x': 738.0, 'mesh_size_y': 738.0, 'mesh_size_z': 738.0},
-            "solve_parameter": {'k': 6062.0, 'd0': 0.0025, 'lambda_s': 0.0804, 'ds':  0.034, 'alpha':  10**10, 'stepper': 0.33, 'i_max': 1400,  'rel_conv_crit': 1e-7},
+            "solve_parameter": {'k': 6062.0, 'd_0': 0.0025, 'lambda_s': 0.0804, 'd_s':  0.034, 'alpha':  10**10, 'step_size': 0.33, 'max_iterations': 1400,  'rel_conv_crit': 1e-7},
         },
         "BrightfieldTFM": {
             "desc": "Traction forces around an immune cell in collagen 1.2mg/ml calculated on simple brightfield images",
@@ -102,9 +102,9 @@ def get_examples():
             "stack": example_path / 'BrightfieldNK92Data/2023_02_14_12_0920_stack.tif[z]',
             "reference_stack": example_path / 'BrightfieldNK92Data/2023_02_14_12_0850_stack.tif[z]',
             "output_path": example_path / 'BrightfieldNK92Data/example_output',
-            "piv_parameter": {'win_um': 12.0, 'element_size': 4.8, 'signoise_filter': 1.3, 'drift_correction': True},
+            "piv_parameter": {'window_size': 12.0, 'element_size': 4.8, 'signal_to_noise': 1.3, 'drift_correction': True},
             "interpolate_parameter": {'reference_stack': 'next', 'element_size': 4.0, 'mesh_size_same': True, 'mesh_size_x': 200.0, 'mesh_size_y': 200.0, 'mesh_size_z': 200.0},
-            "solve_parameter": {'k': 6062.0, 'd0': 0.0025, 'lambda_s': 0.0804, 'ds':  0.034, 'alpha':  10**11, 'stepper': 0.33, 'i_max': 300, 'rel_conv_crit': 0.01},
+            "solve_parameter": {'k': 6062.0, 'd_0': 0.0025, 'lambda_s': 0.0804, 'ds':  0.034, 'alpha':  10**11, 'step_size': 0.33, 'max_iterations': 300, 'rel_conv_crit': 0.01},
 
         },
     }

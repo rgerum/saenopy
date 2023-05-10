@@ -272,7 +272,7 @@ class LookUpTable(QtWidgets.QDialog):
                 with QtShortCuts.QGroupBox(None, "Material Parameters") as (self.material_parameters, layout):
                     with QtShortCuts.QHBoxLayout():
                         self.input_k = QtShortCuts.QInputString(None, "k", "1449", type=float)
-                        self.input_d0 = QtShortCuts.QInputString(None, "d0", "0.00215", type=float)
+                        self.input_d_0 = QtShortCuts.QInputString(None, "d_0", "0.00215", type=float)
                     with QtShortCuts.QHBoxLayout():
                         self.input_lamda_s = QtShortCuts.QInputString(None, "lamdba_s", "0.032", type=float)
                         self.input_ds = QtShortCuts.QInputString(None, "ds", "0.055", type=float)
@@ -317,9 +317,9 @@ class LookUpTable(QtWidgets.QDialog):
             <br/>
 
             To generate a material lookup-table, we model the nonlinear fiber material according to the
-            given material properties <b>k</b>, <b>d0</b>, <b>ds</b> and <b>lambda_s</b> 
+            given material properties <b>k</b>, <b>d_0</b>, <b>ds</b> and <b>lambda_s</b> 
             (<a href="https://saenopy.readthedocs.io/en/latest/">click here for more details</a>).<br/>
-            <i> Default values are taken from a collagen I hydrogel (1.2mg/ml) with k=1449, d0=0.00215, ds=0.055, lambda_s=0.032.</i><br/>
+            <i> Default values are taken from a collagen I hydrogel (1.2mg/ml) with k=1449, d_0=0.00215, ds=0.055, lambda_s=0.032.</i><br/>
             <br/>
 
             The simulations then approximate the multicellular aggregate as a spherical inclusion that is
@@ -350,7 +350,7 @@ class LookUpTable(QtWidgets.QDialog):
 
         self.input_list = [
             self.input_k,
-            self.input_d0,
+            self.input_d_0,
             self.input_lamda_s,
             self.input_ds,
             self.start,
@@ -402,7 +402,7 @@ class LookUpTable(QtWidgets.QDialog):
         out_folder = out_table.parent / out_table.stem
 
         material = jf.materials.custom(self.input_k.value(),
-                                       self.input_d0.value(),
+                                       self.input_d_0.value(),
                                        self.input_lamda_s.value(),
                                        self.input_ds.value(),
                                        )
@@ -1600,10 +1600,10 @@ class PlottingWindow(QtWidgets.QWidget):
                 self.list.listSelected()
                 self.listSelected()
                 self.list2.data = self.list.data[i][2]
-                self.add_files([d0["path"] for d0 in d["paths"]])
+                self.add_files([d_0["path"] for d_0 in d["paths"]])
                 print("xxx", self.list.data)
-                for ii, d0 in enumerate(d["paths"]):
-                    self.list2.data[ii][1] = d0["selected"]
+                for ii, d_0 in enumerate(d["paths"]):
+                    self.list2.data[ii][1] = d_0["selected"]
             print("x", self.list.data)
 
     def update_group_name(self):

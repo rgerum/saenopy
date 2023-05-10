@@ -18,7 +18,8 @@ from saenopy.saveable import Saveable
 from typing import List
 
 
-class SolverMesh(Mesh):
+class SolverMesh(Mesh): # nodes, tetrahedra, displacements, forces, displacements_fixed, displacements_target, displacements_target_mask,
+    # force_target, strain_energy, variable, regularisation_mask
     __save_parameters__ = ["R", "T", "U", "f", "U_fixed", "U_target", "U_target_mask", "f_target", "E_glo", "var",
                            "reg_mask"]
     N_T = 0  # the number of tetrahedra
@@ -61,6 +62,9 @@ class Solver(Saveable):
 
     material_model: SemiAffineFiberMaterial = None  # the function specifying the material model
     material_parameters = None
+
+    regularisation_results: None
+    regularisation_parameters: None
 
     verbose = False
 
@@ -463,15 +467,15 @@ class Solver(Saveable):
         if self.mesh.connections_valid is False:
             self._compute_connections()
 
-    def solve_boundarycondition(self, stepper: float = 0.066, i_max: int = 300, i_min: int = 12, rel_conv_crit: float = 0.01, relrecname: str = None, verbose: bool = False, callback: callable = None):
+    def solve_boundarycondition(self, step_size: float = 0.066, max_iterations: int = 300, i_min: int = 12, rel_conv_crit: float = 0.01, relrecname: str = None, verbose: bool = False, callback: callable = None):
         """
         Solve the displacement of the free nodes constraint to the boundary conditions.
 
         Parameters
         ----------
-        stepper : float, optional
+        step_size : float, optional
             How much of the displacement of each conjugate gradient step to apply. Default 0.066
-        i_max : int, optional
+        max_iterations : int, optional
             The maximal number of iterations for the relaxation. Default 300
         i_min : int, optional
             The minimal number of iterations for the relaxation. Minimum value is 6. Default is 12
@@ -501,10 +505,10 @@ class Solver(Saveable):
 
         start = time.time()
         # start the iteration
-        for i in range(i_max):
+        for i in range(max_iterations):
             # move the displacements in the direction of the forces one step
             # but while moving the stiffness tensor is kept constant
-            du = self._solve_cg(stepper)
+            du = self._solve_cg(step_size)
 
             # update the forces on each tetrahedron and the global stiffness tensor
             self._update_glo_f_and_k()
@@ -544,7 +548,7 @@ class Solver(Saveable):
         self.boundary_results = relrec
         return relrec
 
-    def _solve_cg(self, stepper: float):
+    def _solve_cg(self, step_size: float):
         """
         Solve the displacements from the current stiffness tensor using conjugate gradient.
         """
@@ -559,9 +563,9 @@ class Solver(Saveable):
         uu = cg(self.K_glo, ff.ravel(), maxiter=3 * self.mesh.N_c, tol=0.00001, verbose=self.verbose).reshape(ff.shape)
 
         # add the new displacements to the stored displacements
-        self.mesh.U[self.mesh.var] += uu[self.mesh.var] * stepper
+        self.mesh.U[self.mesh.var] += uu[self.mesh.var] * step_size
         # sum the applied displacements
-        du = np.sum(uu[self.mesh.var] ** 2) * stepper * stepper
+        du = np.sum(uu[self.mesh.var] ** 2) * step_size * step_size
 
         # return the total applied displacement
         return du
@@ -677,7 +681,7 @@ class Solver(Saveable):
         if relrecname is not None:
             np.savetxt(relrecname, relrec)
 
-    def solve_regularized(self, stepper: float = 0.33, solver_precision: float = 1e-18, i_max: int = 300,
+    def solve_regularized(self, step_size: float = 0.33, solver_precision: float = 1e-18, max_iterations: int = 300,
                           i_min: int = 12, rel_conv_crit: float = 0.01, alpha: float = 1e10, method: str = "huber",
                           relrecname: str = None, verbose: bool = False, callback: callable = None):
         """
@@ -686,11 +690,11 @@ class Solver(Saveable):
 
         Parameters
         ----------
-        stepper : float, optional
+        step_size : float, optional
              How much of the displacement of each conjugate gradient step to apply. Default 0.33
         solver_precision : float, optional
             The tolerance for the conjugate gradient step. Will be multiplied by the number of nodes. Default 1e-18.
-        i_max : int, optional
+        max_iterations : int, optional
             The maximal number of iterations for the regularisation. Default 300
         i_min : int, optional
             The minimal number of iterations for the relaxation. Minimum value is 6. Default is 12.
@@ -714,9 +718,9 @@ class Solver(Saveable):
             A function to call after each iteration (e.g. for a live plot of the convergence)
         """
         self.regularisation_parameters = {
-            "stepper": stepper,
+            "step_size": step_size,
             "solver_precision": solver_precision,
-            "i_max": i_max,
+            "max_iterations": max_iterations,
             "rel_conv_crit": rel_conv_crit,
             "alpha": alpha,
             "method": method,
@@ -744,13 +748,13 @@ class Solver(Saveable):
         relrec = []
         self.relrec = relrec
         if callback is not None:
-            callback(self, relrec, 0, i_max)
+            callback(self, relrec, 0, max_iterations)
         self._record_regularization_status(relrec, alpha, relrecname)
 
         if self.verbose:
             print("check before relax !")
         # start the iteration
-        for i in range(i_max):
+        for i in range(max_iterations):
             # compute the weight matrix
             if method != "normal":
                 self._update_local_regularization_weigth(method)
@@ -759,7 +763,7 @@ class Solver(Saveable):
             self._compute_regularization_a_and_b(alpha)
 
             # get and apply the displacements that solve the regularisation term
-            uu = self._solve_regularization_cg(stepper, solver_precision)
+            uu = self._solve_regularization_cg(step_size, solver_precision)
 
             # update the forces on each tetrahedron and the global stiffness tensor
             self._update_glo_f_and_k()
@@ -771,7 +775,7 @@ class Solver(Saveable):
             self._record_regularization_status(relrec, alpha, relrecname)
 
             if callback is not None:
-                callback(self, relrec, i, i_max)
+                callback(self, relrec, i, max_iterations)
 
             # if we have passed i_min iterations we calculate average and std of the last 6 iteration
             if i > i_min:
@@ -787,7 +791,7 @@ class Solver(Saveable):
         self.regularisation_results = relrec
         return relrec
 
-    def _solve_regularization_cg(self, stepper: float = 0.33, solver_precision: float = 1e-18):
+    def _solve_regularization_cg(self, step_size: float = 0.33, solver_precision: float = 1e-18):
         """
         Solve the displacements from the current stiffness tensor using conjugate gradient.
         """
@@ -797,9 +801,9 @@ class Solver(Saveable):
         uu = cg(self.A, self.b.flatten(), maxiter=25*int(pow(self.mesh.N_c, 0.33333)+0.5), tol=self.mesh.N_c * solver_precision).reshape((self.mesh.N_c, 3))
 
         # add the new displacements to the stored displacements
-        self.mesh.U += uu * stepper
+        self.mesh.U += uu * step_size
         # sum the applied displacements
-        du = np.sum(uu ** 2) * stepper * stepper
+        du = np.sum(uu ** 2) * step_size * step_size
 
         # return the total applied displacement
         return np.sqrt(du/self.mesh.N_c)

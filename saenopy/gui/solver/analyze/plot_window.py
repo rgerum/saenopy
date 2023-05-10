@@ -110,10 +110,10 @@ class PlottingWindow(QtWidgets.QWidget):
                 self.list.listSelected()
                 self.listSelected()
                 self.list2.data = self.list.data[i][2]
-                self.add_files([d0["path"] for d0 in d["paths"]])
+                self.add_files([d_0["path"] for d_0 in d["paths"]])
                 print("xxx", self.list.data)
-                for ii, d0 in enumerate(d["paths"]):
-                    self.list2.data[ii][1] = d0["selected"]
+                for ii, d_0 in enumerate(d["paths"]):
+                    self.list2.data[ii][1] = d_0["selected"]
             print("x", self.list.data)
 
     def dragEnterEvent(self, event: QtGui.QDragEnterEvent):

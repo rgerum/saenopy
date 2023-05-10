@@ -39,7 +39,7 @@ class DeformationDetector(PipelineModule):
                 with QtShortCuts.QVBoxLayout() as layout:
                     with QtShortCuts.QHBoxLayout():
                         self.input_element_size = QtShortCuts.QInputNumber(None, "piv elem. size", 15.0, step=1,
-                                                                          value_changed=self.valueChanged,
+                                                                          value_changed=self.valueChanged, unit="μm",
                                                                           tooltip="the grid size for deformation detection")
 
                         self.input_win = QtShortCuts.QInputNumber(None, "window size", 30,
@@ -76,9 +76,9 @@ class DeformationDetector(PipelineModule):
                 self.tab.parent().t_slider = self.t_slider
 
         self.setParameterMapping("piv_parameter", {
-            "win_um": self.input_win,
+            "window_size": self.input_win,
             "element_size": self.input_element_size,
-            "signoise_filter": self.input_signoise,
+            "signal_to_noise": self.input_signoise,
             "drift_correction": self.input_driftcorrection,
         })
 
@@ -204,9 +204,9 @@ class DeformationDetector(PipelineModule):
                         stack1, stack2 = result.stack_reference, result.stack[i]
                     # and calculate the displacement between them
                     result.mesh_piv[i] = saenopy.get_displacements_from_stacks(stack1, stack2,
-                                                                               params["win_um"],
+                                                                               params["window_size"],
                                                                                params["element_size"],
-                                                                               params["signoise_filter"],
+                                                                               params["signal_to_noise"],
                                                                                params["drift_correction"])
                 # save the displacements
                 result.save()
@@ -246,9 +246,9 @@ def getDeformation(progress, i, result, params):
         else:
             stack1, stack2 = result.stack_reference, result.stack[i]
         mesh_piv = saenopy.get_displacements_from_stacks(stack1, stack2,
-                                                         params["win_um"],
+                                                         params["window_size"],
                                                          params["element_size"],
-                                                         params["signoise_filter"],
+                                                         params["signal_to_noise"],
                                                          params["drift_correction"])
     finally:
         tqdm.tqdm.update = old_update

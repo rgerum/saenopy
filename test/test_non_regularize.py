@@ -32,7 +32,7 @@ class Test_DataFile(unittest.TestCase):
         material = SemiAffineFiberMaterial(2)
         M.set_material_model(material)
 
-        def getForce(lambd, stepper=0.066, verbose=False):
+        def getForce(lambd, step_size=0.066, verbose=False):
             global convergence
             print("lambd", lambd)
             d = lambd - 1
@@ -55,7 +55,7 @@ class Test_DataFile(unittest.TestCase):
 
             M.set_boundary_condition(displacement, force)
             M.set_initial_displacements(initial_displacement)
-            convergence = M.solve_boundarycondition(stepper=stepper, verbose=verbose)
+            convergence = M.solve_boundarycondition(step_size=step_size, verbose=verbose)
             return np.mean(np.concatenate((M.mesh.f[left, 0], -M.mesh.f[right, 0])))
 
         getForce(1.01)
