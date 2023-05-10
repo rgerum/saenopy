@@ -75,11 +75,13 @@ class Regularizer(PipelineModule):
                 self.t_slider = QTimeSlider(connected=self.update_display).addToLayout()
                 self.tab.parent().t_slider = self.t_slider
 
-        self.setParameterMapping("solve_parameter", {
+        self.setParameterMapping("material_parameters", {
             "k": self.input_k,
             "d_0": self.input_d_0,
             "lambda_s": self.input_lamda_s,
             "d_s": self.input_d_s,
+        })
+        self.setParameterMapping("solve_parameters", {
             "alpha": self.input_alpha,
             "step_size": self.input_step_size,
             "max_iterations": self.input_imax,
@@ -196,7 +198,7 @@ class Regularizer(PipelineModule):
             CamPos.cam_pos_initialized = True
             M = self.result.solver[self.t_slider.value()]
             mesh = M.mesh
-            self.plotter.interactor.setToolTip(str(self.result.solve_parameter)+f"\nNodes {mesh.R.shape[0]}\nTets {mesh.T.shape[0]}")
+            self.plotter.interactor.setToolTip(str(self.result.solve_parameters) + f"\nNodes {mesh.R.shape[0]}\nTets {mesh.T.shape[0]}")
             center = None
             if self.vtk_toolbar.use_center.value() is True:
                 center = M.get_center(mode="Force")
@@ -230,35 +232,36 @@ class Regularizer(PipelineModule):
     def get_code(self) -> Tuple[str, str]:
         import_code = "import saenopy\n"
         results: Result = None
-        def code(my_reg_params):  # pragma: no cover
+        def code(my_reg_params1, my_reg_params2):  # pragma: no cover
             # define the parameters to generate the solver mesh and interpolate the piv mesh onto it
-            params = my_reg_params
+            material_parameters = my_reg_params1
+            solve_parameters = my_reg_params2
 
             # iterate over all the results objects
             for result in results:
-                result.solve_parameter = params
+                result.mesh_parameters = material_parameters
+                result.solve_parameters = solve_parameters
                 for index, M in enumerate(result.solver):
                     # set the material model
                     M.set_material_model(saenopy.materials.SemiAffineFiberMaterial(
-                        params["k"],
-                        params["d_0"],
-                        params["lambda_s"],
-                        params["ds"],
+                        material_parameters["k"],
+                        material_parameters["d_0"],
+                        material_parameters["lambda_s"],
+                        material_parameters["ds"],
                     ))
                     # find the regularized force solution
-                    M.solve_regularized(step_size=params["step_size"], max_iterations=params["max_iterations"], alpha=params["alpha"], rel_conv_crit=params["rel_conv_crit"], verbose=True)
+                    M.solve_regularized(alpha=solve_parameters["alpha"], step_size=solve_parameters["step_size"],
+                                        max_iterations=solve_parameters["max_iterations"], rel_conv_crit=solve_parameters["rel_conv_crit"],
+                                        verbose=True)
                     # save the forces
                     result.save()
                     # clear the cache of the solver
                     result.clear_cache(index)
 
-        params = self.result.solve_parameter_tmp
-        # convert text Nones to real Nones
-        for name in params:
-            if params[name] == "None":
-                params[name] = None
+        # params with convert text Nones to real Nones
         data = {
-            "my_reg_params": params,
+            "my_reg_params1": {k: None if v == "None" else v for k, v in self.result.material_parameters_tmp.items()},
+            "my_reg_params2": {k: None if v == "None" else v for k, v in self.result.solve_parameters_tmp.items()},
         }
 
         code = get_code(code, data)

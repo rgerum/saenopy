@@ -43,6 +43,54 @@ from .showVectorField import showVectorField, showVectorField2
 from .DeformationDetector import CamPos
 from .code_export import get_code
 
+class MeshSizeWidget(QtWidgets.QWidget):
+    valueChanged = QtCore.Signal(object)
+
+    def __init__(self):
+        super().__init__()
+        with QtShortCuts.QVBoxLayout(self):
+            with QtShortCuts.QHBoxLayout():
+                self.input_mesh_size_same = QtShortCuts.QInputBool(None, "mesh size same as stack", True,
+                                                                   #value_changed=self.valueChanged,
+                                                                   tooltip="make the mesh size the same as the piv mesh")
+            with QtShortCuts.QHBoxLayout():
+                self.input_mesh_size_x = QtShortCuts.QInputNumber(None, "x", 200, step=1, unit="μm",
+                                                                  tooltip="the custom new mesh size")
+                self.input_mesh_size_y = QtShortCuts.QInputNumber(None, "y", 200, step=1, unit="μm",
+                                                                  tooltip="the custom new mesh size")
+                self.input_mesh_size_z = QtShortCuts.QInputNumber(None, "z", 200, step=1, unit="μm",
+                                                                  tooltip="the custom new mesh size")
+            self.input_mesh_size_x.valueChanged.connect(self.valueChangedCallback)
+            self.input_mesh_size_y.valueChanged.connect(self.valueChangedCallback)
+            self.input_mesh_size_z.valueChanged.connect(self.valueChangedCallback)
+            self.input_mesh_size_same.valueChanged.connect(self.valueChangedCallback)
+
+            self.setValue("piv")
+
+    def valueChangedCallback(self):
+        self.input_mesh_size_x.setDisabled(self.input_mesh_size_same.value())
+        self.input_mesh_size_y.setDisabled(self.input_mesh_size_same.value())
+        self.input_mesh_size_z.setDisabled(self.input_mesh_size_same.value())
+        self.valueChanged.emit(self.value())
+
+    def value(self):
+        if self.input_mesh_size_same.value():
+            return "piv"
+        else:
+            return (self.input_mesh_size_x.value(), self.input_mesh_size_y.value(), self.input_mesh_size_z.value())
+
+    def setValue(self, value):
+        if value is "piv":
+            self.input_mesh_size_same.setValue(True)
+        else:
+            self.input_mesh_size_same.setValue(False)
+            self.input_mesh_size_x.setValue(value[0])
+            self.input_mesh_size_y.setValue(value[1])
+            self.input_mesh_size_z.setValue(value[2])
+        self.input_mesh_size_x.setDisabled(self.input_mesh_size_same.value())
+        self.input_mesh_size_y.setDisabled(self.input_mesh_size_same.value())
+        self.input_mesh_size_z.setDisabled(self.input_mesh_size_same.value())
+
 
 class MeshCreator(PipelineModule):
     mesh_size = [200, 200, 200]
@@ -62,21 +110,9 @@ class MeshCreator(PipelineModule):
                                                                         ["next", "median"], tooltip="the reference for the deformations")
                         self.input_reference.setEnabled(False)
                         self.input_element_size = QtShortCuts.QInputNumber(None, "mesh elem. size", 7, unit="μm", tooltip="the element size of the regularisatio mesh")
-                        #with QtShortCuts.QHBoxLayout() as layout2:
-                        self.input_inner_region = QtShortCuts.QInputNumber(None, "inner region", 100, unit="μm")
-                        self.input_inner_region.setVisible(False)
-                        self.input_thinning_factor = QtShortCuts.QInputNumber(None, "thinning factor", 0, step=0.1)
-                        self.input_thinning_factor.setVisible(False)
                         layout2.addStretch()
-                    with QtShortCuts.QHBoxLayout():
-                        self.input_mesh_size_same = QtShortCuts.QInputBool(None, "mesh size same as stack", True, value_changed=self.valueChanged, tooltip="make the mesh size the same as the piv mesh")
-                    with QtShortCuts.QHBoxLayout():
-                        self.input_mesh_size_x = QtShortCuts.QInputNumber(None, "x", 200, step=1, unit="μm", tooltip="the custom new mesh size")
-                        self.input_mesh_size_y = QtShortCuts.QInputNumber(None, "y", 200, step=1, unit="μm", tooltip="the custom new mesh size")
-                        self.input_mesh_size_z = QtShortCuts.QInputNumber(None, "z", 200, step=1, unit="μm", tooltip="the custom new mesh size")
-                        #self.input_mesh_size_label = QtWidgets.QLabel("μm").addToLayout()
-                    self.valueChanged()
 
+                    self.input_mesh_size = MeshSizeWidget().addToLayout()
 
                     self.input_button = QtWidgets.QPushButton("interpolate mesh").addToLayout()
                     self.input_button.clicked.connect(self.start_process)
@@ -103,38 +139,11 @@ class MeshCreator(PipelineModule):
                 self.t_slider = QTimeSlider(connected=self.update_display).addToLayout()
                 self.tab.parent().t_slider = self.t_slider
 
-        self.setParameterMapping("interpolate_parameter", {
+        self.setParameterMapping("mesh_parameters", {
             "reference_stack": self.input_reference,
             "element_size": self.input_element_size,
-            "inner_region": self.input_inner_region,
-            "thinning_factor": self.input_thinning_factor,
-            "mesh_size_same": self.input_mesh_size_same,
-            "mesh_size_x": self.input_mesh_size_x,
-            "mesh_size_y": self.input_mesh_size_y,
-            "mesh_size_z": self.input_mesh_size_z,
+            "mesh_size": self.input_mesh_size,
         })
-
-    def valueChanged(self):
-        self.input_mesh_size_x.setDisabled(self.input_mesh_size_same.value())
-        self.input_mesh_size_y.setDisabled(self.input_mesh_size_same.value())
-        self.input_mesh_size_z.setDisabled(self.input_mesh_size_same.value())
-        self.deformation_detector_mesh_size_changed()
-
-    def deformation_detector_mesh_size_changed(self):
-        if self.input_mesh_size_same.value():
-            try:
-                valid = self.result.mesh_piv[0] is not None
-            except (AttributeError, IndexError, TypeError):
-                valid = False
-            if valid:
-                mesh = self.result.mesh_piv[0]
-                x, y, z = (mesh.R.max(axis=0) - mesh.R.min(axis=0))*1e6
-                self.input_mesh_size_x.setValue(x)
-                self.setParameter("mesh_size_x", x)
-                self.input_mesh_size_y.setValue(y)
-                self.setParameter("mesh_size_y", y)
-                self.input_mesh_size_z.setValue(z)
-                self.setParameter("mesh_size_z", z)
 
     def z_slider_value_changed(self):
         self.update_display()
@@ -185,7 +194,7 @@ class MeshCreator(PipelineModule):
             CamPos.cam_pos_initialized = True
             M = self.result.solver[self.t_slider.value()]
             mesh = M.mesh
-            self.plotter.interactor.setToolTip(str(self.result.interpolate_parameter)+f"\nNodes {mesh.R.shape[0]}\nTets {mesh.T.shape[0]}")
+            self.plotter.interactor.setToolTip(str(self.result.mesh_parameters) + f"\nNodes {mesh.R.shape[0]}\nTets {mesh.T.shape[0]}")
             showVectorField2(self, mesh, "U_target")
             if cam_pos is not None:
                 self.plotter.camera_position = cam_pos
@@ -206,7 +215,7 @@ class MeshCreator(PipelineModule):
         displacement_list = saenopy.subtract_reference_state(result.mesh_piv, params["reference_stack"])
         
         # set the parameters
-        result.interpolate_parameter = params
+        result.mesh_parameters = params
         # iterate over all stack pairs
         for i in range(len(result.mesh_piv)):
             # and create the interpolated solver mesh
@@ -219,22 +228,22 @@ class MeshCreator(PipelineModule):
         results = None
         def code(my_mesh_params):  # pragma: no cover
             # define the parameters to generate the solver mesh and interpolate the piv mesh onto it
-            params = my_mesh_params
+            mesh_parameters = my_mesh_params
 
             # iterate over all the results objects
             for result in results:
                 # correct for the reference state
-                displacement_list = saenopy.subtract_reference_state(result.mesh_piv, params["reference_stack"])
+                displacement_list = saenopy.subtract_reference_state(result.mesh_piv, mesh_parameters["reference_stack"])
                 # set the parameters
-                result.interpolate_parameter = params
+                result.mesh_parameters = mesh_parameters
                 # iterate over all stack pairs
                 for i in range(len(result.mesh_piv)):
                     # and create the interpolated solver mesh
-                    result.solver[i] = saenopy.interpolate_mesh(result.mesh_piv[i], displacement_list[i], params)
+                    result.solver[i] = saenopy.interpolate_mesh(result.mesh_piv[i], displacement_list[i], mesh_parameters)
                 # save the meshes
                 result.save()
         data = {
-            "my_mesh_params": self.result.interpolate_parameter_tmp,
+            "my_mesh_params": self.result.mesh_parameters_tmp,
         }
 
         code = get_code(code, data)

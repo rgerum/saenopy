@@ -125,11 +125,11 @@ class StackDisplay(PipelineModule):
     def setZProj(self, value):
         if self.result:
             if value == 0:
-                self.result.stack_parameter["z_project_name"] = None
+                self.result.stack_parameters["z_project_name"] = None
             else:
-                self.result.stack_parameter["z_project_name"] = "maximum"
-            self.result.stack_parameter["z_project_range"] = value
-            self.result.stack_parameter["z_project_range"] = value
+                self.result.stack_parameters["z_project_name"] = "maximum"
+            self.result.stack_parameters["z_project_range"] = value
+            self.result.stack_parameters["z_project_range"] = value
             self.z_slider_value_changed()
 
     def setSingle(self, use_single):
@@ -236,9 +236,9 @@ class StackDisplay(PipelineModule):
 
                 self.views[i].setToolTip(f"stack\n{stack.description(z)}")
 
-                if self.result.stack_parameter["z_project_name"] == "maximum":
-                    start = np.clip(z-self.result.stack_parameter["z_project_range"], 0, stack.shape[2])
-                    end = np.clip(z+self.result.stack_parameter["z_project_range"], 0, stack.shape[2])
+                if self.result.stack_parameters["z_project_name"] == "maximum":
+                    start = np.clip(z - self.result.stack_parameters["z_project_range"], 0, stack.shape[2])
+                    end = np.clip(z + self.result.stack_parameters["z_project_range"], 0, stack.shape[2])
                     im = stack[:, :, :, start:end, c]
                     im = np.max(im, axis=3)
                 else:

@@ -66,11 +66,11 @@ results = saenopy.get_stacks(
 # +------------------+-------+
 # | Piv Parameter    | Value |
 # +==================+=======+
-# | elementsize      |  4.8  |
+# | element_size     |  4.8  |
 # +------------------+-------+
-# | win_mu           |  12.0 |
+# | window_size      |  12.0 |
 # +------------------+-------+
-# | signoise_filter  |   1.3 |
+# | signal_to_noise  |   1.3 |
 # +------------------+-------+
 # | drift_correction | True  |
 # +------------------+-------+
@@ -85,12 +85,13 @@ results = saenopy.get_stacks(
 
 
 # define the parameters for the piv deformation detection
-params = {'win_um': 12.0, 'elementsize': 4.8, 'signoise_filter': 1.3, 'drift_correction': True}
+piv_parameters = {'element_size': 4.8, 'window_size': 12.0, 'signal_to_noise': 1.3, 'drift_correction': True}
+
 
 # iterate over all the results objects
 for result in results:
     # set the parameters
-    result.piv_parameter = params
+    result.piv_parameters = piv_parameters
     # get count
     count = len(result.stack)
     if result.stack_reference is None:
@@ -105,10 +106,10 @@ for result in results:
             stack1, stack2 = result.stack_reference, result.stack[i]
         # and calculate the displacement between them
         result.mesh_piv[i] = saenopy.get_displacements_from_stacks(stack1, stack2,
-                                                                   params["win_um"],
-                                                                   params["elementsize"],
-                                                                   params["signoise_filter"],
-                                                                   params["drift_correction"])
+                                                                   piv_parameters["window_size"],
+                                                                   piv_parameters["element_size"],
+                                                                   piv_parameters["signal_to_noise"],
+                                                                   piv_parameters["drift_correction"])
     # save the displacements
     result.save()
     
@@ -125,26 +126,25 @@ for result in results:
 # +==================+=======+
 # | element_size     |   4.0 |
 # +------------------+-------+
-# | mesh_size_same   | True  |
-# +------------------+-------+
+# | mesh_size_same   | 'piv'  |
 # +------------------+-------+
 # | reference_stack  | 'next'|
 # +------------------+-------+
 #
 
 # define the parameters to generate the solver mesh and interpolate the piv mesh onto it
-params = {'reference_stack': 'next', 'element_size': 4.0, 'mesh_size_same': True}
+mesh_parameters = {'reference_stack': 'next', 'element_size': 4.0, 'mesh_size': 'piv'}
 
 # iterate over all the results objects
 for result in results:
     # correct for the reference state
-    displacement_list = saenopy.subtract_reference_state(result.mesh_piv, params["reference_stack"])
+    displacement_list = saenopy.subtract_reference_state(result.mesh_piv, mesh_parameters["reference_stack"])
     # set the parameters
-    result.interpolate_parameter = params
+    result.mesh_parameters = mesh_parameters
     # iterate over all stack pairs
     for i in range(len(result.mesh_piv)):
         # and create the interpolated solver mesh
-        result.solver[i] = saenopy.interpolate_mesh(result.mesh_piv[i], displacement_list[i], params)
+        result.solver[i] = saenopy.interpolate_mesh(result.mesh_piv[i], displacement_list[i], mesh_parameters)
     # save the meshes
     result.save()
 
@@ -183,7 +183,7 @@ params = {'k': 6062.0, 'd0': 0.0025, 'lambda_s': 0.0804, 'ds':  0.034, 'alpha': 
 
 # iterate over all the results objects
 for result in results:
-    result.solve_parameter = params
+    result.solve_parameters = params
     for index, M in enumerate(result.solver):
         # set the material model
         M.set_material_model(saenopy.materials.SemiAffineFiberMaterial(

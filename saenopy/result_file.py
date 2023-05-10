@@ -238,16 +238,17 @@ class Result(Saveable):
     output: str = None
     state: False
 
+    stack_parameters: dict = None
     stack: List[Stack] = None
-    stack_parameter: dict = None
     stack_reference: Stack = None
     template: str = None
 
-    piv_parameter: dict = None
+    piv_parameters: dict = None
     mesh_piv: List[PivMesh] = None
 
-    interpolate_parameter: dict = None
-    solve_parameter: dict = None
+    mesh_parameters: dict = None
+    material_parameters: dict = None
+    solve_parameters: dict = None
     solver: List[Solver] = None
 
     def __init__(self, output=None, template=None, stack=None, time_delta=None, **kwargs):
@@ -260,7 +261,7 @@ class Result(Saveable):
         self.stack = stack
         if stack is None:
             self.stack = []
-        self.stack_parameter = dict(z_project_name=None, z_project_range=0)
+        self.stack_parameters = dict(z_project_name=None, z_project_range=0)
 
         self.state = False
         self.time_delta = time_delta
@@ -333,11 +334,11 @@ class Result(Saveable):
         for stack, filename in zip(self.stack, folders):
             text += indent + indent + filename[len(base_folder):] + " " + str(stack.voxel_size) + " " + str(stack.channels) + "\n"
         text += indent + "]" + "\n"
-        if self.piv_parameter:
-            text += indent + "piv_parameter = " + str(self.piv_parameter) + "\n"
-        if self.interpolate_parameter:
-            text += indent + "interpolate_parameter = " + str(self.interpolate_parameter) + "\n"
-        if self.solve_parameter:
-            text += indent + "solve_parameter = " + str(self.solve_parameter) + "\n"
+        if self.piv_parameters:
+            text += indent + "piv_parameter = " + str(self.piv_parameters) + "\n"
+        if self.mesh_parameters:
+            text += indent + "interpolate_parameter = " + str(self.mesh_parameters) + "\n"
+        if self.solve_parameters:
+            text += indent + "solve_parameter = " + str(self.solve_parameters) + "\n"
         text += ")" + "\n"
         return text

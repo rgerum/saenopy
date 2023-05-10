@@ -75,7 +75,7 @@ class DeformationDetector(PipelineModule):
                 self.t_slider = QTimeSlider(connected=self.update_display).addToLayout()
                 self.tab.parent().t_slider = self.t_slider
 
-        self.setParameterMapping("piv_parameter", {
+        self.setParameterMapping("piv_parameters", {
             "window_size": self.input_win,
             "element_size": self.input_element_size,
             "signal_to_noise": self.input_signoise,
@@ -135,7 +135,7 @@ class DeformationDetector(PipelineModule):
             return
 
         plotter.interactor.setToolTip(
-            str(self.result.piv_parameter) + f"\nNodes {mesh.R.shape[0]}\nTets {mesh.T.shape[0]}")
+            str(self.result.piv_parameters) + f"\nNodes {mesh.R.shape[0]}\nTets {mesh.T.shape[0]}")
 
         if mesh.U_measured is not None:
             showVectorField2(self, mesh, "U_measured")
@@ -184,12 +184,12 @@ class DeformationDetector(PipelineModule):
         results = None
         def code(my_piv_params):  # pragma: no cover
             # define the parameters for the piv deformation detection
-            params = my_piv_params
+            piv_parameters = my_piv_params
 
             # iterate over all the results objects
             for result in results:
                 # set the parameters
-                result.piv_parameter = params
+                result.piv_parameters = params
                 # get count
                 count = len(result.stack)
                 if result.stack_reference is None:
@@ -204,15 +204,15 @@ class DeformationDetector(PipelineModule):
                         stack1, stack2 = result.stack_reference, result.stack[i]
                     # and calculate the displacement between them
                     result.mesh_piv[i] = saenopy.get_displacements_from_stacks(stack1, stack2,
-                                                                               params["window_size"],
-                                                                               params["element_size"],
-                                                                               params["signal_to_noise"],
-                                                                               params["drift_correction"])
+                                                                               piv_parameters["window_size"],
+                                                                               piv_parameters["element_size"],
+                                                                               piv_parameters["signal_to_noise"],
+                                                                               piv_parameters["drift_correction"])
                 # save the displacements
                 result.save()
 
         data = {
-            "my_piv_params": self.result.piv_parameter_tmp
+            "my_piv_params": self.result.piv_parameters_tmp
         }
 
         code = get_code(code, data)

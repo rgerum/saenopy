@@ -1026,26 +1026,19 @@ def interpolate_mesh(mesh: PivMesh, xpos2: np.ndarray, params: dict) -> Solver:
     from saenopy.multigrid_helper import get_scaled_mesh, get_nodes_with_one_face
 
     x, y, z = (mesh.R.max(axis=0) - mesh.R.min(axis=0)) * 1e6
-    if params["mesh_size_same"]:
-        params["mesh_size_x"] = x
-        params["mesh_size_y"] = y
-        params["mesh_size_z"] = z
-    if params["mesh_size_x"] < params["element_size"]*2 or \
-       params["mesh_size_y"] < params["element_size"]*2 or \
-       params["mesh_size_z"] < params["element_size"]*2:
+    if params["mesh_size"] is "piv":
+        mesh_size = (x, y, z)
+    else:
+        mesh_size = params["mesh_size"]
+    if mesh_size[0] < params["element_size"]*2 or \
+       mesh_size[1] < params["element_size"]*2 or \
+       mesh_size[2] < params["element_size"]*2:
         raise ValueError("Mesh size needs to be at least twice the element size.")
 
-    # no thinning if no values are set
-    if "inner_region" not in params:
-        params["inner_region"] = x
-    if "thinning_factor" not in params:    
-        params["thinning_factor"] = 0
-    
     points, cells = saenopy.multigrid_helper.get_scaled_mesh(params["element_size"] * 1e-6,
-                                                             params["inner_region"] * 1e-6,
-                                                             np.array([params["mesh_size_x"], params["mesh_size_y"],
-                                                                       params["mesh_size_z"]]) * 1e-6 / 2,
-                                                             [0, 0, 0], params["thinning_factor"])
+                                                             params.get("inner_region", mesh_size[0]) * 1e-6,
+                                                             np.array(mesh_size) * 1e-6 / 2,
+                                                             [0, 0, 0], params.get("thinning_factor", 0))
 
     R = (mesh.R - np.min(mesh.R, axis=0)) - (np.max(mesh.R, axis=0) - np.min(mesh.R, axis=0)) / 2
     U_target = saenopy.get_deformations.interpolate_different_mesh(R, xpos2, points)

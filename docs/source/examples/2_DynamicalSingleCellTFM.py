@@ -75,7 +75,7 @@ results = saenopy.get_stacks(r'2_DynamicalSingleCellTFM\data\Pos*_S001_t{t}_z{z}
                              r'2_DynamicalSingleCellTFM\example_output',
                              voxel_size=[0.2407, 0.2407, 1.0071], 
                              time_delta=60,
-                             crop =  {"z": (20, -20)}
+                             crop={"z": (20, -20)}
                              )
 
 
@@ -91,24 +91,24 @@ results = saenopy.get_stacks(r'2_DynamicalSingleCellTFM\data\Pos*_S001_t{t}_z{z}
 # +------------------+-------+
 # | Piv Parameter    | Value |
 # +==================+=======+
-# | elementsize      |     4 |
+# | element_size     |     4 |
 # +------------------+-------+
-# | win_mu           |    12 |
+# | window_size      |    12 |
 # +------------------+-------+
-# | signoise_filter  |   1.3 |
+# | signal_to_noise  |   1.3 |
 # +------------------+-------+
 # | drift_correction | True  |
 # +------------------+-------+
 #
 
 # define the parameters for the piv deformation detection
-params = {'elementsize': 4.0, 'win_um': 12.0, 'signoise_filter': 1.3, 'drift_correction': True}
+piv_parameters = {'element_size': 4.0, 'window_size': 12.0, 'signal_to_noise': 1.3, 'drift_correction': True}
 
 
 # iterate over all the results objects
 for result in results:
     # set the parameters
-    result.piv_parameter = params
+    result.piv_parameters = piv_parameters
     # get count
     count = len(result.stack)
     if result.stack_reference is None:
@@ -118,21 +118,20 @@ for result in results:
         # get two consecutive stacks
         if result.stack_reference is None:
             stack1, stack2 = result.stack[i], result.stack[i + 1]
-        # or or reference stack and one from the list 
+        # or reference stack and one from the list
         else:
             stack1, stack2 = result.stack_reference, result.stack[i]
         
-        # Due acceleration of the galvo stage there can be shaking in the 
-        # lower or upper part of the stack. Therefore we recorded larger 
+        # due to the acceleration of the galvo stage there can be shaking in the
+        # lower or upper part of the stack. Therefore, we recorded larger
         # z-regions and then discard the upper or lower parts        
-              
-        
+
         # and calculate the displacement between them
         result.mesh_piv[i] = saenopy.get_displacements_from_stacks(stack1, stack2,
-                                                                    params["win_um"],
-                                                                    params["elementsize"],
-                                                                    params["signoise_filter"],
-                                                                    params["drift_correction"])
+                                                                    piv_parameters["window_size"],
+                                                                    piv_parameters["element_size"],
+                                                                    piv_parameters["signal_to_noise"],
+                                                                    piv_parameters["drift_correction"])
     # save the displacements
     result.save()
 
@@ -140,8 +139,8 @@ for result in results:
 # %%
 # Visualizing Results
 # ----------------------------------
-# You can save the resulting 3D fields by simply usinge the **export image** dialog.
-# Here we underlay a brightfield image of the cell for a better overview 
+# You can save the resulting 3D fields by simply using the **export image** dialog.
+# Here we underlay a bright field image of the cell for a better overview
 # and export a **.gif** file
 # 
 # .. figure:: ../images/nk_dynamic_piv_export_4fps.gif   
@@ -164,23 +163,23 @@ for result in results:
 # +------------------+--------+
 # | element_size     |      4 |
 # +------------------+--------+
-# | mesh_size_same   | True   |
+# | mesh_size        | "piv"   |
 # +------------------+--------+
 #
 
 # define the parameters to generate the solver mesh and interpolate the piv mesh onto it
-params = {'reference_stack': 'median', 'element_size': 4.0, 'mesh_size_same': True}
+mesh_parameters = {'reference_stack': 'median', 'element_size': 4.0, 'mesh_size': "piv"}
 
 # iterate over all the results objects
 for result in results:
     # correct for the reference state
-    displacement_list = saenopy.subtract_reference_state(result.mesh_piv, params["reference_stack"])
+    displacement_list = saenopy.subtract_reference_state(result.mesh_piv, mesh_parameters["reference_stack"])
     # set the parameters
-    result.interpolate_parameter = params
+    result.mesh_parameters = mesh_parameters
     # iterate over all stack pairs
     for i in range(len(result.mesh_piv)):
         # and create the interpolated solver mesh
-        result.solver[i] = saenopy.interpolate_mesh(result.mesh_piv[i], displacement_list[i], params)
+        result.solver[i] = saenopy.interpolate_mesh(result.mesh_piv[i], displacement_list[i], mesh_parameters)
     # save the meshes
     result.save()
 
@@ -213,22 +212,25 @@ for result in results:
 #
 
 # define the parameters to generate the solver mesh and interpolate the piv mesh onto it
-params = {'k': 1449.0, 'd0': 0.0022, 'lambda_s': 0.032, 'ds': 0.055, 'alpha':  10**10, 'stepper': 0.33, 'i_max': 100}
+material_parameters = {'k': 1449.0, 'd_0': 0.0022, 'lambda_s': 0.032, 'd_s': 0.055}
+solve_parameters = {'alpha':  10**10, 'step_size': 0.33, 'max_iterations': 100}
 
 
 # iterate over all the results objects
 for result in results:
-    result.solve_parameter = params
+    result.material_parameters = material_parameters
+    result.solve_parameters = solve_parameters
     for M in result.solver:
         # set the material model
         M.set_material_model(saenopy.materials.SemiAffineFiberMaterial(
-            params["k"],
-            params["d0"],
-            params["lambda_s"],
-            params["ds"],
+            material_parameters["k"],
+            material_parameters["d_0"],
+            material_parameters["lambda_s"],
+            material_parameters["d_s"],
         ))
         # find the regularized force solution
-        M.solve_regularized(stepper=params["stepper"], i_max=params["i_max"], alpha=params["alpha"], verbose=True)
+        M.solve_regularized(alpha=solve_parameters["alpha"], step_size=solve_parameters["step_size"],
+                            max_iterations=solve_parameters["max_iterations"], verbose=True)
     # save the forces
     result.save()
 

@@ -1,8 +1,62 @@
 import qtawesome as qta
 from qtpy import QtCore, QtWidgets
 from saenopy import Result
-from typing import Tuple
+from typing import Tuple, List
 import traceback
+
+
+class ParameterMapping:
+    params_name: str = None
+    parameter_dict: dict = None
+
+    result: Result = None
+
+    def __init__(self, params_name: str = None, parameter_dict: dict=None):
+        self.params_name = params_name
+        self.parameter_dict = parameter_dict
+        for name, widget in self.parameter_dict.items():
+            widget.valueChanged.connect(lambda x, name=name: self.setParameter(name, x))
+
+        self.setResult(None)
+
+    def setParameter(self, name: str, value):
+        if self.result is not None:
+            getattr(self.result, self.params_name + "_tmp")[name] = value
+
+    def ensure_tmp_params_initialized(self, result):
+        if self.params_name is None:
+            return
+        # if the results instance does not have the parameter dictionary yet, create it
+        if getattr(result, self.params_name + "_tmp", None) is None:
+            setattr(result, self.params_name + "_tmp", {})
+        # iterate over the parameters
+        for name, widget in self.parameter_dict.items():
+            # set the widgets to the value if the value exits
+            params = getattr(result, self.params_name)
+            params_tmp = getattr(result, self.params_name + "_tmp")
+            if name not in params_tmp:
+                if params is not None and name in params:
+                    params_tmp[name] = params[name]
+                else:
+                    params_tmp[name] = widget.value()
+
+    def setDisabled(self, disabled):
+        # disable all the widgets
+        for name, widget in self.parameter_dict.items():
+            widget.setDisabled(disabled)
+
+    def setResult(self, result: Result):
+        """ set a new active result object """
+        self.result = result
+
+        # if a result file is given
+        if result is not None:
+            self.ensure_tmp_params_initialized(result)
+            # iterate over the parameters
+            for name, widget in self.parameter_dict.items():
+                # set the widgets to the value if the value exits
+                params_tmp = getattr(result, self.params_name + "_tmp")
+                widget.setValue(params_tmp[name])
 
 
 class PipelineModule(QtWidgets.QWidget):
@@ -12,8 +66,8 @@ class PipelineModule(QtWidgets.QWidget):
     processing_error = QtCore.Signal(str)
     result: Result = None
     tab: QtWidgets.QTabWidget = None
-    params_name: str = None
-    parameter_dict: dict = None
+
+    parameter_mappings: List[ParameterMapping] = None
 
     def __init__(self, parent: "BatchEvaluate", layout):
         super().__init__()
@@ -36,11 +90,9 @@ class PipelineModule(QtWidgets.QWidget):
 
     def setParameterMapping(self, params_name: str = None, parameter_dict: dict=None):
         self.params_name = params_name
-        self.parameter_dict = parameter_dict
-        for name, widget in self.parameter_dict.items():
-            widget.valueChanged.connect(lambda x, name=name: self.setParameter(name, x))
-
-        self.setResult(None)
+        if self.parameter_mappings is None:
+            self.parameter_mappings = []
+        self.parameter_mappings.append(ParameterMapping(params_name, parameter_dict))
 
     current_result_plotted = False
     current_tab_selected = False
@@ -91,14 +143,14 @@ class PipelineModule(QtWidgets.QWidget):
 
             if state == "scheduled" or state == "running":
                 # if not disable all the widgets
-                for name, widget in self.parameter_dict.items():
-                    widget.setDisabled(True)
+                for mapping in self.parameter_mappings:
+                    mapping.setDisabled(True)
                 if getattr(self, "input_button", None):
                     self.input_button.setEnabled(False)
             else:
                 # if not disable all the widgets
-                for name, widget in self.parameter_dict.items():
-                    widget.setDisabled(False)
+                for mapping in self.parameter_mappings:
+                    mapping.setDisabled(False)
                 if getattr(self, "input_button", None):
                     self.input_button.setEnabled(self.check_available(result))
             #if getattr(self, "input_button", None):
@@ -110,6 +162,9 @@ class PipelineModule(QtWidgets.QWidget):
         #    return
         self.current_result_plotted = False
         self.result = result
+
+        for mapping in self.parameter_mappings:
+            mapping.setResult(result)
 
         if result is not None:
             self.t_slider.setRange(0, len(result.stack)-2)
@@ -128,19 +183,14 @@ class PipelineModule(QtWidgets.QWidget):
                 (self.params_name and (getattr(result, self.params_name + "_state", "") == "scheduled"
                                        or getattr(result, self.params_name + "_state", "") == "running")):
             # if not disable all the widgets
-            for name, widget in self.parameter_dict.items():
-                widget.setDisabled(True)
+            for mapping in self.parameter_mappings:
+                mapping.setDisabled(True)
             if getattr(self, "input_button", None):
                 self.input_button.setEnabled(False)
         else:
-            self.ensure_tmp_params_initialized(result)
-            # iterate over the parameters
-            for name, widget in self.parameter_dict.items():
-                # enable them
-                widget.setDisabled(False)
-                # set the widgets to the value if the value exits
-                params_tmp = getattr(result, self.params_name + "_tmp")
-                widget.setValue(params_tmp[name])
+            # if not disable all the widgets
+            for mapping in self.parameter_mappings:
+                mapping.setDisabled(False)
             self.valueChanged()
         if self.current_tab_selected is True:
             self.update_display()
@@ -148,29 +198,8 @@ class PipelineModule(QtWidgets.QWidget):
     def update_display(self):
         pass
 
-    def setParameter(self, name: str, value):
-        if self.result is not None:
-            getattr(self.result, self.params_name + "_tmp")[name] = value
-
     def valueChanged(self):
         pass
-
-    def ensure_tmp_params_initialized(self, result):
-        if self.params_name is None:
-            return
-        # if the results instance does not have the parameter dictionary yet, create it
-        if getattr(result, self.params_name + "_tmp", None) is None:
-            setattr(result, self.params_name + "_tmp", {})
-        # iterate over the parameters
-        for name, widget in self.parameter_dict.items():
-            # set the widgets to the value if the value exits
-            params = getattr(result, self.params_name, None)
-            params_tmp = getattr(result, self.params_name + "_tmp")
-            if name not in params_tmp:
-                if params is not None and name in params:
-                    params_tmp[name] = params[name]
-                else:
-                    params_tmp[name] = widget.value()
 
     def start_process(self, x=None, result=None):
         if result is None:
@@ -180,7 +209,9 @@ class PipelineModule(QtWidgets.QWidget):
         if getattr(result, self.params_name + "_state", "") == "scheduled" or \
             getattr(result, self.params_name + "_state", "") == "running":
             return
-        self.ensure_tmp_params_initialized(result)
+
+        for mapping in self.parameter_mappings:
+            mapping.ensure_tmp_params_initialized(result)
         params = getattr(result, self.params_name + "_tmp")
         setattr(result, self.params_name + "_state", "scheduled")
         self.processing_state_changed.emit(result)

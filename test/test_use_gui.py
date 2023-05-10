@@ -159,8 +159,8 @@ def test_run_example(monkeypatch, random_path, catch_popup_error, use_time, use_
     assert batch_evaluate.sub_module_deformation.result != None
 
     # change some parameters
-    batch_evaluate.sub_module_deformation.setParameter("win_um", 30)
-    batch_evaluate.sub_module_regularize.setParameter("i_max", 10)
+    batch_evaluate.sub_module_deformation.parameter_mappings[0].setParameter("window_size", 30)
+    batch_evaluate.sub_module_regularize.parameter_mappings[1].setParameter("max_iterations", 10)
     print("params A", getattr(batch_evaluate.sub_module_deformation.result,
                               batch_evaluate.sub_module_deformation.params_name + "_tmp"))
     print("params C", getattr(batch_evaluate.sub_module_regularize.result,

@@ -49,23 +49,24 @@ results = saenopy.get_stacks(
 # +------------------+-------+
 # | Piv Parameter    | Value |
 # +==================+=======+
-# | elementsize      |    5  |
+# | element_size     |    5  |
 # +------------------+-------+
-# | win_mu           |    25 |
+# | window_size      |    25 |
 # +------------------+-------+
-# | signoise_filter  |   1.1 |
+# | signal_to_noise  |   1.1 |
 # +------------------+-------+
 # | drift_correction | True  |
 # +------------------+-------+
 #
 
 # define the parameters for the piv deformation detection
-params = {'elementsize': 5.0, 'win_um': 25.0, 'signoise_filter': 1.1, 'drift_correction': True}
+piv_parameters = {'element_size': 5.0, 'window_size': 25.0, 'signal_to_noise': 1.1, 'drift_correction': True}
+
 
 # iterate over all the results objects
 for result in results:
     # set the parameters
-    result.piv_parameter = params
+    result.piv_parameters = piv_parameters
     # get count
     count = len(result.stack)
     if result.stack_reference is None:
@@ -80,9 +81,9 @@ for result in results:
             stack1, stack2 = result.stack_reference, result.stack[i]
         # and calculate the displacement between them
         result.mesh_piv[i] = saenopy.get_displacements_from_stacks(stack1, stack2,
-                                                                   params["win_um"],
-                                                                   params["elementsize"],
-                                                                   params["signoise_filter"],
-                                                                   params["drift_correction"])
+                                                                   piv_parameters["window_size"],
+                                                                   piv_parameters["element_size"],
+                                                                   piv_parameters["signal_to_noise"],
+                                                                   piv_parameters["drift_correction"])
     # save the displacements
     result.save()
