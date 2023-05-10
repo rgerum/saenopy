@@ -35,6 +35,8 @@ def catch_popup_error(monkeypatch):
 
 
 app = QtWidgets.QApplication(sys.argv)
+font = QtGui.QFont("Arial", 10)
+app.setFont(font)
 
 def init_app():
     from saenopy.gui.gui_master import MainWindow
