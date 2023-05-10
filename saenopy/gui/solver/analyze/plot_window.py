@@ -87,6 +87,8 @@ class PlottingWindow(QtWidgets.QWidget):
     def save(self):
         new_path = QtWidgets.QFileDialog.getSaveFileName(None, "Save Session", os.getcwd(), "JSON File (*.json)")
         if new_path:
+            if not new_path.endswith(".json"):
+                new_path += ".json"
             list_new = []
             for item in self.list.data:
                 list_new.append({"name": item[0], "selected": item[1], "color": item[3], "paths": []})
@@ -104,17 +106,16 @@ class PlottingWindow(QtWidgets.QWidget):
             self.list.clear()
             self.list.setData([[i["name"], i["selected"], [], i["color"]] for i in list_new])
             self.data_folders = self.list.data
-            print("y", self.list.data)
+
             for i, d in enumerate(list_new):
                 self.list.setCurrentRow(i)
                 self.list.listSelected()
                 self.listSelected()
                 self.list2.data = self.list.data[i][2]
                 self.add_files([d_0["path"] for d_0 in d["paths"]])
-                print("xxx", self.list.data)
+
                 for ii, d_0 in enumerate(d["paths"]):
                     self.list2.data[ii][1] = d_0["selected"]
-            print("x", self.list.data)
 
     def dragEnterEvent(self, event: QtGui.QDragEnterEvent):
         # accept url lists (files by drag and drop)
@@ -130,11 +131,9 @@ class PlottingWindow(QtWidgets.QWidget):
     def dropEvent(self, event: QtCore.QEvent):
         urls = []
         for url in event.mimeData().urls():
-            print(url)
             url = url.toLocalFile()
             if url[0] == "/" and url[2] == ":":
                 url = url[1:]
-            print(url)
             if url.endswith(".npz"):
                 urls += [url]
             else:
@@ -152,6 +151,8 @@ class PlottingWindow(QtWidgets.QWidget):
                 print("Add file", file)
                 res: Result = Result.load(file)
                 res.resulting_data = []
+                if len(res.solver) == 0 or res.solver[0] is None or res.solver[0].regularisation_results is None:
+                    continue
                 for i, M in enumerate(res.solver):
                     res.resulting_data.append({
                         "t": i*res.time_delta if res.time_delta else 0,
@@ -165,11 +166,25 @@ class PlottingWindow(QtWidgets.QWidget):
                 res.resulting_data = pd.DataFrame(res.resulting_data)
                 if self.list2.data is current_group:
                     self.list2.addData(file, True, res)
-                    print("replot")
                     self.replot()
                 #app.processEvents()
             except FileNotFoundError:
                 continue
+        self.check_results_with_time()
+
+    def check_results_with_time(self):
+        time_values = False
+        for name, checked, files, color in self.data_folders:
+            if checked != 0:
+                for name2, checked2, res, color in files:
+                    if len(res.solver) > 1:
+                        time_values = True
+        if time_values is False:
+            self.barplot()
+        self.agg.setEnabled(time_values)
+        self.button_run.setEnabled(time_values)
+        self.button_run2.setEnabled(time_values)
+
 
     def update_group_name(self):
         if self.list.currentItem() is not None:
@@ -272,15 +287,12 @@ class PlottingWindow(QtWidgets.QWidget):
         res = self.getAllCurrentPandasData()
 
         # limit the dataframe to the comparison time
-        print(res)
-        print(res.columns)
         res0 = res.groupby("filename").agg("max")
+        del res["group"]
         res = res.groupby("filename").agg(self.agg.value())
         res["group"] = res0["group"]
         #index = self.get_comparison_index()
         #res = res[res.index == index]
-        print(res)
-        print(res.columns, self.agg.value())
 
         code_data = [res, ["group", mu_name]]
 
@@ -369,6 +381,8 @@ class PlottingWindow(QtWidgets.QWidget):
         return
 
     def run2(self):
+        if not self.button_run.isEnabled():
+            return
         for button in self.plot_buttons:
             button.setChecked(False)
         self.button_run.setChecked(True)
