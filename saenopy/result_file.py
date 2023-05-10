@@ -338,10 +338,12 @@ class Result(Saveable):
             text += indent + indent + filename[len(base_folder):] + " " + str(stack.voxel_size) + " " + str(stack.channels) + "\n"
         text += indent + "]" + "\n"
         if self.piv_parameters:
-            text += indent + "piv_parameter = " + str(self.piv_parameters) + "\n"
+            text += indent + "piv_parameters = " + str(self.piv_parameters) + "\n"
         if self.mesh_parameters:
-            text += indent + "interpolate_parameter = " + str(self.mesh_parameters) + "\n"
+            text += indent + "mesh_parameters = " + str(self.mesh_parameters) + "\n"
+        if self.material_parameters:
+            text += indent + "material_parameters = " + str(self.material_parameters) + "\n"
         if self.solve_parameters:
-            text += indent + "solve_parameter = " + str(self.solve_parameters) + "\n"
+            text += indent + "solve_parameters = " + str(self.solve_parameters) + "\n"
         text += ")" + "\n"
         return text
