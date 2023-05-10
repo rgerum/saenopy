@@ -4,22 +4,6 @@ import numba
 from saenopy.saveable import Saveable
 
 
-def save_epsilon(epsilon, fname, CFG):
-    """
-    Save the material function to a file, e.g. for further plotting.
-    """
-    imax = int(np.ceil((CFG["EPSMAX"] + 1.0) / CFG["EPSSTEP"]))
-
-    with open(fname, "w") as fp:
-        for i in range(imax):
-            lambd = (i * CFG["EPSSTEP"]) - 1.0
-
-            fp.write(str(lambd) + " " + str(epsilon[i]) + "\n")
-
-    lambd = (np.arange(imax) * CFG["EPSSTEP"]) - 1.0
-    np.save(fname.replace(".dat", ".npy"), np.array([lambd, epsilon]).T)
-
-
 def sample_and_integrate_function(func, min, max, step, zero_point=0, maximal_value=10e10):
     def iToX(i):
         return i * step + min
