@@ -154,7 +154,7 @@ class DeformationDetector(PipelineModule):
         else:
             self.label.setText("")
 
-    def process(self, result: Result, params: dict):
+    def process(self, result: Result, piv_parameters: dict):
         # demo run
         if os.environ.get("DEMO") == "true":
             self.parent.progressbar.setRange(0, 10)
@@ -172,7 +172,7 @@ class DeformationDetector(PipelineModule):
             count -= 1
 
         for i in range(count):
-            p = ProcessSimple(getDeformation, (i, result, params), {}, self.processing_progress, use_thread=self.use_thread)
+            p = ProcessSimple(getDeformation, (i, result, piv_parameters), {}, self.processing_progress, use_thread=self.use_thread)
             p.start()
             result.mesh_piv[i] = p.join()
 

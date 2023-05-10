@@ -138,7 +138,7 @@ class Regularizer(PipelineModule):
                     pass
                 self.canvas.draw()
 
-    def process(self, result: Result, params: dict):
+    def process(self, result: Result, material_parameters: dict, solve_parameters: dict):
         # demo run
         if os.environ.get("DEMO") == "true":
             imax = 100
@@ -156,14 +156,14 @@ class Regularizer(PipelineModule):
                 self.iteration_finished.emit(result, relrec, i, imax)
 
             M.set_material_model(saenopy.materials.SemiAffineFiberMaterial(
-                               params["k"],
-                               params["d_0"] if params["d_0"] != "None" else None,
-                               params["lambda_s"] if params["lambda_s"] != "None" else None,
-                               params["ds"] if params["ds"] != "None" else None,
+                               material_parameters["k"],
+                               material_parameters["d_0"] if material_parameters["d_0"] != "None" else None,
+                               material_parameters["lambda_s"] if material_parameters["lambda_s"] != "None" else None,
+                               material_parameters["d_s"] if material_parameters["d_s"] != "None" else None,
                                ))
 
-            M.solve_regularized(step_size=params["step_size"], max_iterations=params["max_iterations"],
-                                alpha=params["alpha"], rel_conv_crit=params["rel_conv_crit"],
+            M.solve_regularized(step_size=solve_parameters["step_size"], max_iterations=solve_parameters["max_iterations"],
+                                alpha=solve_parameters["alpha"], rel_conv_crit=solve_parameters["rel_conv_crit"],
                                 callback=callback, verbose=True)
 
             # clear the cache of the solver

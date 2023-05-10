@@ -80,7 +80,7 @@ class MeshSizeWidget(QtWidgets.QWidget):
             return (self.input_mesh_size_x.value(), self.input_mesh_size_y.value(), self.input_mesh_size_z.value())
 
     def setValue(self, value):
-        if value is "piv":
+        if value == "piv":
             self.input_mesh_size_same.setValue(True)
         else:
             self.input_mesh_size_same.setValue(False)
@@ -201,7 +201,7 @@ class MeshCreator(PipelineModule):
         else:
             self.plotter.interactor.setToolTip("")
 
-    def process(self, result: Result, params: dict):
+    def process(self, result: Result, mesh_parameters: dict):
         # demo run
         if os.environ.get("DEMO") == "true":
             result.solver = result.solver_demo
@@ -212,14 +212,14 @@ class MeshCreator(PipelineModule):
             result.solver = [None]*len(result.mesh_piv)
         
         # correct for the reference state
-        displacement_list = saenopy.subtract_reference_state(result.mesh_piv, params["reference_stack"])
+        displacement_list = saenopy.subtract_reference_state(result.mesh_piv, mesh_parameters["reference_stack"])
         
         # set the parameters
-        result.mesh_parameters = params
+        result.mesh_parameters = mesh_parameters
         # iterate over all stack pairs
         for i in range(len(result.mesh_piv)):
             # and create the interpolated solver mesh
-            result.solver[i] = saenopy.interpolate_mesh(result.mesh_piv[i], displacement_list[i], params)
+            result.solver[i] = saenopy.interpolate_mesh(result.mesh_piv[i], displacement_list[i], mesh_parameters)
         # save the meshes
         result.save()
 

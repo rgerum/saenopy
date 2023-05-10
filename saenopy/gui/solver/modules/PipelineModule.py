@@ -210,9 +210,10 @@ class PipelineModule(QtWidgets.QWidget):
             getattr(result, self.params_name + "_state", "") == "running":
             return
 
+        params = {}
         for mapping in self.parameter_mappings:
             mapping.ensure_tmp_params_initialized(result)
-        params = getattr(result, self.params_name + "_tmp")
+            params[mapping.params_name] = getattr(result, mapping.params_name + "_tmp")
         setattr(result, self.params_name + "_state", "scheduled")
         self.processing_state_changed.emit(result)
         return self.parent.addTask(self.process_thread, result, params, "xx")
@@ -223,7 +224,7 @@ class PipelineModule(QtWidgets.QWidget):
         setattr(result, self.params_name + "_state", "running")
         self.processing_state_changed.emit(result)
         try:
-            self.process(result, params)
+            self.process(result, **params)
             # store the parameters that have been used for evaluation
             setattr(result, self.params_name, params.copy())
             result.save()
