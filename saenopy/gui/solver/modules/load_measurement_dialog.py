@@ -50,7 +50,7 @@ class AddFilesDialog(QtWidgets.QDialog):
                                         self.reference_choice.valueChanged.connect(ref_changed)
                                         self.stack_reference = StackSelector(QtShortCuts.current_layout, "reference")
                                         self.stack_reference.glob_string_changed.connect \
-                                            (lambda x, y: (print("relaxed, y"), self.stack_reference_input.setText(y)))
+                                            (lambda x, y: self.stack_reference_input.setText(y))
                                         self.stack_reference.setVisible(self.reference_choice.value())
 
                                         self.stack_reference_input = QtWidgets.QLineEdit().addToLayout()

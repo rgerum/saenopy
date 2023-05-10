@@ -63,7 +63,6 @@ def render_3d_fibers(params, result, plotter, exporter):
     ]
     params, changed = filter_params(params, used_values, getattr(plotter, "previous_plot_params", {}))
     if not changed and result == getattr(plotter, "previous_plot_result", {}):
-        print("skipped fibers")
         return
 
     crops = []
@@ -117,7 +116,7 @@ def render_3d_fibers(params, result, plotter, exporter):
         plotter.remove_scalar_bar("values")
     else:
         plotter.remove_actor("fiber")
-    print("plot time", f"{time.time() - t_start:.3f}s")
+    #print("plot time", f"{time.time() - t_start:.3f}s")
 
 
 def render_3d_text(params, result, plotter):
@@ -127,7 +126,6 @@ def render_3d_text(params, result, plotter):
     ]
     params, changed = filter_params(params, used_values, getattr(plotter, "previous_plot_params", {}))
     if not changed and result == getattr(plotter, "previous_plot_result", {}):
-        print("skipped text")
         return
 
     if result is not None and result.time_delta is not None and params["time"]["display"]:
@@ -146,9 +144,8 @@ def render_3d_arrows(params, result, plotter):
         ("force_arrows", ("scale_max", "autoscale", "skip", "arrow_opacity", "colormap", "arrow_scale", "use_center")),
     ]
     params, changed = filter_params(params, used_values, getattr(plotter, "previous_plot_params", {}))
-    print("arrows", changed, result == getattr(plotter, "previous_plot_result", {}))
+
     if not changed and result == getattr(plotter, "previous_plot_result", {}):
-        print("skipped arrows")
         return
 
     obj, field, params_arrows, name = get_mesh_arrows(params, result)
@@ -253,7 +250,6 @@ def render_3d_image(params, result, plotter, exporter=None):
     ]
     params, changed = filter_params(params, used_values, getattr(plotter, "previous_plot_params", {}))
     if not changed and result == getattr(plotter, "previous_plot_result", {}):
-        print("skipped image")
         return
     scale = 1
     colormap2 = params["stack"]["colormap"]
@@ -316,7 +312,6 @@ def render_3d_bounds(params, result, plotter):
     ]
     params, changed = filter_params(params, used_values, getattr(plotter, "previous_plot_params", {}))
     if not changed and result == getattr(plotter, "previous_plot_result", {}):
-        print("skipped bounds")
         return
 
     show_grid = params["show_grid"]
@@ -380,7 +375,6 @@ def render_3d_camera(params, result, plotter, exporter=None, double_render=False
     ]
     params, changed = filter_params(params, used_values, getattr(plotter, "previous_plot_params", {}))
     if not changed and result == getattr(plotter, "previous_plot_result", {}):
-        print("skipped camera")
         return
 
     # reset the camera before rotating

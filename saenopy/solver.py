@@ -672,7 +672,7 @@ class Solver(Saveable):
         L = alpha*ff + uuf2
 
         if self.verbose:
-            print("|u-uf|^2 =", uuf2, "\t\tperbead=", suuf/bcount)
+            print("|u-uf|^2 =", uuf2)
             print("|w*f|^2  =", ff, "\t\t|u|^2 =", u2)
             print("L = |u-uf|^2 + lambda*|w*f|^2 = ", L)
 
@@ -1026,7 +1026,7 @@ def interpolate_mesh(mesh: PivMesh, xpos2: np.ndarray, params: dict) -> Solver:
     from saenopy.multigrid_helper import get_scaled_mesh, get_nodes_with_one_face
 
     x, y, z = (mesh.R.max(axis=0) - mesh.R.min(axis=0)) * 1e6
-    if params["mesh_size"] is "piv":
+    if params["mesh_size"] == "piv":
         mesh_size = (x, y, z)
     else:
         mesh_size = params["mesh_size"]

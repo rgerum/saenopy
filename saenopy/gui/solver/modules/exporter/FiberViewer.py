@@ -40,20 +40,17 @@ def cache_results():
             cache_name = f"_saved_{function}"
             if "channel" in params:
                 cache_name = f"_saved_{function}_{params['channel']}"
-                print("channel", cache_name)
-            else:
-                print(cache_name, params)
             t = time.time()
             cache_obj = get_cache(data)
             cached = getattr(cache_obj, cache_name, None)
             cached_params = getattr(cache_obj, f"{cache_name}_params", None)
             if cached is not None and cached_params == params:
-                print("cache", function, "cached", params, f"{time.time()-t:.3f}s")
+                #print("cache", function, "cached", params, f"{time.time()-t:.3f}s")
                 return cached
             result = function(data, **params)
             setattr(cache_obj, cache_name, result)
             setattr(cache_obj, f"{cache_name}_params", params)
-            print("cache", function, "apply", params, f"{time.time()-t:.3f}s")
+            #print("cache", function, "apply", params, f"{time.time()-t:.3f}s")
             return result
         return apply
     return wrapper
@@ -387,7 +384,7 @@ class FiberViewer(PipelineModule):
                     vol = self.plotter.add_volume(stack_data["data"], resolution=np.array(self.result.stack[0].voxel_size),
                                               cmap=stack_data["cmap"], opacity=stack_data["opacity"],
                                          blending="composite", name="fiber", render=False)  # 1.0*x
-                print("plot time", f"{time.time()-t_start:.3f}s")
+                #print("plot time", f"{time.time()-t_start:.3f}s")
                 self.plotter.remove_scalar_bar()
             finally:
                 self.plotter.render = render

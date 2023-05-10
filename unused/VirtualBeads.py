@@ -5,7 +5,7 @@ import scipy.sparse as ssp
 
 from saenopy.solver import Solver
 from saenopy.conjugate_gradient import cg
-from saenopy.unused.stack3DHelper import crosscorrelateStacks, getSubstack, findLocalDisplacement
+from unused.stack3DHelper import crosscorrelateStacks, getSubstack, findLocalDisplacement
 
 
 class timeit:

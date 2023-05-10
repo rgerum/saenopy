@@ -797,7 +797,7 @@ class ExportViewer(PipelineModule):
     def update_display(self):
         if self.no_update:
             return
-        print(self.get_parameters())
+        #print(self.get_parameters())
         #self.set_parameters(self.get_parameters())
         #if self.current_tab_selected is False:
         #    self.current_result_plotted = False

@@ -97,7 +97,6 @@ def getVectorFieldImage(result, params, use_fixed_contrast_if_available=False, u
 
 
 def get_time_text(params, result):
-    print("time", float(params["time"]["t"] * result.time_delta) + params["time"]["start"], float(params["time"]["t"] * result.time_delta), params["time"]["start"])
     return formatTimedelta(datetime.timedelta(seconds=float(params["time"]["t"] * result.time_delta) + params["time"]["start"]),
                            params["time"]["format"])
 

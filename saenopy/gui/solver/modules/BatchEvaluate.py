@@ -191,7 +191,7 @@ class BatchEvaluate(QtWidgets.QWidget):
                 import_code += code1
                 run_code += code2 +"\n"
             run_code = import_code + "\n\n" + run_code
-            print(run_code)
+            #print(run_code)
             with open(new_path, "w") as fp:
                 fp.write(run_code)
 
@@ -208,7 +208,6 @@ class BatchEvaluate(QtWidgets.QWidget):
                 self.sub_module_regularize.start_process(result=result)
 
     def addTask(self, task, result, params, name):
-        print("add task", task, result, params, name)
         self.tasks.append([task, result, params, name])
         if self.thread is None:
             self.run_next()

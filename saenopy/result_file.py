@@ -147,7 +147,6 @@ def get_stacks(filename, output_path, voxel_size, time_delta=None, reference_sta
                     if mode == 0:
                         break
                     if mode == "read":
-                        print('exists', output)
                         data = Result.load(output)
                         results.append(data)
                         continue
@@ -187,7 +186,6 @@ def get_stacks(filename, output_path, voxel_size, time_delta=None, reference_sta
                     if mode == 0:
                         break
                     if mode == "read":
-                        print('exists', output)
                         data = Result.load(output)
                         results.append(data)
                         continue
@@ -274,7 +272,6 @@ class Result(Saveable):
         self.solver = [None] * (len(self.mesh_piv))
 
         super().__init__(**kwargs)
-        print(self)
 
         # if demo move parts to simulate empty result
         if os.environ.get("DEMO") == "true":

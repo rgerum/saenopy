@@ -1044,7 +1044,7 @@ class BatchEvaluate(QtWidgets.QWidget):
         import re
         text = os.path.normpath(dialog.inputText.value())
         glob_string = text.replace("?", "*")
-        print("globbing", glob_string)
+        #print("globbing", glob_string)
         files = natsorted(glob.glob(glob_string))
 
         output_base = glob_string
@@ -1105,7 +1105,7 @@ class BatchEvaluate(QtWidgets.QWidget):
                 self.segmention_thres_indi.setValue(attr["thres_segmentation"])
                 #self.seg_gaus1_indi.setValue(attr["seg_gaus1"])
                 #self.seg_gaus2_indi.setValue(attr["seg_gaus2"])
-                print("->", [attr[v] is None for v in ["thres_segmentation"]])
+                #print("->", [attr[v] is None for v in ["thres_segmentation"]])
                 if np.all([attr[v] is None for v in ["thres_segmentation"]]):
                     self.individual_data.setValue(False)
                 else:
@@ -1143,7 +1143,7 @@ class BatchEvaluate(QtWidgets.QWidget):
 
         if self.last_image is not None and self.last_image[0] == i:
             i, im, im0 = self.last_image
-            print("cached")
+            #print("cached")
         else:
             im = imageio.imread(self.images[i]).astype(float)
             if self.continous_segmentation.value() is True:
@@ -1156,7 +1156,7 @@ class BatchEvaluate(QtWidgets.QWidget):
                 self.last_seg[1] == thres_segmentation and \
                 self.continous_segmentation.value() is False:
             pass
-            print("cached")
+            #print("cached")
         else:
             print(self.last_seg, i, thres_segmentation)
             seg0 = jf.piv.segment_spheroid(im0, True, thres_segmentation)
@@ -1282,7 +1282,7 @@ class BatchEvaluate(QtWidgets.QWidget):
 
     def run_thread(self):
         try:
-            print("compute displacements")
+            #print("compute displacements")
             n = self.list.count() - 1
             for i in range(n):
                 try:
@@ -1324,7 +1324,7 @@ class BatchEvaluate(QtWidgets.QWidget):
                             if ii == 0 or self.continous_segmentation.value() is True:
                                 seg0 = jf.piv.segment_spheroid(im, True, self.thres_segmentation.value())
                             if ii > 0:
-                                print("self.dt_min.value()*ii if self.dt_min.value() is not None else None", self.dt_min.value()*ii if self.dt_min.value() is not None else None)
+                                #print("self.dt_min.value()*ii if self.dt_min.value() is not None else None", self.dt_min.value()*ii if self.dt_min.value() is not None else None)
                                 from jointforces.piv import save_displacement_plot
                                 dis_sum = np.load(str(data["output"]) + '/def' + str(ii).zfill(6) + '.npy', allow_pickle=True).item()
                                 save_displacement_plot(str(data["output"]) + '/plot' + str(ii).zfill(6) + '.png', im,
@@ -1594,17 +1594,16 @@ class PlottingWindow(QtWidgets.QWidget):
             self.list.clear()
             self.list.setData([[i["name"], i["selected"], [], i["color"]] for i in list_new])
             self.data_folders = self.list.data
-            print("y", self.list.data)
+
             for i, d in enumerate(list_new):
                 self.list.setCurrentRow(i)
                 self.list.listSelected()
                 self.listSelected()
                 self.list2.data = self.list.data[i][2]
                 self.add_files([d_0["path"] for d_0 in d["paths"]])
-                print("xxx", self.list.data)
+
                 for ii, d_0 in enumerate(d["paths"]):
                     self.list2.data[ii][1] = d_0["selected"]
-            print("x", self.list.data)
 
     def update_group_name(self):
         if self.list.currentItem() is not None:
@@ -1682,14 +1681,14 @@ class PlottingWindow(QtWidgets.QWidget):
         current_files = [d[0] for d in current_group]
         for file in files:
             if file in current_files:
-                print("File already in list", file)
+                #print("File already in list", file)
                 continue
             try:
-                print("Add file", file)
+                #print("Add file", file)
                 res = self.getPandasData(file)
                 if self.list2.data is current_group:
                     self.list2.addData(file, True, res)
-                    print("replot")
+                    #print("replot")
                     self.replot()
                 app.processEvents()
             except FileNotFoundError:

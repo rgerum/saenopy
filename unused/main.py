@@ -5,9 +5,9 @@ import time
 import numpy as np
 
 from saenopy.solver import Solver
-from saenopy.unused.VirtualBeads import VirtualBeads
-from saenopy.unused.configHelper import loadDefaults, loadConfigFile, parseValue, saveConfigFile
-from saenopy.unused.load_helpers import loadMeshCoords, loadMeshTets, loadBoundaryConditions, loadConfiguration, make_box_mesh, load
+from unused.VirtualBeads import VirtualBeads
+from unused.configHelper import loadDefaults, loadConfigFile, parseValue, saveConfigFile
+from unused.load_helpers import loadMeshCoords, loadMeshTets, loadBoundaryConditions, loadConfiguration, make_box_mesh, load
 from saenopy.materials import SemiAffineFiberMaterial
 from saenopy.materials import save_epsilon
 

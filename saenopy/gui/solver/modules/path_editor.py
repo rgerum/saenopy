@@ -27,7 +27,7 @@ def start_path_change(parent, result):
 
     if path_editor.input_save.value():
         result.save()
-        print("saved")
+        #print("saved")
         return
 
 
@@ -76,8 +76,8 @@ class PathChanger:
         if match is None:
             raise ValueError(f"Path {path} does not fit template {self.old_template_re}")
         new = self.new_template_format.format(**match.groupdict())
-        print("change_path From", path)
-        print("change_path To  ", new)
+        #print("change_path From", path)
+        #print("change_path To  ", new)
         if path_type:
             return Path(new)
         return new
