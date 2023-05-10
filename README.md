@@ -16,7 +16,35 @@ tissue-mimicking and typically highly non-linear biopolymer matrices such as col
 
 It features a python package to use in scripts and an extensive graphical user interface.
 
-Check out our [Documentation](https://saenopy.readthedocs.io) on how to install and use it or our preprint:
+Check out our [Documentation](https://saenopy.readthedocs.io) on how to install and use it.
+
+## Installation
+
+### Standalone
+To use saenopy without a complicated installation you can use our standalone binaries to get started right away on Windows or Linux.
+
+Windows
+https://github.com/rgerum/saenopy/releases/download/v0.9.0/saenopy.exe
+
+Linux
+https://github.com/rgerum/saenopy/releases/download/v0.9.0/saenopy
+
+### Using Python
+
+If you are experienced with python or even want to use our Python API, you need to install saenopy as a python package.
+Saenopy can be installed directly using pip:
+
+    ``pip install saenopy``
+
+Now you can start the user interface with:
+
+    ``saenopy``
+
+## Getting started
+To get started you can have a look at our collection of [example datasets](https://saenopy.readthedocs.io/en/latest/auto_examples/index.html).
+
+## Preprint
+If you want to cite saenopy you can reference our preprint.
 
 *Dynamic traction force measurements of migrating immune cells in 3D matrices*
 David Böhringer, Mar Cóndor, Lars Bischof, Tina Czerwinski, Andreas Bauer, Caroline Voskens, Silvia Budday, 
