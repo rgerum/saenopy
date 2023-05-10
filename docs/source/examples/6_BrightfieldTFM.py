@@ -158,11 +158,11 @@ for result in results:
 # +====================+=========+
 # | k                  |  6062   |
 # +--------------------+---------+
-# | d0                 | 0.0025  |
+# | d_0                | 0.0025  |
 # +--------------------+---------+
 # | lambda_s           |  0.0804 |
 # +--------------------+---------+
-# | ds                 | 0.034   |
+# | d_s                | 0.034   |
 # +--------------------+---------+
 #
 # +--------------------------+---------+
@@ -170,30 +170,34 @@ for result in results:
 # +==========================+=========+
 # | alpha                    |  10**11 |
 # +--------------------------+---------+
-# | stepper                  |    0.33 |
+# | step_size                |    0.33 |
 # +--------------------------+---------+
-# | i_max                    |    300  |
+# | max_iterations           |    300  |
 # +--------------------------+---------+
 # | rel_conv_crit            |  0.01  |
 # +--------------------------+---------+
 #
 
 # define the parameters to generate the solver mesh and interpolate the piv mesh onto it
-params = {'k': 6062.0, 'd0': 0.0025, 'lambda_s': 0.0804, 'ds':  0.034, 'alpha': 10**11, 'stepper': 0.33, 'i_max': 300, 'rel_conv_crit': 0.01}
+material_parameters = {'k': 6062.0, 'd_0': 0.0025, 'lambda_s': 0.0804, 'd_s':  0.034}
+solve_parameters = {'alpha': 10**11, 'step_size': 0.33, 'max_iterations': 300, 'rel_conv_crit': 0.01}
 
 # iterate over all the results objects
 for result in results:
-    result.solve_parameters = params
+    result.material_parameters = material_parameters
+    result.solve_parameters = solve_parameters
     for index, M in enumerate(result.solver):
         # set the material model
         M.set_material_model(saenopy.materials.SemiAffineFiberMaterial(
-            params["k"],
-            params["d0"],
-            params["lambda_s"],
-            params["ds"],
+            material_parameters["k"],
+            material_parameters["d_0"],
+            material_parameters["lambda_s"],
+            material_parameters["d_s"],
         ))
         # find the regularized force solution
-        M.solve_regularized(stepper=params["stepper"], i_max=params["i_max"], alpha=params["alpha"], rel_conv_crit=params["rel_conv_crit"], verbose=True)
+        M.solve_regularized(alpha=solve_parameters["alpha"], step_size=solve_parameters["step_size"],
+                            max_iterations=solve_parameters["max_iterations"],
+                            rel_conv_crit=solve_parameters["rel_conv_crit"], verbose=True)
         # save the forces
         result.save()
         # clear the cache of the solver
