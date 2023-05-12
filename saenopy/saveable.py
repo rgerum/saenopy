@@ -13,24 +13,23 @@ class Saveable:
     def to_dict(self):
         data = {}
         for param in self.__save_parameters__:
-            attribute = getattr(self, param, None)
-            if attribute is not None:
-                if getattr(attribute, "to_dict", None) is not None:
-                    data[param] = getattr(attribute, "to_dict")()
-                elif isinstance(attribute, list) and len(attribute) and (getattr(attribute[0], "to_dict", None) is not None or attribute[0] is None):
-                    my_list = []
-                    for attr in attribute:
-                        value = attr
-                        if getattr(attribute[0], "to_dict", None):
-                            value = getattr(attr, "to_dict")()
-                        if attr is None:
-                            value = "__NONE__"
-                        my_list.append(value)
-                    data[param] = my_list
-                elif attribute is None:
-                    data[param] = "__NONE__"
-                else:
-                    data[param] = attribute
+            attribute = getattr(self, param)
+            if getattr(attribute, "to_dict", None) is not None:
+                data[param] = getattr(attribute, "to_dict")()
+            elif isinstance(attribute, list) and len(attribute) and (getattr(attribute[0], "to_dict", None) is not None or attribute[0] is None):
+                my_list = []
+                for attr in attribute:
+                    value = attr
+                    if getattr(attribute[0], "to_dict", None):
+                        value = getattr(attr, "to_dict")()
+                    if attr is None:
+                        value = "__NONE__"
+                    my_list.append(value)
+                data[param] = my_list
+            elif attribute is None:
+                data[param] = "__NONE__"
+            else:
+                data[param] = attribute
         return data
 
     def save(self, filename: str):
@@ -46,7 +45,11 @@ class Saveable:
     def from_dict(cls, data_dict):
         types = typing.get_type_hints(cls)
         data = {}
+        save_parameters = cls.__save_parameters__.copy()
         for name in data_dict:
+            if name not in cls.__save_parameters__:
+                raise ValueError(f"Cannot load {name}")
+            save_parameters.remove(name)
             if isinstance(data_dict[name], np.ndarray) and len(data_dict[name].shape) == 0:
                 data[name] = data_dict[name][()]
             else:
@@ -57,8 +60,12 @@ class Saveable:
                 elif typing.get_origin(types[name]) is list:
                     if isinstance(data[name], dict):
                         data[name] = typing.get_args(types[name])[0].from_dict(data[name])
+                    elif data[name] is None:
+                        pass
                     else:
                         data[name] = [None if d == "__NONE__" else typing.get_args(types[name])[0].from_dict(d) for d in data[name]]
+        if len(save_parameters):
+            raise ValueError(f"The following parameters were not found in the save file {save_parameters}")
         return cls(**data)
 
     @classmethod

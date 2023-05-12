@@ -83,7 +83,7 @@ class InvalidShape(ValidationFailure):
 
 
 def check_tetrahedra_scalar_field(self, data: NDArray[Shape["N_t"], Float]):
-    if data is None:
+    if data is None or self.tetrahedra is None:
         return True
     data = np.asarray(data)
     if len(data.shape) != 1 or (self.tetrahedra is not None and data.shape[0] != self.tetrahedra.shape[0]):
@@ -92,7 +92,7 @@ def check_tetrahedra_scalar_field(self, data: NDArray[Shape["N_t"], Float]):
 
 
 def check_node_scalar_field(self, data: NDArray[Shape["N_c"], Float]):
-    if data is None:
+    if data is None or self.nodes is None:
         return True
     data = np.asarray(data)
     if len(data.shape) != 1 or (self.nodes is not None and data.shape[0] != self.nodes.shape[0]):
@@ -101,7 +101,7 @@ def check_node_scalar_field(self, data: NDArray[Shape["N_c"], Float]):
 
 
 def check_node_vector_field(self, data: NDArray[Shape["N_c"], Float]):
-    if data is None:
+    if data is None or self.nodes is None:
         return True
     data = np.asarray(data)
     if len(data.shape) != 2 or (self.nodes is not None and data.shape[0] != self.nodes.shape[0]) or data.shape[1] != 3:

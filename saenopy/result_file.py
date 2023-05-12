@@ -232,7 +232,7 @@ def common_end(values):
 
 
 class Result(Saveable):
-    __save_parameters__ = ['stack_parameters', 'stack', 'stack_reference', 'template',
+    __save_parameters__ = ['stack', 'stack_reference', 'template',
                            'time_delta', 'piv_parameters', 'mesh_piv',
                            'mesh_parameters', 'material_parameters', 'solve_parameters', 'solver',
                            '___save_name__', '___save_version__']
@@ -254,6 +254,129 @@ class Result(Saveable):
     material_parameters: dict = None
     solve_parameters: dict = None
     solver: List[Solver] = None
+
+    @classmethod
+    def from_dict(cls, data_dict):
+        if data_dict["___save_version__"] < "1.2":  # pragma: no cover
+            print(f"convert old version {data_dict['___save_version__']} to 1.2")
+            renames = [
+                dict(old="stack", new="stack", renames_child=[
+                    dict(old="shape", new="_shape"),
+                    dict(old="leica_file", new="leica_file", default=None),
+                    dict(old="crop", new="crop", default=None),
+                    dict(old="packed_files", new="packed_files", default=None),
+                ]),
+                dict(old="stack_reference", new="stack_reference", renames_child=[
+                    dict(old="shape", new="_shape"),
+                    dict(old="leica_file", new="leica_file", default=None),
+                    dict(old="crop", new="crop", default=None),
+                    dict(old="packed_files", new="packed_files", default=None),
+                ]),
+                dict(old="piv_parameter", new="piv_parameters", renames_child=[
+                    dict(old="win_um", new="window_size"),
+                    dict(old="elementsize", new="element_size"),
+                    dict(old="signoise_filter", new="signal_to_noise"),
+                ]),
+                dict(old="interpolate_parameter", new="mesh_parameters", renames_child=[
+                    dict(old="inner_region", new=None),
+                    dict(old="thinning_factor", new=None),
+                    dict(old=lambda d: ("piv" if d["mesh_size_same"] else (d["mesh_size_x"], d["mesh_size_y"], d["mesh_size_z"])), new="mesh_size"),
+                    dict(old="mesh_size_same", new=None),
+                    dict(old="mesh_size_x", new=None),
+                    dict(old="mesh_size_y", new=None),
+                    dict(old="mesh_size_z", new=None),
+                ]),
+                dict(old="solve_parameter", new="material_parameters", renames_child=[
+                    dict(old="d0", new="d_0"),
+                    dict(old="ds", new="d_s"),
+                    dict(old="alpha", new=None),
+                    dict(old="stepper", new=None),
+                    dict(old="i_max", new=None),
+                    dict(old="rel_conv_crit", new=None),
+                ]),
+                dict(old="solve_parameter", new="solve_parameters", renames_child=[
+                    dict(old="k", new=None),
+                    dict(old="d0", new=None),
+                    dict(old="lambda_s", new=None),
+                    dict(old="ds", new=None),
+                    dict(old="stepper", new="step_size"),
+                    dict(old="i_max", new="max_iterations"),
+                ]),
+
+                dict(old="mesh_piv", new="mesh_piv", renames_child=[
+                    dict(old="R", new="nodes"),
+                    dict(old="T", new="tetrahedra"),
+                    dict(old="node_vars", new=None),
+                    dict(old=lambda d: d["node_vars"]["U_measured"], new="displacements_measured"),
+                ]),
+
+                dict(old="solver", new="solver", renames_child=[
+                    dict(old=lambda d: dict(
+                        nodes=d["R"],
+                        tetrahedra=d["T"],
+                        displacements=d["U"],
+                        displacements_fixed=d.get("U_fixed", None),
+                        displacements_target=d["U_target"],
+                        displacements_target_mask=d["U_target_mask"],
+                        regularisation_mask=d["reg_mask"],
+                        movable=d["var"],
+                        forces=d["f"],
+                        forces_target=d["f_target"],
+                        strain_energy=d["E_glo"],
+                    ),
+                         new="mesh"),
+                    dict(old="R", new=None),
+                    dict(old="T", new=None),
+                    dict(old="U", new=None),
+                    dict(old="U_fixed", new=None),
+                    dict(old="U_target", new=None),
+                    dict(old="U_target_mask", new=None),
+                    dict(old="reg_mask", new=None),
+                    dict(old="f", new=None),
+                    dict(old="f_target", new=None),
+                    dict(old="E_glo", new=None),
+                    dict(old="var", new=None),
+                    dict(old="relrec", new="regularisation_results"),
+                    dict(old="material_model", new="material_model", renames_child=[
+                        dict(old="d0", new="d_0"),
+                        dict(old="ds", new="d_s"),
+                    ]),
+                ]),
+                dict(old="time_delta", new="time_delta", default=None),
+                dict(old="stack_parameters", new=None),
+            ]
+            def apply_rename(obj_data, rename):
+                if isinstance(obj_data, list):
+                    return [apply_rename(o, rename) for o in obj_data]
+
+                from typing import Callable
+                for r in rename:
+                    if r["new"] is not None:
+                        if isinstance(r["old"], Callable):
+                            obj_data[r["new"]] = r["old"](obj_data)
+                        elif r["old"] in obj_data:
+                            obj_data[r["new"]] = obj_data[r["old"]]
+                        elif "default" in r:
+                            obj_data[r["new"]] = r["default"]
+                    if r.get("renames_child", None) is not None:
+                        apply_rename(obj_data[r["new"]], r.get("renames_child", None))
+
+            apply_rename(data_dict, renames)
+
+            def apply_delete(obj_data, rename):
+                if isinstance(obj_data, list):
+                    return [apply_delete(o, rename) for o in obj_data]
+
+                for r in rename:
+                    if r["old"] in obj_data and r["old"] != r["new"]:
+                        del obj_data[r["old"]]
+                    if r.get("renames_child", None) is not None:
+                        apply_delete(obj_data[r["new"]], r.get("renames_child", None))
+
+            apply_delete(data_dict, renames)
+
+            data_dict["___save_version__"] = "1.2"
+        return super().from_dict(data_dict)
 
     def __init__(self, output=None, template=None, stack=None, time_delta=None, **kwargs):
         self.output = str(output)

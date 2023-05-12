@@ -18,9 +18,7 @@ from saenopy.saveable import Saveable
 from typing import List
 
 
-class SolverMesh(Mesh): # nodes, tetrahedra, displacements, forces, displacements_fixed, displacements_target,
-    # displacements_target_mask,
-    # force_target, strain_energy, variable, regularisation_mask
+class SolverMesh(Mesh):
     __save_parameters__ = ["nodes", "tetrahedra", "displacements", "forces",
                            "displacements_fixed", "displacements_target", "displacements_target_mask",
                            "forces_target", "strain_energy", "movable",
@@ -66,8 +64,8 @@ class Solver(Saveable):
     material_model: SemiAffineFiberMaterial = None  # the function specifying the material model
     material_parameters = None
 
-    regularisation_results: None
-    regularisation_parameters: None
+    regularisation_results: list = None
+    regularisation_parameters: dict = None
 
     verbose = False
 
