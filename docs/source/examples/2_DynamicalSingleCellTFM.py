@@ -110,17 +110,17 @@ for result in results:
     # set the parameters
     result.piv_parameters = piv_parameters
     # get count
-    count = len(result.stack)
+    count = len(result.stacks)
     if result.stack_reference is None:
         count -= 1
     # iterate over all stack pairs
     for i in range(count):
         # get two consecutive stacks
         if result.stack_reference is None:
-            stack1, stack2 = result.stack[i], result.stack[i + 1]
+            stack1, stack2 = result.stacks[i], result.stacks[i + 1]
         # or reference stack and one from the list
         else:
-            stack1, stack2 = result.stack_reference, result.stack[i]
+            stack1, stack2 = result.stack_reference, result.stacks[i]
         
         # due to the acceleration of the galvo stage there can be shaking in the
         # lower or upper part of the stack. Therefore, we recorded larger
@@ -179,7 +179,7 @@ for result in results:
     # iterate over all stack pairs
     for i in range(len(result.mesh_piv)):
         # and create the interpolated solver mesh
-        result.solver[i] = saenopy.interpolate_mesh(result.mesh_piv[i], displacement_list[i], mesh_parameters)
+        result.solvers[i] = saenopy.interpolate_mesh(result.mesh_piv[i], displacement_list[i], mesh_parameters)
     # save the meshes
     result.save()
 
@@ -220,7 +220,7 @@ solve_parameters = {'alpha':  10**10, 'step_size': 0.33, 'max_iterations': 100}
 for result in results:
     result.material_parameters = material_parameters
     result.solve_parameters = solve_parameters
-    for M in result.solver:
+    for M in result.solvers:
         # set the material model
         M.set_material_model(saenopy.materials.SemiAffineFiberMaterial(
             material_parameters["k"],

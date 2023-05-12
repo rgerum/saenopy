@@ -153,9 +153,9 @@ def test_run_example(monkeypatch, random_path, catch_popup_error, use_time, use_
     batch_evaluate.list.setCurrentRow(0)
 
     results = [batch_evaluate.sub_module_deformation.result]
-    results[0].stack[0].pack_files()
+    results[0].stacks[0].pack_files()
     if use_time:
-        results[0].stack[1].pack_files()
+        results[0].stacks[1].pack_files()
     if use_reference:
         results[0].stack_reference.pack_files()
     assert batch_evaluate.sub_module_deformation.result != None
@@ -175,9 +175,9 @@ def test_run_example(monkeypatch, random_path, catch_popup_error, use_time, use_
         app.processEvents()
 
     # check the result
-    M = results[0].solver[0]
+    M = results[0].solvers[0]
     print(M.mesh.displacements[M.mesh.regularisation_mask])
-    print(results[0].solver[0].mesh.displacements.shape)
+    print(results[0].solvers[0].mesh.displacements.shape)
     # assert sf4(M.U[M.reg_mask][0]) == sf4([-2.01259036e-38, -1.96865342e-38, -4.92921492e-38])
     # 91.64216076e-38 -3.15079497e-39  3.19069614e-39
 

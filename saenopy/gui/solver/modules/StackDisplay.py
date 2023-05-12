@@ -149,10 +149,10 @@ class StackDisplay(PipelineModule):
         self.z_slider_value_changed()
 
     def check_evaluated(self, result: Result) -> bool:
-        return self.result is not None and result.stack is not None and len(result.stack) > 0
+        return self.result is not None and result.stacks is not None and len(result.stacks) > 0
 
     def check_available(self, result: Result) -> bool:
-        if result is not None and result.stack is not None and len(result.stack) > 0:
+        if result is not None and result.stacks is not None and len(result.stacks) > 0:
             return True
         return False
 
@@ -169,9 +169,9 @@ class StackDisplay(PipelineModule):
             z = self.z_slider.value()
             c = self.channel_select.value()
             if self.result.stack_reference is not None:
-                stack1, stack2 = self.result.stack_reference[:, :, :, z, c], self.result.stack[t][:, :, :, z, c]
+                stack1, stack2 = self.result.stack_reference[:, :, :, z, c], self.result.stacks[t][:, :, :, z, c]
             else:
-                stack1, stack2 = self.result.stack[t][:, :, :, z, c], self.result.stack[t + 1][:, :, :, z, c]
+                stack1, stack2 = self.result.stacks[t][:, :, :, z, c], self.result.stacks[t + 1][:, :, :, z, c]
             tifffile.imwrite(new_path.parent / (new_path.stem + "_relaxed.tif"), stack1)
             tifffile.imwrite(new_path.parent / (new_path.stem + "_deformed.tif"), stack2)
             if len(stack1.shape) == 3 and stack1.shape[2] == 1:
@@ -206,29 +206,29 @@ class StackDisplay(PipelineModule):
 
     def setResult(self, result: Result):
         super().setResult(result)
-        if result and result.stack and result.stack[0]:
-            self.z_slider.setRange(0, result.stack[0].shape[2] - 1)
-            self.z_slider.setValue(self.result.stack[0].shape[2] // 2)
+        if result and result.stacks and result.stacks[0]:
+            self.z_slider.setRange(0, result.stacks[0].shape[2] - 1)
+            self.z_slider.setValue(self.result.stacks[0].shape[2] // 2)
             self.z_slider_value_changed()
 
-            if result.stack[0].channels:
-                self.channel_select.setValues(np.arange(len(result.stack[0].channels)),
-                                                          result.stack[0].channels)
+            if result.stacks[0].channels:
+                self.channel_select.setValues(np.arange(len(result.stacks[0].channels)),
+                                              result.stacks[0].channels)
                 self.channel_select.setVisible(True)
             else:
                 self.channel_select.setValue(0)
                 self.channel_select.setVisible(False)
 
     def z_slider_value_changed(self):
-        if self.result is not None and len(self.result.stack):
+        if self.result is not None and len(self.result.stacks):
             for i in range(2 - self.view_single):
                 if self.result.stack_reference is not None:
                     if i + self.view_single_switch == 0:
                         stack = self.result.stack_reference
                     else:
-                        stack = self.result.stack[self.t_slider.value()]
+                        stack = self.result.stacks[self.t_slider.value()]
                 else:
-                    stack = self.result.stack[self.t_slider.value() + i + self.view_single_switch]
+                    stack = self.result.stacks[self.t_slider.value() + i + self.view_single_switch]
                 [self.scale1, self.scale2][i].setScale(stack.voxel_size)
 
                 c = self.channel_select.value()
@@ -281,8 +281,8 @@ class StackDisplay(PipelineModule):
                     filename=self.result.template,
                     reference_stack1=self.result.stack_reference.template,
                     output1=str(Path(self.result.output).parent),
-                    voxel_size1=self.result.stack[0].voxel_size,
-                    crop1=self.result.stack[0].crop,
+                    voxel_size1=self.result.stacks[0].voxel_size,
+                    crop1=self.result.stacks[0].crop,
                     result_file=str(self.result.output),
                 )
         else:
@@ -311,8 +311,8 @@ class StackDisplay(PipelineModule):
                     reference_stack1=self.result.stack_reference.template,
                     output1=str(Path(self.result.output).parent),
                     result_file=str(self.result.output),
-                    voxel_size1=self.result.stack[0].voxel_size,
-                    crop1=self.result.stack[0].crop,
+                    voxel_size1=self.result.stacks[0].voxel_size,
+                    crop1=self.result.stacks[0].crop,
                     time_delta1=self.result.time_delta,
                 )
             else:
@@ -337,9 +337,9 @@ class StackDisplay(PipelineModule):
                 data = dict(
                     filename=self.result.template,
                     output1=str(Path(self.result.output).parent),
-                    voxel_size1=self.result.stack[0].voxel_size,
+                    voxel_size1=self.result.stacks[0].voxel_size,
                     time_delta1=self.result.time_delta,
-                    crop1=self.result.stack[0].crop,
+                    crop1=self.result.stacks[0].crop,
                     result_file=str(self.result.output),
                 )
 

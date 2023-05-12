@@ -170,7 +170,7 @@ class PipelineModule(QtWidgets.QWidget):
             mapping.setResult(result)
 
         if result is not None:
-            self.t_slider.setRange(0, len(result.stack)-2)
+            self.t_slider.setRange(0, len(result.stacks) - 2)
 
         self.state_changed(result)
         if self.tab is not None:

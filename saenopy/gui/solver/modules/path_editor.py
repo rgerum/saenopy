@@ -11,7 +11,7 @@ def start_path_change(parent, result):
         return
 
     path_changer = PathChanger(result.template, path_editor.input_folder.value())
-    for stack in result.stack:
+    for stack in result.stacks:
         path_changer.stack_change(stack)
     result.template = path_changer.change_path(result.template)
 
@@ -20,7 +20,7 @@ def start_path_change(parent, result):
         path_changer.stack_change(result.stack_reference)
 
     if path_editor.input_pack.value():
-        for stack in result.stack:
+        for stack in result.stacks:
             stack.pack_files()
         if result.stack_reference:
             result.stack_reference.pack_files()

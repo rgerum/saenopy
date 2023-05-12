@@ -96,17 +96,17 @@ class Regularizer(PipelineModule):
 
     def check_available(self, result: Result):
         try:
-            return self.result.solver[0] is not None
+            return self.result.solvers[0] is not None
         except (AttributeError, IndexError, TypeError):
             return False
 
     def check_evaluated(self, result: Result) -> bool:
         try:
-            if self.result is not None and self.result.solver is not None:
-                relrec = getattr(self.result.solver[self.t_slider.value()], "relrec", None)
+            if self.result is not None and self.result.solvers is not None:
+                relrec = getattr(self.result.solvers[self.t_slider.value()], "relrec", None)
                 if relrec is not None:
                     return True
-            return getattr(self.result.solver[0], "regularisation_results", None) is not None
+            return getattr(self.result.solvers[0], "regularisation_results", None) is not None
         except (AttributeError, IndexError, TypeError):
             return False
 
@@ -146,11 +146,11 @@ class Regularizer(PipelineModule):
             for i in range(len(result.solver_relrec_demo)):
                 time.sleep(0.2)
                 self.iteration_finished.emit(result, result.solver_relrec_demo[:i], i, imax)
-            result.solver[0].regularisation_results = result.solver_relrec_demo
+            result.solvers[0].regularisation_results = result.solver_relrec_demo
             return
 
-        for i in range(len(result.solver)):
-            M = result.solver[i]
+        for i in range(len(result.solvers)):
+            M = result.solvers[i]
 
             def callback(M, relrec, i, imax):
                 self.iteration_finished.emit(result, relrec, i, imax)
@@ -175,12 +175,12 @@ class Regularizer(PipelineModule):
 
     def setResult(self, result: Result):
         super().setResult(result)
-        if result and result.stack and result.stack[0]:
-            self.z_slider.setRange(0, result.stack[0].shape[2] - 1)
-            self.z_slider.setValue(self.result.stack[0].shape[2] // 2)
+        if result and result.stacks and result.stacks[0]:
+            self.z_slider.setRange(0, result.stacks[0].shape[2] - 1)
+            self.z_slider.setValue(self.result.stacks[0].shape[2] // 2)
 
-            if result.stack[0].channels:
-                self.vtk_toolbar.channel_select.setValues(np.arange(len(result.stack[0].channels)), result.stack[0].channels)
+            if result.stacks[0].channels:
+                self.vtk_toolbar.channel_select.setValues(np.arange(len(result.stacks[0].channels)), result.stacks[0].channels)
                 self.vtk_toolbar.channel_select.setVisible(True)
             else:
                 self.vtk_toolbar.channel_select.setValue(0)
@@ -196,15 +196,15 @@ class Regularizer(PipelineModule):
             if self.plotter.camera_position is not None and CamPos.cam_pos_initialized is True:
                 cam_pos = self.plotter.camera_position
             CamPos.cam_pos_initialized = True
-            M = self.result.solver[self.t_slider.value()]
+            M = self.result.solvers[self.t_slider.value()]
             mesh = M.mesh
             self.plotter.interactor.setToolTip(str(self.result.solve_parameters) + f"\nNodes {mesh.nodes.shape[0]}\nTets {mesh.tetrahedra.shape[0]}")
             center = None
             if self.vtk_toolbar.use_center.value() is True:
                 center = M.get_center(mode="Force")
             display_image = getVectorFieldImage(self)
-            if len(self.result.stack):
-                stack_shape = np.array(self.result.stack[0].shape[:3]) * np.array(self.result.stack[0].voxel_size)
+            if len(self.result.stacks):
+                stack_shape = np.array(self.result.stacks[0].shape[:3]) * np.array(self.result.stacks[0].voxel_size)
             else:
                 stack_shape = None
                 
@@ -222,9 +222,9 @@ class Regularizer(PipelineModule):
                             stack_shape=stack_shape)
             if cam_pos is not None:
                 self.plotter.camera_position = cam_pos
-            relrec = getattr(self.result.solver[self.t_slider.value()], "relrec", None)
+            relrec = getattr(self.result.solvers[self.t_slider.value()], "relrec", None)
             if relrec is None:
-                relrec = self.result.solver[self.t_slider.value()].regularisation_results
+                relrec = self.result.solvers[self.t_slider.value()].regularisation_results
             self.iteration_callback(self.result, relrec)
         else:
             self.plotter.interactor.setToolTip("")
@@ -241,7 +241,7 @@ class Regularizer(PipelineModule):
             for result in results:
                 result.mesh_parameters = material_parameters
                 result.solve_parameters = solve_parameters
-                for index, M in enumerate(result.solver):
+                for index, M in enumerate(result.solvers):
                     # set the material model
                     M.set_material_model(saenopy.materials.SemiAffineFiberMaterial(
                         material_parameters["k"],

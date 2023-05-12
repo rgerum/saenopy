@@ -12,11 +12,11 @@ def getVectorFieldImage(self, use_fixed_contrast_if_available=False, use_2D=Fals
         image = self.vtk_toolbar.show_image.value()
         if use_2D:
             image = 1
-        if image and self.t_slider.value() < len(self.result.stack):
+        if image and self.t_slider.value() < len(self.result.stacks):
             if getattr(self, "input_reference_stack", None) and self.input_reference_stack.value() and self.result.stack_reference:
                 stack = self.result.stack_reference
             else:
-                stack = self.result.stack[self.t_slider.value()]
+                stack = self.result.stacks[self.t_slider.value()]
             if self.vtk_toolbar.channel_select.value() >= len(stack.channels):
                 self.vtk_toolbar.channel_select.setValue(0)
                 im = stack[:, :, :, self.z_slider.value(), 0]
@@ -57,8 +57,8 @@ def showVectorField2(self, M, points_name):
     except AttributeError:
         field = M.get_node_var(points_name)
 
-    if len(self.result.stack):
-        stack_shape = np.array(self.result.stack[0].shape[:3])*np.array(self.result.stack[0].voxel_size)
+    if len(self.result.stacks):
+        stack_shape = np.array(self.result.stacks[0].shape[:3]) * np.array(self.result.stacks[0].voxel_size)
     else:
         stack_shape = None
     showVectorField(self.plotter, M, field, points_name,

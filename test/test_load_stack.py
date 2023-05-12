@@ -85,7 +85,7 @@ def test_stack_one_channel(files_one_channel):
     # check load stack with reference stack
     results = get_stacks("tmp/run-1/Pos004_S001_z{z}_ch00.tif", "tmp/run-1", [1, 1, 1],
                          reference_stack="tmp/run-1-reference/Pos004_S001_z{z}_ch00.tif")
-    check_stack(results[0].stack[0], 20, 10, 2, 1)
+    check_stack(results[0].stacks[0], 20, 10, 2, 1)
     check_stack(results[0].stack_reference, 20, 10, 2, 1)
 
     with pytest.raises(ValueError, match='if the active stack has channels the reference stack also needs channels'):
@@ -95,7 +95,7 @@ def test_stack_one_channel(files_one_channel):
     # check load stack with reference stack
     results = get_stacks("tmp/run-1/Pos004_S001_z{z}_ch{c:00}.tif", "tmp/run-1", [1, 1, 1],
                          reference_stack="tmp/run-1-reference/Pos004_S001_z{z}_ch{c:00}.tif")
-    check_stack(results[0].stack[0], 20, 10, 2, 1)
+    check_stack(results[0].stacks[0], 20, 10, 2, 1)
     check_stack(results[0].stack_reference, 20, 10, 2, 1)
 
     # raise an error if stacks do not match
@@ -122,7 +122,7 @@ def test_stack_channels(files_channels):
     # check load stack with reference stack
     results = get_stacks("tmp/run-2/Pos004_S001_z{z}_ch{c:00}.tif", "tmp/run-1", [1, 1, 1],
                          reference_stack="tmp/run-2-reference/Pos004_S001_z{z}_ch{c:00}.tif")
-    check_stack(results[0].stack[0], 20, 10, 2, 3)
+    check_stack(results[0].stacks[0], 20, 10, 2, 3)
     check_stack(results[0].stack_reference, 20, 10, 2, 3)
 
     # check load stack with reference stack
@@ -135,9 +135,9 @@ def test_stack_channels(files_channels):
 def test_stack_time(files_time):
     # check load stack with reference stack
     results = get_stacks("tmp/run-time/Pos004_S001_z{z}_ch{c:00}_t{t}.tif", "tmp/run-1b", [1, 1, 1], time_delta=1)
-    assert len(results[0].stack) == 2
-    check_stack(results[0].stack[0], 20, 10, 2, 3)
-    check_stack(results[0].stack[1], 20, 10, 2, 3)
+    assert len(results[0].stacks) == 2
+    check_stack(results[0].stacks[0], 20, 10, 2, 3)
+    check_stack(results[0].stacks[1], 20, 10, 2, 3)
 
 
 def test_crop(files_one_channel):

@@ -53,13 +53,13 @@ class ResultView(PipelineModule):
 
     def check_evaluated(self, result: Result) -> bool:
         try:
-            return getattr(self.result.solver[0], "regularisation_results", None) is not None
+            return getattr(self.result.solvers[0], "regularisation_results", None) is not None
         except (AttributeError, IndexError, TypeError):
             return False
 
     def update_display(self):
         if self.check_evaluated(self.result):
-            self.M = self.result.solver[self.t_slider.value()]
+            self.M = self.result.solvers[self.t_slider.value()]
             mesh = self.M.mesh
             R = mesh.nodes
             minR = np.min(R, axis=0)

@@ -68,17 +68,17 @@ for result in results:
     # set the parameters
     result.piv_parameters = piv_parameters
     # get count
-    count = len(result.stack)
+    count = len(result.stacks)
     if result.stack_reference is None:
         count -= 1
     # iterate over all stack pairs
     for i in range(count):
         # get two consecutive stacks 
         if result.stack_reference is None:
-            stack1, stack2 = result.stack[i], result.stack[i + 1]
+            stack1, stack2 = result.stacks[i], result.stacks[i + 1]
         # or reference stack and one from the list
         else:
-            stack1, stack2 = result.stack_reference, result.stack[i]
+            stack1, stack2 = result.stack_reference, result.stacks[i]
         # and calculate the displacement between them
         result.mesh_piv[i] = saenopy.get_displacements_from_stacks(stack1, stack2,
                                                                    piv_parameters["window_size"],

@@ -273,6 +273,7 @@ class BatchEvaluate(QtWidgets.QWidget):
                     self.add_data(Result.load(p))
                 except Exception as err:
                     QtWidgets.QMessageBox.critical(self, "Open Files", f"File {p} is not a valid Saenopy file.")
+                    raise
         self.update_icons()
 
     def add_data(self, data):

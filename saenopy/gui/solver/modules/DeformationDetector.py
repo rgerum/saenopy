@@ -86,7 +86,7 @@ class DeformationDetector(PipelineModule):
         self.update_display()
 
     def check_available(self, result: Result) -> bool:
-        return result is not None and result.stack is not None and len(result.stack)
+        return result is not None and result.stacks is not None and len(result.stacks)
 
     def check_evaluated(self, result: Result) -> bool:
         try:
@@ -100,13 +100,13 @@ class DeformationDetector(PipelineModule):
 
     def setResult(self, result: Result):
         super().setResult(result)
-        if result and result.stack and result.stack[0]:
-            self.z_slider.setRange(0, result.stack[0].shape[2] - 1)
-            self.z_slider.setValue(result.stack[0].shape[2] // 2)
+        if result and result.stacks and result.stacks[0]:
+            self.z_slider.setRange(0, result.stacks[0].shape[2] - 1)
+            self.z_slider.setValue(result.stacks[0].shape[2] // 2)
 
-            if result.stack[0].channels:
+            if result.stacks[0].channels:
                 value = self.vtk_toolbar.channel_select.value()
-                self.vtk_toolbar.channel_select.setValues(np.arange(len(result.stack[0].channels)), result.stack[0].channels)
+                self.vtk_toolbar.channel_select.setValues(np.arange(len(result.stacks[0].channels)), result.stacks[0].channels)
                 self.vtk_toolbar.channel_select.setValue(value)
                 self.vtk_toolbar.channel_select.setVisible(True)
             else:
@@ -145,8 +145,8 @@ class DeformationDetector(PipelineModule):
 
     def valueChanged(self):
         if self.check_available(self.result):
-            voxel_size1 = self.result.stack[0].voxel_size
-            stack_deformed = self.result.stack[0]
+            voxel_size1 = self.result.stacks[0].voxel_size
+            stack_deformed = self.result.stacks[0]
             overlap = 1 - (self.input_element_size.value() / self.input_win.value())
             stack_size = np.array(stack_deformed.shape)[:3] * voxel_size1 - self.input_win.value()
             self.label.setText(
@@ -165,9 +165,9 @@ class DeformationDetector(PipelineModule):
             return
 
         if not isinstance(result.mesh_piv, list):
-            result.mesh_piv = [None] * (len(result.stack) - 1)
+            result.mesh_piv = [None] * (len(result.stacks) - 1)
 
-        count = len(result.stack)
+        count = len(result.stacks)
         if result.stack_reference is None:
             count -= 1
 
@@ -176,7 +176,7 @@ class DeformationDetector(PipelineModule):
             p.start()
             result.mesh_piv[i] = p.join()
 
-        result.solver = None
+        result.solvers = None
 
     def get_code(self) -> Tuple[str, str]:
         import_code = ""
@@ -191,17 +191,17 @@ class DeformationDetector(PipelineModule):
                 # set the parameters
                 result.piv_parameters = params
                 # get count
-                count = len(result.stack)
+                count = len(result.stacks)
                 if result.stack_reference is None:
                     count -= 1
                 # iterate over all stack pairs
                 for i in range(count):
                     # get two consecutive stacks
                     if result.stack_reference is None:
-                        stack1, stack2 = result.stack[i], result.stack[i + 1]
+                        stack1, stack2 = result.stacks[i], result.stacks[i + 1]
                     # or reference stack and one from the list
                     else:
-                        stack1, stack2 = result.stack_reference, result.stack[i]
+                        stack1, stack2 = result.stack_reference, result.stacks[i]
                     # and calculate the displacement between them
                     result.mesh_piv[i] = saenopy.get_displacements_from_stacks(stack1, stack2,
                                                                                piv_parameters["window_size"],
@@ -242,9 +242,9 @@ def getDeformation(progress, i, result, params):
 
     try:
         if result.stack_reference is None:
-            stack1, stack2 = result.stack[i], result.stack[i + 1]
+            stack1, stack2 = result.stacks[i], result.stacks[i + 1]
         else:
-            stack1, stack2 = result.stack_reference, result.stack[i]
+            stack1, stack2 = result.stack_reference, result.stacks[i]
         mesh_piv = saenopy.get_displacements_from_stacks(stack1, stack2,
                                                          params["window_size"],
                                                          params["element_size"],

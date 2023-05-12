@@ -46,11 +46,11 @@ class FittedMesh(PipelineModule):
         self.update_display()
 
     def check_available(self, result: Result):
-        return result is not None and result.solver is not None
+        return result is not None and result.solvers is not None
 
     def check_evaluated(self, result: Result) -> bool:
         try:
-            return getattr(self.result.solver[0], "regularisation_results", None) is not None
+            return getattr(self.result.solvers[0], "regularisation_results", None) is not None
         except (AttributeError, IndexError, TypeError):
             return False
 
@@ -60,12 +60,12 @@ class FittedMesh(PipelineModule):
 
     def setResult(self, result: Result):
         super().setResult(result)
-        if result and result.stack and result.stack[0]:
-            self.z_slider.setRange(0, result.stack[0].shape[2] - 1)
-            self.z_slider.setValue(self.result.stack[0].shape[2] // 2)
+        if result and result.stacks and result.stacks[0]:
+            self.z_slider.setRange(0, result.stacks[0].shape[2] - 1)
+            self.z_slider.setValue(self.result.stacks[0].shape[2] // 2)
 
-            if result.stack[0].channels:
-                self.vtk_toolbar.channel_select.setValues(np.arange(len(result.stack[0].channels)), result.stack[0].channels)
+            if result.stacks[0].channels:
+                self.vtk_toolbar.channel_select.setValues(np.arange(len(result.stacks[0].channels)), result.stacks[0].channels)
                 self.vtk_toolbar.channel_select.setVisible(True)
             else:
                 self.vtk_toolbar.channel_select.setValue(0)
@@ -81,7 +81,7 @@ class FittedMesh(PipelineModule):
             if self.plotter.camera_position is not None and CamPos.cam_pos_initialized is True:
                 cam_pos = self.plotter.camera_position
             CamPos.cam_pos_initialized = True
-            M = self.result.solver[self.t_slider.value()]
+            M = self.result.solvers[self.t_slider.value()]
             mesh = M.mesh
             self.plotter.interactor.setToolTip(str(self.result.solve_parameters) + f"\nNodes {mesh.nodes.shape[0]}\nTets {mesh.tetrahedra.shape[0]}")
             showVectorField2(self, mesh, "displacements")

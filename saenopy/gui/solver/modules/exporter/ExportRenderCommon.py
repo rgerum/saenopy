@@ -9,15 +9,15 @@ def get_mesh_arrows(params, result):
             if mesh is not None and mesh.displacements_measured is not None:
                 return mesh, mesh.displacements_measured, params["deformation_arrows"], "displacements_measured"
     elif params["arrows"] == "target deformations":
-        M = result.solver[params["time"]["t"]]
+        M = result.solvers[params["time"]["t"]]
         if M is not None:
             return M.mesh, M.mesh.displacements_target, params["deformation_arrows"], "displacements_target"
     elif params["arrows"] == "fitted deformations":
-        M = result.solver[params["time"]["t"]]
+        M = result.solvers[params["time"]["t"]]
         if M is not None:
             return M.mesh, M.mesh.displacements, params["deformation_arrows"], "displacements"
     elif params["arrows"] == "fitted forces":
-        M = result.solver[params["time"]["t"]]
+        M = result.solvers[params["time"]["t"]]
         if M is not None:
             return M.mesh, -M.mesh.forces * M.mesh.regularisation_mask[:, None], params["force_arrows"], "forces"
     return None, None, {}, ""
@@ -29,19 +29,19 @@ def get_mesh_extent(params, result):
         if mesh is not None and mesh.displacements_measured is not None:
             return [mesh.nodes.min(axis=0) * 1e6, mesh.nodes.max(axis=0) * 1e6]
     elif params["arrows"] == "target deformations":
-        M = result.solver[params["time"]["t"]]
+        M = result.solvers[params["time"]["t"]]
         if M is not None:
             return [M.mesh.nodes.min(axis=0) * 1e6, M.mesh.nodes.max(axis=0) * 1e6]
     elif params["arrows"] == "fitted deformations":
-        M = result.solver[params["time"]["t"]]
+        M = result.solvers[params["time"]["t"]]
         if M is not None:
             return [M.mesh.nodes.min(axis=0) * 1e6, M.mesh.nodes.max(axis=0) * 1e6]
     elif params["arrows"] == "fitted forces":
-        M = result.solver[params["time"]["t"]]
+        M = result.solvers[params["time"]["t"]]
         if M is not None:
             return [M.mesh.nodes.min(axis=0) * 1e6, M.mesh.nodes.max(axis=0) * 1e6]
     else:
-        M = result.solver[params["time"]["t"]]
+        M = result.solvers[params["time"]["t"]]
         if M is not None:
             return [M.mesh.nodes.min(axis=0) * 1e6, M.mesh.nodes.max(axis=0) * 1e6]
         else:
@@ -56,14 +56,14 @@ def getVectorFieldImage(result, params, use_fixed_contrast_if_available=False, u
         image = params["stack"]["image"]
         if use_2D:
             image = 1
-        if image and params["time"]["t"] < len(result.stack):
+        if image and params["time"]["t"] < len(result.stacks):
             if params["stack"]["use_reference_stack"] and result.stack_reference:
                 stack = result.stack_reference
             else:
-                stack = result.stack[params["time"]["t"]]
+                stack = result.stacks[params["time"]["t"]]
             channel = params["stack"]["channel"]
             if isinstance(channel, str):
-                channel = result.stack[0].channels.index(channel)
+                channel = result.stacks[0].channels.index(channel)
             if channel >= len(stack.channels):
                 im = stack[:, :, :, params["stack"]["z"], 0]
             else:

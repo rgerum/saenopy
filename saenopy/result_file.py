@@ -232,17 +232,18 @@ def common_end(values):
 
 
 class Result(Saveable):
-    __save_parameters__ = ['stack', 'stack_reference', 'template',
+    __save_parameters__ = ['stacks', 'stack_reference', 'template',
                            'time_delta', 'piv_parameters', 'mesh_piv',
-                           'mesh_parameters', 'material_parameters', 'solve_parameters', 'solver',
+                           'mesh_parameters', 'material_parameters',
+                           'solve_parameters', 'solvers',
                            '___save_name__', '___save_version__']
     ___save_name__ = "Result"
-    ___save_version__ = "1.2"
+    ___save_version__ = "1.3"
     output: str = None
     state: False
 
     stack_parameters: dict = None
-    stack: List[Stack] = None
+    stacks: List[Stack] = None
     stack_reference: Stack = None
     template: str = None
     time_delta: float = None
@@ -253,10 +254,36 @@ class Result(Saveable):
     mesh_parameters: dict = None
     material_parameters: dict = None
     solve_parameters: dict = None
-    solver: List[Solver] = None
+    solvers: List[Solver] = None
 
     @classmethod
     def from_dict(cls, data_dict):
+        def apply_rename(obj_data, rename):
+            if isinstance(obj_data, list):
+                return [apply_rename(o, rename) for o in obj_data]
+
+            from typing import Callable
+            for r in rename:
+                if r["new"] is not None:
+                    if isinstance(r["old"], Callable):
+                        obj_data[r["new"]] = r["old"](obj_data)
+                    elif r["old"] in obj_data:
+                        obj_data[r["new"]] = obj_data[r["old"]]
+                    elif "default" in r:
+                        obj_data[r["new"]] = r["default"]
+                if r.get("renames_child", None) is not None:
+                    apply_rename(obj_data[r["new"]], r.get("renames_child", None))
+
+        def apply_delete(obj_data, rename):
+            if isinstance(obj_data, list):
+                return [apply_delete(o, rename) for o in obj_data]
+
+            for r in rename:
+                if r["old"] in obj_data and r["old"] != r["new"]:
+                    del obj_data[r["old"]]
+                if r.get("renames_child", None) is not None:
+                    apply_delete(obj_data[r["new"]], r.get("renames_child", None))
+
         if data_dict["___save_version__"] < "1.2":  # pragma: no cover
             print(f"convert old version {data_dict['___save_version__']} to 1.2")
             renames = [
@@ -345,37 +372,20 @@ class Result(Saveable):
                 dict(old="time_delta", new="time_delta", default=None),
                 dict(old="stack_parameters", new=None),
             ]
-            def apply_rename(obj_data, rename):
-                if isinstance(obj_data, list):
-                    return [apply_rename(o, rename) for o in obj_data]
-
-                from typing import Callable
-                for r in rename:
-                    if r["new"] is not None:
-                        if isinstance(r["old"], Callable):
-                            obj_data[r["new"]] = r["old"](obj_data)
-                        elif r["old"] in obj_data:
-                            obj_data[r["new"]] = obj_data[r["old"]]
-                        elif "default" in r:
-                            obj_data[r["new"]] = r["default"]
-                    if r.get("renames_child", None) is not None:
-                        apply_rename(obj_data[r["new"]], r.get("renames_child", None))
-
             apply_rename(data_dict, renames)
-
-            def apply_delete(obj_data, rename):
-                if isinstance(obj_data, list):
-                    return [apply_delete(o, rename) for o in obj_data]
-
-                for r in rename:
-                    if r["old"] in obj_data and r["old"] != r["new"]:
-                        del obj_data[r["old"]]
-                    if r.get("renames_child", None) is not None:
-                        apply_delete(obj_data[r["new"]], r.get("renames_child", None))
-
             apply_delete(data_dict, renames)
 
             data_dict["___save_version__"] = "1.2"
+        if data_dict["___save_version__"] < "1.3":  # pragma: no cover
+            print(f"convert old version {data_dict['___save_version__']} to 1.3")
+            renames = [
+                dict(old="stack", new="stacks"),
+                dict(old="solver", new="solvers"),
+            ]
+            apply_rename(data_dict, renames)
+            apply_delete(data_dict, renames)
+
+            data_dict["___save_version__"] = "1.3"
         return super().from_dict(data_dict)
 
     def __init__(self, output=None, template=None, stack=None, time_delta=None, **kwargs):
@@ -385,9 +395,9 @@ class Result(Saveable):
                 kwargs["stack_reference"] = stack[0]
                 stack = [stack[1]]
 
-        self.stack = stack
+        self.stacks = stack
         if stack is None:
-            self.stack = []
+            self.stacks = []
         self.stack_parameters = dict(z_project_name=None, z_project_range=0)
 
         self.state = False
@@ -395,25 +405,25 @@ class Result(Saveable):
         self.template = template
 
         if "stack_reference" in kwargs:
-            self.mesh_piv = [None] * (len(self.stack))
+            self.mesh_piv = [None] * (len(self.stacks))
         else:
-            self.mesh_piv = [None] * (len(self.stack) - 1)
-        self.solver = [None] * (len(self.mesh_piv))
+            self.mesh_piv = [None] * (len(self.stacks) - 1)
+        self.solvers = [None] * (len(self.mesh_piv))
 
         super().__init__(**kwargs)
 
         # if demo move parts to simulate empty result
         if os.environ.get("DEMO") == "true":
             self.mesh_piv_demo = self.mesh_piv
-            self.solver_demo = self.solver
-            if self.solver[0] is not None and getattr(self.solver[0], "regularisation_results", None):
-                self.solver_relrec_demo = self.solver[0].regularisation_results
-                self.solver[0].regularisation_results = None
+            self.solver_demo = self.solvers
+            if self.solvers[0] is not None and getattr(self.solvers[0], "regularisation_results", None):
+                self.solver_relrec_demo = self.solvers[0].regularisation_results
+                self.solvers[0].regularisation_results = None
             if "stack_reference" in kwargs:
-                self.mesh_piv = [None] * (len(self.stack))
+                self.mesh_piv = [None] * (len(self.stacks))
             else:
-                self.mesh_piv = [None] * (len(self.stack) - 1)
-            self.solver = [None] * (len(self.mesh_piv))
+                self.mesh_piv = [None] * (len(self.stacks) - 1)
+            self.solvers = [None] * (len(self.mesh_piv))
 
     def save(self, filename: str = None):
         if filename is not None:
@@ -423,14 +433,14 @@ class Result(Saveable):
 
     def clear_cache(self, solver_id: int):
         # only if there is a solver
-        if self.solver[solver_id] is None:
+        if self.solvers[solver_id] is None:
             return
         # get the solver object and convert the important parts to a dict
-        data_dict = self.solver[solver_id].to_dict()
+        data_dict = self.solvers[solver_id].to_dict()
         # delete the solver in the list so that the garbage collector can remove it
-        self.solver[solver_id] = None
+        self.solvers[solver_id] = None
         # create a new solver object from the data
-        self.solver[solver_id] = Solver.from_dict(data_dict)
+        self.solvers[solver_id] = Solver.from_dict(data_dict)
 
     def on_load(self, filename: str):
         self.output = str(Path(filename))
@@ -440,7 +450,7 @@ class Result(Saveable):
             if isinstance(filename, list):
                 return str(Path(common_start(filename) + "{z}" + common_end(filename)))
             return str(Path(filename))
-        folders = [filename_to_string(stack.template) for stack in self.stack]
+        folders = [filename_to_string(stack.template) for stack in self.stacks]
         base_folder = common_start(folders)
         base_folder = os.sep.join(base_folder.split(os.sep)[:-1])
         indent = "    "
@@ -457,7 +467,7 @@ class Result(Saveable):
                 text += indent + indent + "reference = " + self.stack_reference.template + "\n"
         if self.time_delta is not None:
             text += indent + indent + "time_delta = " + str(self.time_delta) + "\n"
-        for stack, filename in zip(self.stack, folders):
+        for stack, filename in zip(self.stacks, folders):
             text += indent + indent + filename[len(base_folder):] + " " + str(stack.voxel_size) + " " + str(stack.channels) + "\n"
         text += indent + "]" + "\n"
         if self.piv_parameters:

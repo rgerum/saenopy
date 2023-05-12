@@ -72,7 +72,7 @@ def render_3d_fibers(params, result, plotter, exporter):
     t = params["time"]["t"]
     t_start = time.time()
     stack_data = None
-    stack = result.stack[t]
+    stack = result.stacks[t]
 
     if params["stack"]["use_reference_stack"]:
         stack = result.stack_reference
@@ -92,7 +92,7 @@ def render_3d_fibers(params, result, plotter, exporter):
             crops[5]:
 
         if isinstance(params["channel1"]["channel"], str):
-            params["channel1"]["channel"] = result.stack[0].channels.index(params["channel1"]["channel"])
+            params["channel1"]["channel"] = result.stacks[0].channels.index(params["channel1"]["channel"])
         stack_data2 = process_stack(stack,
                                     crops=crops,
                                     **params["channel1"])
@@ -334,9 +334,9 @@ def render_3d_bounds(params, result, plotter):
     # show the image stack border cube
     elif show_grid == 3:
         # get the stack shape
-        if len(result.stack):
-            stack_shape = np.array(result.stack[0].shape[:3]) * np.array(
-                result.stack[0].voxel_size)
+        if len(result.stacks):
+            stack_shape = np.array(result.stacks[0].shape[:3]) * np.array(
+                result.stacks[0].voxel_size)
         else:
             stack_shape = None
         # draw a cube around it

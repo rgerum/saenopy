@@ -311,11 +311,11 @@ class FiberViewer(PipelineModule):
 
 
     def check_evaluated(self, result: Result) -> bool:
-        return self.result is not None and result.stack is not None and len(result.stack) > 0
+        return self.result is not None and result.stacks is not None and len(result.stacks) > 0
 
     def setResult(self, result: Result):
-        if result and result.stack and result.stack[0]:
-            shape = result.stack[0].shape
+        if result and result.stacks and result.stacks[0]:
+            shape = result.stacks[0].shape
             self.input_cropx.setRange(0, shape[1])
             self.input_cropx.setValue((shape[1] // 2 - 100, shape[1] // 2 + 100))
             self.input_cropy.setRange(0, shape[0])
@@ -323,7 +323,7 @@ class FiberViewer(PipelineModule):
             self.input_cropz.setRange(0, shape[2])
             self.input_cropz.setValue((shape[2] // 2 - 25, shape[2] // 2 + 25))
 
-            if result.stack[0].shape[-1] == 1:
+            if result.stacks[0].shape[-1] == 1:
                 self.channel1_properties.input_show.setValue(False)
                 self.channel1_properties.setDisabled(True)
             else:
@@ -348,7 +348,7 @@ class FiberViewer(PipelineModule):
             t_start = time.time()
             stack_data = None
             if self.channel0_properties.input_show.value():
-                stack_data1 = process_stack(self.result.stack[t], 0,
+                stack_data1 = process_stack(self.result.stacks[t], 0,
                                             crops=crops,
                                             **self.channel0_properties.value())
                 stack_data = stack_data1
@@ -357,7 +357,7 @@ class FiberViewer(PipelineModule):
             else:
                 stack_data1 = None
             if self.channel1_properties.input_show.value():
-                stack_data2 = process_stack(self.result.stack[t], 1,
+                stack_data2 = process_stack(self.result.stacks[t], 1,
                                             crops=crops,
                                             **self.channel1_properties.value())
                 self.channel1_properties.sigmoid.p.set_im(stack_data2["original"])
@@ -381,9 +381,9 @@ class FiberViewer(PipelineModule):
             self.plotter.render = lambda *args: None
             try:
                 if stack_data is not None:
-                    vol = self.plotter.add_volume(stack_data["data"], resolution=np.array(self.result.stack[0].voxel_size),
-                                              cmap=stack_data["cmap"], opacity=stack_data["opacity"],
-                                         blending="composite", name="fiber", render=False)  # 1.0*x
+                    vol = self.plotter.add_volume(stack_data["data"], resolution=np.array(self.result.stacks[0].voxel_size),
+                                                  cmap=stack_data["cmap"], opacity=stack_data["opacity"],
+                                                  blending="composite", name="fiber", render=False)  # 1.0*x
                 #print("plot time", f"{time.time()-t_start:.3f}s")
                 self.plotter.remove_scalar_bar()
             finally:

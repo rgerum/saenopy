@@ -152,7 +152,7 @@ class MeshCreator(PipelineModule):
         return result is not None and result.mesh_piv is not None and len(result.mesh_piv) and result.mesh_piv[0] is not None
 
     def check_evaluated(self, result: Result) -> bool:
-        return result is not None and result.solver is not None and len(result.solver) and result.solver[0] is not None
+        return result is not None and result.solvers is not None and len(result.solvers) and result.solvers[0] is not None
 
     def property_changed(self, name, value):
         if name == "z_slider":
@@ -160,12 +160,12 @@ class MeshCreator(PipelineModule):
 
     def setResult(self, result: Result):
         super().setResult(result)
-        if result and result.stack and result.stack[0]:
-            self.z_slider.setRange(0, result.stack[0].shape[2] - 1)
-            self.z_slider.setValue(self.result.stack[0].shape[2] // 2)
+        if result and result.stacks and result.stacks[0]:
+            self.z_slider.setRange(0, result.stacks[0].shape[2] - 1)
+            self.z_slider.setValue(self.result.stacks[0].shape[2] // 2)
 
-            if result.stack[0].channels:
-                self.vtk_toolbar.channel_select.setValues(np.arange(len(result.stack[0].channels)), result.stack[0].channels)
+            if result.stacks[0].channels:
+                self.vtk_toolbar.channel_select.setValues(np.arange(len(result.stacks[0].channels)), result.stacks[0].channels)
                 self.vtk_toolbar.channel_select.setVisible(True)
             else:
                 self.vtk_toolbar.channel_select.setValue(0)
@@ -192,7 +192,7 @@ class MeshCreator(PipelineModule):
             if self.plotter.camera_position is not None and CamPos.cam_pos_initialized is True:
                 cam_pos = self.plotter.camera_position
             CamPos.cam_pos_initialized = True
-            M = self.result.solver[self.t_slider.value()]
+            M = self.result.solvers[self.t_slider.value()]
             mesh = M.mesh
             self.plotter.interactor.setToolTip(str(self.result.mesh_parameters) + f"\nNodes {mesh.nodes.shape[0]}\nTets {mesh.tetrahedra.shape[0]}")
             showVectorField2(self, mesh, "displacements_target")
@@ -204,12 +204,12 @@ class MeshCreator(PipelineModule):
     def process(self, result: Result, mesh_parameters: dict):
         # demo run
         if os.environ.get("DEMO") == "true":
-            result.solver = result.solver_demo
+            result.solvers = result.solver_demo
             return
         
         # make sure the solver list exists and has the required length
-        if result.solver is None or len(result.solver) != len(result.mesh_piv):
-            result.solver = [None]*len(result.mesh_piv)
+        if result.solvers is None or len(result.solvers) != len(result.mesh_piv):
+            result.solvers = [None] * len(result.mesh_piv)
         
         # correct for the reference state
         displacement_list = saenopy.subtract_reference_state(result.mesh_piv, mesh_parameters["reference_stack"])
@@ -219,7 +219,7 @@ class MeshCreator(PipelineModule):
         # iterate over all stack pairs
         for i in range(len(result.mesh_piv)):
             # and create the interpolated solver mesh
-            result.solver[i] = saenopy.interpolate_mesh(result.mesh_piv[i], displacement_list[i], mesh_parameters)
+            result.solvers[i] = saenopy.interpolate_mesh(result.mesh_piv[i], displacement_list[i], mesh_parameters)
         # save the meshes
         result.save()
 
@@ -239,7 +239,7 @@ class MeshCreator(PipelineModule):
                 # iterate over all stack pairs
                 for i in range(len(result.mesh_piv)):
                     # and create the interpolated solver mesh
-                    result.solver[i] = saenopy.interpolate_mesh(result.mesh_piv[i], displacement_list[i], mesh_parameters)
+                    result.solvers[i] = saenopy.interpolate_mesh(result.mesh_piv[i], displacement_list[i], mesh_parameters)
                 # save the meshes
                 result.save()
         data = {

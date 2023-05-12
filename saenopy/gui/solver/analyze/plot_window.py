@@ -151,9 +151,9 @@ class PlottingWindow(QtWidgets.QWidget):
                 print("Add file", file)
                 res: Result = Result.load(file)
                 res.resulting_data = []
-                if len(res.solver) == 0 or res.solver[0] is None or res.solver[0].regularisation_results is None:
+                if len(res.solvers) == 0 or res.solvers[0] is None or res.solvers[0].regularisation_results is None:
                     continue
-                for i, M in enumerate(res.solver):
+                for i, M in enumerate(res.solvers):
                     res.resulting_data.append({
                         "t": i*res.time_delta if res.time_delta else 0,
                         "strain_energy": M.mesh.strain_energy,
@@ -177,7 +177,7 @@ class PlottingWindow(QtWidgets.QWidget):
         for name, checked, files, color in self.data_folders:
             if checked != 0:
                 for name2, checked2, res, color in files:
-                    if len(res.solver) > 1:
+                    if len(res.solvers) > 1:
                         time_values = True
         if time_values is False:
             self.barplot()

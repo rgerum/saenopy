@@ -631,28 +631,28 @@ class ExportViewer(PipelineModule):
                 writer.write(self.im)
 
     def check_evaluated(self, result: Result) -> bool:
-        return self.result is not None and result.stack is not None and len(result.stack) > 0
+        return self.result is not None and result.stacks is not None and len(result.stacks) > 0
 
     def setResult(self, result: Result, no_update_display=False):
-        if result and result.stack and result.stack[0]:
-            self.z_slider.setRange(0, result.stack[0].shape[2] - 1)
-            self.z_slider.setValue(result.stack[0].shape[2] // 2)
+        if result and result.stacks and result.stacks[0]:
+            self.z_slider.setRange(0, result.stacks[0].shape[2] - 1)
+            self.z_slider.setValue(result.stacks[0].shape[2] // 2)
 
-            if result.stack[0].channels:
+            if result.stacks[0].channels:
                 value = self.vtk_toolbar.channel_select.value()
-                self.vtk_toolbar.channel_select.setValues(np.arange(len(result.stack[0].channels)), result.stack[0].channels)
+                self.vtk_toolbar.channel_select.setValues(np.arange(len(result.stacks[0].channels)), result.stacks[0].channels)
                 self.vtk_toolbar.channel_select.setValue(value)
                 self.vtk_toolbar.channel_select.setVisible(True)
 
                 value = self.channel_selectB.value()
-                self.channel_selectB.setValues([-1]+list(np.arange(len(result.stack[0].channels))),
-                                                          [""]+result.stack[0].channels)
+                self.channel_selectB.setValues([-1] + list(np.arange(len(result.stacks[0].channels))),
+                                               [""] + result.stacks[0].channels)
                 self.channel_selectB.setValue("")
                 self.channel_selectB.setVisible(True)
 
                 value = self.channel1_properties.channel_select.value()
-                self.channel1_properties.channel_select.setValues(np.arange(len(result.stack[0].channels))[1:],
-                                               result.stack[0].channels[1:])
+                self.channel1_properties.channel_select.setValues(np.arange(len(result.stacks[0].channels))[1:],
+                                                                  result.stacks[0].channels[1:])
                 self.channel1_properties.channel_select.setValue(value)
                 self.channel1_properties.channel_select.setVisible(True)
             else:
@@ -660,7 +660,7 @@ class ExportViewer(PipelineModule):
                 self.vtk_toolbar.channel_select.setVisible(False)
                 self.channel_selectB.setVisible(False)
 
-            shape = result.stack[0].shape
+            shape = result.stacks[0].shape
             self.input_cropx.setRange(0, shape[1])
             self.input_cropx.setValue((shape[1] // 2 - 100, shape[1] // 2 + 100))
             self.input_cropy.setRange(0, shape[0])
@@ -668,13 +668,13 @@ class ExportViewer(PipelineModule):
             self.input_cropz.setRange(0, shape[2])
             self.input_cropz.setValue((shape[2] // 2 - 25, shape[2] // 2 + 25))
 
-            if result.stack[0].shape[-1] == 1:
+            if result.stacks[0].shape[-1] == 1:
                 self.channel1_properties.input_show.setValue(False)
                 self.channel1_properties.setDisabled(True)
             else:
                 self.channel1_properties.setDisabled(False)
 
-            self.input_average_range.setRange(0, shape[2]*result.stack[0].voxel_size[2])
+            self.input_average_range.setRange(0, shape[2] * result.stacks[0].voxel_size[2])
             self.input_average_range.setValue(10)
 
         super().setResult(result)
@@ -748,7 +748,7 @@ class ExportViewer(PipelineModule):
                     colormap = self.vtk_toolbar.colormap_chooser.value()
                     stack_min_max = [mesh.nodes.min(axis=0) * 1e6, mesh.nodes.max(axis=0) * 1e6]
         elif self.input_arrows.value() == "target deformations":
-            M = self.result.solver[self.t_slider.value()]
+            M = self.result.solvers[self.t_slider.value()]
             # showVectorField2(self, M, "displacements_target")
             if M is not None:
                 mesh = M.mesh
@@ -758,7 +758,7 @@ class ExportViewer(PipelineModule):
                 colormap = self.vtk_toolbar.colormap_chooser.value()
                 stack_min_max = [mesh.nodes.min(axis=0) * 1e6, mesh.nodes.max(axis=0) * 1e6]
         elif self.input_arrows.value() == "fitted deformations":
-            M = self.result.solver[self.t_slider.value()]
+            M = self.result.solvers[self.t_slider.value()]
             if M is not None:
                 mesh = M.mesh
                 field = mesh.displacements
@@ -767,7 +767,7 @@ class ExportViewer(PipelineModule):
                 colormap = self.vtk_toolbar.colormap_chooser.value()
                 stack_min_max = [mesh.nodes.min(axis=0) * 1e6, mesh.nodes.max(axis=0) * 1e6]
         elif self.input_arrows.value() == "fitted forces":
-            M = self.result.solver[self.t_slider.value()]
+            M = self.result.solvers[self.t_slider.value()]
             if M is not None:
                 mesh = M.mesh
                 center = None
@@ -782,7 +782,7 @@ class ExportViewer(PipelineModule):
                 skip = self.input_arrow_skip2.value()
         else:
             # get min/max of stack
-            M = self.result.solver[self.t_slider.value()]
+            M = self.result.solvers[self.t_slider.value()]
             if M is not None:
                 mesh = M.mesh
                 stack_min_max = [mesh.nodes.min(axis=0) * 1e6, mesh.nodes.max(axis=0) * 1e6]
