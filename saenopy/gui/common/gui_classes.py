@@ -386,11 +386,11 @@ class ListWidget(QtWidgets.QListWidget):
         index = self.currentRow()
 
         # get new color from color picker
-        color = QtWidgets.QColorDialog.getColor(QtGui.QColor(*mpl.colors.to_rgb(self.data[index][3])))
+        color = QtWidgets.QColorDialog.getColor(QtGui.QColor(*[int(i) for i in mpl.colors.to_rgb(self.data[index][3])]))\
         # if a color is set, apply it
         if color.isValid():
             self.data[index][3] = "#%02x%02x%02x" % color.getRgb()[:3]
-            self.item(index).setIcon(qta.icon("fa5.circle", options=[dict(color=color)]))
+            self.item(index).setIcon(qta.icon("fa5s.circle", options=[dict(color=color)]))
 
     def delete_item(self):
         index = self.currentRow()
@@ -436,7 +436,7 @@ class ListWidget(QtWidgets.QListWidget):
     def customAddItem(self, d, checked, color):
         item = QtWidgets.QListWidgetItem(d, self)
         if color is not None:
-            item.setIcon(qta.icon("fa5.circle", options=[dict(color=color)]))
+            item.setIcon(qta.icon("fa5s.circle", options=[dict(color=color)]))
         item.setFlags(self.flags)
         item.setCheckState(QtCore.Qt.Checked if checked else QtCore.Qt.Unchecked)
         return item
