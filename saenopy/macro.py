@@ -401,7 +401,7 @@ def get_maping(p, func, indices):
     return mapping
 
 
-def minimize(cost_data: list, parameter_start: Sequence, method='Powell', maxfev:int = 1e4, MaterialClass=SemiAffineFiberMaterial, x_sample=20, **kwargs):
+def minimize(cost_data: list, parameter_start: Sequence, method='Powell', maxfev:int = 1e4, MaterialClass=SemiAffineFiberMaterial, x_sample=20, colors=None, **kwargs):
     parameter_start = np.array(parameter_start)
 
     costs_shear = []
@@ -411,7 +411,12 @@ def minimize(cost_data: list, parameter_start: Sequence, method='Powell', maxfev
     mapping_stretch = np.array([False] * len(parameter_start))
     plots_stretch = []
 
+    index = 0
     for func, data, params in cost_data:
+        color = None
+        if colors is not None:
+            color = colors[index]
+            index += 1
         if func == get_stretch_thinning:
             mapping_stretch |= get_maping(parameter_start, params, [1])
 
@@ -434,9 +439,9 @@ def minimize(cost_data: list, parameter_start: Sequence, method='Powell', maxfev
                     cost = np.nansum((stretchy2 - stretchy) ** 2)
                     return cost
 
-                def plot_me():
+                def plot_me(color=color):
                     material = MaterialClass(*params(parameter_start))
-                    plt.plot(stretchx, stretchy, "o", label="data")
+                    plt.plot(stretchx, stretchy, "o", label="data", color=color)
 
                     x, y = get_stretch_thinning(lambda_h, lambda_v, material)
                     plt.plot(x, y, "r-", lw=3, label="model")
@@ -469,9 +474,9 @@ def minimize(cost_data: list, parameter_start: Sequence, method='Powell', maxfev
                     cost = np.nansum((np.log(stretchy2) - np.log(sheary)) ** 2 * weights)
                     return cost
 
-                def plot_me():
+                def plot_me(color=color):
                     material = MaterialClass(*params(parameter_start))
-                    plt.loglog(shearx, sheary, "o", label="data")
+                    plt.loglog(shearx, sheary, "o", label="data", color=color)
 
                     x, y = get_shear_rheometer_stress(gamma, material)
                     plt.loglog(x, y, "r-", lw=3, label="model")
