@@ -155,7 +155,7 @@ class SemiAffineFiberMaterial(Material, Saveable):
         else:
             buckling = np.zeros_like(x) == 1
         # find the stretching range
-        if self.ds is not None and self.lambda_s is not None:
+        if self.d_s is not None and self.lambda_s is not None:
             stretching = self.lambda_s <= x
         else:
             stretching = np.zeros_like(x) == 1
@@ -170,13 +170,13 @@ class SemiAffineFiberMaterial(Material, Saveable):
         # calculate the energy in the linear range
         y[linear] = 0.5 * self.k * x[linear] ** 2
 
-        if self.ds is not None and self.lambda_s is not None:
+        if self.d_s is not None and self.lambda_s is not None:
             # and in the stretching range
-            dk = self.ds * self.k
+            dk = self.d_s * self.k
             sk = self.lambda_s * self.k
-            d2k = self.ds * dk
-            y[stretching] = - 0.5 * self.lambda_s ** 2 * self.k + self.ds * self.k * self.lambda_s - d2k \
-                            + d2k * np.exp((x[stretching] - self.lambda_s) / self.ds) - dk * x[stretching] + sk * x[
+            d2k = self.d_s * dk
+            y[stretching] = - 0.5 * self.lambda_s ** 2 * self.k + self.d_s * self.k * self.lambda_s - d2k \
+                            + d2k * np.exp((x[stretching] - self.lambda_s) / self.d_s) - dk * x[stretching] + sk * x[
                                 stretching]
 
         # return the resulting energy
