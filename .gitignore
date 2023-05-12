@@ -18,3 +18,4 @@ david/
 /docs/build/
 poetry.lock
 /docs/source/auto_examples/
+.hypothesis/
