@@ -56,14 +56,15 @@ class Saveable:
                 data[name] = data_dict[name]
             if name in types:
                 if getattr(types[name], "from_dict", None) is not None:
-                    data[name] = types[name].from_dict(data[name])
+                    if data[name] is not None:
+                        data[name] = types[name].from_dict(data[name])
                 elif typing.get_origin(types[name]) is list:
                     if isinstance(data[name], dict):
                         data[name] = typing.get_args(types[name])[0].from_dict(data[name])
                     elif data[name] is None:
                         pass
                     else:
-                        data[name] = [None if d == "__NONE__" else typing.get_args(types[name])[0].from_dict(d) for d in data[name]]
+                        data[name] = [None if d == "__NONE__" or d is None else typing.get_args(types[name])[0].from_dict(d) for d in data[name]]
         if len(save_parameters):
             raise ValueError(f"The following parameters were not found in the save file {save_parameters}")
         return cls(**data)
@@ -166,7 +167,7 @@ def dict_to_h5(filename, data):
                     grp.attrs["type"] = str(data[key])
                     continue
                 dset = f.create_dataset(key, data=str(data[key]))
-            elif str(data[key].dtype).startswith("<U"):
+            elif str(getattr(data[key], "dtype", "")).startswith("<U"):
                 dset = f.create_dataset(key, data=str(data[key]))
             else:
                 try:
@@ -188,8 +189,11 @@ def unflatten_dict_h5(data):
     else:
         if data.shape == ():
             try:
-                return data.asstr()[()]
+                d = data.asstr()[()]
             except TypeError:
-                return data[()]
+                d = data[()]
         else:
-            return data
+            d = data
+        if d == "__NONE__":
+            d = None
+        return d
