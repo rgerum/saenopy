@@ -2,7 +2,7 @@ import json
 import sys
 import os
 import matplotlib as mpl
-
+from typing import List
 import matplotlib.pyplot as plt
 from qtpy import QtCore, QtWidgets
 import numpy as np
@@ -15,6 +15,90 @@ from saenopy.gui.common.gui_classes import ListWidget
 from saenopy.gui.common.gui_classes import CheckAbleGroup, MatplotlibWidget, NavigationToolbar
 from saenopy import macro
 
+class Parameter(QtWidgets.QWidget):
+    valueChanged = QtCore.Signal()
+    def __init__(self, name, value, allow_none):
+        super().__init__(None)
+        self.name = name
+        with QtShortCuts.QHBoxLayout(self):
+            self.label_name = QtWidgets.QLabel(name).addToLayout()
+            with QtShortCuts.QVBoxLayout():
+                with QtShortCuts.QHBoxLayout():
+                    self.input = QtShortCuts.QInputString(None, "start", str(value), type=float, none_value=None).addToLayout()
+                    self.input.valueChanged.connect(self.valueChanged)
+                    self.bool = QtShortCuts.QInputBool(None, "none", False).addToLayout()
+                    self.bool.valueChanged.connect(self.setNone)
+                    self.bool.setEnabled(allow_none)
+                with QtShortCuts.QHBoxLayout():
+                    self.input2 = QtShortCuts.QInputString(None, "fitted", "").addToLayout()
+                    self.input2.line_edit.setReadOnly(True)
+                    self.bool2 = QtShortCuts.QInputBool(None, "const", False).addToLayout()
+                    self.bool2.valueChanged.connect(self.setConst)
+
+        self.value = value
+
+    def setNone(self):
+        if self.bool.value() == True:
+            self.value = self.input.value()
+            self.input.setValue("None")
+            self.input.setDisabled(True)
+            self.bool2.setDisabled(True)
+            self.input2.setDisabled(True)
+        else:
+            self.input.setValue(self.value)
+            self.input.setDisabled(False)
+            self.bool2.setDisabled(False)
+            self.input2.setDisabled(False)
+            self.setConst()
+
+    def setConst(self):
+        if self.bool2.value() == True:
+            self.input2.setDisabled(True)
+        else:
+            self.input2.setDisabled(False)
+
+class AllParameters(QtWidgets.QWidget):
+    valueChanged = QtCore.Signal()
+
+    def __init__(self):
+        super().__init__(None)
+        with QtShortCuts.QHBoxLayout(self):
+             self.layouts = [
+                 QtShortCuts.QVBoxLayout(),
+                 QtShortCuts.QVBoxLayout(),
+                 QtShortCuts.QVBoxLayout(),
+                 QtShortCuts.QVBoxLayout(),
+             ]
+        self.param_inputs: List[List[Parameter]] = []
+
+    def setParams(self, params):
+        for i, group in enumerate(self.param_inputs):
+            for obj in group:
+                self.layouts[i].removeWidget(obj)
+        self.param_inputs = [[], [], [], []]
+
+        for (i, name), value in params.items():
+            with self.layouts[i]:
+                self.param_inputs[i].append(Parameter(name, value, allow_none=i!=0).addToLayout())
+    def value(self):
+        values = {}
+        for i, group in enumerate(self.param_inputs):
+            for obj in group:
+                values[i, obj.name] = obj.input.value()
+        return values
+
+    def valuesFixed(self):
+        values = {}
+        for i, group in enumerate(self.param_inputs):
+            for obj in group:
+                values[i, obj.name] = obj.bool2.value() or obj.bool.value() or obj.input.value() is None
+        return values
+
+    def setFitted(self, value):
+        for (i, n), v in value.items():
+            for p in self.param_inputs[i]:
+                if p.name == n:
+                    p.input2.setValue(v)
 
 class MainWindowFit(QtWidgets.QWidget):
 
@@ -39,11 +123,16 @@ class MainWindowFit(QtWidgets.QWidget):
                 self.list.itemSelectionChanged.connect(self.listSelected)
 
             with QtShortCuts.QVBoxLayout():
-                self.current_params = QtShortCuts.QInputString(None, "params names", "").addToLayout()
-                self.current_param_values = QtShortCuts.QInputString(None, "start values", "").addToLayout()
-                self.current_param_values.valueChanged.connect(self.current_param_values_changed)
                 self.final_param_values = QtShortCuts.QInputString(None, "fitted values", "").addToLayout()
                 self.final_param_values.line_edit.setReadOnly(True)
+
+                self.all_params = AllParameters().addToLayout()
+                #self.all_params.setParams([
+                #    ["k1", "k2"],
+                #    ["d1"],
+                #    ["l"],
+                #    ["ds"],
+                #])
                 self.canvas = MatplotlibWidget(self).addToLayout()
                 self.button_run = QtShortCuts.QPushButton(None, "run", self.run).addToLayout()
 
@@ -51,15 +140,11 @@ class MainWindowFit(QtWidgets.QWidget):
         self.data = []
         self.start_params = {}
         self.list.setData(self.data)
+        def valueChanged():
+            print("valueChanged",self.start_params)
+            self.start_params = self.all_params.value()
 
-    def current_param_values_changed(self):
-        params = self.current_param_values.value()
-        try:
-            self.start_params.update(json.loads(params))
-            self.current_param_values.line_edit.setStyleSheet("")
-            print(self.start_params)
-        except ValueError as err:
-            self.current_param_values.line_edit.setStyleSheet("background: #d56060")
+        self.all_params.valueChanged.connect(valueChanged)
 
     def set_value(self, x, key):
         if key == "params":
@@ -68,18 +153,15 @@ class MainWindowFit(QtWidgets.QWidget):
                 assert len(x) == 4
                 self.input_params.line_edit.setStyleSheet("")
                 for i, xx in enumerate(x):
-                    if xx not in self.start_params:
-                        print(xx, "not in start", self.data[self.list.currentRow()][2][key], i)
-                        self.start_params[xx] = self.start_params[self.data[self.list.currentRow()][2][key][i]]
+                    if (i, xx) not in self.start_params:
+                        self.start_params[i, xx] = self.start_params[i, self.data[self.list.currentRow()][2][key][i]]
             except AssertionError:
                 self.input_params.line_edit.setStyleSheet("background: #d56060")
                 return
-        print("set", self.list.currentRow(), x, key)
         self.data[self.list.currentRow()][2][key] = x
         self.update_params()
 
     def listSelected(self):
-        print("listSelected", self.list.currentRow(), self.list.currentRow() < len(self.data))
         if self.list.currentRow() is not None and self.list.currentRow() < len(self.data):
             extra = self.data[self.list.currentRow()][2]
             self.input_type.setDisabled(False)
@@ -92,36 +174,54 @@ class MainWindowFit(QtWidgets.QWidget):
             self.update_params()
 
     def update_params(self):
-        param_names = {}
+        param_names = [{}, {}, {}, {}]
+        all_params = {}
         for d in self.data:
             if d[1] and d[2]["type"] != "none":
                 params = d[2]["params"]
-                indices = []
-                for p in params:
+
+                for i, p in enumerate(params):
                     p = p.strip()
-                    if p not in param_names:
-                        param_names[p] = len(param_names)
-                    indices.append(param_names[p])
-        self.current_params.setValue(", ".join(param_names.keys()))
-        print(", ".join(param_names.keys()))
-        self.current_param_values.setValue(json.dumps({k: v for k, v in self.start_params.items() if k in param_names}))
+                    if (i, p) not in all_params:
+                        all_params[i, p] = self.start_params[i, p]
+        self.all_params.setParams(all_params)
 
     def run(self):
+        start_params = self.all_params.value()
+        fixed_params = self.all_params.valuesFixed()
+
+        parameter_set = []
+        parameter_name_to_index = {}
+        for d in self.data:
+            if d[1] and d[2]["type"] != "none":
+                for i, p in enumerate(d[2]["params"]):
+                    if (i, p) not in parameter_set:
+                        parameter_set.append((i, p))
+
+        maps = {}
+        param_start = []
+        for (i, p) in parameter_set:
+            if (i, p) in fixed_params and fixed_params[i, p]:
+                maps[i, p] = lambda params, v=start_params[i, p]: v
+            else:
+                index = len(param_start)
+                #parameter_name_to_index[i, p] = index
+                maps[i, p] = lambda params, index=index: params[index]
+                param_start.append(start_params[i, p])
+
         parts = []
         colors = []
-        param_names = {}
         for d in self.data:
             if d[1] and d[2]["type"] != "none":
                 colors.append(d[3])
                 params = d[2]["params"]
-                indices = []
-                for p in params:
-                    p = p.strip()
-                    if p not in param_names:
-                        param_names[p] = len(param_names)
-                    indices.append(param_names[p])
-                def set(p, indices=indices):
-                    return tuple(p[i] for i in indices)
+                keys = []
+                for i, p in enumerate(params):
+                    keys.append((i, p))
+                def set(params, keys=keys):
+                    params_dict = {k: maps[k](params) for k in maps}
+                    values = tuple([params_dict[k] for k in keys])
+                    return values
 
                 if d[2]["type"] == "shear rheometer":
                     parts.append([macro.get_shear_rheometer_stress, d[2]["data"], set])
@@ -130,13 +230,14 @@ class MainWindowFit(QtWidgets.QWidget):
                 if d[2]["type"] == "extensional rheometer":
                     parts.append([macro.get_extensional_rheometer_stress, d[2]["data"], set])
 
-        parameters, plot = macro.minimize(parts,
-            [self.start_params[s] for s in param_names.keys()],
+        params, plot = macro.minimize(parts,
+            param_start,
             colors=colors
         )
-        results = {k: parameters[v] for k, v in param_names.items()}
-        print(results)
-        self.final_param_values.setValue(json.dumps(results))
+        params_dict = {k: maps[k](params) for k in maps}
+        print(params_dict)
+        self.all_params.setFitted(params_dict)
+        #self.final_param_values.setValue(json.dumps(results))
         plt.figure(self.canvas.figure)
         plt.clf()
         plot()
@@ -153,7 +254,7 @@ class MainWindowFit(QtWidgets.QWidget):
         params = [f"k{self.params_index}", f"d_0{self.params_index}", f"lambda_s{self.params_index}", f"d_s{self.params_index}"]
         self.list.addData(new_path, True, dict(data=data, type="none", params=params), mpl.colors.to_hex(f"C{len(self.data)}"))
         for i, param in enumerate(params):
-            self.start_params[param.strip()] = [900, 0.0004, 0.075, 0.33][i]
+            self.start_params[i, param.strip()] = [900, 0.0004, 0.075, 0.33][i]
         self.params_index += 1
         self.update_params()
 

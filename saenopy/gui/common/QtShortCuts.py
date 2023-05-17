@@ -291,9 +291,10 @@ class QInputNumber(QInput):
 class QInputString(QInput):
     error = None
 
-    def __init__(self, layout=None, name=None, value="", allow_none=True, type=str, unit=None, name_post=None, validator=None, **kwargs):
+    def __init__(self, layout=None, name=None, value="", allow_none=True, none_value="None", type=str, unit=None, name_post=None, validator=None, **kwargs):
         # initialize the super widget
         QInput.__init__(self, layout, name, **kwargs)
+        self.none_value = none_value
 
         if self.settings is not None:
             value = self.settings.value(self.settings_key, value)
@@ -340,7 +341,7 @@ class QInputString(QInput):
     def value(self):
         text = self.line_edit.text()
         if self.allow_none is True and (text == "None" or text == ""):
-            return "None"
+            return self.none_value
         if self.type == int:
             return int(text)
         if self.type == float:
