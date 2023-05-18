@@ -4,8 +4,10 @@ import os
 import matplotlib as mpl
 from typing import List
 import matplotlib.pyplot as plt
+import pandas as pd
 from qtpy import QtCore, QtWidgets
 import numpy as np
+from pathlib import Path
 
 from saenopy.gui.common import QtShortCuts
 from saenopy.gui.common.resources import resource_icon
@@ -115,7 +117,15 @@ class MainWindowFit(QtWidgets.QWidget):
 
         with QtShortCuts.QHBoxLayout(self):
             with QtShortCuts.QVBoxLayout():
-                self.input_type = QtShortCuts.QInputChoice(None, "type", "none", ["none", "shear rheometer", "stretch thinning", "extensional rheometer"]).addToLayout()
+                self.input_shape = QtWidgets.QLabel().addToLayout()
+                self.input_transpose = QtShortCuts.QInputBool(None, "transpose", False).addToLayout()
+                self.input_transpose.valueChanged.connect(lambda x: self.set_value(x, "transpose"))
+                self.input_col1 = QtShortCuts.QInputNumber(None, "column 1", 0, float=False).addToLayout()
+                self.input_col1.valueChanged.connect(lambda x: self.set_value(x, "col1"))
+                self.input_col2 = QtShortCuts.QInputNumber(None, "column 2", 1, float=False).addToLayout()
+                self.input_col2.valueChanged.connect(lambda x: self.set_value(x, "col2"))
+
+                self.input_type = QtShortCuts.QInputChoice(None, "type", "none", ["none", "shear rheometer", "stretch thinning"]).addToLayout()  # , "extensional rheometer"
                 self.input_type.setDisabled(True)
                 self.input_type.valueChanged.connect(lambda x: self.set_value(x, "type"))
 
@@ -155,6 +165,7 @@ class MainWindowFit(QtWidgets.QWidget):
                 self.input_params.line_edit.setStyleSheet("background: #d56060")
                 return
         self.data[self.list.currentRow()][2][key] = x
+        self.update_shape_desc()
         self.update_params()
 
     def listSelected(self):
@@ -167,7 +178,41 @@ class MainWindowFit(QtWidgets.QWidget):
             self.input_params.setValue(", ".join(extra["params"]))
             #self.set_current_result.emit(pipe)
 
+            self.input_transpose.setValue(extra["transpose"])
+            self.input_col1.setValue(extra["col1"])
+            self.input_col2.setValue(extra["col2"])
+            self.input_shape.setText(str(extra["data"].shape))
+
+            self.update_shape_desc()
+
             self.update_params()
+
+    def update_shape_desc(self):
+        if self.list.currentRow() is not None and self.list.currentRow() < len(self.data):
+            extra = self.data[self.list.currentRow()][2]
+            data = extra["data"]
+            if self.input_transpose.value():
+                data = data.T
+            self.input_col1.spin_box.setMaximum(data.shape[0]-1)
+            self.input_col2.spin_box.setMaximum(data.shape[0]-1)
+            name1 = "1"
+            name2 = "2"
+            if self.input_type.value() == "shear rheometer":
+                name1 = "stress"
+                name2 = "strain"
+            elif self.input_type.value() == "stretch thinning":
+                name1 = "horizontal stretch"
+                name2 = "vertical stretch"
+            try:
+                self.input_col1.label.setText(f"Column {name1} ({data[:, self.input_col1.value()].shape[0]} values)")
+            except IndexError:
+                self.input_col1.label.setText(f"Column {name1} (invalid)")
+            try:
+                self.input_col2.label.setText(f"Column {name2} ({data[:, self.input_col2.value()].shape[0]} values)")
+            except IndexError:
+                self.input_col2.label.setText(f"Column {name2} (invalid)")
+
+            self.input_shape.setText(str(data.shape))
 
     def update_params(self):
         param_names = [{}, {}, {}, {}]
@@ -223,12 +268,17 @@ class MainWindowFit(QtWidgets.QWidget):
                     values = tuple([params_dict[k] for k in keys])
                     return values
 
+                data = d[2]["data"]
+                if d[2]["transpose"]:
+                    data = data.T
+                data = np.vstack((data[:, d[2]["col1"]], data[:, d[2]["col2"]])).T
+
                 if d[2]["type"] == "shear rheometer":
-                    parts.append([macro.get_shear_rheometer_stress, d[2]["data"], set])
+                    parts.append([macro.get_shear_rheometer_stress, data, set])
                 if d[2]["type"] == "stretch thinning":
-                    parts.append([macro.get_stretch_thinning, d[2]["data"], set])
+                    parts.append([macro.get_stretch_thinning, data, set])
                 if d[2]["type"] == "extensional rheometer":
-                    parts.append([macro.get_extensional_rheometer_stress, d[2]["data"], set])
+                    parts.append([macro.get_extensional_rheometer_stress, data, set])
 
         params, plot = macro.minimize(parts,
             param_start,
@@ -244,15 +294,18 @@ class MainWindowFit(QtWidgets.QWidget):
         self.canvas.draw()
 
     def add_measurement(self):
-        new_path = QtWidgets.QFileDialog.getOpenFileName(None, "Load Session", os.getcwd(), "JSON File (*.json)")
+        new_path = QtWidgets.QFileDialog.getOpenFileName(None, "Load Measurement", os.getcwd(), "Text File (*.txt);; CSV File (*.csv)")
         if new_path:
             self.add_file(new_path)
 
     def add_file(self, new_path):
-        data = np.loadtxt(new_path)
+        if Path(new_path).suffix == ".txt":
+            data = np.loadtxt(new_path)
+        elif Path(new_path).suffix == ".csv":
+            data = np.array(pd.read_csv(new_path))
         print(data.shape)
         params = [f"k{self.params_index}", f"d_0{self.params_index}", f"lambda_s{self.params_index}", f"d_s{self.params_index}"]
-        self.list.addData(new_path, True, dict(data=data, type="none", params=params), mpl.colors.to_hex(f"C{len(self.data)}"))
+        self.list.addData(new_path, True, dict(data=data, type="none", params=params, transpose=False, col1=0, col2=1), mpl.colors.to_hex(f"C{len(self.data)}"))
         for i, param in enumerate(params):
             self.start_params[i, param.strip()] = [900, 0.0004, 0.075, 0.33][i]
         self.params_index += 1
@@ -276,7 +329,7 @@ if __name__ == '__main__':  # pragma: no cover
          [9.90e-02, 4.54e+01], [1.19e-01, 6.11e+01], [1.40e-01, 8.16e+01], [1.60e-01, 1.06e+02], [1.80e-01, 1.34e+02],
          [2.01e-01, 1.65e+02], [2.21e-01, 1.96e+02], [2.41e-01, 2.26e+02]])
     np.savetxt("6.txt", data0_6)
-    np.savetxt("2.txt", data1_2)
+    pd.DataFrame(data1_2).to_csv("2.csv")
     np.savetxt("4.txt", data2_4)
 
     app = QtWidgets.QApplication(sys.argv)
@@ -292,6 +345,6 @@ if __name__ == '__main__':  # pragma: no cover
     window.setWindowIcon(resource_icon("Icon.ico"))
     window.show()
     window.add_file("6.txt")
-    window.add_file("2.txt")
+    window.add_file("2.csv")
     window.add_file("4.txt")
     sys.exit(app.exec_())
