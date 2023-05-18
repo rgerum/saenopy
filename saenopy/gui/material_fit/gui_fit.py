@@ -231,7 +231,7 @@ class MainWindowFit(QtWidgets.QWidget):
         try:
             start_params = self.all_params.value()
         except ValueError as err:
-            QtWidgets.QMessageBox.critical(self, "Load Stacks", str(err))
+            QtWidgets.QMessageBox.critical(self, "Fit Error", str(err))
             return
         fixed_params = self.all_params.valuesFixed()
 
@@ -271,7 +271,11 @@ class MainWindowFit(QtWidgets.QWidget):
                 data = d[2]["data"]
                 if d[2]["transpose"]:
                     data = data.T
-                data = np.vstack((data[:, d[2]["col1"]], data[:, d[2]["col2"]])).T
+                try:
+                    data = np.vstack((data[:, d[2]["col1"]], data[:, d[2]["col2"]])).T
+                except IndexError:
+                    QtWidgets.QMessageBox.critical(self, "Fit Error", f"Invalid column specified for file {d[0]}")
+                    return
 
                 if d[2]["type"] == "shear rheometer":
                     parts.append([macro.get_shear_rheometer_stress, data, set])
