@@ -24,14 +24,16 @@ class Parameter(QtWidgets.QWidget):
             self.label_name = QtWidgets.QLabel(name).addToLayout()
             with QtShortCuts.QVBoxLayout():
                 with QtShortCuts.QHBoxLayout():
-                    self.input = QtShortCuts.QInputString(None, "start", str(value), type=float, none_value=None).addToLayout()
+                    self.input = QtShortCuts.QInputString(None, "start", str(value), type=float, allow_none=allow_none, none_value=None).addToLayout()
                     self.input.valueChanged.connect(self.valueChanged)
+                    self.input.line_edit.setMaximumWidth(70)
                     self.bool = QtShortCuts.QInputBool(None, "none", False).addToLayout()
                     self.bool.valueChanged.connect(self.setNone)
                     self.bool.setEnabled(allow_none)
                 with QtShortCuts.QHBoxLayout():
                     self.input2 = QtShortCuts.QInputString(None, "fitted", "").addToLayout()
                     self.input2.line_edit.setReadOnly(True)
+                    self.input2.line_edit.setMaximumWidth(70)
                     self.bool2 = QtShortCuts.QInputBool(None, "const", False).addToLayout()
                     self.bool2.valueChanged.connect(self.setConst)
 
@@ -84,7 +86,10 @@ class AllParameters(QtWidgets.QWidget):
         values = {}
         for i, group in enumerate(self.param_inputs):
             for obj in group:
-                values[i, obj.name] = obj.input.value()
+                try:
+                    values[i, obj.name] = obj.input.value()
+                except ValueError:
+                    raise ValueError(f"Parameter {obj.name} does contain invalid value '{obj.input.line_edit.text()}'")
         return values
 
     def valuesFixed(self):
@@ -123,16 +128,7 @@ class MainWindowFit(QtWidgets.QWidget):
                 self.list.itemSelectionChanged.connect(self.listSelected)
 
             with QtShortCuts.QVBoxLayout():
-                self.final_param_values = QtShortCuts.QInputString(None, "fitted values", "").addToLayout()
-                self.final_param_values.line_edit.setReadOnly(True)
-
                 self.all_params = AllParameters().addToLayout()
-                #self.all_params.setParams([
-                #    ["k1", "k2"],
-                #    ["d1"],
-                #    ["l"],
-                #    ["ds"],
-                #])
                 self.canvas = MatplotlibWidget(self).addToLayout()
                 self.button_run = QtShortCuts.QPushButton(None, "run", self.run).addToLayout()
 
@@ -187,7 +183,11 @@ class MainWindowFit(QtWidgets.QWidget):
         self.all_params.setParams(all_params)
 
     def run(self):
-        start_params = self.all_params.value()
+        try:
+            start_params = self.all_params.value()
+        except ValueError as err:
+            QtWidgets.QMessageBox.critical(self, "Load Stacks", str(err))
+            return
         fixed_params = self.all_params.valuesFixed()
 
         parameter_set = []

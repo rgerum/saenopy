@@ -301,7 +301,7 @@ class QInputString(QInput):
 
         self.line_edit = QtWidgets.QLineEdit()
         self.layout().addWidget(self.line_edit)
-        self.line_edit.editingFinished.connect(lambda: self._valueChangedEvent(self.value()))
+        self.line_edit.editingFinished.connect(self.editingFinishedCall)
         if type is int or type is float or type == "exp":
             self.line_edit.setAlignment(QtCore.Qt.AlignRight)
         if unit is not None:
@@ -320,6 +320,12 @@ class QInputString(QInput):
         self.emitValueChanged()
 
         self.line_edit.textChanged.connect(self.emitValueChanged)
+
+    def editingFinishedCall(self):
+        try:
+            self._valueChangedEvent(self.value())
+        except ValueError:
+            return
 
     def emitValueChanged(self):
         """ connected to the textChanged signal """
