@@ -35,8 +35,8 @@ def process_line(filename, output_path):
     results = []
 
     if filename.endswith(".lif"):
-        match = re.match(r"(.*)\{f\:(\d*)\}\{c\:(\d*)\}.lif", filename)
-        filename, folder, channel = match.groups()
+        match = re.match(r"(.*)\{f\:(\d*)\}\{c\:(\d*)\}(\{t\:(\d*)\})?.lif", filename)
+        filename, folder, channel, _, time = match.groups()
         files = glob.glob(filename+".lif", recursive=True)
 
         output_base = filename
@@ -50,10 +50,10 @@ def process_line(filename, output_path):
             leica_file = LifFile(file).get_image(folder)
             counts["z"] = leica_file.dims.z
             counts["c"] = leica_file.channels
-            if leica_file.dims.t > 1:
+            if leica_file.dims.t > 1 and time is None:
                 counts["t"] = leica_file.dims.t
             results.append({"filename": f"{file[:-4]}{{f:{folder}}}{{c:{channel}}}.lif", "dimensions": counts, "output": Path(output_path) / relative})
-            if leica_file.dims.t > 1:
+            if leica_file.dims.t > 1 and time is None:
                 import numpy as np
                 results[-1]["times"] = np.arange(counts["t"])
         return results
