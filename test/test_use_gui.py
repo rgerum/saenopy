@@ -646,6 +646,9 @@ def test_fit(monkeypatch, catch_popup_error, random_path):
     monkeypatch.setattr(QtWidgets.QFileDialog, "getOpenFileName", lambda *args: "stretch.txt")
     window.add_measurement()
 
+    # run empty
+    window.run()
+
     window.list.setCurrentRow(0)
     window.input_type.setValue("shear rheometer", send_signal=True)
     window.input_transpose.setValue(True, send_signal=True)
