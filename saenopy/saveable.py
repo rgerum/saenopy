@@ -32,14 +32,20 @@ class Saveable:
                 data[param] = attribute
         return data
 
-    def save(self, filename: str):
+    def save(self, filename: str, file_format=None):
+        from pathlib import Path
+        if file_format is None:
+            file_format = Path(filename).suffix
+
         data = self.to_dict()
 
-        if filename.endswith("h5py") or filename.endswith("h5"):
+        if file_format == ".h5py" or file_format == ".h5":
             return dict_to_h5(filename, flatten_dict(data))
-
-        #np.savez(filename, **data)
-        np.lib.npyio._savez(filename, [], flatten_dict(data), True, allow_pickle=False)
+        elif file_format == ".npz" or file_format == ".saenopy":
+            #np.savez(filename, **data)
+            np.lib.npyio._savez(filename, [], flatten_dict(data), True, allow_pickle=False)
+        else:
+            raise ValueError("format not supported")
 
     @classmethod
     def from_dict(cls, data_dict):
@@ -70,15 +76,20 @@ class Saveable:
         return cls(**data)
 
     @classmethod
-    def load(cls, filename):
-        if str(filename).endswith(".h5py") or str(filename).endswith(".h5"):
+    def load(cls, filename, file_format=None):
+        from pathlib import Path
+        if file_format is None:
+            file_format = Path(filename).suffix
+        if file_format == ".h5py" or file_format == ".h5":
             import h5py
             data = h5py.File(filename, "a")
             result = cls.from_dict(unflatten_dict_h5(data))
-        else:
+        elif file_format == ".npz" or file_format == ".saenopy":
             data = np.load(filename, allow_pickle=False)
 
             result = cls.from_dict(unflatten_dict(data))
+        else:
+            raise ValueError("Unknown format")
         if getattr(result, 'on_load', None) is not None:
             getattr(result, 'on_load')(filename)
         return result

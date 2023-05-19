@@ -96,7 +96,7 @@ def process_line(filename, output_path):
         # create the output path
         output = Path(output_path) / os.path.relpath(r1, output_base)
         output = output.parent / output.stem
-        output = Path(str(output).replace("*", "").replace("{c}", "{c" + str(channel1) + "}").replace("{c:", "{c") + ".npz")
+        output = Path(str(output).replace("*", "").replace("{c}", "{c" + str(channel1) + "}").replace("{c:", "{c") + ".saenopy")
 
         results.append({"filename": r1, "dimensions": counts, "output": output})
         if "t" in d1.columns:
@@ -425,11 +425,11 @@ class Result(Saveable):
                 self.mesh_piv = [None] * (len(self.stacks) - 1)
             self.solvers = [None] * (len(self.mesh_piv))
 
-    def save(self, filename: str = None):
+    def save(self, filename: str = None, file_format=".saenopy"):
         if filename is not None:
             self.output = filename
         Path(self.output).parent.mkdir(exist_ok=True, parents=True)
-        super().save(self.output)
+        super().save(self.output, file_format=file_format)
 
     def clear_cache(self, solver_id: int):
         # only if there is a solver

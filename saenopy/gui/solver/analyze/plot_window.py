@@ -134,10 +134,10 @@ class PlottingWindow(QtWidgets.QWidget):
             url = url.toLocalFile()
             if url[0] == "/" and url[2] == ":":
                 url = url[1:]
-            if url.endswith(".npz"):
+            if url.endswith(".saenopy"):
                 urls += [url]
             else:
-                urls += glob.glob(url + "/**/*.npz", recursive=True)
+                urls += glob.glob(url + "/**/*.saenopy", recursive=True)
         self.add_files(urls)
 
     def add_files(self, urls):
@@ -209,7 +209,7 @@ class PlottingWindow(QtWidgets.QWidget):
                     self.label = QtWidgets.QLabel("Select a path as an input wildcard. Use * to specify a placeholder. All paths that match the wildcard will be added.")
                     layout.addWidget(self.label)
                     def checker(filename):
-                        return filename + "/**/*.npz"
+                        return filename + "/**/*.saenopy"
                     self.inputText = QtShortCuts.QInputFolder(None, None, settings=settings, filename_checker=checker,
                                                                 settings_key="batch_eval/analyse_force_wildcard", allow_edit=True)
                     with QtShortCuts.QHBoxLayout() as layout3:

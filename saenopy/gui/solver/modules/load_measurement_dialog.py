@@ -79,7 +79,7 @@ class AddFilesDialog(QtWidgets.QDialog):
 
                 with self.tabs.createTab("Existing Measurement") as self.tab3:
                     self.outputText3 = QtShortCuts.QInputFilename(None, "output", settings=settings,
-                                                                  file_type="Results Files (*.npz)",
+                                                                  file_type="Results Files (*.saenopy)",
                                                                   settings_key="batch/wildcard_existing",
                                                                   allow_edit=True, existing=True)
                     self.tab3.addStretch()

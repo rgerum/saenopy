@@ -117,7 +117,7 @@ class BatchEvaluate(QtWidgets.QWidget):
         self.signal_task_finished.connect(self.run_finished)
 
         # load paths
-        self.load_from_path([arg for arg in sys.argv if arg.endswith(".npz")])
+        self.load_from_path([arg for arg in sys.argv if arg.endswith(".saenopy")])
 
     def copy_params(self):
         result = self.list.data[self.list.currentRow()][2]
@@ -265,7 +265,7 @@ class BatchEvaluate(QtWidgets.QWidget):
             # if it is a directory search all saenopy files in it
             path = Path(path)
             if path.is_dir():
-                path = str(path) + "/**/*.npz"
+                path = str(path) + "/**/*.saenopy"
             # glob over the path (or just use the path if it does not contain a *)
             for p in sorted(glob.glob(str(path), recursive=True)):
                 print(p)
