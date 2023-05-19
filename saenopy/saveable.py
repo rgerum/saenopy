@@ -44,6 +44,9 @@ class Saveable:
         elif file_format == ".npz" or file_format == ".saenopy":
             #np.savez(filename, **data)
             np.lib.npyio._savez(filename, [], flatten_dict(data), True, allow_pickle=False)
+            import shutil
+            if file_format == ".saenopy":
+                shutil.move(filename+".npz", filename)
         else:
             raise ValueError("format not supported")
 
