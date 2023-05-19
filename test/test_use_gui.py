@@ -33,6 +33,11 @@ def catch_popup_error(monkeypatch):
         raise QMessageBoxCritical(f"{name}: {desc}")
     monkeypatch.setattr(QtWidgets.QMessageBox, "critical", do_raise)
 
+""" some magic to prevent PyQt5 from swallowing exceptions """
+# Back up the reference to the exceptionhook
+sys._excepthook = sys.excepthook
+# Set the exception hook to our wrapping function
+sys.excepthook = lambda *args: sys._excepthook(*args)
 
 app = QtWidgets.QApplication(sys.argv)
 font = QtGui.QFont("Arial", 10)
