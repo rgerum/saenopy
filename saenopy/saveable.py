@@ -39,7 +39,7 @@ class Saveable:
 
         data = self.to_dict()
 
-        if file_format == ".h5py" or file_format == ".h5":
+        if file_format == ".h5py" or file_format == ".h5":  # pragma: no cover
             return dict_to_h5(filename, flatten_dict(data))
         elif file_format == ".npz" or file_format == ".saenopy":
             #np.savez(filename, **data)
@@ -83,7 +83,7 @@ class Saveable:
         from pathlib import Path
         if file_format is None:
             file_format = Path(filename).suffix
-        if file_format == ".h5py" or file_format == ".h5":
+        if file_format == ".h5py" or file_format == ".h5":  # pragma: no cover
             import h5py
             data = h5py.File(filename, "a")
             result = cls.from_dict(unflatten_dict_h5(data))
@@ -171,7 +171,7 @@ def unflatten_dict(data):
     return result
 
 
-def dict_to_h5(filename, data):
+def dict_to_h5(filename, data):  # pragma: no cover
     import h5py
     with h5py.File(filename, "w") as f:
         for key in data.keys():
@@ -190,7 +190,7 @@ def dict_to_h5(filename, data):
                     f.create_dataset(key, data=data[key])
 
 
-def unflatten_dict_h5(data):
+def unflatten_dict_h5(data):  # pragma: no cover
     import h5py
     if isinstance(data, h5py.Group):
         if data.attrs.get("type") == "list":
