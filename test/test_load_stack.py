@@ -171,9 +171,11 @@ def test_overwrite():
                 imageio.imwrite(f"tmp/run-{i}-overwrite/Pos001_S001_z{z:03d}_t{t:03d}_ch00.png", (np.random.rand(22, 10) * 255).astype(np.uint8))
 
     for reference_stack in ["tmp/run-0-overwrite/Pos*_S001_z{z}_t000_ch00.png", None]:
-        res = get_stacks("tmp/run-1-overwrite/Pos*_S001_z{z}_t{t}_ch00.png", "tmp/run-1-overwrite", [1, 1, 1], crop={"t": (1, None)},
+        res = get_stacks("tmp/run-1-overwrite/Pos*_S001_z{z}_t{t}_ch00.png", "tmp2/run-1-overwrite", [1, 1, 1], crop={"t": (1, None)},
                    reference_stack=reference_stack)
         res[0].save()
+        print(res)
+        res[0].clear_cache(0)
 
         # overwrite
         get_stacks("tmp/run-1-overwrite/Pos*_S001_z{z}_t{t}_ch00.png", "tmp/run-1-overwrite", [1, 1, 1], crop={"t": (1, None)},

@@ -79,8 +79,9 @@ def process_line(filename, output_path):
             filename = template.format(**props)
             if re.match(r"(.*.tif)\[(.*)\]", filename):
                 filename, page = re.match(r"(.*.tif)\[(.*)\]", filename).groups()
-            if not Path(filename).exists():
-                raise FileNotFoundError(f"Could not find file {filename}")
+            # the file needs to exist
+            #if not Path(filename).exists():
+            #    raise FileNotFoundError(f"Could not find file {filename}")
             if Path(filename).suffix in [".tif", ".tiff"]:
                 f = tifffile.TiffFile(filename)
                 file_shape = f.pages[0].shape
@@ -218,17 +219,6 @@ def common_start(values):
             if all(value.startswith(start) for value in values):
                 return start
             start = start[:-1]
-    return ""
-
-
-def common_end(values):
-    if len(values) != 0:
-        end = values[0]
-        while end:
-            if all(value.endswith(end) for value in values):
-                return end
-            end = end[1:]
-    return ""
 
 
 class Result(Saveable):
@@ -257,7 +247,7 @@ class Result(Saveable):
     solvers: List[Solver] = None
 
     @classmethod
-    def from_dict(cls, data_dict):
+    def from_dict(cls, data_dict):  # pragma: no cover
         def apply_rename(obj_data, rename):
             if isinstance(obj_data, list):
                 return [apply_rename(o, rename) for o in obj_data]
@@ -283,6 +273,11 @@ class Result(Saveable):
                     del obj_data[r["old"]]
                 if r.get("renames_child", None) is not None:
                     apply_delete(obj_data[r["new"]], r.get("renames_child", None))
+
+        if data_dict["___save_version__"] < "1.1":
+            if len(data_dict["stack"]) == 2:
+                data_dict["stack_reference"] = data_dict["stack"][0]
+                data_dict["stack"] = [data_dict["stack"][1]]
 
         if data_dict["___save_version__"] < "1.2":  # pragma: no cover
             print(f"convert old version {data_dict['___save_version__']} to 1.2")
@@ -390,10 +385,6 @@ class Result(Saveable):
 
     def __init__(self, output=None, template=None, stack=None, time_delta=None, **kwargs):
         self.output = str(output)
-        if "___save_version__" in kwargs and kwargs["___save_version__"] == "1.0":
-            if len(stack) == 2:
-                kwargs["stack_reference"] = stack[0]
-                stack = [stack[1]]
 
         self.stacks = stack
         if stack is None:
@@ -413,7 +404,7 @@ class Result(Saveable):
         super().__init__(**kwargs)
 
         # if demo move parts to simulate empty result
-        if os.environ.get("DEMO") == "true":
+        if os.environ.get("DEMO") == "true":  # pragma: no cover
             self.mesh_piv_demo = self.mesh_piv
             self.solver_demo = self.solvers
             if self.solvers[0] is not None and getattr(self.solvers[0], "regularisation_results", None):
@@ -446,11 +437,7 @@ class Result(Saveable):
         self.output = str(Path(filename))
 
     def __repr__(self):
-        def filename_to_string(filename):
-            if isinstance(filename, list):
-                return str(Path(common_start(filename) + "{z}" + common_end(filename)))
-            return str(Path(filename))
-        folders = [filename_to_string(stack.template) for stack in self.stacks]
+        folders = [str(Path(stack.template)) for stack in self.stacks]
         base_folder = common_start(folders)
         base_folder = os.sep.join(base_folder.split(os.sep)[:-1])
         indent = "    "
