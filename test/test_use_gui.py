@@ -622,12 +622,31 @@ def test_fit(monkeypatch, catch_popup_error, random_path):
         [[4.27e-06, -2.26e-03], [1.89e-02, 5.90e-01], [3.93e-02, 1.08e+00], [5.97e-02, 1.57e+00], [8.01e-02, 2.14e+00],
          [1.00e-01, 2.89e+00], [1.21e-01, 3.83e+00], [1.41e-01, 5.09e+00], [1.62e-01, 6.77e+00], [1.82e-01, 8.94e+00],
          [2.02e-01, 1.17e+01], [2.23e-01, 1.49e+01], [2.43e-01, 1.86e+01], [2.63e-01, 2.28e+01], [2.84e-01, 2.71e+01]])
+    np.savetxt("6.txt", data0_6.T)
+    window.add_file("6.txt")
+
+    # run empty
+    window.run()
+
+    # set the one data
+    window.list.setCurrentRow(0)
+    window.input_type.setValue("shear rheometer", send_signal=True)
+    window.input_transpose.setValue(True, send_signal=True)
+
     data1_2 = np.array(
         [[1.22e-05, -1.61e-01], [1.71e-02, 2.57e+00], [3.81e-02, 4.69e+00], [5.87e-02, 6.34e+00], [7.92e-02, 7.93e+00],
          [9.96e-02, 9.56e+00], [1.20e-01, 1.14e+01], [1.40e-01, 1.35e+01], [1.61e-01, 1.62e+01], [1.81e-01, 1.97e+01],
          [2.02e-01, 2.41e+01], [2.22e-01, 2.95e+01], [2.42e-01, 3.63e+01], [2.63e-01, 4.43e+01], [2.83e-01, 5.36e+01],
          [3.04e-01, 6.37e+01], [3.24e-01, 7.47e+01], [3.44e-01, 8.61e+01], [3.65e-01, 9.75e+01], [3.85e-01, 1.10e+02],
          [4.06e-01, 1.22e+02], [4.26e-01, 1.33e+02]])
+    pd.DataFrame(data1_2).to_csv("2.csv")
+    window.add_file("2.csv")
+
+    window.list.setCurrentRow(1)
+    window.input_type.setValue("shear rheometer", send_signal=True)
+    window.input_col1.setValue(1, send_signal=True)
+    window.input_col2.setValue(2, send_signal=True)
+
     stretch = np.array(
         [[9.33e-01, 1.02e+00], [9.40e-01, 1.01e+00], [9.47e-01, 1.02e+00], [9.53e-01, 1.02e+00], [9.60e-01, 1.02e+00],
          [9.67e-01, 1.01e+00], [9.73e-01, 1.01e+00], [9.80e-01, 1.01e+00], [9.87e-01, 1.01e+00], [9.93e-01, 1.00e+00],
@@ -635,31 +654,30 @@ def test_fit(monkeypatch, catch_popup_error, random_path):
          [1.03e+00, 8.46e-01], [1.04e+00, 7.76e-01], [1.05e+00, 6.89e-01], [1.05e+00, 6.02e-01], [1.06e+00, 5.17e-01],
          [1.07e+00, 4.39e-01], [1.07e+00, 3.74e-01], [1.08e+00, 3.17e-01], [1.09e+00, 2.72e-01], [1.09e+00, 2.30e-01],
          [1.10e+00, 2.02e-01]])
-
-    np.savetxt("6.txt", data0_6.T)
-    pd.DataFrame(data1_2).to_csv("2.csv")
     np.savetxt("stretch.txt", stretch)
-
-    window.add_file("6.txt")
-    window.add_file("2.csv")
 
     monkeypatch.setattr(QtWidgets.QFileDialog, "getOpenFileName", lambda *args: "stretch.txt")
     window.add_measurement()
 
-    # run empty
-    window.run()
-
-    window.list.setCurrentRow(0)
-    window.input_type.setValue("shear rheometer", send_signal=True)
-    window.input_transpose.setValue(True, send_signal=True)
-    window.list.setCurrentRow(1)
-    window.input_type.setValue("shear rheometer", send_signal=True)
-    window.input_col1.setValue(1, send_signal=True)
-    window.input_col2.setValue(2, send_signal=True)
     window.list.setCurrentRow(2)
     window.input_type.setValue("stretch thinning", send_signal=True)
     window.input_params.setValue("k4, d_01, lambda_s1, d_s1", send_signal=True)
     window.input_params.setValue("invalid", send_signal=True)
+
+    data_extension = np.array(
+        [[1.005, 8.11503391], [1.015, 4.73271782], [1.025, 12.39500323], [1.035, 4.78868658], [1.045, 13.4463538],
+         [1.055, 25.3804035], [1.065, 25.04892348], [1.075, 27.15489932], [1.085, 39.09152633], [1.095, 51.33645119],
+         [1.105, 73.54898657], [1.115, 92.71062764], [1.125, 110.42613606], [1.135, 151.62593391],
+         [1.145, 198.30184441], [1.155, 251.72810034]])
+    np.savetxt("data_extension.txt", data_extension)
+    window.add_file("data_extension.txt")
+
+    window.list.setCurrentRow(3)
+    window.input_type.setValue("extensional rheometer", send_signal=True)
+    window.input_params.setValue("k4, d_01, lambda_s1, d_s1", send_signal=True)
+    window.input_params.setValue("invalid", send_signal=True)
+
+    window.list.setCurrentRow(2)
     window.all_params.param_inputs[1][0].bool2.setValue(True, send_signal=True)
     window.all_params.param_inputs[1][0].bool.setValue(True, send_signal=True)
     window.all_params.param_inputs[1][0].bool.setValue(False, send_signal=True)
@@ -679,7 +697,6 @@ def test_fit(monkeypatch, catch_popup_error, random_path):
         window.run()
         window.input_col1.setValue(0, send_signal=True)
         window.input_col2.setValue(1, send_signal=True)
-
 
     #window.show()
     #app.exec_()

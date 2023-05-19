@@ -235,6 +235,43 @@ def minimize(cost_data: list, parameter_start: Sequence, method='Powell', maxfev
             costs_stretch.append(cost)
             plots_stretch.append(plot)
 
+        if func == get_extensional_rheometer_stress:
+            mapping_shear |= get_mapping(parameter_start, params, [0, 2, 3])
+
+            def get_cost(func, data, params):
+                shearx = data[:, 0]
+                sheary = data[:, 1]
+
+                x0 = shearx
+                dx = x0[1] - x0[0]
+                weights = np.diff(np.log(x0), append=np.log(
+                    x0[-1] + dx)) ** 2  # needs to be improved (based on spacing of data points in logarithmic space)
+                gamma = np.linspace(np.min(x0), np.max(x0), x_sample)
+
+                def cost(p):
+                    nonlocal parameter_start
+                    parameter_start = parameter_start.copy()
+                    parameter_start[mapping_shear] = p
+                    p = params(parameter_start)
+                    material1 = MaterialClass(*p)
+                    x, y = get_extensional_rheometer_stress(gamma, material1)
+                    stretchy2 = interp1d(x, y, fill_value=np.nan, bounds_error=False)(shearx)
+                    cost = np.nansum((np.log(stretchy2) - np.log(sheary)) ** 2 * weights)
+                    return cost
+
+                def plot_me(color=color):
+                    material = MaterialClass(*params(parameter_start))
+                    plt.loglog(shearx, sheary, "o", label="data", color=color)
+
+                    x, y = get_extensional_rheometer_stress(gamma, material)
+                    plt.loglog(x, y, "r-", lw=3, label="model")
+
+                return cost, plot_me
+
+            cost, plot = get_cost(func, data, params)
+            costs_shear.append(cost)
+            plots_shear.append(plot)
+
         if func == get_shear_rheometer_stress:
             mapping_shear |= get_mapping(parameter_start, params, [0, 2, 3])
 

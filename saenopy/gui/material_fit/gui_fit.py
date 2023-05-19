@@ -132,7 +132,7 @@ class MainWindowFit(QtWidgets.QWidget):
                 self.input_col2 = QtShortCuts.QInputNumber(None, "column 2", 1, float=False).addToLayout()
                 self.input_col2.valueChanged.connect(lambda x: self.set_value(x, "col2"))
 
-                self.input_type = QtShortCuts.QInputChoice(None, "type", "none", ["none", "shear rheometer", "stretch thinning"]).addToLayout()  # , "extensional rheometer"
+                self.input_type = QtShortCuts.QInputChoice(None, "type", "none", ["none", "shear rheometer", "stretch thinning", "extensional rheometer"]).addToLayout()
                 self.input_type.setDisabled(True)
                 self.input_type.valueChanged.connect(lambda x: self.set_value(x, "type"))
 
@@ -332,9 +332,17 @@ if __name__ == '__main__':  # pragma: no cover
         [[2.02e-05, -6.50e-02], [1.59e-02, 8.46e+00], [3.76e-02, 1.68e+01], [5.82e-02, 2.43e+01], [7.86e-02, 3.34e+01],
          [9.90e-02, 4.54e+01], [1.19e-01, 6.11e+01], [1.40e-01, 8.16e+01], [1.60e-01, 1.06e+02], [1.80e-01, 1.34e+02],
          [2.01e-01, 1.65e+02], [2.21e-01, 1.96e+02], [2.41e-01, 2.26e+02]])
+
+    data_extension = np.array(
+        [[1.005, 8.11503391], [1.015, 4.73271782], [1.025, 12.39500323], [1.035, 4.78868658], [1.045, 13.4463538],
+         [1.055, 25.3804035], [1.065, 25.04892348], [1.075, 27.15489932], [1.085, 39.09152633], [1.095, 51.33645119],
+         [1.105, 73.54898657], [1.115, 92.71062764], [1.125, 110.42613606], [1.135, 151.62593391],
+         [1.145, 198.30184441], [1.155, 251.72810034]])
+
     np.savetxt("6.txt", data0_6)
     pd.DataFrame(data1_2).to_csv("2.csv")
     np.savetxt("4.txt", data2_4)
+    np.savetxt("data_extension.txt", data_extension)
 
     app = QtWidgets.QApplication(sys.argv)
     if sys.platform.startswith('win'):
@@ -351,4 +359,5 @@ if __name__ == '__main__':  # pragma: no cover
     window.add_file("6.txt")
     window.add_file("2.csv")
     window.add_file("4.txt")
+    window.add_file("data_extension.txt")
     sys.exit(app.exec_())
