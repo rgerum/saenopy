@@ -8,23 +8,17 @@ from saenopy.saveable import Saveable
 
 
 class Mesh(Saveable):
-    __save_parameters__ = ['nodes', 'tetrahedra', 'node_vars']
+    __save_parameters__ = ['nodes', 'tetrahedra']
     nodes: NDArray[Shape["N_c, 3"], Float] = None  # the 3D positions of the vertices, dimension: N_c x 3
     tetrahedra: NDArray[Shape["N_t, 4"], Int] = None  # the tetrahedra' 4 corner vertices (defined by index), dimensions: N_T x 4
 
-    node_vars: dict = None
-
     def __init__(self, nodes: NDArray[Shape["N_c, 3"], Float] = None, tetrahedra: NDArray[Shape["N_t, 4"], Int] = None,
-                 node_vars: dict = None, **kwargs):
+                 **kwargs):
         super().__init__(**kwargs)
         if nodes is not None:
             self.set_nodes(nodes)
         if tetrahedra is not None:
             self.set_tetrahedra(tetrahedra)
-        self.node_vars = {}
-        if node_vars is not None:
-            for name, data in node_vars.items():
-                self.set_node_var(name, data)
 
     def set_nodes(self, data: NDArray[Shape["N_c, 3"], Float]):
         """
@@ -62,20 +56,6 @@ class Mesh(Saveable):
 
         # store the tetrahedron data (needs to be int indices)
         self.tetrahedra = data.astype(int)
-
-    def set_node_var(self, name: str, data: Union[NDArray[Shape["N_c"], Float], NDArray[Shape["N_c, 3"], Float]]):
-        data = np.asarray(data)
-        assert len(data.shape) == 1 or len(data.shape) == 2, "Node var needs to be scalar or vectorial"
-        if len(data.shape) == 2:
-            assert data.shape[1] == 3, "Vectorial node var needs to have 3 dimensions"
-        assert data.shape[0] == self.nodes.shape[0], "Node var has to have the same number of nodes than the mesh"
-        self.node_vars[name] = data
-
-    def get_node_var(self, name: str) -> Union[NDArray[Shape["N_c"], Float], NDArray[Shape["N_c, 3"], Float]]:
-        return self.node_vars[name]
-
-    def has_node_var(self, name: str):
-        return name in self.node_vars
 
 
 class InvalidShape(ValidationFailure):
