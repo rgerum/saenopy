@@ -614,6 +614,74 @@ def test_loading(monkeypatch, catch_popup_error, random_path):
     batch_evaluate.add_measurement()
 
 
+def test_fit(monkeypatch, catch_popup_error, random_path):
+    import pandas as pd
+    from saenopy.gui.material_fit.gui_fit import MainWindowFit
+    window = MainWindowFit()
+    data0_6 = np.array(
+        [[4.27e-06, -2.26e-03], [1.89e-02, 5.90e-01], [3.93e-02, 1.08e+00], [5.97e-02, 1.57e+00], [8.01e-02, 2.14e+00],
+         [1.00e-01, 2.89e+00], [1.21e-01, 3.83e+00], [1.41e-01, 5.09e+00], [1.62e-01, 6.77e+00], [1.82e-01, 8.94e+00],
+         [2.02e-01, 1.17e+01], [2.23e-01, 1.49e+01], [2.43e-01, 1.86e+01], [2.63e-01, 2.28e+01], [2.84e-01, 2.71e+01]])
+    data1_2 = np.array(
+        [[1.22e-05, -1.61e-01], [1.71e-02, 2.57e+00], [3.81e-02, 4.69e+00], [5.87e-02, 6.34e+00], [7.92e-02, 7.93e+00],
+         [9.96e-02, 9.56e+00], [1.20e-01, 1.14e+01], [1.40e-01, 1.35e+01], [1.61e-01, 1.62e+01], [1.81e-01, 1.97e+01],
+         [2.02e-01, 2.41e+01], [2.22e-01, 2.95e+01], [2.42e-01, 3.63e+01], [2.63e-01, 4.43e+01], [2.83e-01, 5.36e+01],
+         [3.04e-01, 6.37e+01], [3.24e-01, 7.47e+01], [3.44e-01, 8.61e+01], [3.65e-01, 9.75e+01], [3.85e-01, 1.10e+02],
+         [4.06e-01, 1.22e+02], [4.26e-01, 1.33e+02]])
+    stretch = np.array(
+        [[9.33e-01, 1.02e+00], [9.40e-01, 1.01e+00], [9.47e-01, 1.02e+00], [9.53e-01, 1.02e+00], [9.60e-01, 1.02e+00],
+         [9.67e-01, 1.01e+00], [9.73e-01, 1.01e+00], [9.80e-01, 1.01e+00], [9.87e-01, 1.01e+00], [9.93e-01, 1.00e+00],
+         [1.00e+00, 1.00e+00], [1.01e+00, 9.89e-01], [1.01e+00, 9.70e-01], [1.02e+00, 9.41e-01], [1.03e+00, 9.00e-01],
+         [1.03e+00, 8.46e-01], [1.04e+00, 7.76e-01], [1.05e+00, 6.89e-01], [1.05e+00, 6.02e-01], [1.06e+00, 5.17e-01],
+         [1.07e+00, 4.39e-01], [1.07e+00, 3.74e-01], [1.08e+00, 3.17e-01], [1.09e+00, 2.72e-01], [1.09e+00, 2.30e-01],
+         [1.10e+00, 2.02e-01]])
+
+    np.savetxt("6.txt", data0_6.T)
+    pd.DataFrame(data1_2).to_csv("2.csv")
+    np.savetxt("stretch.txt", stretch)
+
+    window.add_file("6.txt")
+    window.add_file("2.csv")
+
+    monkeypatch.setattr(QtWidgets.QFileDialog, "getOpenFileName", lambda *args: "stretch.txt")
+    window.add_measurement()
+
+    window.list.setCurrentRow(0)
+    window.input_type.setValue("shear rheometer", send_signal=True)
+    window.input_transpose.setValue(True, send_signal=True)
+    window.list.setCurrentRow(1)
+    window.input_type.setValue("shear rheometer", send_signal=True)
+    window.input_col1.setValue(1, send_signal=True)
+    window.input_col2.setValue(2, send_signal=True)
+    window.list.setCurrentRow(2)
+    window.input_type.setValue("stretch thinning", send_signal=True)
+    window.input_params.setValue("k4, d_01, lambda_s1, d_s1", send_signal=True)
+    window.input_params.setValue("invalid", send_signal=True)
+    window.all_params.param_inputs[1][0].bool2.setValue(True, send_signal=True)
+    window.all_params.param_inputs[1][0].bool.setValue(True, send_signal=True)
+    window.all_params.param_inputs[1][0].bool.setValue(False, send_signal=True)
+    window.all_params.param_inputs[1][1].bool.setValue(True, send_signal=True)
+    window.all_params.param_inputs[1][1].bool2.setValue(True, send_signal=True)
+    window.all_params.param_inputs[1][1].bool2.setValue(False, send_signal=True)
+    window.run()
+
+    with pytest.raises(QMessageBoxCritical, match="k1"):
+        window.all_params.param_inputs[0][0].input.setValue("invalid", send_signal=True)
+        window.run()
+        window.all_params.param_inputs[0][0].input.setValue("k1, d_01, lambda_s1, d_s1", send_signal=True)
+
+    with pytest.raises(QMessageBoxCritical, match="column"):
+        window.input_col1.setValue(10, send_signal=True)
+        window.input_col2.setValue(10, send_signal=True)
+        window.run()
+        window.input_col1.setValue(0, send_signal=True)
+        window.input_col2.setValue(1, send_signal=True)
+
+
+    #window.show()
+    #app.exec_()
+
+
 if __name__ == "__main__":
     class monk():
         def setattr(self, obj, name, value):

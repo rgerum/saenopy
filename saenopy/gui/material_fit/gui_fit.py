@@ -74,16 +74,23 @@ class AllParameters(QtWidgets.QWidget):
                  QtShortCuts.QVBoxLayout(),
              ]
         self.param_inputs: List[List[Parameter]] = []
+        self.spacers = []
 
     def setParams(self, params):
         for i, group in enumerate(self.param_inputs):
             for obj in group:
                 self.layouts[i].removeWidget(obj)
+        for i in range(4):
+            if len(self.spacers):
+                self.layouts[i].removeWidget(self.spacers[i])
         self.param_inputs = [[], [], [], []]
 
         for (i, name), value in params.items():
             with self.layouts[i]:
                 self.param_inputs[i].append(Parameter(name, value, allow_none=i!=0).addToLayout())
+        self.spacers = []
+        for i in range(4):
+            self.spacers.append(self.layouts[i].addStretch())
     def value(self):
         values = {}
         for i, group in enumerate(self.param_inputs):
@@ -146,11 +153,6 @@ class MainWindowFit(QtWidgets.QWidget):
         self.data = []
         self.start_params = {}
         self.list.setData(self.data)
-        def valueChanged():
-            print("valueChanged",self.start_params)
-            self.start_params = self.all_params.value()
-
-        self.all_params.valueChanged.connect(valueChanged)
 
     def set_value(self, x, key):
         if key == "params":
@@ -231,8 +233,7 @@ class MainWindowFit(QtWidgets.QWidget):
         try:
             start_params = self.all_params.value()
         except ValueError as err:
-            QtWidgets.QMessageBox.critical(self, "Fit Error", str(err))
-            return
+            return QtWidgets.QMessageBox.critical(self, "Fit Error", str(err))
         fixed_params = self.all_params.valuesFixed()
 
         parameter_set = []
@@ -274,14 +275,13 @@ class MainWindowFit(QtWidgets.QWidget):
                 try:
                     data = np.vstack((data[:, d[2]["col1"]], data[:, d[2]["col2"]])).T
                 except IndexError:
-                    QtWidgets.QMessageBox.critical(self, "Fit Error", f"Invalid column specified for file {d[0]}")
-                    return
+                    return QtWidgets.QMessageBox.critical(self, "Fit Error", f"Invalid column specified for file {d[0]}")
 
                 if d[2]["type"] == "shear rheometer":
                     parts.append([macro.get_shear_rheometer_stress, data, set])
                 if d[2]["type"] == "stretch thinning":
                     parts.append([macro.get_stretch_thinning, data, set])
-                if d[2]["type"] == "extensional rheometer":
+                if d[2]["type"] == "extensional rheometer":  # pragma: no cover
                     parts.append([macro.get_extensional_rheometer_stress, data, set])
 
         params, plot = macro.minimize(parts,
