@@ -19,3 +19,5 @@ david/
 poetry.lock
 /docs/source/auto_examples/
 .hypothesis/
+/test/tmp/
+/test/tmp2/

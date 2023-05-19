@@ -37,7 +37,7 @@ class Stack(Saveable):
             if match:
                 from saenopy.gui.common.lif_reader import LifFile
                 self.leica_filename, self.leica_folder, self.leica_channel, self.leica_time = match.groups()
-                if self.leica_time is None:
+                if self.leica_time is None:  # pragma: no cover
                     self.leica_time = 0
                 else:
                     self.leica_time = int(self.leica_time)
@@ -163,7 +163,7 @@ def read_tiff(image_filenames):
             page = int(page)
         tif = tifffile.TiffReader(image_filenames)
         page = tif.pages[page]
-        if isinstance(page, list):
+        if isinstance(page, list):  # pragma: no cover
             page = page[0]
         return page.asarray()
     im = imageio.imread(image_filenames)
@@ -211,11 +211,11 @@ def format_glob(pattern):
             page = int(page)
             if page != 0:
                 group["filename"] = file+f"[{page}]"
-                group["template"] = template_name + "[" + page + "]"
+                group["template"] = template_name + "[" + str(page) + "]"
             file_list.append(group)
         except ValueError:
             tif = tifffile.TiffReader(file)
-            group["template"] = template_name + "[" + page + "]"
+            group["template"] = template_name + "[" + str(page) + "]"
             for i in range(len(tif.pages)):
                 group["filename"] = file+f"[{i}]"
                 group[page] = i

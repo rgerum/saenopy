@@ -171,6 +171,11 @@ def test_overwrite():
                 imageio.imwrite(f"tmp/run-{i}-overwrite/Pos001_S001_z{z:03d}_t{t:03d}_ch00.png", (np.random.rand(22, 10) * 255).astype(np.uint8))
 
     for reference_stack in ["tmp/run-0-overwrite/Pos*_S001_z{z}_t000_ch00.png", None]:
+        from saenopy.stack import format_glob
+        print(format_glob("tmp/run-0-overwrite/Pos*_S001_z000_t000_ch00.png[z]"))
+        print(format_glob("tmp/run-0-overwrite/Pos*_S001_z000_t000_ch00.png[1]"))
+        print(format_glob("tmp/run-{c}-overwrite*/Pos*_S001_z{z}_t000_ch00.png"))
+
         res = get_stacks("tmp/run-1-overwrite/Pos*_S001_z{z}_t{t}_ch00.png", "tmp2/run-1-overwrite", [1, 1, 1], crop={"t": (1, None)},
                    reference_stack=reference_stack)
         res[0].save()
@@ -189,6 +194,16 @@ def test_overwrite():
         get_stacks("tmp/run-1-overwrite/Pos*_S001_z{z}_t{t}_ch00.png", "tmp/run-1-overwrite", [1, 1, 1], crop={"t": (1, None)},
                    reference_stack=reference_stack, exist_overwrite_callback=lambda x: "read")
     res[0].save("tmp/custom_filename.saenoy")
+    assert res[0].stacks[0][:, :, 0, 0, 0].shape == (22, 10)
+
+    assert res[0].stacks[0].packed_files is None
+    res[0].stacks[0].pack_files()
+    assert res[0].stacks[0].packed_files is not None
+    assert res[0].stacks[0][:, :, 0, 0, 0].shape == (22, 10)
+
+    res[0].stacks[0].description(0)
+    res[0].stacks[0].description(1000)
+    assert res[0].stacks[0].get_image(0, 0).shape == (22, 10)
 
 def test_stack_channels(files_channels):
     # ignore other channels
@@ -234,6 +249,8 @@ def test_crop_z(files_z_pages):
 
     results = get_stacks("tmp/run-1/Pos004_S001_ch00.tif[z]", "tmp/run-1b", [1, 1, 1], time_delta=1,
                          reference_stack="tmp/run-1/Pos004_S001_ch00.tif[z]")
+    from saenopy.stack import format_glob
+    print(format_glob("tmp/run-1/Pos004_S001_ch00.tif[1]"))
 
     # with 3 rgb layers
     #check_stack(Stack("tmp/run-1/Pos004_S001_z000_ch00.tif[z]", (1, 1, 1)), 13, 11, 10, 1, rgb0=3)
@@ -249,3 +266,7 @@ def test_lif():
 
     results = get_stacks("*/PR2729_frameOrderCombinedScanTypes{f:0}{c:0}.lif", "tmp/run-lif", [1, 1, 1], time_delta=1)
     print(results)
+    print(results[0].stacks[0].shape)
+    assert results[0].stacks[0][:, :, 0, 0, 0].shape == (64, 64)
+    assert results[0].stacks[0][:, :, 0, :, 0].shape == (64, 64, 1)
+    assert results[0].stacks[0][:, :, 0, 0:1, 0].shape == (64, 64, 1)
