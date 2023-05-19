@@ -3,10 +3,13 @@
 import os
 
 import numpy as np
+import shutil
 from mock_dir import mock_dir, create_tif, random_path
 from saenopy.stack import Stack
 from saenopy.result_file import get_stacks
 import pytest
+from pathlib import Path
+import imageio
 import tifffile
 
 
@@ -111,7 +114,79 @@ def test_stack_one_channel(files_one_channel):
         tifffile.imwrite("tmp/run-1/Pos004_S001_z002_ch00.tif", np.random.rand(22, 10))
         get_stacks("tmp/run-1/Pos004_S001_z{z}_ch00.tif", "tmp/run-1", [1, 1, 1],
                    reference_stack="tmp/run-1-reference/Pos004_S001_z{z}_ch00.tif")
+    tifffile.imwrite("tmp/run-1-reference/Pos004_S001_z000_ch00.tif", np.random.rand(22, 10))
+    tifffile.imwrite("tmp/run-1-reference/Pos004_S001_z001_ch00.tif", np.random.rand(22, 10))
+    tifffile.imwrite("tmp/run-1-reference/Pos004_S001_z002_ch00.tif", np.random.rand(22, 10))
 
+def test_stack_png(files_one_channel):
+    Path("tmp/run-1-png").mkdir(exist_ok=True)
+    Path("tmp/run-0-png").mkdir(exist_ok=True)
+    imageio.imwrite("tmp/run-1-png/Pos004_S001_z000_ch00.png", (np.random.rand(22, 10)*255).astype(np.uint8))
+    imageio.imwrite("tmp/run-1-png/Pos004_S001_z001_ch00.png", (np.random.rand(22, 10)*255).astype(np.uint8))
+    imageio.imwrite("tmp/run-0-png/Pos004_S001_z000_ch00.png", (np.random.rand(22, 10)*255).astype(np.uint8))
+    imageio.imwrite("tmp/run-0-png/Pos004_S001_z001_ch00.png", (np.random.rand(22, 10)*255).astype(np.uint8))
+
+    get_stacks("tmp/run-1-png/Pos004_S001_z{z}_ch00.png", "tmp/run-1", [1, 1, 1],
+               reference_stack="tmp/run-0-png/Pos004_S001_z{z}_ch00.png")
+
+def test_glob(files_one_channel):
+    for i in range(2):
+        for rep in range(3):
+            for z in range(4):
+                Path(f"tmp/run-{i}-glob").mkdir(exist_ok=True)
+                imageio.imwrite(f"tmp/run-{i}-glob/Pos{rep:03d}_S001_z{z:03d}_ch00.png", (np.random.rand(22, 10) * 255).astype(np.uint8))
+
+    get_stacks("tmp/run-1-glob/Pos*_S001_z{z}_ch00.png", "tmp/run-1-glob", [1, 1, 1],
+               reference_stack="tmp/run-0-glob/Pos*_S001_z{z}_ch00.png")
+
+    for i in range(1):
+        for rep in range(4):
+            for z in range(4):
+                Path(f"tmp/run-{i}-glob").mkdir(exist_ok=True)
+                imageio.imwrite(f"tmp/run-{i}-glob/Pos{rep:03d}_S001_z{z:03d}_ch00.png", (np.random.rand(22, 10) * 255).astype(np.uint8))
+
+    with pytest.raises(ValueError, match="Number of active stacks"):
+        get_stacks("tmp/run-1-glob/Pos*_S001_z{z}_ch00.png", "tmp/run-1-glob", [1, 1, 1],
+                   reference_stack="tmp/run-0-glob/Pos*_S001_z{z}_ch00.png")
+
+def test_time_points_in_reference():
+    for i in range(2):
+        for t in range(4):
+            for z in range(4):
+                Path(f"tmp/run-{i}-time").mkdir(exist_ok=True)
+                imageio.imwrite(f"tmp/run-{i}-time/Pos001_S001_z{z:03d}_{t:03d}_ch00.png", (np.random.rand(22, 10) * 255).astype(np.uint8))
+
+    get_stacks("tmp/run-1-time/Pos*_S001_z{z}_{t}_ch00.png", "tmp/run-1-glob", [1, 1, 1], crop={"t": (1, None)},
+               reference_stack="tmp/run-0-time/Pos*_S001_z{z}_000_ch00.png")
+
+    with pytest.raises(ValueError, match="different time points"):
+        get_stacks("tmp/run-1-time/Pos*_S001_z{z}_{t}_ch00.png", "tmp/run-1-glob", [1, 1, 1],
+                   reference_stack="tmp/run-0-time/Pos*_S001_z{z}_{t}_ch00.png")
+
+def test_overwrite():
+    for i in range(2):
+        for t in range(3):
+            for z in range(4):
+                Path(f"tmp/run-{i}-overwrite").mkdir(exist_ok=True)
+                imageio.imwrite(f"tmp/run-{i}-overwrite/Pos001_S001_z{z:03d}_t{t:03d}_ch00.png", (np.random.rand(22, 10) * 255).astype(np.uint8))
+
+    for reference_stack in ["tmp/run-0-overwrite/Pos*_S001_z{z}_t000_ch00.png", None]:
+        res = get_stacks("tmp/run-1-overwrite/Pos*_S001_z{z}_t{t}_ch00.png", "tmp/run-1-overwrite", [1, 1, 1], crop={"t": (1, None)},
+                   reference_stack=reference_stack)
+        res[0].save()
+
+        # overwrite
+        get_stacks("tmp/run-1-overwrite/Pos*_S001_z{z}_t{t}_ch00.png", "tmp/run-1-overwrite", [1, 1, 1], crop={"t": (1, None)},
+                   reference_stack=reference_stack, load_existing=True)
+
+        # callback
+        get_stacks("tmp/run-1-overwrite/Pos*_S001_z{z}_t{t}_ch00.png", "tmp/run-1-overwrite", [1, 1, 1], crop={"t": (1, None)},
+                   reference_stack=reference_stack, exist_overwrite_callback=lambda x: 0)
+
+        # callback
+        get_stacks("tmp/run-1-overwrite/Pos*_S001_z{z}_t{t}_ch00.png", "tmp/run-1-overwrite", [1, 1, 1], crop={"t": (1, None)},
+                   reference_stack=reference_stack, exist_overwrite_callback=lambda x: "read")
+    res[0].save("tmp/custom_filename.saenoy")
 
 def test_stack_channels(files_channels):
     # ignore other channels
@@ -124,6 +199,7 @@ def test_stack_channels(files_channels):
                          reference_stack="tmp/run-2-reference/Pos004_S001_z{z}_ch{c:00}.tif")
     check_stack(results[0].stacks[0], 20, 10, 2, 3)
     check_stack(results[0].stack_reference, 20, 10, 2, 3)
+    print(results)
 
     # check load stack with reference stack
     with pytest.raises(ValueError,
@@ -154,5 +230,20 @@ def test_crop_z(files_z_pages):
     # crop z
     check_stack(Stack("tmp/run-1/Pos004_S001_ch00.tif[z]", (1, 1, 1), crop={"z": [3, 6]}), 50, 50, 3, 1)
 
+    results = get_stacks("tmp/run-1/Pos004_S001_ch00.tif[z]", "tmp/run-1b", [1, 1, 1], time_delta=1,
+                         reference_stack="tmp/run-1/Pos004_S001_ch00.tif[z]")
+
     # with 3 rgb layers
     #check_stack(Stack("tmp/run-1/Pos004_S001_z000_ch00.tif[z]", (1, 1, 1)), 13, 11, 10, 1, rgb0=3)
+
+
+def test_lif():
+    from urllib.request import urlretrieve
+    from pathlib import Path
+    url = "https://downloads.openmicroscopy.org/images/Leica-LIF/michael/PR2729_frameOrderCombinedScanTypes.lif"
+    Path("tmp").mkdir(exist_ok=True)
+    file_download_path = "tmp/PR2729_frameOrderCombinedScanTypes.lif"
+    urlretrieve(str(url), file_download_path)
+
+    results = get_stacks("*/PR2729_frameOrderCombinedScanTypes{f:0}{c:0}.lif", "tmp/run-lif", [1, 1, 1], time_delta=1)
+    print(results)

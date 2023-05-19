@@ -178,6 +178,8 @@ def test_run_example(monkeypatch, random_path, catch_popup_error, use_time, use_
     M = results[0].solvers[0]
     print(M.mesh.displacements[M.mesh.regularisation_mask])
     print(results[0].solvers[0].mesh.displacements.shape)
+    # test results print
+    print(results[0])
     # assert sf4(M.U[M.reg_mask][0]) == sf4([-2.01259036e-38, -1.96865342e-38, -4.92921492e-38])
     # 91.64216076e-38 -3.15079497e-39  3.19069614e-39
 
@@ -583,7 +585,7 @@ def test_loading(monkeypatch, catch_popup_error, random_path):
     batch_evaluate.add_measurement()
 
     """ open existing files """
-    existing_file = list(Path("tmp/output").glob("*.npz"))[0]
+    existing_file = list(Path("tmp/output").glob("*.saenopy"))[0]
     def handle_load_existing(self: AddFilesDialog):
        # select the existing file tab
        self.tabs.setCurrentIndex(1)

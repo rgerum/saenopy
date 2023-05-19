@@ -13,7 +13,7 @@ from saenopy.saveable import Saveable
 
 class Stack(Saveable):
     __save_parameters__ = ['template', 'voxel_size', 'crop', '_shape',
-                           'image_filenames', 'leica_file', 'channels',
+                           'image_filenames', 'channels', # 'leica_file',
                            'packed_files']
     template: str = None
     voxel_size: tuple = None
