@@ -120,6 +120,10 @@ class BatchEvaluate(QtWidgets.QWidget):
         # load paths
         self.load_from_path([arg for arg in sys.argv if arg.endswith(".saenopy")])
 
+        # disable all tabs
+        for i in range(self.tabs.count()-1, -1, -1):
+            self.tabs.setTabEnabled(i, False)
+
     def copy_params(self):
         result = self.list.data[self.list.currentRow()][2]
         params = {
