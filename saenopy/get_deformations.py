@@ -280,7 +280,7 @@ def _get_displacements_from_stacks_old(stack_deformed, stack_relaxed, voxel_size
                                        signal_to_noise=1.3, drift_correction=True):    # set properties
     voxel_size = np.array(voxel_size)
     window_size = (window_size / voxel_size).astype(int)
-    overlap = ((fac_overlap * window_size) / voxel_size).astype(int)
+    overlap = (fac_overlap * window_size).astype(int)
     du, dv, dw = voxel_size
     print("Calculate Deformations", stack_relaxed.shape, window_size, overlap)
 
