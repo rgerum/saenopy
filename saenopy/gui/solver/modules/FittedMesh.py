@@ -40,8 +40,6 @@ class FittedMesh(PipelineModule):
                 self.t_slider = QTimeSlider(connected=self.update_display).addToLayout()
                 self.tab.parent().t_slider = self.t_slider
 
-        self.setParameterMapping(None, {})
-
     def z_slider_value_changed(self):
         self.update_display()
 

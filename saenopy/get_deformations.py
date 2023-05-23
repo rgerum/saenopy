@@ -268,7 +268,7 @@ def replace_nans_py(array, max_iter, tol, kernel_size = 2, method = 'disk'):
             filled[tuple(nan_indices[k])] = replaced_new[k]
 
         # elements are below a certain tolerance
-        if np.mean((replaced_new - replaced_old) ** 2) < tol:
+        if len(replaced_new) and np.mean((replaced_new - replaced_old) ** 2) < tol:
             break
         else:
             replaced_old = replaced_new

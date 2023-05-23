@@ -203,7 +203,7 @@ class MeshCreator(PipelineModule):
 
     def process(self, result: Result, mesh_parameters: dict):
         # demo run
-        if os.environ.get("DEMO") == "true":
+        if os.environ.get("DEMO") == "true":  # pragma: no cover
             result.solvers = result.solver_demo
             return
         

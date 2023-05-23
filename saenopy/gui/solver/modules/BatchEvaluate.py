@@ -69,7 +69,8 @@ class BatchEvaluate(QtWidgets.QWidget):
                     self.list.signal_act_paste_clicked.connect(self.paste_params)
                     self.list.signal_act_paths_clicked.connect(self.path_editor)
                     self.list.itemSelectionChanged.connect(self.listSelected)
-                    self.progressbar = QProgressBar().addToLayout()
+                    self.progressbar = QtWidgets.QProgressBar().addToLayout()
+                    self.progressbar.setOrientation(QtCore.Qt.Horizontal)
                 with QtShortCuts.QHBoxLayout() as layout:
                     layout.setContentsMargins(0, 0, 0, 0)
                     with QtShortCuts.QTabWidget(layout) as self.tabs:
@@ -292,7 +293,7 @@ class BatchEvaluate(QtWidgets.QWidget):
             nonlocal last_decision
 
             # if we are in demo mode always load the files
-            if os.environ.get("DEMO") == "true":
+            if os.environ.get("DEMO") == "true":  # pragma: no cover
                 return "read"
 
             # if there is a last decistion stored use that
@@ -391,22 +392,3 @@ class BatchEvaluate(QtWidgets.QWidget):
         if self.list.currentRow() is not None and self.list.currentRow() < len(self.data):
             pipe = self.data[self.list.currentRow()][2]
             self.set_current_result.emit(pipe)
-
-
-class QProgressBar(QtWidgets.QProgressBar):
-    signal_start = QtCore.Signal(int)
-    signal_progress = QtCore.Signal(int)
-
-    def __init__(self):
-        super().__init__()
-        self.setOrientation(QtCore.Qt.Horizontal)
-        self.signal_start.connect(lambda i: self.setRange(0, i))
-        self.signal_progress.connect(lambda i: self.setValue(i))
-
-    def iterator(self, iter):
-        print("iterator", iter)
-        self.signal_start.emit(len(iter))
-        for i, v in enumerate(iter):
-            yield i
-            print("emit", i)
-            self.signal_progress.emit(i+1)

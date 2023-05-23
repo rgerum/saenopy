@@ -49,7 +49,6 @@ class ResultView(PipelineModule):
                 #return
                 self.t_slider = QTimeSlider(connected=self.update_display).addToLayout()
                 self.tab.parent().t_slider = self.t_slider
-        self.setParameterMapping(None, {})
 
     def check_evaluated(self, result: Result) -> bool:
         try:

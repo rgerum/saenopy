@@ -157,6 +157,10 @@ def test_run_example(monkeypatch, random_path, catch_popup_error, use_time, use_
     # add them to the gui and select them
     batch_evaluate.list.setCurrentRow(0)
 
+    # open all the tabs
+    for i in range(10):
+        batch_evaluate.tabs.setCurrentIndex(i)
+
     results = [batch_evaluate.sub_module_deformation.result]
     results[0].stacks[0].pack_files()
     if use_time:
@@ -215,6 +219,10 @@ def test_run_example(monkeypatch, random_path, catch_popup_error, use_time, use_
         batch_evaluate.sub_module_stacks.t_slider.setValue(1)
 
     batch_evaluate.sub_module_stacks.z_slider.setValue(1)
+
+    """ functions of mesh_creator """
+    batch_evaluate.sub_module_mesh.input_mesh_size.setValue((100, 100, 100))
+    batch_evaluate.sub_module_mesh.input_mesh_size.input_mesh_size_x.setValue(200, send_signal=True)
 
     batch_evaluate.list.setCurrentRow(0)
     batch_evaluate.list.setCurrentRow(1)

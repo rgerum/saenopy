@@ -120,7 +120,6 @@ class StackDisplay(PipelineModule):
 
         self.view1.link(self.view2)
         self.current_tab_selected = True
-        self.setParameterMapping(None, {})
 
     def setZProj(self, value):
         if self.result:
