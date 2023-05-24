@@ -1,4 +1,6 @@
 import sys
+import traceback
+
 from qtpy import QtCore, QtWidgets, QtGui
 import multiprocessing
 # keep import for pyinstaller
@@ -130,7 +132,16 @@ def main():  # pragma: no cover
         pyi_splash.close()
     except (ImportError, RuntimeError):
         pass
-    sys.exit(app.exec_())
+
+    while True:
+        try:
+            res = app.exec_()
+            break
+        except Exception as err:
+            traceback.print_traceback(err)
+            QtWidgets.QMessageBox.critical(window, "Error", f"An Error occurred:\n{err}")
+            continue
+    sys.exit(res)
 
 
 if __name__ == '__main__':  # pragma: no cover
