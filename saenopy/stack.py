@@ -15,6 +15,8 @@ class Stack(Saveable):
     __save_parameters__ = ['template', 'voxel_size', 'crop', '_shape',
                            'image_filenames', 'channels', # 'leica_file',
                            'packed_files']
+    parent = None
+
     template: str = None
     voxel_size: tuple = None
     crop: dict = None
@@ -103,7 +105,7 @@ class Stack(Saveable):
             return images[index[0], index[1], index[2]]
         if self.packed_files is None:
             images = np.array(self.image_filenames)[index[3], index[4]]
-            images = np.asarray(load_image_files_to_nparray(images, self.crop)).T
+            images = np.asarray(load_image_files_to_nparray(images, self.crop, self.parent)).T
         else:
             images = self.packed_files[:, :, :, index[4], index[3]]
         images = np.swapaxes(images, 0, 2)
@@ -140,8 +142,11 @@ def template_to_array(filename, crop):
     return image_filenames, c_indices
 
 
-def load_image_files_to_nparray(image_filenames, crop=None):
+def load_image_files_to_nparray(image_filenames, crop=None, parent=None):
     if isinstance(image_filenames, str):
+        # make relative paths relative to the .saenopy file
+        if parent is not None and parent.output is not None and not Path(image_filenames).is_absolute():
+            image_filenames = str(Path(parent.output).parent / image_filenames)
         im = read_tiff(image_filenames)
         if len(im.shape) == 2:
             im = im[:, :, None]

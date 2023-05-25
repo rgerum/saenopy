@@ -233,9 +233,9 @@ class StackDisplay(PipelineModule):
                 c = self.channel_select.value()
                 z = self.z_slider.value()
 
-                self.views[i].setToolTip(f"stack\n{stack.description(z)}")
-
                 try:
+                    self.views[i].setToolTip(f"stack\n{stack.description(z)}")
+
                     if self.result.stack_parameters["z_project_name"] == "maximum":
                         start = np.clip(z - self.result.stack_parameters["z_project_range"], 0, stack.shape[2])
                         end = np.clip(z + self.result.stack_parameters["z_project_range"], 0, stack.shape[2])
@@ -252,6 +252,7 @@ class StackDisplay(PipelineModule):
                     im = np.zeros([255, 255, 3], dtype=np.uint8)
                     im[:, :, 0] = 255
                     im[:, :, 2] = 255
+                    self.views[i].setToolTip(f"stack information not found")
                 self.pixmaps[i].setPixmap(QtGui.QPixmap(array2qimage(im)))
                 self.views[i].setExtend(im.shape[1], im.shape[0])
                 self.parent.display_image = (im, stack.voxel_size)

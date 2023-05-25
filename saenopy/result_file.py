@@ -403,6 +403,12 @@ class Result(Saveable):
 
         super().__init__(**kwargs)
 
+        # add a reference to this instance to the stacks, so they know the path
+        for stack in self.stacks:
+            stack.parent = self
+        if self.stack_reference is not None:
+            self.stack_reference.parent = self
+
         # if demo move parts to simulate empty result
         if os.environ.get("DEMO") == "true":  # pragma: no cover
             self.mesh_piv_demo = self.mesh_piv
