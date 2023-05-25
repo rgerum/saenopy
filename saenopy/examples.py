@@ -43,18 +43,19 @@ def download_files(url, target_folder=None, progress_callback=None):
         os.remove(file_download_path)
 
 
-def load_example(name, target_folder=None, progress_callback=None):
+def load_example(name, target_folder=None, progress_callback=None, evaluated=False):
     if target_folder is None:
         target_folder = appdirs.user_data_dir("saenopy", "rgerum")
-    if name == "ClassicSingleCellTFM":
-        download_files("https://github.com/rgerum/saenopy/releases/download/v0.7.4/1_ClassicSingleCellTFM.zip", target_folder, progress_callback=progress_callback)
-    if name == "DynamicalSingleCellTFM":
-        download_files("https://github.com/rgerum/saenopy/releases/download/v0.7.4/2_DynamicalSingleCellTFM.zip", target_folder, progress_callback=progress_callback)
-    if name == "OrganoidTFM":
-        download_files("https://github.com/rgerum/saenopy/releases/download/v0.7.4/4_OrganoidTFM.zip", target_folder, progress_callback=progress_callback)
-    if name == "BrightfieldTFM":
-        download_files("https://github.com/rgerum/saenopy/releases/download/v0.7.4/6_BrightfieldNK92Data.zip", target_folder, progress_callback=progress_callback)
-    
+    example = get_examples()[name]
+    url = example["url"]
+    download_files(url, target_folder, progress_callback=progress_callback)
+
+    if evaluated:
+        evaluated_folder = Path(target_folder) / Path(Path(url).name).stem / "example_output"
+        if not (evaluated_folder / example["url_evaluated_file"][0]).exists():
+            download_files(example["url_evaluated"], evaluated_folder, progress_callback=progress_callback)
+        return [evaluated_folder / file for file in example["url_evaluated_file"]]
+
 
 def get_examples():
     example_path = Path(appdirs.user_data_dir("saenopy", "rgerum"))
@@ -71,6 +72,9 @@ def get_examples():
             "mesh_parameters": {'reference_stack': 'first', 'element_size': 14.0, 'mesh_size': 'piv'},
             "material_parameters": {'k': 6062.0, 'd_0': 0.0025, 'lambda_s': 0.0804, 'd_s':  0.034},
             "solve_parameters": {'alpha': 10**10, 'step_size': 0.33, 'max_iterations': 400, 'rel_conv_crit': 0.009},
+            "url": "https://github.com/rgerum/saenopy/releases/download/v0.7.4/1_ClassicSingleCellTFM.zip",
+            "url_evaluated": "https://github.com/rgerum/saenopy/releases/download/v0.7.4/1_ClassicSingleCellTFM_evaluated.zip",
+            "url_evaluated_file": ["Pos004_S001_z{z}_ch{c00}.saenopy", "Pos007_S001_z{z}_ch{c00}.saenopy", "Pos008_S001_z{z}_ch{c00}.saenopy"],
         },
         "DynamicalSingleCellTFM": {
             "desc": "Single natural killer cell that migrated through 1.2mg/ml collagen, recorded for 24min.\n1 example",
@@ -84,6 +88,9 @@ def get_examples():
             "material_parameters": {'k': 1449.0, 'd_0': 0.0022, 'lambda_s': 0.032, 'd_s': 0.055},
             "solve_parameters": {'alpha': 10**10, 'step_size': 0.33, 'max_iterations': 100},
             "crop": {"z": (20, -20)},
+            "url": "https://github.com/rgerum/saenopy/releases/download/v0.7.4/2_DynamicalSingleCellTFM.zip",
+            "url_evaluated": "https://github.com/rgerum/saenopy/releases/download/v0.7.4/2_DynamicalSingleCellTFM_evaluated.zip",
+            "url_evaluated_file": ["Pos002_S001_t{t}_z{z}_ch{c00}.saenopy"],
         },
         "OrganoidTFM": {
             "desc": "Intestinal organoid in 1.2mg/ml collagen",
@@ -96,6 +103,7 @@ def get_examples():
             "mesh_parameters": {'reference_stack': 'first', 'element_size': 30, 'mesh_size': (738.0, 738.0, 738.0)},
             "material_parameters": {'k': 6062.0, 'd_0': 0.0025, 'lambda_s': 0.0804, 'd_s': 0.034},
             "solve_parameters": {'alpha':  10**10, 'step_size': 0.33, 'max_iterations': 1400,  'rel_conv_crit': 1e-7},
+            "url": "https://github.com/rgerum/saenopy/releases/download/v0.7.4/4_OrganoidTFM.zip",
         },
         "BrightfieldTFM": {
             "desc": "Traction forces around an immune cell in collagen 1.2mg/ml calculated on simple brightfield images",
@@ -109,5 +117,6 @@ def get_examples():
             "mesh_parameters": {'reference_stack': 'next', 'element_size': 4.0, 'mesh_size': 'piv'},
             "material_parameters": {'k': 6062.0, 'd_0': 0.0025, 'lambda_s': 0.0804, 'ds':  0.034},
             "solve_parameters": {'alpha': 10**11, 'step_size': 0.33, 'max_iterations': 300, 'rel_conv_crit': 0.01},
+            "url": "https://github.com/rgerum/saenopy/releases/download/v0.7.4/6_BrightfieldNK92Data.zip",
         },
     }

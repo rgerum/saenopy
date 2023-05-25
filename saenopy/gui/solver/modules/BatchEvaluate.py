@@ -388,6 +388,8 @@ class BatchEvaluate(QtWidgets.QWidget):
                     data.material_parameters = example["material_parameters"]
                     data.solve_parameters = example["solve_parameters"]
                 self.add_data(data)
+        elif dialog.mode == "example_evaluated":
+                self.load_from_path(dialog.examples_output)
 
         # update the icons
         self.update_icons()

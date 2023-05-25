@@ -108,6 +108,11 @@ class AddFilesDialog(QtWidgets.QDialog):
                                 self.button_example1 = QtShortCuts.QPushButton(None, "Open",
                                                            lambda *, example_name=example_name: self.load_example(example_name))
                                 self.example_buttons.append(self.button_example1)
+                                self.button_example2 = QtShortCuts.QPushButton(None, "Open (evaluated)",
+                                                           lambda *, example_name=example_name: self.load_example(
+                                                                                   example_name, evaluated=True))
+                                self.button_example2.setEnabled(properties.get("url_evaluated", None) is not None)
+                                self.example_buttons.append(self.button_example2)
                         lay.addStretch()
 
                     self.tab4.addStretch()
@@ -139,9 +144,12 @@ class AddFilesDialog(QtWidgets.QDialog):
         self.mode = "existing"
         self.accept()
 
-    def load_example(self, example_name):
-        saenopy.load_example(example_name, None, self.reporthook)
-        self.mode = "example"
+    def load_example(self, example_name, evaluated=False):
+        self.examples_output = saenopy.load_example(example_name, None, self.reporthook, evaluated=evaluated)
+        if evaluated:
+            self.mode = "example_evaluated"
+        else:
+            self.mode = "example"
         self.mode_data = example_name
         self.accept()
 
