@@ -634,6 +634,7 @@ class ExportViewer(PipelineModule):
         return self.result is not None and result.stacks is not None and len(result.stacks) > 0
 
     def setResult(self, result: Result, no_update_display=False):
+        self.result = result
         if result and result.stacks and result.stacks[0]:
             self.z_slider.setRange(0, result.stacks[0].shape[2] - 1)
             self.z_slider.setValue(result.stacks[0].shape[2] // 2)

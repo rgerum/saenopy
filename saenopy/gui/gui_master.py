@@ -97,11 +97,11 @@ class MainWindow(QtWidgets.QWidget):
             self.solver = SolverMain().addToLayout(self.layout_solver)
             self.setMinimumWidth(1600)
             self.setMinimumHeight(900)
-        if value == 2 and self.spheroid is None:
+        if value == 2 and self.spheroid is None:  # pragma: no cover
             self.spheroid = SpheroidMain().addToLayout(self.layout_spheroid)
             self.setMinimumWidth(1600)
             self.setMinimumHeight(900)
-        if value == 3 and self.orientation is None:
+        if value == 3 and self.orientation is None:  # pragma: no cover
             self.orientation = OrientationMain().addToLayout(self.layout_orientation)
             self.setMinimumWidth(1600)
             self.setMinimumHeight(900)

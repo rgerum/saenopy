@@ -63,7 +63,10 @@ def getVectorFieldImage(result, params, use_fixed_contrast_if_available=False, u
                 stack = result.stacks[params["time"]["t"]]
             channel = params["stack"]["channel"]
             if isinstance(channel, str):
-                channel = result.stacks[0].channels.index(channel)
+                try:
+                    channel = result.stacks[0].channels.index(channel)
+                except ValueError:
+                    channel = 0
             if channel >= len(stack.channels):
                 im = stack[:, :, :, params["stack"]["z"], 0]
             else:
