@@ -70,7 +70,10 @@ class Stack(Saveable):
         if self.leica_file is not None:
             return (self.leica_file.dims.y, self.leica_file.dims.x, self.leica_file.dims.z, 1)
         if self._shape is None:
-            im = read_tiff(self.image_filenames[0][0])
+            filename = self.image_filenames[0][0]
+            if not Path(filename).is_absolute():
+                filename = Path(self.parent.output).parent / filename
+            im = read_tiff(filename)
             if self.crop is not None and "x" in self.crop:
                 im = im[:, slice(*self.crop["x"])]
             if self.crop is not None and "y" in self.crop:
@@ -145,7 +148,7 @@ def template_to_array(filename, crop):
 def load_image_files_to_nparray(image_filenames, crop=None, parent=None):
     if isinstance(image_filenames, str):
         # make relative paths relative to the .saenopy file
-        if parent is not None and parent.output is not None and not Path(image_filenames).is_absolute():
+        if not Path(image_filenames).is_absolute():
             image_filenames = str(Path(parent.output).parent / image_filenames)
         im = read_tiff(image_filenames)
         if len(im.shape) == 2:

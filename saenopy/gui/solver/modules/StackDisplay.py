@@ -1,4 +1,6 @@
 import os
+import traceback
+
 import qtawesome as qta
 from qtpy import QtCore, QtWidgets, QtGui
 import numpy as np
@@ -248,7 +250,8 @@ class StackDisplay(PipelineModule):
                         im = im.astype(np.float32)-min
                         im = im.astype(np.float64) * 255 / (max-min)
                         im = np.clip(im, 0, 255).astype(np.uint8)
-                except FileNotFoundError:
+                except FileNotFoundError as err:
+                    traceback.print_exception(err)
                     im = np.zeros([255, 255, 3], dtype=np.uint8)
                     im[:, :, 0] = 255
                     im[:, :, 2] = 255
