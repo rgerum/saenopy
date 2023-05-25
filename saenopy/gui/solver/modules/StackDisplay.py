@@ -235,18 +235,23 @@ class StackDisplay(PipelineModule):
 
                 self.views[i].setToolTip(f"stack\n{stack.description(z)}")
 
-                if self.result.stack_parameters["z_project_name"] == "maximum":
-                    start = np.clip(z - self.result.stack_parameters["z_project_range"], 0, stack.shape[2])
-                    end = np.clip(z + self.result.stack_parameters["z_project_range"], 0, stack.shape[2])
-                    im = stack[:, :, :, start:end, c]
-                    im = np.max(im, axis=3)
-                else:
-                    im = stack[:, :, :, z, c]
-                if self.contrast_enhance.value():
-                    (min, max) = np.percentile(im, (1, 99))
-                    im = im.astype(np.float32)-min
-                    im = im.astype(np.float64) * 255 / (max-min)
-                    im = np.clip(im, 0, 255).astype(np.uint8)
+                try:
+                    if self.result.stack_parameters["z_project_name"] == "maximum":
+                        start = np.clip(z - self.result.stack_parameters["z_project_range"], 0, stack.shape[2])
+                        end = np.clip(z + self.result.stack_parameters["z_project_range"], 0, stack.shape[2])
+                        im = stack[:, :, :, start:end, c]
+                        im = np.max(im, axis=3)
+                    else:
+                        im = stack[:, :, :, z, c]
+                    if self.contrast_enhance.value():
+                        (min, max) = np.percentile(im, (1, 99))
+                        im = im.astype(np.float32)-min
+                        im = im.astype(np.float64) * 255 / (max-min)
+                        im = np.clip(im, 0, 255).astype(np.uint8)
+                except FileNotFoundError:
+                    im = np.zeros([255, 255, 3], dtype=np.uint8)
+                    im[:, :, 0] = 255
+                    im[:, :, 2] = 255
                 self.pixmaps[i].setPixmap(QtGui.QPixmap(array2qimage(im)))
                 self.views[i].setExtend(im.shape[1], im.shape[0])
                 self.parent.display_image = (im, stack.voxel_size)

@@ -174,7 +174,11 @@ class DeformationDetector(PipelineModule):
         for i in range(count):
             p = ProcessSimple(getDeformation, (i, result, piv_parameters), {}, self.processing_progress, use_thread=self.use_thread)
             p.start()
-            result.mesh_piv[i] = p.join()
+            result = p.join()
+            if isinstance(result, Exception):
+                raise result
+            else:
+                result.mesh_piv[i] = result
 
         result.solvers = None
 
@@ -250,6 +254,8 @@ def getDeformation(progress, i, result, params):
                                                          params["element_size"],
                                                          params["signal_to_noise"],
                                                          params["drift_correction"])
+    except Exception as err:
+        return err
     finally:
         tqdm.tqdm.update = old_update
         tqdm.tqdm.__init__ = old_init
