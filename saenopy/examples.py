@@ -104,6 +104,8 @@ def get_examples():
             "material_parameters": {'k': 6062.0, 'd_0': 0.0025, 'lambda_s': 0.0804, 'd_s': 0.034},
             "solve_parameters": {'alpha':  10**10, 'step_size': 0.33, 'max_iterations': 1400,  'rel_conv_crit': 1e-7},
             "url": "https://github.com/rgerum/saenopy/releases/download/v0.7.4/4_OrganoidTFM.zip",
+            "url_evaluated": "https://github.com/rgerum/saenopy/releases/download/v0.7.4/4_OrganoidTFM_evaluated.zip",
+            "url_evaluated_file": ["Pos007_S001_t50_z{z}_ch00.saenopy"],
         },
         "BrightfieldTFM": {
             "desc": "Traction forces around an immune cell in collagen 1.2mg/ml calculated on simple brightfield images",
@@ -118,5 +120,7 @@ def get_examples():
             "material_parameters": {'k': 6062.0, 'd_0': 0.0025, 'lambda_s': 0.0804, 'ds':  0.034},
             "solve_parameters": {'alpha': 10**11, 'step_size': 0.33, 'max_iterations': 300, 'rel_conv_crit': 0.01},
             "url": "https://github.com/rgerum/saenopy/releases/download/v0.7.4/6_BrightfieldNK92Data.zip",
+            "url_evaluated": "https://github.com/rgerum/saenopy/releases/download/v0.7.4/6_BrightfieldNK92Data_evaluated.zip",
+            "url_evaluated_file": ["2023_02_14_12_0920_stack.saenopy"],
         },
     }
