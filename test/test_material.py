@@ -1,6 +1,6 @@
 from saenopy.materials import Material, LinearMaterial, SemiAffineFiberMaterial
 import numpy as np
-from scipy.misc import derivative
+from findiff import FinDiff
 import pytest
 
 
@@ -20,6 +20,7 @@ def test_material():
         SemiAffineFiberMaterial(900, 1e-31, 0.0075, None),
         LinearMaterial(900),
     ]
+    derivative = FinDiff(0, 0.0001)
 
     gamma = np.arange(0.005, 0.3, 0.0001)
     gamma2 = np.arange(-0.5, 0.3, 0.0001)
@@ -31,8 +32,8 @@ def test_material():
         s = material.stiffness(gamma)
         f = material.force(gamma)
 
-        e_prime = derivative(material.energy, gamma, dx=0.0001)
-        f_prime = derivative(material.force, gamma, dx=0.0001)
+        e_prime = derivative(material.energy(gamma))
+        f_prime = derivative(material.force(gamma))
 
         np.testing.assert_almost_equal(np.log(f), np.log(e_prime), decimal=3)
         np.testing.assert_almost_equal(np.log(s), np.log(f_prime), decimal=3)
