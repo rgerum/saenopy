@@ -63,11 +63,11 @@ class MainWindow(QtWidgets.QWidget):
                         layout.addStretch()
                     with QtShortCuts.QHBoxLayout() as layout2:
                         layout2.addStretch()
-                        InfoBox("Solver", lambda: self.setTab(1)).addToLayout()
+                        InfoBox("Solver", lambda: self.setTab(2)).addToLayout()
                         layout2.addStretch()
-                        InfoBox("Spheroid", lambda: self.setTab(2)).addToLayout()
+                        InfoBox("Spheroid", lambda: self.setTab(3)).addToLayout()
                         layout2.addStretch()
-                        InfoBox("Orientation", lambda: self.setTab(3)).addToLayout()
+                        InfoBox("Orientation", lambda: self.setTab(4)).addToLayout()
                         layout2.addStretch()
                     layout.addStretch()
                 with self.tabs.createTab("Material Fit") as self.layout_code:
