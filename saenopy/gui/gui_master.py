@@ -12,6 +12,7 @@ from saenopy.gui.solver.gui_solver import MainWindowSolver as SolverMain
 from saenopy.gui.spheroid.gui_deformation_spheroid import MainWindow as SpheroidMain
 from saenopy.gui.orientation.gui_orientation import MainWindow as OrientationMain
 from saenopy.gui.code.gui_code import MainWindowCode
+from saenopy.gui.material_fit.gui_fit import MainWindowFit
 from saenopy.gui.common.resources import resource_path, resource_icon
 
 
@@ -69,6 +70,10 @@ class MainWindow(QtWidgets.QWidget):
                         InfoBox("Orientation", lambda: self.setTab(3)).addToLayout()
                         layout2.addStretch()
                     layout.addStretch()
+                with self.tabs.createTab("Material Fit") as self.layout_code:
+                    QtShortCuts.current_layout.setContentsMargins(0, 0, 0, 0)
+                    self.fitter = MainWindowFit().addToLayout()
+
                 with self.tabs.createTab("Solver") as self.layout_solver:
                     QtShortCuts.current_layout.setContentsMargins(0, 0, 0, 0)
 
@@ -93,15 +98,15 @@ class MainWindow(QtWidgets.QWidget):
         if self.first_tab_change is False:
             self.settings.setValue("master_tab", value)
 
-        if value == 1 and self.solver is None:
+        if value == 2 and self.solver is None:
             self.solver = SolverMain().addToLayout(self.layout_solver)
             self.setMinimumWidth(1600)
             self.setMinimumHeight(900)
-        if value == 2 and self.spheroid is None:  # pragma: no cover
+        if value == 3 and self.spheroid is None:  # pragma: no cover
             self.spheroid = SpheroidMain().addToLayout(self.layout_spheroid)
             self.setMinimumWidth(1600)
             self.setMinimumHeight(900)
-        if value == 3 and self.orientation is None:  # pragma: no cover
+        if value == 4 and self.orientation is None:  # pragma: no cover
             self.orientation = OrientationMain().addToLayout(self.layout_orientation)
             self.setMinimumWidth(1600)
             self.setMinimumHeight(900)
