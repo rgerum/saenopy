@@ -1311,8 +1311,15 @@ class BatchEvaluate(QtWidgets.QWidget):
                         cbar_um_scale = float(self.cbar_um_scale.value())
                     except:
                         cbar_um_scale = None    
+                    try:
+                        r_max = float(self.x1.value())
+                    except:
+                        r_max = None    
+                    try:
+                        r_min = float(self.x0.value())
+                    except:
+                        r_min = None  
                         
-
                     if self.deformation_data.value() is True:
                         jf.piv.compute_displacement_series(str(folder),
                                                        str(file),
@@ -1353,7 +1360,7 @@ class BatchEvaluate(QtWidgets.QWidget):
                         jf.force.reconstruct(str(data["output"]),  # PIV output folder
                                              str(self.lookup_table.value()),  # lookup table
                                              self.pixel_size.value(),  # pixel size (µm)
-                                             None, r_min=self.x0.value(), r_max=self.x1.value())
+                                             None, r_min=r_min, r_max=r_max)
                 except Exception as err:
                     import traceback
                     traceback.print_exc()
