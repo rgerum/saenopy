@@ -82,7 +82,7 @@ class PathChanger:
             return Path(new)
         return new
 
-    def stack_change(self, stack):
+    def stack_change(self, stack: "Stack"):
         for index in range(len(stack.image_filenames)):
             for index2 in range(len(stack.image_filenames[index])):
                 stack.image_filenames[index][index2] = self.change_path(stack.image_filenames[index][index2])

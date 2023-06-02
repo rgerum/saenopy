@@ -53,9 +53,59 @@ class Stack(Saveable):
             else:
                 self.image_filenames, self.channels = template_to_array(template, crop)
 
+    def paths_relative(self, parent):
+        self.parent = parent
+
+        def normalize_path(template, output):
+            template = str(Path(template).absolute())
+            output = str(Path(output).absolute())
+            # relative and optionally go up to two folders up
+            try:
+                template = Path(template).relative_to(output)
+            except ValueError:
+                try:
+                    template = Path("..") / Path(template).relative_to(Path(output).parent)
+                except ValueError:
+                    try:
+                        template = Path("../..") / Path(template).relative_to(Path(output).parent.parent)
+                    except ValueError:
+                        pass
+            return str(template)
+
+        def process(image):
+            if isinstance(image, list):
+                return [process(i) for i in image]
+            return normalize_path(image, Path(self.parent.output).parent)
+
+        self.template = process(self.template)
+        #self.parent.template = process(self.parent.template)
+        print("template", self.template)
+        if self.image_filenames is not None:
+            self.image_filenames = process(self.image_filenames)
+        else:
+            self.leica_filename = process(self.leica_filename)
+        print(self.image_filenames)
+
+    def paths_absolute(self):
+        def normalize_path(template, output):
+            if not Path(template).is_absolute():
+                return str(Path(output).absolute() / template)
+            return str(Path(template).absolute())
+
+        def process(image):
+            if isinstance(image, list):
+                return [process(i) for i in image]
+            return normalize_path(image, Path(self.parent.output).parent)
+
+        self.template = process(self.template)
+        if self.image_filenames is not None:
+            self.image_filenames = process(self.image_filenames)
+        else:
+            self.leica_filename = process(self.leica_filename)
+
     def pack_files(self):
         images = np.array(self.image_filenames)[:, :]
-        images = np.asarray(load_image_files_to_nparray(images, self.crop)).T
+        images = np.asarray(load_image_files_to_nparray(images, self.crop, self.parent)).T
 
         self.packed_files = images
 
@@ -71,7 +121,7 @@ class Stack(Saveable):
             return (self.leica_file.dims.y, self.leica_file.dims.x, self.leica_file.dims.z, 1)
         if self._shape is None:
             filename = self.image_filenames[0][0]
-            if not Path(filename).is_absolute():
+            if not Path(filename).is_absolute() and self.parent is not None:
                 filename = Path(self.parent.output).parent / filename
             im = read_tiff(filename)
             if self.crop is not None and "x" in self.crop:
@@ -82,7 +132,7 @@ class Stack(Saveable):
         return self._shape
 
     def get_image(self, z, channel):
-        return imageio.imread(self.image_filenames[z][channel])
+        return self[:, :, :, z, channel].squeeze()
 
     def __getitem__(self, index) -> np.ndarray:
         """ axes are y, x, rgb, z, c """
@@ -148,8 +198,8 @@ def template_to_array(filename, crop):
 def load_image_files_to_nparray(image_filenames, crop=None, parent=None):
     if isinstance(image_filenames, str):
         # make relative paths relative to the .saenopy file
-        if not Path(image_filenames).is_absolute():
-            image_filenames = str(Path(parent.output).parent / image_filenames)
+        if not Path(image_filenames).is_absolute() and parent is not None:
+            image_filenames = str(Path(parent.output).absolute().parent / image_filenames)
         im = read_tiff(image_filenames)
         if len(im.shape) == 2:
             im = im[:, :, None]

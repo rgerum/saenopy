@@ -306,9 +306,9 @@ def test_path_editor(monkeypatch, random_path, catch_popup_error, use_time):
 
     """ select new paths """
     def path_editor_exec(self: PathEditor):
-        self.input_folder.setValue("tmp_path_editor/run-2/Pos004_S001_z{z}_t000_ch00.tif")
+        self.input_folder.setValue("../run-2/Pos004_S001_z{z}_t000_ch00.tif")
         if not use_time:
-            self.input_folder2.setValue("tmp_path_editor/run-2-reference/Pos004_S001_z{z}_ch00.tif")
+            self.input_folder2.setValue("../run-2-reference/Pos004_S001_z{z}_ch00.tif")
         self.input_save.setValue(True)
         self.input_pack.setValue(True)
         self.accept()

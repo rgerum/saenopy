@@ -105,6 +105,11 @@ def process_line(filename, output_path):
     return results
 
 
+def normalize_path(template, output):
+    template = str(Path(template).absolute())
+    return template
+
+
 def get_stacks(filename, output_path, voxel_size, time_delta=None, reference_stack=None,
                crop=None,
                exist_overwrite_callback=None,
@@ -131,17 +136,18 @@ def get_stacks(filename, output_path, voxel_size, time_delta=None, reference_sta
                 if r1["dimensions"]["c"] != r2["dimensions"]["c"]:
                     raise ValueError("the active stack and the reference stack also need the same number of channels")
 
+            output = r1["output"]
             if "t" in r1["dimensions"]:
                 stacks = []
                 times = r1["times"]
                 if (crop is not None) and ("t" in crop):
                     times = times[slice(*crop["t"])]
                 for t in times:
-                    stacks.append(Stack(r1["filename"].replace("{t}", t), voxel_size, crop=crop))
+                    stacks.append(Stack(normalize_path(r1["filename"].replace("{t}", t), output),
+                                        voxel_size, crop=crop))
             else:
-                stacks = [Stack(r1["filename"], voxel_size, crop=crop)]
+                stacks = [Stack(normalize_path(r1["filename"], output), voxel_size, crop=crop)]
 
-            output = r1["output"]
             if output.exists():
                 if exist_overwrite_callback is not None:
                     mode = exist_overwrite_callback(output)
@@ -162,13 +168,14 @@ def get_stacks(filename, output_path, voxel_size, time_delta=None, reference_sta
                 output=output,
                 template=r1["filename"],
                 stack=stacks,
-                stack_reference=Stack(r2["filename"], voxel_size, crop=crop),
+                stack_reference=Stack(normalize_path(r2["filename"], output), voxel_size, crop=crop),
                 time_delta=time_delta,
             )
             data.save()
             results.append(data)
     else:
         for r1 in results1:
+            output = r1["output"]
             if "t" in r1["dimensions"]:
                 stacks = []
                 times = r1["times"]
@@ -176,13 +183,12 @@ def get_stacks(filename, output_path, voxel_size, time_delta=None, reference_sta
                     times = times[slice(*crop["t"])]
                 for t in times:
                     if r1["filename"].endswith(".lif"):
-                        stacks.append(Stack(r1["filename"].replace(".lif", f"{{t:{t}}}.lif"), voxel_size, crop=crop))
+                        stacks.append(Stack(normalize_path(r1["filename"].replace(".lif", f"{{t:{t}}}.lif"), output), voxel_size, crop=crop))
                     else:
-                        stacks.append(Stack(r1["filename"].replace("{t}", t), voxel_size, crop=crop))
+                        stacks.append(Stack(normalize_path(r1["filename"].replace("{t}", t), output), voxel_size, crop=crop))
             else:
-                stacks = [Stack(r1["filename"], voxel_size, crop=crop)]
+                stacks = [Stack(normalize_path(r1["filename"], output), voxel_size, crop=crop)]
 
-            output = r1["output"]
             if output.exists():
                 if exist_overwrite_callback is not None:
                     mode = exist_overwrite_callback(output)
@@ -220,6 +226,28 @@ def common_start(values):
                 return start
             start = start[:-1]
 
+
+def make_path_relative(template, output):
+    template = str(Path(template).absolute())
+    output = str(Path(output).absolute())
+    # relative and optionally go up to two folders up
+    try:
+        template = Path(template).relative_to(output)
+    except ValueError:
+        try:
+            template = Path("..") / Path(template).relative_to(Path(output).parent)
+        except ValueError:
+            try:
+                template = Path("../..") / Path(template).relative_to(Path(output).parent.parent)
+            except ValueError:
+                pass
+    return str(template)
+
+
+def make_path_absolute(template, output):
+    if not Path(template).is_absolute():
+        return str(Path(output).absolute() / template)
+    return str(Path(template).absolute())
 
 class Result(Saveable):
     __save_parameters__ = ['stacks', 'stack_reference', 'template',
@@ -383,8 +411,8 @@ class Result(Saveable):
             data_dict["___save_version__"] = "1.3"
         return super().from_dict(data_dict)
 
-    def __init__(self, output=None, template=None, stack=None, time_delta=None, **kwargs):
-        self.output = str(output)
+    def __init__(self, output="", template=None, stack=None, time_delta=None, **kwargs):
+        self.output = str(Path(output).absolute())
 
         self.stacks = stack
         if stack is None:
@@ -405,9 +433,11 @@ class Result(Saveable):
 
         # add a reference to this instance to the stacks, so they know the path
         for stack in self.stacks:
-            stack.parent = self
+            stack.paths_relative(self)
         if self.stack_reference is not None:
-            self.stack_reference.parent = self
+            self.stack_reference.paths_relative(self)
+        self.template = make_path_relative(self.template, Path(self.output).parent)
+
 
         # if demo move parts to simulate empty result
         if os.environ.get("DEMO") == "true":  # pragma: no cover
@@ -424,7 +454,18 @@ class Result(Saveable):
 
     def save(self, filename: str = None, file_format=".saenopy"):
         if filename is not None:
+            for stack in self.stacks:
+                stack.paths_absolute()
+            if self.stack_reference is not None:
+                self.stack_reference.paths_absolute()
+            self.template = make_path_absolute(self.template, Path(self.output).parent)
+
             self.output = filename
+            for stack in self.stacks:
+                stack.paths_relative(self)
+            if self.stack_reference is not None:
+                self.stack_reference.paths_relative(self)
+            self.template = make_path_relative(self.template, Path(self.output).parent)
         Path(self.output).parent.mkdir(exist_ok=True, parents=True)
         super().save(self.output, file_format=file_format)
 
