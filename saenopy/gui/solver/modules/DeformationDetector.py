@@ -174,11 +174,11 @@ class DeformationDetector(PipelineModule):
         for i in range(count):
             p = ProcessSimple(getDeformation, (i, result, piv_parameters), {}, self.processing_progress, use_thread=self.use_thread)
             p.start()
-            result = p.join()
-            if isinstance(result, Exception):
-                raise result
+            return_value = p.join()
+            if isinstance(return_value, Exception):
+                raise return_value
             else:
-                result.mesh_piv[i] = result
+                result.mesh_piv[i] = return_value
 
         result.solvers = None
 
