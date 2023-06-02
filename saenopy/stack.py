@@ -159,7 +159,7 @@ def load_image_files_to_nparray(image_filenames, crop=None, parent=None):
             im = im[slice(*crop["y"])]
         return im
     else:
-        return [load_image_files_to_nparray(i, crop) for i in image_filenames]
+        return [load_image_files_to_nparray(i, crop, parent) for i in image_filenames]
 
 
 def read_tiff(image_filenames):
