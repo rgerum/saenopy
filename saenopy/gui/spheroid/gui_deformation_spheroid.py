@@ -237,7 +237,7 @@ class CheckAbleGroup(QtWidgets.QWidget, QtShortCuts.EnterableLayout):
         p.drawRect(0, top, 7, 0)
         p.drawRect(self.width()-1, top, 0, self.height())
         super().paintEvent(ev)
-
+                    
     def toggle(self):
         self.setValue(not self.value())
         self.changedActive()
@@ -753,25 +753,28 @@ class QSlider(QtWidgets.QSlider):
 
     def paintEvent(self, ev: QtGui.QPaintEvent) -> None:
         if self.maximum()-self.minimum():
-            if self.min is not None:
+           
+            if (self.min is not None) and (self.min != "None"):
                 self.drawRect(0, self.min, "gray", 0.2)
-            if self.max is not None:
+            if (self.max is not None) and (self.max != "None"):
                 value = self.max
                 if self.max < 0:
                     value = self.maximum()+self.max
                 self.drawRect(value, self.maximum(), "gray", 0.2)
-            if self.evaluated is not None:
+            if (self.evaluated is not None) and (self.min != "None"):
                 self.drawRect(self.min if self.min is not None else 0, self.evaluated, "lightgreen", 0.3)
         super().paintEvent(ev)
 
     def drawRect(self, start, end, color, border):
         p = QtGui.QPainter(self)
         p.setPen(QtGui.QPen(QtGui.QColor("transparent")))
-        p.setBrush(QtGui.QBrush(QtGui.QColor(color)))
-        s = self.width() * (start - self.minimum()) / (self.maximum() - self.minimum() + 1e-5)
-        e = self.width() * (end - self.minimum()) / (self.maximum() - self.minimum() + 1e-5)
-        p.drawRect(int(s), int(self.height()*border),
-                   int(e-s), int(self.height()*(1-border*2)))
+        p.setBrush(QtGui.QBrush(QtGui.QColor(color)))  
+            
+        if (self.min is not None) and (end != "None") and (start != "None"):
+            s = self.width() * (start - self.minimum()) / (self.maximum() - self.minimum() + 1e-5)
+            e = self.width() * (end - self.minimum()) / (self.maximum() - self.minimum() + 1e-5)
+            p.drawRect(int(s), int(self.height()*border),
+                       int(e-s), int(self.height()*(1-border*2)))
 
     def setEvaluated(self, value):
         self.evaluated = value
@@ -1294,8 +1297,21 @@ class BatchEvaluate(QtWidgets.QWidget):
 
                     continous_segmentation = self.continous_segmentation.value()
                     thres_segmentation = data["thres_segmentation"] or self.thres_segmentation.value()
-                    n_min = self.n_min.value()
-                    n_max = self.n_max.value()
+                    
+                    # set proper None values if no number set
+                    try:
+                        n_min = int(self.n_min.value())
+                    except:
+                        n_min = None
+                    try:
+                        n_max = int(self.n_max.value())
+                    except:
+                        n_max = None
+                    try:
+                        cbar_um_scale = float(self.cbar_um_scale.value())
+                    except:
+                        cbar_um_scale = None    
+                        
 
                     if self.deformation_data.value() is True:
                         jf.piv.compute_displacement_series(str(folder),
@@ -1307,8 +1323,8 @@ class BatchEvaluate(QtWidgets.QWidget):
                                                        #plot=self.plot.value(),
                                                        draw_mask=False,
                                                        color_norm=self.color_norm.value(),
-                                                       cbar_um_scale=(self.cbar_um_scale.value()),
-                                                       quiver_scale=(self.quiver_scale.value()),
+                                                       cbar_um_scale= cbar_um_scale ,
+                                                       quiver_scale=self.quiver_scale.value(),
                                                        dpi=(self.dpi.value()),
                                                        continous_segmentation=continous_segmentation,
                                                        thres_segmentation=thres_segmentation,
