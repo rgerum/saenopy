@@ -721,7 +721,6 @@ def test_analysis(monkeypatch, catch_popup_error, random_path):
     app, window, solver, batch_evaluate = init_app()
     solver.tabs.setCurrentIndex(1)
 
-    name = "ClassicSingleCellTFM"
     from saenopy.examples import get_examples, download_files
     import appdirs
     def load_example(name, target_folder=None, progress_callback=None, evaluated=False):
@@ -737,7 +736,8 @@ def test_analysis(monkeypatch, catch_popup_error, random_path):
                 download_files(example["url_evaluated"], evaluated_folder, progress_callback=progress_callback)
             return [evaluated_folder / file for file in example["url_evaluated_file"]]
 
-    files = load_example(name, target_folder=None, progress_callback=None, evaluated=True)
+    files = load_example("ClassicSingleCellTFM", target_folder=None, progress_callback=None, evaluated=True)
+    files2 = load_example("DynamicalSingleCellTFM", target_folder=None, progress_callback=None, evaluated=True)
     print(files)
 
     from saenopy.gui.solver.analyze.plot_window import AddFilesDialog, PlottingWindow, ExportDialog
@@ -769,7 +769,7 @@ def test_analysis(monkeypatch, catch_popup_error, random_path):
     monkeypatch.setattr(AddFilesDialog, "exec", add_file(str(files[2])))
     plotting_window.addFiles()
 
-    monkeypatch.setattr(QtWidgets.QFileDialog, "getSaveFileName", lambda *args: "save.json")
+    monkeypatch.setattr(QtWidgets.QFileDialog, "getSaveFileName", lambda *args: "save")
     plotting_window.save()
 
     monkeypatch.setattr(QtWidgets.QFileDialog, "getOpenFileName", lambda *args: "save.json")
@@ -810,6 +810,22 @@ def test_analysis(monkeypatch, catch_popup_error, random_path):
 
     monkeypatch.setattr(ExportDialog, "exec", add_export("export.py", 0, 0, 0))
     plotting_window.export()
+
+    monkeypatch.setattr(AddFilesDialog, "exec", add_file(str(files2[0])))
+    plotting_window.addFiles()
+
+    for i in range(2):
+        plotting_window.list.setCurrentRow(i)
+        for i in range(2):
+            plotting_window.list2.setCurrentRow(i)
+            for button in [plotting_window.button_run, plotting_window.button_run2, plotting_window.button_run3]:
+                button.clicked.emit()
+                for prop in properties:
+                    plotting_window.type.setValue(prop, send_signal=True)
+
+                    monkeypatch.setattr(ExportDialog, "exec", add_export("export", 0, 0, 0))
+                    plotting_window.export()
+
 
     #window.show()
     #app.exec_()

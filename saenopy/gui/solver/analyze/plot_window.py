@@ -248,14 +248,6 @@ class PlottingWindow(QtWidgets.QWidget):
 
         self.add_files(files)
 
-    def getPandasData(self, file):
-        res = pd.read_excel(file)
-        res["filename"] = file
-        res["index"] = res["Unnamed: 0"]
-        del res["Unnamed: 0"]
-        res["group"] = file
-        return res
-
     def listSelected(self):
         try:
             data = self.data_folders[self.list.currentRow()]
