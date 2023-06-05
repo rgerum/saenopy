@@ -219,8 +219,8 @@ def read_tiff(image_filenames):
         if image_filenames.endswith("]"):
             image_filenames, page = re.match(r"(.*)\[(\d*)\]", image_filenames).groups()
             page = int(page)
-        tif = tifffile.TiffReader(image_filenames)
-        page = tif.pages[page]
+        with tifffile.TiffReader(image_filenames) as tif:
+            page = tif.pages[page]
         if isinstance(page, list):  # pragma: no cover
             page = page[0]
         return page.asarray()
@@ -272,10 +272,10 @@ def format_glob(pattern):
                 group["template"] = template_name + "[" + str(page) + "]"
             file_list.append(group)
         except ValueError:
-            tif = tifffile.TiffReader(file)
-            group["template"] = template_name + "[" + str(page) + "]"
-            for i in range(len(tif.pages)):
-                group["filename"] = file+f"[{i}]"
-                group[page] = i
-                file_list.append(group.copy())
+            with tifffile.TiffReader(file) as tif:
+                group["template"] = template_name + "[" + str(page) + "]"
+                for i in range(len(tif.pages)):
+                    group["filename"] = file+f"[{i}]"
+                    group[page] = i
+                    file_list.append(group.copy())
     return pd.DataFrame(file_list), output_base

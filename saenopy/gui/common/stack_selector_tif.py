@@ -156,15 +156,16 @@ class StackSelectorTif(QtWidgets.QWidget):
         for file in filenames:
             prop = filename_to_prop_dict(regexpr, file)
             if file.suffix in [".tif", ".tiff"]:
-                tif = tifffile.TiffReader(file)
-                if len(tif.pages) > 1:
-                    selected_prop["tiff pages"] = 0
+                with tifffile.TiffReader(file) as tif:
+                    if len(tif.pages) > 1:
+                        selected_prop["tiff pages"] = 0
             prop["filename"] = file
             if file.suffix in [".tif", ".tiff"]:
-                for page in range(0, len(tif.pages)):
-                    prop["tiff pages"] = page
-                    prop["filename"] = str(file)+f"[{page}]"
-                    properties.append(prop.copy())
+                with tifffile.TiffReader(file) as tif:
+                    for page in range(0, len(tif.pages)):
+                        prop["tiff pages"] = page
+                        prop["filename"] = str(file)+f"[{page}]"
+                        properties.append(prop.copy())
             else:
                 properties.append(prop.copy())
         df = pd.DataFrame(properties)

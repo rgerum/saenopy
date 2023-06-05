@@ -83,8 +83,8 @@ def process_line(filename, output_path):
             #if not Path(filename).exists():
             #    raise FileNotFoundError(f"Could not find file {filename}")
             if Path(filename).suffix in [".tif", ".tiff"]:
-                f = tifffile.TiffFile(filename)
-                file_shape = f.pages[0].shape
+                with tifffile.TiffFile(filename) as f:
+                    file_shape = f.pages[0].shape
             else:
                 im = Image.open(filename)
                 file_shape = (im.height, im.width)
