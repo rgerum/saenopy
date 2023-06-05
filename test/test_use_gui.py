@@ -740,17 +740,23 @@ def test_analysis(monkeypatch, catch_popup_error, random_path):
     files = load_example(name, target_folder=None, progress_callback=None, evaluated=True)
     print(files)
 
-    from saenopy.gui.solver.analyze.plot_window import AddFilesDialog, PlottingWindow
+    from saenopy.gui.solver.analyze.plot_window import AddFilesDialog, PlottingWindow, ExportDialog
     plotting_window: PlottingWindow = solver.plotting_window
 
-    def add_file(file):
+    def add_file(file, cancel=False):
         def handle_load_existing(self: AddFilesDialog):
            # select the existing file tab
            self.inputText.setValue(file)
            # click "ok"
+           if cancel is True:
+               self.reject()
+               return False
            self.accept()
            return True
         return handle_load_existing
+
+    monkeypatch.setattr(AddFilesDialog, "exec", add_file(str(files[0]), cancel=True))
+    plotting_window.addFiles()
 
     monkeypatch.setattr(AddFilesDialog, "exec", add_file(str(files[0])))
     plotting_window.addFiles()
@@ -772,6 +778,38 @@ def test_analysis(monkeypatch, catch_popup_error, random_path):
     properties = ["strain_energy", "contractility", "polarity", "99_percentile_deformation", "99_percentile_force"]
     for prop in properties:
         plotting_window.type.setValue(prop, send_signal=True)
+
+    # export
+    def add_export(file, strip_data, include_df, cancel):
+        def handle_load_existing(self: ExportDialog):
+           # select the existing file tab
+           self.inputText.setValue(file)
+           self.strip_data.setValue(strip_data)
+           self.include_df.setValue(include_df)
+           # click "ok"
+           if cancel is True:
+               self.reject()
+               return False
+           else:
+               self.accept()
+               return True
+        return handle_load_existing
+
+    # cancled
+    monkeypatch.setattr(ExportDialog, "exec", add_export("export.py", 1, 1, cancel=True))
+    plotting_window.export()
+
+    monkeypatch.setattr(ExportDialog, "exec", add_export("export.py", 1, 1, 0))
+    plotting_window.export()
+
+    monkeypatch.setattr(ExportDialog, "exec", add_export("export.py", 1, 0, 0))
+    plotting_window.export()
+
+    monkeypatch.setattr(ExportDialog, "exec", add_export("export.py", 0, 1, 0))
+    plotting_window.export()
+
+    monkeypatch.setattr(ExportDialog, "exec", add_export("export.py", 0, 0, 0))
+    plotting_window.export()
 
     #window.show()
     #app.exec_()

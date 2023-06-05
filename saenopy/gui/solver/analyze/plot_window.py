@@ -35,6 +35,24 @@ class AddFilesDialog(QtWidgets.QDialog):
                 self.button_addList = QtShortCuts.QPushButton(None, "ok", self.accept)
 
 
+class ExportDialog(QtWidgets.QDialog):
+    def __init__(self, parent, settings):
+        super().__init__(parent)
+        self.setWindowTitle("Export Plot")
+        with QtShortCuts.QVBoxLayout(self) as layout:
+            self.label = QtWidgets.QLabel("Select a path to export the plot script with the data.")
+            layout.addWidget(self.label)
+            self.inputText = QtShortCuts.QInputFilename(None, None, file_type="Python Script (*.py)", settings=settings,
+                                                        settings_key="batch_eval/export_plot", existing=False)
+            self.strip_data = QtShortCuts.QInputBool(None, "export only essential data columns", True, settings=settings, settings_key="batch_eval/export_complete_df")
+            self.include_df = QtShortCuts.QInputBool(None, "include dataframe in script", True, settings=settings, settings_key="batch_eval/export_include_df")
+            with QtShortCuts.QHBoxLayout() as layout3:
+                # self.button_clear = QtShortCuts.QPushButton(None, "clear list", self.clear_files)
+                layout3.addStretch()
+                self.button_addList = QtShortCuts.QPushButton(None, "cancel", self.reject)
+                self.button_addList = QtShortCuts.QPushButton(None, "ok", self.accept)
+
+
 class PlottingWindow(QtWidgets.QWidget):
     progress_signal = QtCore.Signal(int, int, int, int)
     finished_signal = QtCore.Signal()
@@ -450,25 +468,7 @@ class PlottingWindow(QtWidgets.QWidget):
         self.export_data = [code, code_data]
 
     def export(self):
-        settings = self.settings
-        class AddFilesDialog(QtWidgets.QDialog):
-            def __init__(self, parent):
-                super().__init__(parent)
-                self.setWindowTitle("Export Plot")
-                with QtShortCuts.QVBoxLayout(self) as layout:
-                    self.label = QtWidgets.QLabel("Select a path to export the plot script with the data.")
-                    layout.addWidget(self.label)
-                    self.inputText = QtShortCuts.QInputFilename(None, None, file_type="Python Script (*.py)", settings=settings,
-                                                                settings_key="batch_eval/export_plot", existing=False)
-                    self.strip_data = QtShortCuts.QInputBool(None, "export only essential data columns", True, settings=settings, settings_key="batch_eval/export_complete_df")
-                    self.include_df = QtShortCuts.QInputBool(None, "include dataframe in script", True, settings=settings, settings_key="batch_eval/export_include_df")
-                    with QtShortCuts.QHBoxLayout() as layout3:
-                        # self.button_clear = QtShortCuts.QPushButton(None, "clear list", self.clear_files)
-                        layout3.addStretch()
-                        self.button_addList = QtShortCuts.QPushButton(None, "cancel", self.reject)
-                        self.button_addList = QtShortCuts.QPushButton(None, "ok", self.accept)
-
-        dialog = AddFilesDialog(self)
+        dialog = ExportDialog(self, self.settings)
         if not dialog.exec():
             return
 
