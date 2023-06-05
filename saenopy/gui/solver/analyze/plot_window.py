@@ -14,6 +14,27 @@ from saenopy.gui.common import QtShortCuts
 from saenopy.gui.common.gui_classes import ListWidget, MatplotlibWidget, execute
 
 
+class AddFilesDialog(QtWidgets.QDialog):
+    def __init__(self, parent, settings):
+        super().__init__(parent)
+        self.setWindowTitle("Add Files")
+        with QtShortCuts.QVBoxLayout(self) as layout:
+            self.label = QtWidgets.QLabel(
+                "Select a path as an input wildcard. Use * to specify a placeholder. All paths that match the wildcard will be added.")
+            layout.addWidget(self.label)
+
+            def checker(filename):
+                return filename + "/**/*.saenopy"
+
+            self.inputText = QtShortCuts.QInputFolder(None, None, settings=settings, filename_checker=checker,
+                                                      settings_key="batch_eval/analyse_force_wildcard", allow_edit=True)
+            with QtShortCuts.QHBoxLayout() as layout3:
+                # self.button_clear = QtShortCuts.QPushButton(None, "clear list", self.clear_files)
+                layout3.addStretch()
+                self.button_addList = QtShortCuts.QPushButton(None, "cancel", self.reject)
+                self.button_addList = QtShortCuts.QPushButton(None, "ok", self.accept)
+
+
 class PlottingWindow(QtWidgets.QWidget):
     progress_signal = QtCore.Signal(int, int, int, int)
     finished_signal = QtCore.Signal()
@@ -200,25 +221,7 @@ class PlottingWindow(QtWidgets.QWidget):
         self.list.editItem(item)
 
     def addFiles(self):
-        settings = self.settings
-        class AddFilesDialog(QtWidgets.QDialog):
-            def __init__(self, parent):
-                super().__init__(parent)
-                self.setWindowTitle("Add Files")
-                with QtShortCuts.QVBoxLayout(self) as layout:
-                    self.label = QtWidgets.QLabel("Select a path as an input wildcard. Use * to specify a placeholder. All paths that match the wildcard will be added.")
-                    layout.addWidget(self.label)
-                    def checker(filename):
-                        return filename + "/**/*.saenopy"
-                    self.inputText = QtShortCuts.QInputFolder(None, None, settings=settings, filename_checker=checker,
-                                                                settings_key="batch_eval/analyse_force_wildcard", allow_edit=True)
-                    with QtShortCuts.QHBoxLayout() as layout3:
-                        # self.button_clear = QtShortCuts.QPushButton(None, "clear list", self.clear_files)
-                        layout3.addStretch()
-                        self.button_addList = QtShortCuts.QPushButton(None, "cancel", self.reject)
-                        self.button_addList = QtShortCuts.QPushButton(None, "ok", self.accept)
-
-        dialog = AddFilesDialog(self)
+        dialog = AddFilesDialog(self, self.settings)
         if not dialog.exec():
             return
 

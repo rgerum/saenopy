@@ -717,6 +717,61 @@ def test_fit(monkeypatch, catch_popup_error, random_path):
     #app.exec_()
 
 
+def test_analysis(monkeypatch, catch_popup_error, random_path):
+    app, window, solver, batch_evaluate = init_app()
+    solver.tabs.setCurrentIndex(1)
+
+    name = "ClassicSingleCellTFM"
+    from saenopy.examples import get_examples, download_files
+    import appdirs
+    def load_example(name, target_folder=None, progress_callback=None, evaluated=False):
+        if target_folder is None:
+            target_folder = appdirs.user_data_dir("saenopy", "rgerum")
+        example = get_examples()[name]
+        url = example["url"]
+        #download_files(url, target_folder, progress_callback=progress_callback)
+
+        if evaluated:
+            evaluated_folder = Path(target_folder) / Path(Path(url).name).stem / "example_output"
+            if not (evaluated_folder / example["url_evaluated_file"][0]).exists():
+                download_files(example["url_evaluated"], evaluated_folder, progress_callback=progress_callback)
+            return [evaluated_folder / file for file in example["url_evaluated_file"]]
+
+    files = load_example(name, target_folder=None, progress_callback=None, evaluated=True)
+    print(files)
+
+    from saenopy.gui.solver.analyze.plot_window import AddFilesDialog, PlottingWindow
+    plotting_window: PlottingWindow = solver.plotting_window
+
+    def add_file(file):
+        def handle_load_existing(self: AddFilesDialog):
+           # select the existing file tab
+           self.inputText.setValue(file)
+           # click "ok"
+           self.accept()
+           return True
+        return handle_load_existing
+
+    monkeypatch.setattr(AddFilesDialog, "exec", add_file(str(files[0])))
+    plotting_window.addFiles()
+
+    monkeypatch.setattr(AddFilesDialog, "exec", add_file(str(files[1])))
+    plotting_window.addFiles()
+
+    plotting_window.addGroup()
+
+    monkeypatch.setattr(AddFilesDialog, "exec", add_file(str(files[2])))
+    plotting_window.addFiles()
+
+    monkeypatch.setattr(QtWidgets.QFileDialog, "getSaveFileName", lambda *args: "save.json")
+    plotting_window.save()
+
+    monkeypatch.setattr(QtWidgets.QFileDialog, "getOpenFileName", lambda *args: "save.json")
+    plotting_window.load()
+
+    window.show()
+    app.exec_()
+
 if __name__ == "__main__":
     class monk():
         def setattr(self, obj, name, value):
