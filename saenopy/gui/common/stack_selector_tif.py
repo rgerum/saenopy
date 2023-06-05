@@ -297,7 +297,7 @@ class StackSelectorTif(QtWidgets.QWidget):
                 if str(self.d.iloc[i].filename).endswith(".tif"):
                     im = tifffile.imread(str(self.d.iloc[i].filename))
                 else:
-                    im = imageio.imread(str(self.d.iloc[i].filename))
+                    im = imageio.v2.imread(str(self.d.iloc[i].filename))
                 if len(im.shape) == 3:
                     im = im[:, :, 0]
                 self.stack[:, :, i] = im

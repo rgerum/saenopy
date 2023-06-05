@@ -491,14 +491,14 @@ class BatchEvaluate(QtWidgets.QWidget):
                 else:
                     self.individual_data.setValue(True)
             self.last_cell = self.list.currentRow()
-            im_cell = imageio.imread(data[1])
+            im_cell = imageio.v2.imread(data[1])
             from CompactionAnalyzer.CompactionFunctions import segment_cell, normalize
             im_cell = normalize(im_cell, 1, 99)
 
             self.pixmap.setPixmap(get_pixmap(im_cell))
             self.label.setExtend(im_cell.shape[1], im_cell.shape[0])
 
-            im_fiber = imageio.imread(data[0])
+            im_fiber = imageio.v2.imread(data[0])
             im_fiber = normalize(im_fiber, 1, 99)
             self.pixmap2.setPixmap(get_pixmap(im_fiber))
             self.label2.setExtend(im_fiber.shape[1], im_fiber.shape[0])
@@ -898,7 +898,7 @@ class PlottingWindow(QtWidgets.QWidget):
         self.button_export.setDisabled(True)
 
         data = self.list2.data[self.list2.currentRow()][2]
-        im = imageio.imread(data["image"])
+        im = imageio.v2.imread(data["image"])
 
         plot_color = self.list.data[self.list.currentRow()][3]
 

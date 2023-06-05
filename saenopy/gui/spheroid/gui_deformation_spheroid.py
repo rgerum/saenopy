@@ -1148,11 +1148,11 @@ class BatchEvaluate(QtWidgets.QWidget):
             i, im, im0 = self.last_image
             #print("cached")
         else:
-            im = imageio.imread(self.images[i]).astype(float)
+            im = imageio.v2.imread(self.images[i]).astype(float)
             if self.continous_segmentation.value() is True:
                 im0 = im
             else:
-                im0 = imageio.imread(self.images[0]).astype(float)
+                im0 = imageio.v2.imread(self.images[0]).astype(float)
             self.last_image = [i, im, im0]
 
         if self.last_seg is not None and \
@@ -1192,8 +1192,8 @@ class BatchEvaluate(QtWidgets.QWidget):
         #print("loadtime", time.time()-t)
 
         try:
-            #im = imageio.imread(buf)
-            im = imageio.imread(str(data["output"]) + '/plot' + str(i).zfill(6) + '.png')
+            #im = imageio.v2.imread(buf)
+            im = imageio.v2.imread(str(data["output"]) + '/plot' + str(i).zfill(6) + '.png')
         except FileNotFoundError:
             im = np.zeros(im.shape)
         self.pixmap2.setPixmap(QtGui.QPixmap(array2qimage(im)))
@@ -1343,7 +1343,7 @@ class BatchEvaluate(QtWidgets.QWidget):
                     elif self.plot_data.value() is True:
                         images = data["images"]
                         for ii in range(0, len(images)):
-                            im = imageio.imread(images[i]).astype(float)
+                            im = imageio.v2.imread(images[i]).astype(float)
                             if ii == 0 or self.continous_segmentation.value() is True:
                                 seg0 = jf.piv.segment_spheroid(im, True, self.thres_segmentation.value())
                             if ii > 0:

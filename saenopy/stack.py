@@ -224,7 +224,7 @@ def read_tiff(image_filenames):
         if isinstance(page, list):  # pragma: no cover
             page = page[0]
         return page.asarray()
-    im = imageio.imread(image_filenames)
+    im = imageio.v2.imread(image_filenames)
     return im
 
 
