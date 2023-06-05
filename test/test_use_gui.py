@@ -769,8 +769,12 @@ def test_analysis(monkeypatch, catch_popup_error, random_path):
     monkeypatch.setattr(QtWidgets.QFileDialog, "getOpenFileName", lambda *args: "save.json")
     plotting_window.load()
 
-    window.show()
-    app.exec_()
+    properties = ["strain_energy", "contractility", "polarity", "99_percentile_deformation", "99_percentile_force"]
+    for prop in properties:
+        plotting_window.type.setValue(prop, send_signal=True)
+
+    #window.show()
+    #app.exec_()
 
 if __name__ == "__main__":
     class monk():
