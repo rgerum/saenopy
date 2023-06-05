@@ -46,7 +46,7 @@ app.setFont(font)
 def init_app():
     from saenopy.gui.gui_master import MainWindow
     window: MainWindow = MainWindow()  # gui_master.py:MainWindow
-    window.setTab(1)
+    window.setTab(2)
 
     # switch to the Solver part
     from saenopy.gui.solver.gui_solver import MainWindowSolver
