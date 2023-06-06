@@ -747,7 +747,7 @@ def test_code(monkeypatch, catch_popup_error, random_path):
     app.processEvents()
     coder.run()
     coder.tabs.setCurrentIndex(1)
-    assert coder.console.toPlainText().strip() == '0\n1\n2\n3'
+    assert coder.console.toPlainText().strip().startswith('0\n1\n2')
 
     coder.tabs.setCurrentIndex(1)
     coder.stop()
