@@ -220,9 +220,9 @@ def read_tiff(image_filenames):
             page = int(page)
         with tifffile.TiffReader(image_filenames) as tif:
             page = tif.pages[page]
-        if isinstance(page, list):  # pragma: no cover
-            page = page[0]
-        return page.asarray()
+            if isinstance(page, list):  # pragma: no cover
+                page = page[0]
+            return page.asarray()
     im = imageio.v2.imread(image_filenames)
     return im
 

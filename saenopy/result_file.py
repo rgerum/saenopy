@@ -86,8 +86,8 @@ def process_line(filename, output_path):
                 with tifffile.TiffFile(filename) as f:
                     file_shape = f.pages[0].shape
             else:
-                im = Image.open(filename)
-                file_shape = (im.height, im.width)
+                with Image.open(filename) as im:
+                    file_shape = (im.height, im.width)
             if shape is None:
                 shape = file_shape
             else:

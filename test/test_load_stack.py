@@ -172,9 +172,9 @@ def test_overwrite():
 
     for reference_stack in ["tmp/run-0-overwrite/Pos*_S001_z{z}_t000_ch00.png", None]:
         from saenopy.stack import format_glob
-        print(format_glob("tmp/run-0-overwrite/Pos*_S001_z000_t000_ch00.png[z]"))
-        print(format_glob("tmp/run-0-overwrite/Pos*_S001_z000_t000_ch00.png[1]"))
-        print(format_glob("tmp/run-{c}-overwrite*/Pos*_S001_z{z}_t000_ch00.png"))
+        format_glob("tmp/run-0-overwrite/Pos*_S001_z000_t000_ch00.png[z]")
+        format_glob("tmp/run-0-overwrite/Pos*_S001_z000_t000_ch00.png[1]")
+        format_glob("tmp/run-{c}-overwrite*/Pos*_S001_z{z}_t000_ch00.png")
 
         res = get_stacks("tmp/run-1-overwrite/Pos*_S001_z{z}_t{t}_ch00.png", "tmp2/run-1-overwrite", [1, 1, 1], crop={"t": (1, None)},
                    reference_stack=reference_stack)

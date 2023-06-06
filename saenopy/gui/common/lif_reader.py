@@ -148,46 +148,47 @@ class LifImage:
                 f"expected str, bytes, os.PathLike, or io.IOBase, "
                 f"not {type(self.filename)}"
             )
+        with image:
 
-        # self.offsets[1] is the length of the image
-        if self.offsets[1] == 0:
-            # In the case of a blank image, we can calculate the length from
-            # the metadata in the LIF. When this is read by the parser,
-            # it is set to zero initially.
-            image_len = seek_distance * self.dims.x * self.dims.y
-        else:
-            image_len = int(self.offsets[1] / seek_distance)
+            # self.offsets[1] is the length of the image
+            if self.offsets[1] == 0:
+                # In the case of a blank image, we can calculate the length from
+                # the metadata in the LIF. When this is read by the parser,
+                # it is set to zero initially.
+                image_len = seek_distance * self.dims.x * self.dims.y
+            else:
+                image_len = int(self.offsets[1] / seek_distance)
 
-        # self.offsets[0] is the offset in the file
-        image.seek(self.offsets[0] + image_len * n)
+            # self.offsets[0] is the offset in the file
+            image.seek(self.offsets[0] + image_len * n)
 
-        # Todo: Update this for 16-bit images if there is a test file
-        if self.offsets[1] == 0:
-            data = b"\00" * image_len
-        else:
-            data = image.read(image_len)
+            # Todo: Update this for 16-bit images if there is a test file
+            if self.offsets[1] == 0:
+                data = b"\00" * image_len
+            else:
+                data = image.read(image_len)
 
-        # LIF files can be either 8-bit of 16-bit.
-        # Because of how the image is read in, all of the raw
-        # data is already in 'data', we just need to tell Pillow
-        # how to set the bit depth
-        # 'L' is 8-bit, 'I;16' is 16 bit
+            # LIF files can be either 8-bit of 16-bit.
+            # Because of how the image is read in, all of the raw
+            # data is already in 'data', we just need to tell Pillow
+            # how to set the bit depth
+            # 'L' is 8-bit, 'I;16' is 16 bit
 
-        # len(data) is the number of bytes (8-bit)
-        # However, it is safer to let the lif file tell us the resolution
-        if self.bit_depth[0] == 8:
-            return Image.frombytes("L",
-                                   (self.dims_n[self.display_dims[0]],
-                                    self.dims_n[self.display_dims[1]]),
-                                   data)
-        elif self.bit_depth[0] <= 16:
-            return Image.frombytes("I;16",
-                                   (self.dims_n[self.display_dims[0]],
-                                    self.dims_n[self.display_dims[1]]),
-                                   data)
-        else:
-            raise ValueError("Unknown bit-depth, please submit a bug report"
-                             " on Github")
+            # len(data) is the number of bytes (8-bit)
+            # However, it is safer to let the lif file tell us the resolution
+            if self.bit_depth[0] == 8:
+                return Image.frombytes("L",
+                                       (self.dims_n[self.display_dims[0]],
+                                        self.dims_n[self.display_dims[1]]),
+                                       data)
+            elif self.bit_depth[0] <= 16:
+                return Image.frombytes("I;16",
+                                       (self.dims_n[self.display_dims[0]],
+                                        self.dims_n[self.display_dims[1]]),
+                                       data)
+            else:
+                raise ValueError("Unknown bit-depth, please submit a bug report"
+                                 " on Github")
 
     def get_plane(self, display_dims=None, c=0, requested_dims=None):
         """
