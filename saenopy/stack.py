@@ -79,12 +79,11 @@ class Stack(Saveable):
 
         self.template = process(self.template)
         #self.parent.template = process(self.parent.template)
-        print("template", self.template)
+
         if self.image_filenames is not None:
             self.image_filenames = process(self.image_filenames)
         else:
             self.leica_filename = process(self.leica_filename)
-        print(self.image_filenames)
 
     def paths_absolute(self):
         def normalize_path(template, output):
