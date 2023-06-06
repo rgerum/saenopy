@@ -1,10 +1,11 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 import shutil
+import time
 import uuid
 
 import pytest
-from qtpy import QtWidgets, QtGui
+from qtpy import QtWidgets, QtGui, QtCore
 import numpy as np
 from mock_dir import mock_dir, create_tif, random_path
 from pathlib import Path
@@ -713,7 +714,56 @@ def test_fit(monkeypatch, catch_popup_error, random_path):
         window.input_col1.setValue(0, send_signal=True)
         window.input_col2.setValue(1, send_signal=True)
 
-    #window.show()
+
+def test_code(monkeypatch, catch_popup_error, random_path):
+    app, window, solver, batch_evaluate = init_app()
+    window.tabs.setCurrentIndex(5)
+
+    with open("test_code.py", 'w') as fp:
+        fp.write("print(10)\na = [0,1,2]\nprint(a[0], 'a[10]<foo>')\n'''This a[10] is (a)\n<test>'''\n\"'''\""+"\n"*100)
+
+    with open("test_code2.py", 'w') as fp:
+        fp.write("import time\n\nfor i in range(10):\n    print(i)\n    time.sleep(0.1)\n")
+
+    from saenopy.gui.code.gui_code import MainWindowCode
+    coder: MainWindowCode = window.coder
+
+    monkeypatch.setattr(QtWidgets.QFileDialog, "getOpenFileName", lambda *args: "test_code.py")
+    coder.load()
+
+    #coder.run()
+    event = QtGui.QKeyEvent(QtCore.QEvent.KeyPress, QtCore.Qt.Key_F5, QtCore.Qt.NoModifier)
+    coder.keyPressEvent(event)
+
+    monkeypatch.setattr(QtWidgets.QFileDialog, "getOpenFileName", lambda *args: "test_code2.py")
+    coder.load()
+    coder.tabs.setCurrentIndex(1)
+
+    coder.run()
+    app.processEvents()
+    coder.tabs.setCurrentIndex(0)
+
+    time.sleep(0.3)
+    app.processEvents()
+    coder.run()
+    coder.tabs.setCurrentIndex(1)
+    assert coder.console.toPlainText().strip() == '0\n1\n2\n3'
+
+    coder.tabs.setCurrentIndex(1)
+    coder.stop()
+
+    time.sleep(0.7)
+
+    coder.remove_tab(1)
+    coder.editor.setPlainText("print('Hello')")
+
+    coder.show()
+
+    #time.sleep(0.5)
+    #print(coder.console.toPlainText())
+    #assert coder.console.toPlainText().strip() == "10"
+
+    window.show()
     #app.exec_()
 
 
