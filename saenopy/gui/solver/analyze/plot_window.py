@@ -318,7 +318,10 @@ class PlottingWindow(QtWidgets.QWidget):
             # iterate over the groups
             for name, data in res.groupby("group", sort=False)[mu_name]:
                 # add the bar with the mean value and the standard error as errorbar
-                plt.bar(name, data.mean(), yerr=data.sem(), error_kw=dict(capsize=5), color=color_dict[name])
+                if np.isnan(data.sem()):
+                    plt.bar(name, data.mean(), color=color_dict[name])
+                else:
+                    plt.bar(name, data.mean(), yerr=data.sem(), error_kw=dict(capsize=5), color=color_dict[name])
                 # add the number of averaged points
                 plt.text(name, data.mean() + data.sem(), f"n={data.count()}", ha="center", va="bottom")
 

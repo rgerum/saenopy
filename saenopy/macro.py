@@ -292,8 +292,9 @@ def minimize(cost_data: list, parameter_start: Sequence, method='Powell', maxfev
                     p = params(parameter_start)
                     material1 = MaterialClass(*p)
                     x, y = get_shear_rheometer_stress(gamma, material1)
-                    stretchy2 = interp1d(x, y, fill_value=np.nan, bounds_error=False)(shearx)
-                    cost = np.nansum((np.log(stretchy2) - np.log(sheary)) ** 2 * weights)
+                    stretchy2 = interp1d(x, np.clip(y, 1e-9, None), fill_value=np.nan, bounds_error=False)(shearx)
+                    valid_indices = ~np.isnan(stretchy2)
+                    cost = np.nansum((np.log(stretchy2[valid_indices]) - np.log(sheary[valid_indices])) ** 2 * weights[valid_indices])
                     return cost
 
                 def plot_me(color=color):
