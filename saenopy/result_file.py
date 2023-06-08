@@ -411,8 +411,9 @@ class Result(Saveable):
             data_dict["___save_version__"] = "1.3"
         return super().from_dict(data_dict)
 
-    def __init__(self, output="", template=None, stack=None, time_delta=None, **kwargs):
-        self.output = str(Path(output).absolute())
+    def __init__(self, output=None, template=None, stack=None, time_delta=None, **kwargs):
+        if output is not None:
+            self.output = str(Path(output).absolute())
 
         self.stacks = stack
         if stack is None:
@@ -432,11 +433,12 @@ class Result(Saveable):
         super().__init__(**kwargs)
 
         # add a reference to this instance to the stacks, so they know the path
-        for stack in self.stacks:
-            stack.paths_relative(self)
-        if self.stack_reference is not None:
-            self.stack_reference.paths_relative(self)
-        self.template = make_path_relative(self.template, Path(self.output).parent)
+        if output is not None:
+            for stack in self.stacks:
+                stack.paths_relative(self)
+            if self.stack_reference is not None:
+                self.stack_reference.paths_relative(self)
+            self.template = make_path_relative(self.template, Path(self.output).parent)
 
 
         # if demo move parts to simulate empty result
@@ -482,6 +484,11 @@ class Result(Saveable):
 
     def on_load(self, filename: str):
         self.output = str(Path(filename))
+
+        for stack in self.stacks:
+            stack.parent = self
+        if self.stack_reference is not None:
+            self.stack_reference.parent = self
 
     def __repr__(self):
         folders = [str(Path(stack.template)) for stack in self.stacks]

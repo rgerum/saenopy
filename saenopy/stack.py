@@ -29,8 +29,6 @@ class Stack(Saveable):
 
     packed_files: list = None
 
-    image_filenames_loaded = False
-
     def __init__(self, template: str, voxel_size: tuple, crop: dict = None, **kwargs):
         # reconstruct the stack savable
         super().__init__(template=template, voxel_size=voxel_size, crop=crop, **kwargs)
@@ -54,16 +52,9 @@ class Stack(Saveable):
             # or a tiff file
             else:
                 self.image_filenames, self.channels = template_to_array(template, crop)
-        else:
-            self.image_filenames_loaded = True
 
     def paths_relative(self, parent):
         self.parent = parent
-
-        # if the filenames have been loaded like this, keep them
-        if self.image_filenames_loaded is True:
-            self.image_filenames_loaded = False
-            return
 
         def normalize_path(template, output):
             template = str(Path(template).absolute())
