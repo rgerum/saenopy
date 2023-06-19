@@ -247,7 +247,7 @@ class Regularizer(PipelineModule):
                         material_parameters["k"],
                         material_parameters["d_0"],
                         material_parameters["lambda_s"],
-                        material_parameters["ds"],
+                        material_parameters["d_s"],
                     ))
                     # find the regularized force solution
                     M.solve_regularized(alpha=solve_parameters["alpha"], step_size=solve_parameters["step_size"],
