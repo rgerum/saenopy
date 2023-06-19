@@ -193,7 +193,7 @@ class DeformationDetector(PipelineModule):
             # iterate over all the results objects
             for result in results:
                 # set the parameters
-                result.piv_parameters = params
+                result.piv_parameters = piv_parameters
                 # get count
                 count = len(result.stacks)
                 if result.stack_reference is None:
