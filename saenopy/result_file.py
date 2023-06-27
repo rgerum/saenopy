@@ -249,6 +249,7 @@ def make_path_absolute(template, output):
         return str(Path(output).absolute() / template)
     return str(Path(template).absolute())
 
+
 class Result(Saveable):
     __save_parameters__ = ['stacks', 'stack_reference', 'template',
                            'time_delta', 'piv_parameters', 'mesh_piv',
@@ -453,6 +454,12 @@ class Result(Saveable):
             else:
                 self.mesh_piv = [None] * (len(self.stacks) - 1)
             self.solvers = [None] * (len(self.mesh_piv))
+
+    def get_absolute_path(self):
+        return make_path_absolute(self.template, Path(self.output).parent)
+
+    def get_absolute_path_reference(self):
+        return make_path_absolute(self.stack_reference.template, Path(self.output).parent)
 
     def save(self, filename: str = None, file_format=".saenopy"):
         if filename is not None:

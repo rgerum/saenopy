@@ -286,8 +286,8 @@ class StackDisplay(PipelineModule):
                     # results = saenopy.load_results(result_file)
 
                 data = dict(
-                    filename=self.result.template,
-                    reference_stack1=self.result.stack_reference.template,
+                    filename=self.result.get_absolute_path(),
+                    reference_stack1=self.result.get_absolute_path_reference(),
                     output1=str(Path(self.result.output).parent),
                     voxel_size1=self.result.stacks[0].voxel_size,
                     crop1=self.result.stacks[0].crop,
@@ -315,8 +315,8 @@ class StackDisplay(PipelineModule):
                     # results = saenopy.load_results(result_file)
 
                 data = dict(
-                    filename=self.result.template,
-                    reference_stack1=self.result.stack_reference.template,
+                    filename=self.result.get_absolute_path(),
+                    reference_stack1=self.result.get_absolute_path_reference(),
                     output1=str(Path(self.result.output).parent),
                     result_file=str(self.result.output),
                     voxel_size1=self.result.stacks[0].voxel_size,
@@ -343,7 +343,7 @@ class StackDisplay(PipelineModule):
                     # results = saenopy.load_results(result_file)
 
                 data = dict(
-                    filename=self.result.template,
+                    filename=self.result.get_absolute_path(),
                     output1=str(Path(self.result.output).parent),
                     voxel_size1=self.result.stacks[0].voxel_size,
                     time_delta1=self.result.time_delta,

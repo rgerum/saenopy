@@ -185,7 +185,7 @@ class DeformationDetector(PipelineModule):
     def get_code(self) -> Tuple[str, str]:
         import_code = ""
 
-        results = None
+        results = []
         def code(my_piv_params):  # pragma: no cover
             # define the parameters for the piv deformation detection
             piv_parameters = my_piv_params
