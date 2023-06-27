@@ -10,6 +10,8 @@ import threading
 from pathlib import Path
 import matplotlib as mpl
 
+import traceback
+
 from saenopy import get_stacks
 from saenopy import Result
 from saenopy.gui.common import QtShortCuts
@@ -278,7 +280,7 @@ class BatchEvaluate(QtWidgets.QWidget):
                     self.add_data(Result.load(p))
                 except Exception as err:
                     QtWidgets.QMessageBox.critical(self, "Open Files", f"File {p} is not a valid Saenopy file.")
-                    raise
+                    traceback.print_exc()
         self.update_icons()
 
     def add_data(self, data):
@@ -353,7 +355,7 @@ class BatchEvaluate(QtWidgets.QWidget):
             except Exception as err:
                 # notify the user if errors occured
                 QtWidgets.QMessageBox.critical(self, "Load Stacks", str(err))
-                raise
+                traceback.print_exc()
             else:
                 # store the last voxel size
                 add_last_voxel_size(dialog.stack_data.getVoxelSize())
