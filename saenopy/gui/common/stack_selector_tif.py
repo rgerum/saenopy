@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 import re
+import natsort
 from pathlib import Path
 import imageio
 import tifffile
@@ -194,7 +195,7 @@ class StackSelectorTif(QtWidgets.QWidget):
                 continue
             names.append(col)
 
-            prop = QtShortCuts.QInputChoice(self.property_layout, col, str(selected_prop[col]), [str(i) for i in df[col].unique()])
+            prop = QtShortCuts.QInputChoice(self.property_layout, col, str(selected_prop[col]), natsort.natsorted([str(i) for i in df[col].unique()]))
             prop.valueChanged.connect(self.propertiesChanged)
             prop.name = col
             prop.check = QtShortCuts.QInputBool(prop.layout(), "all", False)
@@ -253,13 +254,13 @@ class StackSelectorTif(QtWidgets.QWidget):
         self.stack_obj = []
         from saenopy.stack import Stack
         if not self.use_time or t_prop_name == "None":
-            d = d.sort_values(z_prop_name)
+            d = d.sort_values(z_prop_name, key=natsort.natsort_keygen())
             self.stack_obj = [Stack("", (1, 1, 1), {}, image_filenames=[[str(f)] for f in d.filename])]
             self.stack_obj[0].image_filenames = [[str(f)] for f in d.filename]
         else:
-            d = d.sort_values([t_prop_name, z_prop_name])
+            d = d.sort_values([t_prop_name, z_prop_name], key=natsort.natsort_keygen())
             self.stack_obj = []
-            for t, dd in d.groupby(t_prop_name):
+            for t, dd in d.groupby(t_prop_name, sort=False):
                 s = Stack("", (1, 1, 1), {}, image_filenames=[[str(f)] for f in dd.filename])
                 self.stack_obj.append(s)
 
