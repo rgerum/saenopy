@@ -64,7 +64,7 @@ class AddFilesDialog(QtWidgets.QDialog):
                                         self.stack_data.glob_string_changed.connect(
                                             lambda x, y: self.stack_data_input.setText(y))
                                         self.stack_data_input = QtWidgets.QLineEdit().addToLayout()
-                            self.stack_crop = StackSelectorCrop(self.stack_data, self.stack_reference).addToLayout()
+                            self.stack_crop = StackSelectorCrop(self.stack_data, self.reference_choice, self.stack_reference).addToLayout()
                             self.stack_data.stack_crop = self.stack_crop
                         self.stack_preview = StackPreview(QtShortCuts.current_layout, self.reference_choice,
                                                           self.stack_reference, self.stack_data)

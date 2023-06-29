@@ -61,9 +61,10 @@ def add_last_time_delta(size):
 class StackSelectorCrop(QtWidgets.QWidget):
     set_voxel_size = None
 
-    def __init__(self, parent: "StackSelector", parent2: "StackSelector", use_time=False):
+    def __init__(self, parent: "StackSelector", reference_choice, parent2: "StackSelector", use_time=False):
         super().__init__()
         self.parent_selector = parent
+        self.reference_choice = reference_choice
 
         with QtShortCuts.QHBoxLayout(self) as main_layout:
             main_layout.setContentsMargins(0, 0, 0, 0)
@@ -167,13 +168,23 @@ class StackSelectorCrop(QtWidgets.QWidget):
                 self.input_time_dt.setDisabled(True)
                 self.input_tbar_unit.setDisabled(True)
                 self.input_cropt.setDisabled(True)
+                if self.parent2.get_t_count():
+                    self.input_t_label.setText(f"1 time step - 1 reference state\n1 differences")
+                else:
+                    self.input_t_label.setText(f"1 time step - no reference state\ninvalid")
             else:
                 self.input_time_dt.setDisabled(False)
                 self.input_tbar_unit.setDisabled(False)
                 self.input_cropt.setDisabled(False)
+                if self.parent2.get_t_count():
+                    self.input_t_label.setText(f"{t_max} time steps - 1 reference state\n{t_max} differences")
+                else:
+                    self.input_t_label.setText(f"{t_max} time steps - no reference state\n{t_max-1} differences")
             self.input_time_dt.emitValueChanged()
 
             self.label.setText(f"Stack: ({x_max}, {y_max}, {z_max})px")
+        self.update_timesteps_text()
+        self.reference_choice.valueChanged.connect(self.update_timesteps_text)
 
     def validator_time(self, value=None):
         if getattr(self, "input_time_dt", None) and not self.input_time_dt.isEnabled():
@@ -220,8 +231,18 @@ class StackSelectorCrop(QtWidgets.QWidget):
 
         return crop
 
+    def update_timesteps_text(self):
+        if self.reference_choice.value():
+            t_max_ref = min(self.parent2.get_t_count(), 1)
+        else:
+            t_max_ref = 0
+        t_max = self.input_cropt.value()[1] - self.input_cropt.value()[0]
+        num_diff = t_max + t_max_ref - 1
+        self.input_t_label.setText(f"{t_max_ref if t_max_ref else 'no'} reference state, {t_max} time step{'s' if t_max != 1 else ''}\n→ {num_diff} difference{'s' if num_diff != 1 else ''} {'(invalid)' if num_diff == 0 else ''}")
+
     def z_moved(self):
         self.parent_selector.stack_changed.emit()
+        self.update_timesteps_text()
         return
 
     def input_voxel_size_changed(self):
