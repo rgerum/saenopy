@@ -95,6 +95,8 @@ class StackSelectorCrop(QtWidgets.QWidget):
                 with QtShortCuts.QHBoxLayout():
                     self.input_time_dt = QtShortCuts.QInputString(None, "Time Delta", "0",
                                                                      validator=self.validator_time, type=float)
+                    self.input_time_dt.setEnabled(False)
+                    self.input_time_dt.emitValueChanged()
                     self.input_tbar_unit = QtShortCuts.QInputChoice(self.input_time_dt.layout(), None, "s",
                                                                     ["s", "min", "h"])
                     self.completer2 = QtWidgets.QCompleter(get_last_time_deltas(), self)
@@ -104,6 +106,7 @@ class StackSelectorCrop(QtWidgets.QWidget):
                 self.input_cropt.setRange(0, 1)
                 self.input_cropt.setValue((0, 1))
                 self.input_cropt.valueChanged.connect(self.z_moved)
+                self.input_t_label = QtWidgets.QLabel().addToLayout()
                 QtShortCuts.current_layout.addStretch()
 
                 self.input_cropt.setDisabled(True)
@@ -168,12 +171,13 @@ class StackSelectorCrop(QtWidgets.QWidget):
                 self.input_time_dt.setDisabled(False)
                 self.input_tbar_unit.setDisabled(False)
                 self.input_cropt.setDisabled(False)
+            self.input_time_dt.emitValueChanged()
 
             self.label.setText(f"Stack: ({x_max}, {y_max}, {z_max})px")
 
     def validator_time(self, value=None):
         if getattr(self, "input_time_dt", None) and not self.input_time_dt.isEnabled():
-            True
+            return True
         try:
             if value is None:
                 value = self.input_time_dt.value()
