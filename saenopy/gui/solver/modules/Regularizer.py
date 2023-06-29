@@ -42,6 +42,8 @@ class Regularizer(PipelineModule):
                             self.input_d_s = QtShortCuts.QInputString(None, "d_s", "0.033", type=float, tooltip="the strain stiffening strength of the material's fibers")
 
                     with QtShortCuts.QGroupBox(None, "Regularisation Parameters") as self.material_parameters:
+                        self.input_previous_t_as_start = QtShortCuts.QInputBool(None, "use previous time steps deformation field", True,
+                                                                tooltip="wether to use the previous time steps deformation field as a starting value for the next regularisation")
                         with QtShortCuts.QHBoxLayout(None) as layout:
                             self.input_alpha = QtShortCuts.QInputString(None, "alpha", "1e10", type="exp", tooltip="the strength of the regularisation (higher values mean weaker forces)")
                             self.input_step_size = QtShortCuts.QInputString(None, "step size", "0.33", type=float, tooltip="the step with of the iteration algorithm")
@@ -86,6 +88,7 @@ class Regularizer(PipelineModule):
             "step_size": self.input_step_size,
             "max_iterations": self.input_imax,
             "rel_conv_crit": self.input_conv_crit,
+            "prev_t_as_start": self.input_previous_t_as_start,
         })
 
         self.iteration_finished.connect(self.iteration_callback)
@@ -151,6 +154,9 @@ class Regularizer(PipelineModule):
 
         for i in range(len(result.solvers)):
             M = result.solvers[i]
+
+            if i > 0 and solve_parameters["prev_t_as_start"]:
+                M.mesh.displacements = result.solvers[i-1].mesh.displacements
 
             def callback(M, relrec, i, imax):
                 self.iteration_finished.emit(result, relrec, i, imax)
@@ -242,6 +248,10 @@ class Regularizer(PipelineModule):
                 result.mesh_parameters = material_parameters
                 result.solve_parameters = solve_parameters
                 for index, M in enumerate(result.solvers):
+                    # optionally copy the displacement field from the previous time step as a starting value
+                    if index > 0 and solve_parameters["prev_t_as_start"]:
+                        M.mesh.displacements = result.solvers[index - 1].mesh.displacements
+
                     # set the material model
                     M.set_material_model(saenopy.materials.SemiAffineFiberMaterial(
                         material_parameters["k"],
