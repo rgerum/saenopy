@@ -56,7 +56,20 @@ class MainWindow(QtWidgets.QWidget):
                     with QtShortCuts.QHBoxLayout() as layout2:
                         layout.addStretch()
                         self.image = QtWidgets.QLabel("x").addToLayout()
-                        self.image.setPixmap(QtGui.QPixmap(resource_path("Logo.png")))
+                        self.image_timer = QtCore.QTimer()
+                        timer_index = 0
+                        def timer():
+                            nonlocal timer_index
+                            if timer_index == 14:
+                                self.image.setPixmap(QtGui.QPixmap(resource_path("Logo.png")))
+                                self.image_timer.stop()
+                                return
+                            self.image.setPixmap(QtGui.QPixmap(resource_path(f"animation/frame{timer_index:02d}.png")))
+                            timer_index += 1
+                        self.image_timer.timeout.connect(timer)
+                        self.image_timer.start(100)
+                        timer()
+                        #self.image.setPixmap(QtGui.QPixmap(resource_path("Logo.png")))
                         self.image.setScaledContents(True)
                         self.image.setMaximumWidth(400)
                         self.image.setMaximumHeight(200)
