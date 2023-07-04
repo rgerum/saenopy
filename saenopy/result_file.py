@@ -290,6 +290,9 @@ class Result(Saveable):
                         obj_data[r["new"]] = obj_data[r["old"]]
                     elif "default" in r:
                         obj_data[r["new"]] = r["default"]
+                    else:
+                        raise ValueError(f"File does not contain parameter {r['old']} and {r['new']} does not have a "
+                                         f"default value.")
                 if r.get("renames_child", None) is not None:
                     apply_rename(obj_data[r["new"]], r.get("renames_child", None))
 
@@ -313,13 +316,13 @@ class Result(Saveable):
             renames = [
                 dict(old="stack", new="stack", renames_child=[
                     dict(old="shape", new="_shape"),
-                    dict(old="leica_file", new="leica_file", default=None),
+                    dict(old="leica_file", new=None),
                     dict(old="crop", new="crop", default=None),
                     dict(old="packed_files", new="packed_files", default=None),
                 ]),
                 dict(old="stack_reference", new="stack_reference", renames_child=[
                     dict(old="shape", new="_shape"),
-                    dict(old="leica_file", new="leica_file", default=None),
+                    dict(old="leica_file", new=None),
                     dict(old="crop", new="crop", default=None),
                     dict(old="packed_files", new="packed_files", default=None),
                 ]),
@@ -344,7 +347,7 @@ class Result(Saveable):
                     dict(old="stepper", new=None),
                     dict(old="i_max", new=None),
                     dict(old="rel_conv_crit", new=None),
-                ]),
+                ], default=dict(k=1645, d0=0.0008, lambda_s=0.0075, ds=0.033)),
                 dict(old="solve_parameter", new="solve_parameters", renames_child=[
                     dict(old="k", new=None),
                     dict(old="d0", new=None),
@@ -352,7 +355,7 @@ class Result(Saveable):
                     dict(old="ds", new=None),
                     dict(old="stepper", new="step_size"),
                     dict(old="i_max", new="max_iterations"),
-                ]),
+                ], default=dict(alpha=1e10, stepper=0.33, i_max=100, rel_conv_crit=0.01)),
 
                 dict(old="mesh_piv", new="mesh_piv", renames_child=[
                     dict(old="R", new="nodes"),
@@ -387,11 +390,12 @@ class Result(Saveable):
                     dict(old="f_target", new=None),
                     dict(old="E_glo", new=None),
                     dict(old="var", new=None),
-                    dict(old="relrec", new="regularisation_results"),
+                    dict(old="regularisation_parameters", new="regularisation_parameters", default=None),
+                    dict(old="relrec", new="regularisation_results", default=[]),
                     dict(old="material_model", new="material_model", renames_child=[
                         dict(old="d0", new="d_0"),
                         dict(old="ds", new="d_s"),
-                    ]),
+                    ], default=dict(k=1645, d0=0.0008, lambda_s=0.0075, ds=0.033)),
                 ]),
                 dict(old="time_delta", new="time_delta", default=None),
                 dict(old="stack_parameters", new=None),

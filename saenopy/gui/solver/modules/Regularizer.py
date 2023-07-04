@@ -156,7 +156,7 @@ class Regularizer(PipelineModule):
             M = result.solvers[i]
 
             if i > 0 and solve_parameters["prev_t_as_start"]:
-                M.mesh.displacements = result.solvers[i-1].mesh.displacements
+                M.mesh.displacements[:] = result.solvers[i-1].mesh.displacements
 
             def callback(M, relrec, i, imax):
                 self.iteration_finished.emit(result, relrec, i, imax)
@@ -250,7 +250,7 @@ class Regularizer(PipelineModule):
                 for index, M in enumerate(result.solvers):
                     # optionally copy the displacement field from the previous time step as a starting value
                     if index > 0 and solve_parameters["prev_t_as_start"]:
-                        M.mesh.displacements = result.solvers[index - 1].mesh.displacements
+                        M.mesh.displacements[:] = result.solvers[index - 1].mesh.displacements
 
                     # set the material model
                     M.set_material_model(saenopy.materials.SemiAffineFiberMaterial(
