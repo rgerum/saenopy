@@ -40,6 +40,7 @@ class SolverMesh(Mesh):
     displacements_target: NDArray[Shape["N_c, 3"], Float] = field(validators=check_node_vector_field, default=None)
     displacements_target_mask: NDArray[Shape["N_c"], Bool] = field(validators=check_node_scalar_field, default=None)
     regularisation_mask: NDArray[Shape["N_c"], Bool] = field(validators=check_node_scalar_field, default=None)
+    cell_boundary_mask: NDArray[Shape["N_c"], Bool] = field(validators=check_node_scalar_field, default=None)
 
     forces: NDArray[Shape["N_c, 3"], Float] = field(doc="the global forces on each node, dimensions: N_c x 3",
                                                     validators=check_node_vector_field, default=None)
@@ -638,6 +639,10 @@ class Solver(Saveable):
         index = self.localweight < 1e-10
         self.localweight[index & self.mesh.movable] = 1e-10
 
+        if self.mesh.cell_boundary_mask is not None:
+            self.localweight[:] = 0.003
+            self.localweight[self.mesh.cell_boundary_mask] = 0
+
         self.localweight[~self.mesh.regularisation_mask] = 0
 
         counter = np.sum(1.0 - self.localweight[self.mesh.movable])
@@ -1019,6 +1024,42 @@ def subtract_reference_state(mesh_piv, mode):
     else:
         xpos2 = U
     return xpos2
+
+
+def get_cell_boundary(result, channel=1, thershold=20, smooth=2, element_size=14.00e-6):
+    from scipy.ndimage import gaussian_filter
+    import matplotlib.pyplot as plt
+    import numpy as np
+
+    for i in range(len(result.stacks)):
+        stack_deformed = result.stacks[i]
+        voxel_size1 = stack_deformed.voxel_size
+
+        im = stack_deformed[:, :, 0, :, channel]
+        im = gaussian_filter(im, sigma=smooth, truncate=2.0)
+
+        im_thresh = im[:, :, :] > thershold
+        du, dv, dw = voxel_size1
+
+        u = im_thresh
+        y, x, z = np.indices(u.shape)
+        y, x, z = (y * stack_deformed.shape[0] * dv / u.shape[0] * 1e-6,
+                   x * stack_deformed.shape[1] * du / u.shape[1] * 1e-6,
+                   z * stack_deformed.shape[2] * dw / u.shape[2] * 1e-6)
+        z -= np.max(z)/2
+        x -= np.max(x)/2
+        y -= np.max(y)/2
+
+        x = x[im_thresh]
+        y = y[im_thresh]
+        z = z[im_thresh]
+
+        yxz = np.vstack([y, x, z])
+
+        dist_to_cell = np.min(np.linalg.norm(result.solvers[0].mesh.nodes[:, :, None] - yxz[None, :, :], axis=1), axis=1)
+        included = dist_to_cell < element_size/2
+
+        result.solvers[i].mesh.cell_boundary_mask = included
 
 
 from saenopy.get_deformations import PivMesh
