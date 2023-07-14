@@ -61,7 +61,7 @@ class MainWindow(QtWidgets.QWidget):
                         def timer():
                             nonlocal timer_index
                             if timer_index == 14:
-                                self.image.setPixmap(QtGui.QPixmap(resource_path("Logo.png")))
+                                #self.image.setPixmap(QtGui.QPixmap(resource_path("Logo.png")))
                                 self.image_timer.stop()
                                 return
                             self.image.setPixmap(QtGui.QPixmap(resource_path(f"animation/frame{timer_index:02d}.png")))
