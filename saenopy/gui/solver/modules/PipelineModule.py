@@ -73,6 +73,9 @@ class PipelineModule(QtWidgets.QWidget):
 
     def __init__(self, parent: "BatchEvaluate", layout):
         super().__init__()
+        self.parameter_mappings = []
+        self.params_name = None
+
         if layout is not None:
             layout.addWidget(self)
         if parent is None:
@@ -89,9 +92,6 @@ class PipelineModule(QtWidgets.QWidget):
         self.parent.tab_changed.connect(self.tabChanged)
 
         self.processing_progress.connect(self.parent.progress)
-
-        self.parameter_mappings = []
-        self.params_name = None
 
     def setParameterMapping(self, params_name: str = None, parameter_dict: dict=None):
         self.params_name = params_name
