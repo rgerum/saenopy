@@ -5,7 +5,7 @@ name = "alabaster"
 version = "0.7.13"
 description = "A configurable sidebar-enabled Sphinx theme"
 category = "main"
-optional = true
+optional = false
 python-versions = ">=3.6"
 files = [
     {file = "alabaster-0.7.13-py3-none-any.whl", hash = "sha256:1ee19aca801bbabb5ba3f5f258e4422dfa86f82f3e9cefb0859b283cdd7f62a3"},
@@ -106,7 +106,7 @@ name = "babel"
 version = "2.12.1"
 description = "Internationalization utilities"
 category = "main"
-optional = true
+optional = false
 python-versions = ">=3.7"
 files = [
     {file = "Babel-2.12.1-py3-none-any.whl", hash = "sha256:b4246fb7677d3b98f501a39d43396d3cafdc8eadb045f4a31be01863f655c610"},
@@ -133,7 +133,7 @@ name = "beautifulsoup4"
 version = "4.12.2"
 description = "Screen-scraping library"
 category = "main"
-optional = true
+optional = false
 python-versions = ">=3.6.0"
 files = [
     {file = "beautifulsoup4-4.12.2-py3-none-any.whl", hash = "sha256:bd2520ca0d9d7d12694a53d44ac482d181b4ec1888909b035a3dbf40d0f57d4a"},
@@ -152,7 +152,7 @@ name = "bleach"
 version = "6.0.0"
 description = "An easy safelist-based HTML-sanitizing tool."
 category = "main"
-optional = true
+optional = false
 python-versions = ">=3.7"
 files = [
     {file = "bleach-6.0.0-py3-none-any.whl", hash = "sha256:33c16e3353dbd13028ab4799a0f89a83f113405c766e9c122df8a06f5b85b3f4"},
@@ -567,7 +567,7 @@ name = "defusedxml"
 version = "0.7.1"
 description = "XML bomb protection for Python stdlib modules"
 category = "main"
-optional = true
+optional = false
 python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*"
 files = [
     {file = "defusedxml-0.7.1-py2.py3-none-any.whl", hash = "sha256:a352e7e428770286cc899e2542b6cdaedb2b4953ff269a210103ec58f6198a61"},
@@ -605,7 +605,7 @@ name = "docutils"
 version = "0.18.1"
 description = "Docutils -- Python Documentation Utilities"
 category = "main"
-optional = true
+optional = false
 python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*"
 files = [
     {file = "docutils-0.18.1-py2.py3-none-any.whl", hash = "sha256:23010f129180089fbcd3bc08cfefccb3b890b0050e1ca00c867036e9d161b98c"},
@@ -680,7 +680,7 @@ name = "fastjsonschema"
 version = "2.18.0"
 description = "Fastest Python implementation of JSON schema"
 category = "main"
-optional = true
+optional = false
 python-versions = "*"
 files = [
     {file = "fastjsonschema-2.18.0-py3-none-any.whl", hash = "sha256:128039912a11a807068a7c87d0da36660afbfd7202780db26c4aa7153cfdc799"},
@@ -874,20 +874,6 @@ files = [
 
 [package.dependencies]
 gitdb = ">=4.0.1,<5"
-
-[[package]]
-name = "gmsh"
-version = "4.11.1"
-description = "Gmsh is a three-dimensional finite element mesh generator with built-in pre- and post-processing facilities."
-category = "main"
-optional = false
-python-versions = "*"
-files = [
-    {file = "gmsh-4.11.1-py2.py3-none-macosx_10_15_x86_64.whl", hash = "sha256:f07d62ec3ee0edcf1c28ed070ce9eaca86f393e15480edaf37d323f09cc341c1"},
-    {file = "gmsh-4.11.1-py2.py3-none-macosx_12_0_arm64.whl", hash = "sha256:df6e401ea3cc6822b2cbff12a3e7fe68e0a11496807bb73f5e31af4496657c0b"},
-    {file = "gmsh-4.11.1-py2.py3-none-manylinux1_x86_64.whl", hash = "sha256:69d56865d80e6e7bdb665426333487bc3679bc778b9fee500eb8cf0d2714ad99"},
-    {file = "gmsh-4.11.1-py2.py3-none-win_amd64.whl", hash = "sha256:bde90654db3b8820759d47ad3b309ec0a9ab7c062522c36b84de12bc73719d37"},
-]
 
 [[package]]
 name = "gmsh-sdk"
@@ -1130,7 +1116,7 @@ name = "imagesize"
 version = "1.4.1"
 description = "Getting image size from png/jpeg/jpeg2000/gif file"
 category = "main"
-optional = true
+optional = false
 python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*"
 files = [
     {file = "imagesize-1.4.1-py2.py3-none-any.whl", hash = "sha256:0d8d18d08f840c19d0ee7ca1fd82490fdc3729b7ac93f49870406ddde8ef8d8b"},
@@ -1253,7 +1239,7 @@ name = "jinja2"
 version = "3.1.2"
 description = "A very fast and expressive template engine."
 category = "main"
-optional = true
+optional = false
 python-versions = ">=3.7"
 files = [
     {file = "Jinja2-3.1.2-py3-none-any.whl", hash = "sha256:6088930bfe239f0e6710546ab9c19c9ef35e29792895fed6e6e31a023a182a61"},
@@ -1300,7 +1286,7 @@ name = "jsonschema"
 version = "4.18.4"
 description = "An implementation of JSON Schema validation for Python"
 category = "main"
-optional = true
+optional = false
 python-versions = ">=3.8"
 files = [
     {file = "jsonschema-4.18.4-py3-none-any.whl", hash = "sha256:971be834317c22daaa9132340a51c01b50910724082c2c1a2ac87eeec153a3fe"},
@@ -1324,7 +1310,7 @@ name = "jsonschema-specifications"
 version = "2023.7.1"
 description = "The JSON Schema meta-schemas and vocabularies, exposed as a Registry"
 category = "main"
-optional = true
+optional = false
 python-versions = ">=3.8"
 files = [
     {file = "jsonschema_specifications-2023.7.1-py3-none-any.whl", hash = "sha256:05adf340b659828a004220a9613be00fa3f223f2b82002e273dee62fd50524b1"},
@@ -1340,7 +1326,7 @@ name = "jupyter-client"
 version = "8.3.0"
 description = "Jupyter protocol implementation and client libraries"
 category = "main"
-optional = true
+optional = false
 python-versions = ">=3.8"
 files = [
     {file = "jupyter_client-8.3.0-py3-none-any.whl", hash = "sha256:7441af0c0672edc5d28035e92ba5e32fadcfa8a4e608a434c228836a89df6158"},
@@ -1364,7 +1350,7 @@ name = "jupyter-core"
 version = "5.3.1"
 description = "Jupyter core package. A base package on which Jupyter projects rely."
 category = "main"
-optional = true
+optional = false
 python-versions = ">=3.8"
 files = [
     {file = "jupyter_core-5.3.1-py3-none-any.whl", hash = "sha256:ae9036db959a71ec1cac33081eeb040a79e681f08ab68b0883e9a676c7a90dce"},
@@ -1385,7 +1371,7 @@ name = "jupyterlab-pygments"
 version = "0.2.2"
 description = "Pygments theme using JupyterLab CSS variables"
 category = "main"
-optional = true
+optional = false
 python-versions = ">=3.7"
 files = [
     {file = "jupyterlab_pygments-0.2.2-py2.py3-none-any.whl", hash = "sha256:2405800db07c9f770863bcf8049a529c3dd4d3e28536638bd7c1c01d2748309f"},
@@ -1552,36 +1538,11 @@ files = [
 ]
 
 [[package]]
-name = "markdown-it-py"
-version = "3.0.0"
-description = "Python port of markdown-it. Markdown parsing, done right!"
-category = "main"
-optional = false
-python-versions = ">=3.8"
-files = [
-    {file = "markdown-it-py-3.0.0.tar.gz", hash = "sha256:e3f60a94fa066dc52ec76661e37c851cb232d92f9886b15cb560aaada2df8feb"},
-    {file = "markdown_it_py-3.0.0-py3-none-any.whl", hash = "sha256:355216845c60bd96232cd8d8c40e8f9765cc86f46880e43a8fd22dc1a1a8cab1"},
-]
-
-[package.dependencies]
-mdurl = ">=0.1,<1.0"
-
-[package.extras]
-benchmarking = ["psutil", "pytest", "pytest-benchmark"]
-code-style = ["pre-commit (>=3.0,<4.0)"]
-compare = ["commonmark (>=0.9,<1.0)", "markdown (>=3.4,<4.0)", "mistletoe (>=1.0,<2.0)", "mistune (>=2.0,<3.0)", "panflute (>=2.3,<3.0)"]
-linkify = ["linkify-it-py (>=1,<3)"]
-plugins = ["mdit-py-plugins"]
-profiling = ["gprof2dot"]
-rtd = ["jupyter_sphinx", "mdit-py-plugins", "myst-parser", "pyyaml", "sphinx", "sphinx-copybutton", "sphinx-design", "sphinx_book_theme"]
-testing = ["coverage", "pytest", "pytest-cov", "pytest-regressions"]
-
-[[package]]
 name = "markupsafe"
 version = "2.1.3"
 description = "Safely add untrusted strings to HTML/XML markup."
 category = "main"
-optional = true
+optional = false
 python-versions = ">=3.7"
 files = [
     {file = "MarkupSafe-2.1.3-cp310-cp310-macosx_10_9_universal2.whl", hash = "sha256:cd0f502fe016460680cd20aaa5a76d241d6f35a1c3350c474bac1273803893fa"},
@@ -1730,75 +1691,11 @@ files = [
 matplotlib = "*"
 
 [[package]]
-name = "mdurl"
-version = "0.1.2"
-description = "Markdown URL utilities"
-category = "main"
-optional = false
-python-versions = ">=3.7"
-files = [
-    {file = "mdurl-0.1.2-py3-none-any.whl", hash = "sha256:84008a41e51615a49fc9966191ff91509e3c40b939176e643fd50a5c2196b8f8"},
-    {file = "mdurl-0.1.2.tar.gz", hash = "sha256:bb413d29f5eea38f31dd4754dd7377d4465116fb207585f97bf925588687c1ba"},
-]
-
-[[package]]
-name = "meshio"
-version = "5.3.4"
-description = "I/O for many mesh formats"
-category = "main"
-optional = false
-python-versions = ">=3.7"
-files = [
-    {file = "meshio-5.3.4-py3-none-any.whl", hash = "sha256:fbd5a7b387fdea98f4d7fed1f154f4a52b7f2e1d619762a52b8ece3df1d8aa0d"},
-    {file = "meshio-5.3.4.tar.gz", hash = "sha256:e240692d7ff279c12b13c6e5d7b403629a86ad2b44e9230958b3f00c1ec369f0"},
-]
-
-[package.dependencies]
-numpy = "*"
-rich = "*"
-
-[package.extras]
-all = ["h5py", "netCDF4"]
-
-[[package]]
-name = "meshlib"
-version = "2.2.0"
-description = "3d processing library"
-category = "main"
-optional = false
-python-versions = ">=3.8"
-files = [
-    {file = "meshlib-2.2.0-cp310-none-macosx_12_0_arm64.whl", hash = "sha256:692271cc2a6128308eb0193b3a4c80f909385298765dd6886450c05f28865c62"},
-    {file = "meshlib-2.2.0-cp310-none-macosx_12_0_x86_64.whl", hash = "sha256:c117d708d799499fe09e85494f68ae68a5d7c9ce6bd656513794989e71ca14f4"},
-    {file = "meshlib-2.2.0-cp310-none-manylinux_2_31_aarch64.whl", hash = "sha256:d239a1a86e71a89a86befe161c9ed17555a19d71d3475589205c79fbb60b567c"},
-    {file = "meshlib-2.2.0-cp310-none-manylinux_2_31_x86_64.whl", hash = "sha256:44bfc1f8cbadf139e590e1298c7cba112ce5f0e2221232752cc0123cc8f8b580"},
-    {file = "meshlib-2.2.0-cp310-none-win_amd64.whl", hash = "sha256:9164d677e2dfa700c8291b21ec85436a70cf05e3d01459345e4a3ec3078a3c77"},
-    {file = "meshlib-2.2.0-cp311-none-macosx_12_0_arm64.whl", hash = "sha256:24b022ced92401f3f856f4712d930063b7b27141e0f7710449839caef5cb18ab"},
-    {file = "meshlib-2.2.0-cp311-none-macosx_12_0_x86_64.whl", hash = "sha256:6038490678ce4a3cb62589623349b60d1a297038666340e24977235078dc0b25"},
-    {file = "meshlib-2.2.0-cp311-none-manylinux_2_31_aarch64.whl", hash = "sha256:116c84b9aa29fa9cd5d05f90dfbd761b2dbc055e31cf9a4df645ca0c506b8db5"},
-    {file = "meshlib-2.2.0-cp311-none-manylinux_2_31_x86_64.whl", hash = "sha256:e82b72ecdf23933dce7d64e93dc1be6173566033fca29556a0d5ebd5965f7273"},
-    {file = "meshlib-2.2.0-cp311-none-win_amd64.whl", hash = "sha256:e8de8e6105d02d27d96f25cace199dcbc9c160bcd9708a22b8fd0b2a11b77687"},
-    {file = "meshlib-2.2.0-cp38-none-macosx_12_0_arm64.whl", hash = "sha256:f826102b53ee6e7e9a0f4c88910260b2c46d3db1e36a3c1f6406a48890716a9e"},
-    {file = "meshlib-2.2.0-cp38-none-macosx_12_0_x86_64.whl", hash = "sha256:b0cf6ebb170ff9e7cba4f56d214e1c046f1d47ede5929067de8a02e004586002"},
-    {file = "meshlib-2.2.0-cp38-none-manylinux_2_31_aarch64.whl", hash = "sha256:dd64cf4f054ca3ec04a20968b558f435db1bd327a64aecacb5c10bf099a937ad"},
-    {file = "meshlib-2.2.0-cp38-none-manylinux_2_31_x86_64.whl", hash = "sha256:0e8cfcf4d582e8d98a6796a9e05144180065990c960a205a33339d9ed6b22109"},
-    {file = "meshlib-2.2.0-cp38-none-win_amd64.whl", hash = "sha256:418bde65b6a07f35d661e2fb17e7b8879c7378bf3c5e4ebf5b2fc245ec26f629"},
-    {file = "meshlib-2.2.0-cp39-none-macosx_12_0_arm64.whl", hash = "sha256:fbabb833cc988ef24235ccacd6869d280c5cc53f7d7000a51da65e09b6bbd0ec"},
-    {file = "meshlib-2.2.0-cp39-none-macosx_12_0_x86_64.whl", hash = "sha256:5a793ba11e6d241f9b78a727286e8cf6ae0dc0eca76c79d5cf050992680162b3"},
-    {file = "meshlib-2.2.0-cp39-none-manylinux_2_31_aarch64.whl", hash = "sha256:a1ebdb5e4dd397b64272657fdfbc42187534c1ad8c3d176ee7741193db81a4fb"},
-    {file = "meshlib-2.2.0-cp39-none-manylinux_2_31_x86_64.whl", hash = "sha256:c2b9fe65b41b89c668b872e549d2e6e9a7d062984e3cd90c9f9b1aa9997cd087"},
-    {file = "meshlib-2.2.0-cp39-none-win_amd64.whl", hash = "sha256:efc464891adfb5bcc2f65a3bd51c35ffa67a6cf2e8f1ce91a8ddea5fa6dc0fc4"},
-]
-
-[package.dependencies]
-numpy = ">=1.19.0"
-
-[[package]]
 name = "mistune"
 version = "3.0.1"
 description = "A sane and fast Markdown parser with useful plugins and renderers"
 category = "main"
-optional = true
+optional = false
 python-versions = ">=3.7"
 files = [
     {file = "mistune-3.0.1-py3-none-any.whl", hash = "sha256:b9b3e438efbb57c62b5beb5e134dab664800bdf1284a7ee09e8b12b13eb1aac6"},
@@ -1844,7 +1741,7 @@ name = "nbclient"
 version = "0.8.0"
 description = "A client library for executing notebooks. Formerly nbconvert's ExecutePreprocessor."
 category = "main"
-optional = true
+optional = false
 python-versions = ">=3.8.0"
 files = [
     {file = "nbclient-0.8.0-py3-none-any.whl", hash = "sha256:25e861299e5303a0477568557c4045eccc7a34c17fc08e7959558707b9ebe548"},
@@ -1867,7 +1764,7 @@ name = "nbconvert"
 version = "7.7.3"
 description = "Converting Jupyter Notebooks"
 category = "main"
-optional = true
+optional = false
 python-versions = ">=3.8"
 files = [
     {file = "nbconvert-7.7.3-py3-none-any.whl", hash = "sha256:3022adadff3f86578a47fab7c2228bb3ca9c56a24345642a22f917f6168b48fc"},
@@ -1906,7 +1803,7 @@ name = "nbformat"
 version = "5.9.1"
 description = "The Jupyter Notebook format"
 category = "main"
-optional = true
+optional = false
 python-versions = ">=3.8"
 files = [
     {file = "nbformat-5.9.1-py3-none-any.whl", hash = "sha256:b7968ebf4811178a4108ee837eae1442e3f054132100f0359219e9ed1ce3ca45"},
@@ -1928,7 +1825,7 @@ name = "nbsphinx"
 version = "0.9.2"
 description = "Jupyter Notebook Tools for Sphinx"
 category = "main"
-optional = true
+optional = false
 python-versions = ">=3.6"
 files = [
     {file = "nbsphinx-0.9.2-py3-none-any.whl", hash = "sha256:2746680ece5ad3b0e980639d717a5041a1c1aafb416846b72dfaeecc306bc351"},
@@ -2191,7 +2088,7 @@ name = "pandocfilters"
 version = "1.5.0"
 description = "Utilities for writing pandoc filters in python"
 category = "main"
-optional = true
+optional = false
 python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*"
 files = [
     {file = "pandocfilters-1.5.0-py2.py3-none-any.whl", hash = "sha256:33aae3f25fd1a026079f5d27bdd52496f0e0803b3469282162bafdcbdf6ef14f"},
@@ -2328,7 +2225,7 @@ name = "pkgutil-resolve-name"
 version = "1.3.10"
 description = "Resolve a name to an object."
 category = "main"
-optional = true
+optional = false
 python-versions = ">=3.6"
 files = [
     {file = "pkgutil_resolve_name-1.3.10-py3-none-any.whl", hash = "sha256:ca27cc078d25c5ad71a9de0a7a330146c4e014c2462d9af19c6b828280649c5e"},
@@ -2473,23 +2370,6 @@ files = [
 
 [package.extras]
 plugins = ["importlib-metadata"]
-
-[[package]]
-name = "pygmsh"
-version = "7.1.17"
-description = "Python frontend for Gmsh"
-category = "main"
-optional = false
-python-versions = ">=3.7"
-files = [
-    {file = "pygmsh-7.1.17-py3-none-any.whl", hash = "sha256:3b3da976a4da5070eaf1b0d2c5eec3fc4902524580c6d256c32a390f720e86d4"},
-    {file = "pygmsh-7.1.17.tar.gz", hash = "sha256:563724abff4f8517598d3354b9c795feddbe0675786145bfeaf20cbee6691c1d"},
-]
-
-[package.dependencies]
-gmsh = "*"
-meshio = ">=4.3.2,<6"
-numpy = ">=1.20.0"
 
 [[package]]
 name = "pyinstaller"
@@ -2751,7 +2631,7 @@ name = "pywin32"
 version = "306"
 description = "Python for Window Extensions"
 category = "main"
-optional = true
+optional = false
 python-versions = "*"
 files = [
     {file = "pywin32-306-cp310-cp310-win32.whl", hash = "sha256:06d3420a5155ba65f0b72f2699b5bacf3109f36acbe8923765c22938a69dfc8d"},
@@ -2852,7 +2732,7 @@ name = "pyzmq"
 version = "25.1.0"
 description = "Python bindings for 0MQ"
 category = "main"
-optional = true
+optional = false
 python-versions = ">=3.6"
 files = [
     {file = "pyzmq-25.1.0-cp310-cp310-macosx_10_15_universal2.whl", hash = "sha256:1a6169e69034eaa06823da6a93a7739ff38716142b3596c180363dee729d713d"},
@@ -3018,7 +2898,7 @@ name = "referencing"
 version = "0.30.0"
 description = "JSON Referencing + Python"
 category = "main"
-optional = true
+optional = false
 python-versions = ">=3.8"
 files = [
     {file = "referencing-0.30.0-py3-none-any.whl", hash = "sha256:c257b08a399b6c2f5a3510a50d28ab5dbc7bbde049bcaf954d43c446f83ab548"},
@@ -3052,26 +2932,6 @@ socks = ["PySocks (>=1.5.6,!=1.5.7)"]
 use-chardet-on-py3 = ["chardet (>=3.0.2,<6)"]
 
 [[package]]
-name = "rich"
-version = "13.4.2"
-description = "Render rich text, tables, progress bars, syntax highlighting, markdown and more to the terminal"
-category = "main"
-optional = false
-python-versions = ">=3.7.0"
-files = [
-    {file = "rich-13.4.2-py3-none-any.whl", hash = "sha256:8f87bc7ee54675732fa66a05ebfe489e27264caeeff3728c945d25971b6485ec"},
-    {file = "rich-13.4.2.tar.gz", hash = "sha256:d653d6bccede5844304c605d5aac802c7cf9621efd700b46c7ec2b51ea914898"},
-]
-
-[package.dependencies]
-markdown-it-py = ">=2.2.0"
-pygments = ">=2.13.0,<3.0.0"
-typing-extensions = {version = ">=4.0.0,<5.0", markers = "python_version < \"3.9\""}
-
-[package.extras]
-jupyter = ["ipywidgets (>=7.5.1,<9)"]
-
-[[package]]
 name = "roipoly"
 version = "0.5.3"
 description = "Tool to draw regions of interest (ROIs)"
@@ -3091,7 +2951,7 @@ name = "rpds-py"
 version = "0.9.2"
 description = "Python bindings to Rust's persistent data structures (rpds)"
 category = "main"
-optional = true
+optional = false
 python-versions = ">=3.8"
 files = [
     {file = "rpds_py-0.9.2-cp310-cp310-macosx_10_7_x86_64.whl", hash = "sha256:ab6919a09c055c9b092798ce18c6c4adf49d24d4d9e43a92b257e3f2548231e7"},
@@ -3344,7 +3204,7 @@ name = "snowballstemmer"
 version = "2.2.0"
 description = "This package provides 29 stemmers for 28 languages generated from Snowball algorithms."
 category = "main"
-optional = true
+optional = false
 python-versions = "*"
 files = [
     {file = "snowballstemmer-2.2.0-py2.py3-none-any.whl", hash = "sha256:c8e1716e83cc398ae16824e5572ae04e0d9fc2c6b985fb0f900f5f0c96ecba1a"},
@@ -3368,7 +3228,7 @@ name = "soupsieve"
 version = "2.4.1"
 description = "A modern CSS selector implementation for Beautiful Soup."
 category = "main"
-optional = true
+optional = false
 python-versions = ">=3.7"
 files = [
     {file = "soupsieve-2.4.1-py3-none-any.whl", hash = "sha256:1c1bfee6819544a3447586c889157365a27e10d88cde3ad3da0cf0ddf646feb8"},
@@ -3380,7 +3240,7 @@ name = "sphinx"
 version = "6.2.1"
 description = "Python documentation generator"
 category = "main"
-optional = true
+optional = false
 python-versions = ">=3.8"
 files = [
     {file = "Sphinx-6.2.1.tar.gz", hash = "sha256:6d56a34697bb749ffa0152feafc4b19836c755d90a7c59b72bc7dfd371b9cc6b"},
@@ -3416,7 +3276,7 @@ name = "sphinx-gallery"
 version = "0.13.0"
 description = "A `Sphinx <https://www.sphinx-doc.org/en/master/>`_ extension that builds an HTML gallery of examples from any set of Python scripts."
 category = "main"
-optional = true
+optional = false
 python-versions = ">=3.7"
 files = [
     {file = "sphinx-gallery-0.13.0.tar.gz", hash = "sha256:4756f92e079128b08cbc7a57922cc904b3d442b1abfa73ec6471ad24f3c5b4b2"},
@@ -3431,7 +3291,7 @@ name = "sphinx-rtd-theme"
 version = "1.2.2"
 description = "Read the Docs theme for Sphinx"
 category = "main"
-optional = true
+optional = false
 python-versions = "!=3.0.*,!=3.1.*,!=3.2.*,!=3.3.*,!=3.4.*,!=3.5.*,>=2.7"
 files = [
     {file = "sphinx_rtd_theme-1.2.2-py2.py3-none-any.whl", hash = "sha256:6a7e7d8af34eb8fc57d52a09c6b6b9c46ff44aea5951bc831eeb9245378f3689"},
@@ -3451,7 +3311,7 @@ name = "sphinxcontrib-applehelp"
 version = "1.0.4"
 description = "sphinxcontrib-applehelp is a Sphinx extension which outputs Apple help books"
 category = "main"
-optional = true
+optional = false
 python-versions = ">=3.8"
 files = [
     {file = "sphinxcontrib-applehelp-1.0.4.tar.gz", hash = "sha256:828f867945bbe39817c210a1abfd1bc4895c8b73fcaade56d45357a348a07d7e"},
@@ -3467,7 +3327,7 @@ name = "sphinxcontrib-devhelp"
 version = "1.0.2"
 description = "sphinxcontrib-devhelp is a sphinx extension which outputs Devhelp document."
 category = "main"
-optional = true
+optional = false
 python-versions = ">=3.5"
 files = [
     {file = "sphinxcontrib-devhelp-1.0.2.tar.gz", hash = "sha256:ff7f1afa7b9642e7060379360a67e9c41e8f3121f2ce9164266f61b9f4b338e4"},
@@ -3483,7 +3343,7 @@ name = "sphinxcontrib-htmlhelp"
 version = "2.0.1"
 description = "sphinxcontrib-htmlhelp is a sphinx extension which renders HTML help files"
 category = "main"
-optional = true
+optional = false
 python-versions = ">=3.8"
 files = [
     {file = "sphinxcontrib-htmlhelp-2.0.1.tar.gz", hash = "sha256:0cbdd302815330058422b98a113195c9249825d681e18f11e8b1f78a2f11efff"},
@@ -3499,7 +3359,7 @@ name = "sphinxcontrib-jquery"
 version = "4.1"
 description = "Extension to include jQuery on newer Sphinx releases"
 category = "main"
-optional = true
+optional = false
 python-versions = ">=2.7"
 files = [
     {file = "sphinxcontrib-jquery-4.1.tar.gz", hash = "sha256:1620739f04e36a2c779f1a131a2dfd49b2fd07351bf1968ced074365933abc7a"},
@@ -3514,7 +3374,7 @@ name = "sphinxcontrib-jsmath"
 version = "1.0.1"
 description = "A sphinx extension which renders display math in HTML via JavaScript"
 category = "main"
-optional = true
+optional = false
 python-versions = ">=3.5"
 files = [
     {file = "sphinxcontrib-jsmath-1.0.1.tar.gz", hash = "sha256:a9925e4a4587247ed2191a22df5f6970656cb8ca2bd6284309578f2153e0c4b8"},
@@ -3529,7 +3389,7 @@ name = "sphinxcontrib-qthelp"
 version = "1.0.3"
 description = "sphinxcontrib-qthelp is a sphinx extension which outputs QtHelp document."
 category = "main"
-optional = true
+optional = false
 python-versions = ">=3.5"
 files = [
     {file = "sphinxcontrib-qthelp-1.0.3.tar.gz", hash = "sha256:4c33767ee058b70dba89a6fc5c1892c0d57a54be67ddd3e7875a18d14cba5a72"},
@@ -3545,7 +3405,7 @@ name = "sphinxcontrib-serializinghtml"
 version = "1.1.5"
 description = "sphinxcontrib-serializinghtml is a sphinx extension which outputs \"serialized\" HTML files (json and pickle)."
 category = "main"
-optional = true
+optional = false
 python-versions = ">=3.5"
 files = [
     {file = "sphinxcontrib-serializinghtml-1.1.5.tar.gz", hash = "sha256:aa5f6de5dfdf809ef505c4895e51ef5c9eac17d0f287933eb49ec495280b6952"},
@@ -3592,40 +3452,6 @@ files = [
 mpmath = ">=0.19"
 
 [[package]]
-name = "tetgen"
-version = "0.6.3"
-description = "Python interface to tetgen"
-category = "main"
-optional = false
-python-versions = ">=3.7"
-files = [
-    {file = "tetgen-0.6.3-cp310-cp310-macosx_10_9_universal2.whl", hash = "sha256:8aaa7d1e7e8ead62ebb5e3b319e0464cbd3253726762e6ebaa249b19dde24b3b"},
-    {file = "tetgen-0.6.3-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:521a3c37a7fbeedb64a4b1ac8110dd0535fbfbc7f8cdf28a795430bf902ba802"},
-    {file = "tetgen-0.6.3-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:e7109ad4fc6b883aac5352383cef0a3e80bb72af03c2da46b0d1ed46eea71e86"},
-    {file = "tetgen-0.6.3-cp310-cp310-win_amd64.whl", hash = "sha256:6403a4f89279e5e27f34ccc9aefa1f912a35f3fac7961f8b02e4da8c28b41838"},
-    {file = "tetgen-0.6.3-cp311-cp311-macosx_10_9_universal2.whl", hash = "sha256:cf8856654df0db2de9c580f5e19e60bf21fadbec8d516c8b32632173c3e22ca3"},
-    {file = "tetgen-0.6.3-cp311-cp311-macosx_10_9_x86_64.whl", hash = "sha256:33569f8f85c0178158337f813e47ef346e1fc66c056142a17b0cab5395ac7ff1"},
-    {file = "tetgen-0.6.3-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:e01f1462539516cf0a347c7122f4d821f9ef9019e3828978a2f046ffcac5f62b"},
-    {file = "tetgen-0.6.3-cp311-cp311-win_amd64.whl", hash = "sha256:bbdf0b9cb7fa94a4b1b76c14883d9a2377f3f28d154e45218deb26bfeaede837"},
-    {file = "tetgen-0.6.3-cp37-cp37m-macosx_10_9_x86_64.whl", hash = "sha256:470de47949071c572679d5890f8f9deaa1ac3392607402975153ba9d9a186653"},
-    {file = "tetgen-0.6.3-cp37-cp37m-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:36efbdbd6e3d82530ee2fff6091b54f87bfadcec13983ae577ff4a250f71d8fe"},
-    {file = "tetgen-0.6.3-cp37-cp37m-win_amd64.whl", hash = "sha256:2189d44770abed4a167f32f9d272d724cf746695a106cf366b43646aa7ad168b"},
-    {file = "tetgen-0.6.3-cp38-cp38-macosx_10_9_universal2.whl", hash = "sha256:73c1e6825a3828f32b8507b70f9575507730f6583fd4811ac65eb1b5f5a9b1f4"},
-    {file = "tetgen-0.6.3-cp38-cp38-macosx_10_9_x86_64.whl", hash = "sha256:a621cb4fceee86f3e754075e80433f8124c8ab1db4dd4567a5e624526c250e0e"},
-    {file = "tetgen-0.6.3-cp38-cp38-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:867e220047b6cb8f8ffa2468f69c88a06c170a02634e93cdde6ce75a249e3f48"},
-    {file = "tetgen-0.6.3-cp38-cp38-win_amd64.whl", hash = "sha256:d2aed209652f2bcd5a438092885edc5a5ac643e217aef3573962802dfbaa8041"},
-    {file = "tetgen-0.6.3-cp39-cp39-macosx_10_9_universal2.whl", hash = "sha256:c01b792361d497592c0f2595ab2bfb18e8a1bc6a2cef7bf9461cddf5ed81daa1"},
-    {file = "tetgen-0.6.3-cp39-cp39-macosx_10_9_x86_64.whl", hash = "sha256:ca98f44f436278e250a3a96fa347f9c81c54d5794632c587b194c6335f2d7bfc"},
-    {file = "tetgen-0.6.3-cp39-cp39-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:4432348b1ffe8a1c1927e7fe13d2e178e97c25eb3881cdc9c59760cb169cf133"},
-    {file = "tetgen-0.6.3-cp39-cp39-win_amd64.whl", hash = "sha256:5a21e744d2a2021396e577122a0b6ba72f4322e903005d10470b9facf31167b0"},
-    {file = "tetgen-0.6.3.tar.gz", hash = "sha256:9be6ac805a3250c1ccf4c02fec24da2def9de5a214c33cb3aa977689c08a26e5"},
-]
-
-[package.dependencies]
-numpy = ">1.16.0"
-pyvista = ">=0.31.0"
-
-[[package]]
 name = "tifffile"
 version = "2023.7.10"
 description = "Read and write TIFF files"
@@ -3648,7 +3474,7 @@ name = "tinycss2"
 version = "1.2.1"
 description = "A tiny CSS parser"
 category = "main"
-optional = true
+optional = false
 python-versions = ">=3.7"
 files = [
     {file = "tinycss2-1.2.1-py3-none-any.whl", hash = "sha256:2b80a96d41e7c3914b8cda8bc7f705a4d9c49275616e886103dd839dfc847847"},
@@ -3679,7 +3505,7 @@ name = "tornado"
 version = "6.3.2"
 description = "Tornado is a Python web framework and asynchronous networking library, originally developed at FriendFeed."
 category = "main"
-optional = true
+optional = false
 python-versions = ">= 3.8"
 files = [
     {file = "tornado-6.3.2-cp38-abi3-macosx_10_9_universal2.whl", hash = "sha256:c367ab6c0393d71171123ca5515c61ff62fe09024fa6bf299cd1339dc9456829"},
@@ -3866,7 +3692,7 @@ name = "webencodings"
 version = "0.5.1"
 description = "Character encoding aliases for legacy web content"
 category = "main"
-optional = true
+optional = false
 python-versions = "*"
 files = [
     {file = "webencodings-0.5.1-py2.py3-none-any.whl", hash = "sha256:a0af1213f3c2226497a97e2b3aa01a7e4bee4f403f95be16fc9acd2947514a78"},
@@ -3968,10 +3794,7 @@ docs = ["Sphinx", "repoze.sphinx.autointerface"]
 test = ["coverage (>=5.0.3)", "zope.event", "zope.testing"]
 testing = ["coverage (>=5.0.3)", "zope.event", "zope.testing"]
 
-[extras]
-docs = ["nbsphinx", "sphinx", "sphinx-gallery", "sphinx-rtd-theme"]
-
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.8,<3.12"
-content-hash = "4648d74120313725e3a71a6cd75acbcbaf82f97e6fdb270e143663d3123de1d1"
+content-hash = "51c4d485d85de2b932302ac37306bca106429f5f9ef7ec6e8ca33a1de5304b4b"
