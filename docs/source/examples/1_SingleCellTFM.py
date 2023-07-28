@@ -1,6 +1,6 @@
 """
 Classic TFM (liver fibroblasts)
-=======================
+===============================
 
 This example evaluates three hepatic stellate cells in 1.2mg/ml collagen with relaxed and deformed stacks. The relaxed stacks were recorded with cytochalasin D treatment of the cells.
 This example can also be evaluated with the graphical user interface.

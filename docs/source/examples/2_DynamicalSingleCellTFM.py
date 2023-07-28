@@ -1,6 +1,6 @@
 """
 Dynamic TFM (immune cells)
-=========================================
+==========================
 
 This example evaluates a single natural killer cell that migrated through 1.2mg/ml collagen, recorded for 24min.
 
@@ -163,7 +163,7 @@ for result in results:
 # +------------------+--------+
 # | element_size     |      4 |
 # +------------------+--------+
-# | mesh_size        | "piv"   |
+# | mesh_size        | "piv"  |
 # +------------------+--------+
 #
 
