@@ -21,7 +21,7 @@ from typing import List
 class SolverMesh(Mesh):
     __save_parameters__ = ["nodes", "tetrahedra", "displacements", "forces",
                            "displacements_fixed", "displacements_target", "displacements_target_mask",
-                           "forces_target", "strain_energy", "movable",
+                           "forces_target", "strain_energy", "movable", "cell_boundary_mask",
                            "regularisation_mask"]
     number_tetrahedra = 0  # the number of tetrahedra
     number_nodes = 0  # the number of vertices
@@ -640,8 +640,8 @@ class Solver(Saveable):
         self.localweight[index & self.mesh.movable] = 1e-10
 
         if self.mesh.cell_boundary_mask is not None:
-            self.localweight[:] = 0.003
-            self.localweight[self.mesh.cell_boundary_mask] = 0
+            self.localweight[:] = 0.03
+            self.localweight[self.mesh.cell_boundary_mask] = 0.003*0.001
 
         self.localweight[~self.mesh.regularisation_mask] = 0
 
@@ -1026,7 +1026,7 @@ def subtract_reference_state(mesh_piv, mode):
     return xpos2
 
 
-def get_cell_boundary(result, channel=1, thershold=20, smooth=2, element_size=14.00e-6):
+def get_cell_boundary(result, channel=1, thershold=20, smooth=2, element_size=14.00e-6, boundary=True, pos=None):
     from scipy.ndimage import gaussian_filter
     import matplotlib.pyplot as plt
     import numpy as np
@@ -1038,7 +1038,12 @@ def get_cell_boundary(result, channel=1, thershold=20, smooth=2, element_size=14
         im = stack_deformed[:, :, 0, :, channel]
         im = gaussian_filter(im, sigma=smooth, truncate=2.0)
 
-        im_thresh = im[:, :, :] > thershold
+        im_thresh = (im[:, :, :] > thershold).astype(np.uint8)
+        from skimage.morphology import erosion
+        if boundary:
+            im_thresh = (im_thresh - erosion(im_thresh)).astype(bool)
+        else:
+            im_thresh = im_thresh.astype(bool)
         du, dv, dw = voxel_size1
 
         u = im_thresh

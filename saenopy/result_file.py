@@ -257,7 +257,7 @@ class Result(Saveable):
                            'solve_parameters', 'solvers',
                            '___save_name__', '___save_version__']
     ___save_name__ = "Result"
-    ___save_version__ = "1.3"
+    ___save_version__ = "1.4"
     output: str = None
     state: False
 
@@ -414,6 +414,19 @@ class Result(Saveable):
             apply_delete(data_dict, renames)
 
             data_dict["___save_version__"] = "1.3"
+        if data_dict["___save_version__"] < "1.4":  # pragma: no cover
+            print(f"convert old version {data_dict['___save_version__']} to 1.4")
+            renames = [
+                dict(old="solvers", new="solvers", renames_child=[
+                    dict(old="mesh", new="mesh", renames_child=[
+                        dict(old="cell_boundary_mask", new="cell_boundary_mask", default=None)
+                    ]),
+                ]),
+            ]
+            apply_rename(data_dict, renames)
+            apply_delete(data_dict, renames)
+
+            data_dict["___save_version__"] = "1.4"
         return super().from_dict(data_dict)
 
     def __init__(self, output=None, template=None, stack=None, time_delta=None, **kwargs):

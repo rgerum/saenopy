@@ -119,6 +119,12 @@ def showVectorField(plotter: QtInteractor, obj: Solver, field: np.ndarray, name:
                 if R.shape[0]:
                     point_cloud2 = pv.PolyData(R)
                     point_cloud2.point_data["nan"] = obj_R[nan_values, 0] * np.nan
+            R = obj_R[nan_values]
+            if name == "forces" and getattr(obj, "cell_boundary_mask", None) is not None:
+                R = obj_R[obj.cell_boundary_mask]
+                if R.shape[0]:
+                    point_cloud2 = pv.PolyData(R)
+                    point_cloud2.point_data["nan"] = R[:, 0] * np.nan
 
             # scalebar scaling factor
             norm_stack_size = np.abs(np.max(obj_R) - np.min(obj_R))
