@@ -24,6 +24,7 @@ extensions = [
     'sphinx.ext.viewcode',
     'nbsphinx',
     'sphinx_gallery.gen_gallery',
+    'sphinxcontrib.jquery',  # to fix read the docs jQuery bug (https://github.com/readthedocs/sphinx_rtd_theme/issues/1452)
 ]
 
 sphinx_gallery_conf = {
