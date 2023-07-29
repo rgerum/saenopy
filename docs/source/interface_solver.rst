@@ -170,3 +170,11 @@ rel_conv_crit
 ~~~~~~~~~~~~~
 The relative convergence criterion. If the standard deviation of the energy of the last 6 iterations divided my the mean
 does not exceed this value, the fitting procedure is considered converged and iterations are stopped.
+
+prev_t_as_start
+~~~~~~~~~~~~~~~
+Optional for time lapse series: If enabled, the deformation field of the previous time step is used as the starting point 
+for the force reconstruction of the following time step. This can be useful for force reconstruction of spheroids and organoids
+ that gradually increase their force over time. Here the option can speed up the convergence process by a factor of 10-50.
+
+
