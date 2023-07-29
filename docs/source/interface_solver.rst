@@ -175,6 +175,6 @@ prev_t_as_start
 ~~~~~~~~~~~~~~~
 Optional for time lapse series: If enabled, the deformation field of the previous time step is used as the starting point 
 for the force reconstruction of the following time step. This can be useful for force reconstruction of spheroids and organoids
- that gradually increase their force over time. Here the option can speed up the convergence process by a factor of 10-50.
+that gradually increase their force over time. Here the option can speed up the convergence process by a factor of 10-50.
 
 
