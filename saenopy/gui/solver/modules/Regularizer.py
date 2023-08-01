@@ -225,7 +225,7 @@ class Regularizer(PipelineModule):
                             colormap2=self.vtk_toolbar.colormap_chooser2.value(),
                             scalebar_max=self.vtk_toolbar.getScaleMax(), show_nan=self.vtk_toolbar.use_nans.value(),
                             display_image=display_image, show_grid=self.vtk_toolbar.show_grid.value(),
-                            stack_shape=stack_shape)
+                            stack_shape=stack_shape, log_scale=self.vtk_toolbar.use_log.value())
             if cam_pos is not None:
                 self.plotter.camera_position = cam_pos
             relrec = getattr(self.result.solvers[self.t_slider.value()], "relrec", None)

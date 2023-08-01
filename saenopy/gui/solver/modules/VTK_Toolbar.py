@@ -1,4 +1,5 @@
 import os
+import numpy as np
 import qtawesome as qta
 from qtpy import QtWidgets
 import pyvista as pv
@@ -95,6 +96,10 @@ class VTK_Toolbar(QtWidgets.QWidget):
                 resource_icon("nan0.ico"),
                 resource_icon("nan1.ico"),
             ], group=False, tooltip="Display nodes which do not have values associated as gray dots.")
+
+            if self.is_force_plot:
+                self.use_log = QtShortCuts.QInputBool(None, "log", tooltip="Display arrow length and color in logarithmic scale.")
+                self.use_log.valueChanged.connect(self.update_display)
 
             self.use_nans.valueChanged.connect(self.update_display)
             self.show_grid = QtShortCuts.QInputBool(None, "", True,
@@ -240,6 +245,8 @@ class VTK_Toolbar(QtWidgets.QWidget):
     def getScaleMax(self):
         if self.auto_scale.value():
             return None
+        if self.is_force_plot and self.use_log.value():
+            return np.log10(self.scale_max.value())
         return self.scale_max.value()
 
     def new_plotter(self, x, no_recursion=False):
