@@ -157,7 +157,7 @@ def render_3d_arrows(params, result, plotter):
         return
 
     show_nan = params["use_nans"]
-    scalebar_max = params_arrows["scale_max"] if params_arrows["autoscale"] else None
+    scalebar_max = params_arrows["scale_max"] if not params_arrows["autoscale"] else None
     colormap = params_arrows["colormap"]
     skip = params_arrows["skip"]
     arrow_opacity = params_arrows["arrow_opacity"]
