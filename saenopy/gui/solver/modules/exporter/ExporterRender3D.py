@@ -141,7 +141,7 @@ def render_3d_arrows(params, result, plotter):
         "arrows",
         ("time", "t"),
         ("deformation_arrows", ("scale_max", "autoscale", "skip", "arrow_opacity", "colormap", "arrow_scale")),
-        ("force_arrows", ("scale_max", "autoscale", "skip", "arrow_opacity", "colormap", "arrow_scale", "use_center")),
+        ("force_arrows", ("scale_max", "autoscale", "skip", "arrow_opacity", "colormap", "arrow_scale", "use_center", "use_log")),
     ]
     params, changed = filter_params(params, used_values, getattr(plotter, "previous_plot_params", {}))
 
@@ -157,7 +157,7 @@ def render_3d_arrows(params, result, plotter):
         return
 
     show_nan = params["use_nans"]
-    scalebar_max = params_arrows["scale_max"] if params_arrows["autoscale"] else None
+    scalebar_max = params_arrows["scale_max"] if not params_arrows["autoscale"] else None
     colormap = params_arrows["colormap"]
     skip = params_arrows["skip"]
     arrow_opacity = params_arrows["arrow_opacity"]
@@ -186,7 +186,14 @@ def render_3d_arrows(params, result, plotter):
             factor = 0.1 * params_arrows["arrow_scale"]
         if name == "forces":
             # scale forces to pN
-            point_cloud.point_data[name + "_mag2"] = 1e12*point_cloud.point_data[name + "_mag"].copy()
+            if params_arrows["use_log"]:
+                if scalebar_max is not None:
+                    scalebar_max = np.log10(scalebar_max)
+                point_cloud.point_data[name + "_mag2"] = np.log10(1e12 * point_cloud.point_data[name + "_mag"].copy())
+                point_cloud.point_data[name + "_mag2"] *= (
+                        point_cloud.point_data[name + "_mag2"] > point_cloud.point_data[name + "_mag2"] * 0.1)
+            else:
+                point_cloud.point_data[name + "_mag2"] = 1e12*point_cloud.point_data[name + "_mag"].copy()
             factor = 0.15 * params_arrows["arrow_scale"]
         # hide nans
         point_cloud.point_data[name + "_mag2"][nan_values] = 0
@@ -235,7 +242,7 @@ def render_3d_arrows(params, result, plotter):
 
     # plot center points if desired
     if params_arrows.get("use_center", False):
-        center = obj.get_center(mode="Force")
+        center = result.solvers[params["time"]["t"]].get_center(mode="Force")
         plotter.add_points(np.array([center])*1e6, color='m', point_size=10, render=False, name="center")
     else:
         plotter.remove_actor("center")

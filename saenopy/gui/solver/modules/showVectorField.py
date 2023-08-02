@@ -72,7 +72,7 @@ def showVectorField2(self, M, points_name):
 
 def showVectorField(plotter: QtInteractor, obj: Solver, field: np.ndarray, name: str, center=None, show_nan=True, stack_shape=None,
                     show_all_points=False, factor=.1, scalebar_max=None, display_image=None, show_grid=True,
-                    colormap="turbo", colormap2=None, stack_min_max=None, arrow_opacity=1, skip=1):
+                    colormap="turbo", colormap2=None, stack_min_max=None, arrow_opacity=1, skip=1, log_scale=False):
     # ensure that the image is either with color channels or no channels
     if (display_image is not None) and (display_image[0].shape[2] == 1):
         display_image[0] = display_image[0][:, :, 0]
@@ -110,7 +110,11 @@ def showVectorField(plotter: QtInteractor, obj: Solver, field: np.ndarray, name:
                   point_cloud.point_data[name + "_mag2"] = 1e6*point_cloud.point_data[name + "_mag"].copy()
             if name == "forces":
                   # scale forces to pN
-                  point_cloud.point_data[name + "_mag2"] = 1e12*point_cloud.point_data[name + "_mag"].copy()
+                  if log_scale:
+                      point_cloud.point_data[name + "_mag2"] = np.log10(1e12*point_cloud.point_data[name + "_mag"].copy())
+                      point_cloud.point_data[name + "_mag2"] *= (point_cloud.point_data[name + "_mag2"] > point_cloud.point_data[name + "_mag2"]*0.1)
+                  else:
+                      point_cloud.point_data[name + "_mag2"] = 1e12 * point_cloud.point_data[name + "_mag"].copy()
             # hide nans
             point_cloud.point_data[name + "_mag2"][nan_values] = 0
             # show nans

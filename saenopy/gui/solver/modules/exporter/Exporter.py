@@ -271,6 +271,7 @@ class ExportViewer(PipelineModule):
                             self.vtk_toolbar2.auto_scale.addToLayout()
                             self.vtk_toolbar2.scale_max.addToLayout()
                             self.vtk_toolbar2.use_center.addToLayout()
+                            self.vtk_toolbar2.use_log.addToLayout()
                             self.input_arrow_opacity2 = QtShortCuts.QInputNumber(None, "opacity", 1, min=0, max=1,
                                                                                 float=True, step=0.1)
                             self.input_arrow_opacity2.valueChanged.connect(self.update_display)
@@ -430,6 +431,7 @@ class ExportViewer(PipelineModule):
                 "autoscale": self.vtk_toolbar2.auto_scale,
                 "scale_max": self.vtk_toolbar2.scale_max,
                 "use_center": self.vtk_toolbar2.use_center,
+                "use_log": self.vtk_toolbar2.use_log,
                 "colormap": self.vtk_toolbar2.colormap_chooser,
                 "arrow_scale": self.vtk_toolbar2.arrow_scale,
                 "arrow_opacity": self.input_arrow_opacity2,
