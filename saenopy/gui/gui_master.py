@@ -4,6 +4,7 @@ import traceback
 from qtpy import QtCore, QtWidgets, QtGui
 import multiprocessing
 # keep import for pyinstaller
+import skimage.exposure.exposure
 import skimage.filters.ridges
 import skimage.filters.thresholding
 
