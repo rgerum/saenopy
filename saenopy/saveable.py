@@ -41,11 +41,11 @@ class Saveable:
 
         if file_format == ".h5py" or file_format == ".h5":  # pragma: no cover
             return dict_to_h5(filename, flatten_dict(data))
-        elif file_format == ".npz" or file_format == ".saenopy":
+        elif file_format == ".npz" or file_format == ".saenopy" or file_format == ".saenopy2D":
             #np.savez(filename, **data)
             np.lib.npyio._savez(filename, [], flatten_dict(data), True, allow_pickle=False)
             import shutil
-            if file_format == ".saenopy":
+            if file_format == ".saenopy" or file_format == ".saenopy2D":
                 shutil.move(filename+".npz", filename)
         else:
             raise ValueError("format not supported")
@@ -87,7 +87,7 @@ class Saveable:
             import h5py
             data = h5py.File(filename, "a")
             result = cls.from_dict(unflatten_dict_h5(data))
-        elif file_format == ".npz" or file_format == ".saenopy":
+        elif file_format == ".npz" or file_format == ".saenopy" or file_format == ".saenopy2D":
             data = np.load(filename, allow_pickle=False)
 
             result = cls.from_dict(unflatten_dict(data))

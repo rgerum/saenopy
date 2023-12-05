@@ -640,7 +640,7 @@ class Solver(Saveable):
         self.localweight[index & self.mesh.movable] = 1e-10
 
         if self.mesh.cell_boundary_mask is not None:
-            self.localweight[:] = 0.03
+            self.localweight[:] = 0.03*100
             self.localweight[self.mesh.cell_boundary_mask] = 0.003*0.001
 
         self.localweight[~self.mesh.regularisation_mask] = 0

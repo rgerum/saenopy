@@ -46,7 +46,10 @@ def download_files(url, target_folder=None, progress_callback=None):
 def load_example(name, target_folder=None, progress_callback=None, evaluated=False):
     if target_folder is None:
         target_folder = appdirs.user_data_dir("saenopy", "rgerum")
-    example = get_examples()[name]
+    try:
+        example = get_examples()[name]
+    except KeyError:
+        example = get_examples_2D()[name]
     url = example["url"]
     download_files(url, target_folder, progress_callback=progress_callback)
 
@@ -122,5 +125,26 @@ def get_examples():
             "url": "https://github.com/rgerum/saenopy/releases/download/v0.7.4/6_BrightfieldNK92Data.zip",
             "url_evaluated": "https://github.com/rgerum/saenopy/releases/download/v0.7.4/6_BrightfieldNK92Data_evaluated.zip",
             "url_evaluated_file": ["2023_02_14_12_0920_stack.saenopy"],
+        },
+    }
+
+
+def get_examples_2D():
+    example_path = Path(appdirs.user_data_dir("saenopy", "rgerum"))
+    image_path = Path(resource_path("thumbnails"))
+    return {
+        "WTKO": {
+            "desc": "TODO",
+            "img": image_path / "liver_fibroblast_icon.png",
+            "pixel_size": 0.201,
+            "bf": example_path / 'WTKO/*/*_bf_before.tif',
+            "reference": example_path / 'WTKO/*/*_after.tif',
+            "deformed": example_path / 'WTKO/*/[0-9][0-9]_before.tif',
+            "output_path": example_path / 'WTKO/example_output',
+            "piv_parameters": {'window_size': 100, 'overlap': 60, 'std_factor': 15},
+            "force_parameters": {'young': 49000, 'sigma': 0.49, 'h': 300},
+            "url": "https://github.com/rgerum/saenopy/releases/download/v0.7.4/WTKO.zip",
+            "url_evaluated": "https://github.com/rgerum/saenopy/releases/download/v0.7.4/WTKO_evaluated.zip",
+            "url_evaluated_file": ["KO/04_bf_before.saenopy2D", "KO/05_bf_before.saenopy2D", "WT/03_bf_before.saenopy2D", "WT/10_bf_before.saenopy2D"],
         },
     }

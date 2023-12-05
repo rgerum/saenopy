@@ -744,6 +744,35 @@ class QTabWidget(QtWidgets.QTabWidget):
         pass
 
 
+class QTabBarWidget(QtWidgets.QTabBar):
+
+    def __init__(self, layout, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if layout is None and current_layout is not None:
+            layout = current_layout
+        layout.addWidget(self)
+        self.widgets = []
+
+
+    def createTab(self, name):
+        tab_stack = QtWidgets.QWidget()
+        self.widgets.append(tab_stack)
+        self.addTab(name)
+        v_layout = QVBoxLayout(tab_stack)
+        return v_layout
+
+    def currentWidget(self):
+        return self.widgets[self.currentIndex()]
+
+    def widget(self, i):
+        return self.widgets[i]
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        pass
+
 class EnterableLayout:
     def __enter__(self):
         global current_layout
