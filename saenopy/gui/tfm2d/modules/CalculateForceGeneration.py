@@ -13,7 +13,10 @@ from pyTFM.TFM_functions import TFM_tractions
 from pyTFM.plotting import show_quiver
 import numpy as np
 from pyTFM.TFM_functions import strain_energy_points, contractillity
-from scipy.ndimage.morphology import binary_fill_holes
+try:
+    from scipy.ndimage import binary_fill_holes
+except ImportError:
+    from scipy.ndimage.morphology import binary_fill_holes
 from pyTFM.grid_setup_solids_py import interpolation # a simple function to resize the mask
 
 

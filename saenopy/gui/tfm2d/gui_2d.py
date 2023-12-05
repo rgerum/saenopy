@@ -5,7 +5,7 @@ from saenopy.gui.common import QtShortCuts
 from saenopy.gui.common.resources import resource_icon
 from saenopy.gui.tfm2d.modules.BatchEvaluate import BatchEvaluate
 
-class MainWindowSolver(QtWidgets.QWidget):
+class MainWindow2D(QtWidgets.QWidget):
 
     def __init__(self, parent=None):
         super().__init__(parent)

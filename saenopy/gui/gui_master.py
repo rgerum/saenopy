@@ -14,6 +14,7 @@ from saenopy.gui.spheroid.gui_deformation_spheroid import MainWindow as Spheroid
 from saenopy.gui.orientation.gui_orientation import MainWindow as OrientationMain
 from saenopy.gui.code.gui_code import MainWindowCode
 from saenopy.gui.material_fit.gui_fit import MainWindowFit
+from saenopy.gui.tfm2d.gui_2d import MainWindow2D
 from saenopy.gui.common.resources import resource_path, resource_icon
 
 
@@ -29,6 +30,8 @@ class InfoBox(QtWidgets.QWidget):
                         self.text = QtWidgets.QLabel("Calculate the forces from a\n3D stack or a series of 3D stacks.").addToLayout()
                     elif name == "Spheroid":
                         self.text = QtWidgets.QLabel("Calculate the forces of\nmulticellular aggregates\nfrom a timeseries of 2D images.").addToLayout()
+                    elif name == "PyTFM":
+                        self.text = QtWidgets.QLabel("Calculate the forces from\n2D images using PyTFM.").addToLayout()
                     else:
                         self.text = QtWidgets.QLabel("Measure the orientations\nof fiberes in 2D images.\n\nAs a proxy for contractility.").addToLayout()
                     self.button1 = QtShortCuts.QPushButton(None, name, func)
@@ -83,6 +86,8 @@ class MainWindow(QtWidgets.QWidget):
                         layout2.addStretch()
                         InfoBox("Orientation", lambda: self.setTab(4)).addToLayout()
                         layout2.addStretch()
+                        InfoBox("PyTFM", lambda: self.setTab(5)).addToLayout()
+                        layout2.addStretch()
                     layout.addStretch()
                 with self.tabs.createTab("Material Fit") as self.layout_code:
                     QtShortCuts.current_layout.setContentsMargins(0, 0, 0, 0)
@@ -97,6 +102,9 @@ class MainWindow(QtWidgets.QWidget):
                 with self.tabs.createTab("Orientation") as self.layout_orientation:
                     QtShortCuts.current_layout.setContentsMargins(0, 0, 0, 0)
 
+                with self.tabs.createTab("PyTFM") as self.layout_orientation:
+                    QtShortCuts.current_layout.setContentsMargins(0, 0, 0, 0)
+
                 with self.tabs.createTab("Code") as self.layout_code:
                     QtShortCuts.current_layout.setContentsMargins(0, 0, 0, 0)
                     self.coder = MainWindowCode().addToLayout()
@@ -108,6 +116,7 @@ class MainWindow(QtWidgets.QWidget):
     solver = None
     spheroid = None
     orientation = None
+    pytfm2d = None
     def changedTab(self, value):
         if self.first_tab_change is False:
             self.settings.setValue("master_tab", value)
@@ -122,6 +131,10 @@ class MainWindow(QtWidgets.QWidget):
             self.setMinimumHeight(900)
         if value == 4 and self.orientation is None:  # pragma: no cover
             self.orientation = OrientationMain().addToLayout(self.layout_orientation)
+            self.setMinimumWidth(1600)
+            self.setMinimumHeight(900)
+        if value == 5 and self.pytfm2d is None:  # pragma: no cover
+            self.pytfm2d = MainWindow2D().addToLayout(self.layout_orientation)
             self.setMinimumWidth(1600)
             self.setMinimumHeight(900)
 
