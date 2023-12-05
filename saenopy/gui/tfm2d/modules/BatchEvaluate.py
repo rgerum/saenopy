@@ -151,8 +151,12 @@ class BatchEvaluate(QtWidgets.QWidget):
             self.tabs.setTabEnabled(i, False)
 
     def on_mask_drawn(self):
-        if self.result:
-            self.result.mask = self.draw.get_image()
+        try:
+            result = self.list.data[self.list.currentRow()][2]
+        except IndexError:
+            return
+        if result:
+            result.mask = self.draw.get_image()
 
     def copy_params(self):
         result = self.list.data[self.list.currentRow()][2]
