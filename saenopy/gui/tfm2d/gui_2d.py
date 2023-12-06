@@ -33,7 +33,7 @@ if __name__ == '__main__':  # pragma: no cover
         myappid = 'fabrylab.saenopy.master'  # arbitrary string
         ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
     print(sys.argv)
-    window = MainWindowSolver()
+    window = MainWindow2D()
     window.setMinimumWidth(1600)
     window.setMinimumHeight(900)
     window.setWindowTitle("Saenopy Viewer")

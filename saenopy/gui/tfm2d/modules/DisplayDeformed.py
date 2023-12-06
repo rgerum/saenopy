@@ -6,7 +6,8 @@ from saenopy.gui.common import QtShortCuts, QExtendedGraphicsView
 from pyTFM.frame_shift_correction import correct_stage_drift
 from .result import Result2D
 from pathlib import Path
-
+from saenopy.gui.solver.modules.code_export import get_code
+from typing import List, Tuple
 
 class DeformationDetector2(PipelineModule):
 
@@ -40,3 +41,23 @@ class DeformationDetector2(PipelineModule):
 
         b_save.save(result.input_corrected)
         a_save.save(result.reference_stack_corrected)
+
+    def get_code(self) -> Tuple[str, str]:
+        import_code = "from pyTFM.frame_shift_correction import correct_stage_drift\n"
+
+        results = []
+        def code():  # pragma: no cover
+            # iterate over all the results objects
+            for result in results:
+                # make the drift correction
+                b_save, a_save, [], drift = correct_stage_drift(result.get_image(1, corrected=False),
+                                                                result.get_image(0, corrected=False))
+
+                b_save.save(result.input_corrected)
+                a_save.save(result.reference_stack_corrected)
+
+        data = {}
+
+        code = get_code(code, data)
+
+        return import_code, code

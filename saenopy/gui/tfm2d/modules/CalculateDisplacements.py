@@ -13,6 +13,8 @@ from .result import Result2D
 from pyTFM.TFM_functions import calculate_deformation
 from pyTFM.plotting import show_quiver
 from pyTFM.frame_shift_correction import correct_stage_drift
+from saenopy.gui.solver.modules.code_export import get_code
+from typing import List, Tuple
 
 
 class DeformationDetector3(PipelineModule):
@@ -87,3 +89,34 @@ class DeformationDetector3(PipelineModule):
         print(mask_val)
         fig1, ax = show_quiver(u, v, cbar_str="deformations\n[pixels]")
         plt.savefig("deformation.png")
+
+    def get_code(self) -> Tuple[str, str]:
+        import_code = "from pyTFM.TFM_functions import calculate_deformation\n"
+
+        results = []
+        def code(my_piv_params):  # pragma: no cover
+            # define the parameters for the piv deformation detection
+            piv_parameters = my_piv_params
+
+            # iterate over all the results objects
+            for result in results:
+                # set the parameters
+                result.piv_parameters = piv_parameters
+
+                # calculate the deformation between the two images
+                u, v, mask_val, mask_std = calculate_deformation(result.get_image(1), result.get_image(0),
+                                                                 window_size=piv_parameters["window_size"],
+                                                                 overlap=piv_parameters["overlap"],
+                                                                 std_factor=piv_parameters["std_factor"])
+                result.u = -u
+                result.v = v
+                result.mask_val = mask_val
+                result.mask_std = mask_std
+
+        data = {
+            "my_piv_params": self.result.piv_parameters_tmp
+        }
+
+        code = get_code(code, data)
+
+        return import_code, code

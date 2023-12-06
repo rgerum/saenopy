@@ -4,6 +4,7 @@ from saenopy.saveable import Saveable
 import numpy as np
 from tifffile import imread
 from pyTFM.plotting import show_quiver
+from saenopy.result_file import make_path_absolute
 
 
 class Result2D(Saveable):
@@ -106,6 +107,16 @@ class Result2D(Saveable):
             file_name = self.output
         Path(self.output).parent.mkdir(exist_ok=True, parents=True)
         super().save(file_name)
+
+    def get_absolute_path(self):
+        return make_path_absolute(self.input_corrected, Path(self.output).parent)
+
+    def get_absolute_path_reference(self):
+        return make_path_absolute(self.reference_stack, Path(self.output).parent)
+
+    def get_absolute_path_bf(self):
+        return make_path_absolute(self.bf, Path(self.output).parent)
+
 
 
 def fig_to_numpy(fig1, shape):

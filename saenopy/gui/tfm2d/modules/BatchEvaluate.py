@@ -223,9 +223,9 @@ class BatchEvaluate(QtWidgets.QWidget):
             if not new_path.endswith(".py"):
                 new_path += ".py"
 
-            import_code = ""
+            import_code = "import numpy as np\n"
             run_code = ""
-            for module in [self.sub_module_stacks, self.sub_module_deformation, self.sub_module_mesh, self.sub_module_regularize]:
+            for module in [self.sub_bf, self.sub_draw2, self.sub_draw3, self.sub_force]:
                 code1, code2 = module.get_code()
                 import_code += code1
                 run_code += code2 +"\n"

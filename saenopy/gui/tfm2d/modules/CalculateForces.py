@@ -12,6 +12,8 @@ from .result import Result2D
 from pyTFM.TFM_functions import TFM_tractions
 from pyTFM.plotting import show_quiver
 import numpy as np
+from saenopy.gui.solver.modules.code_export import get_code
+from typing import List, Tuple
 
 
 class Force(PipelineModule):
@@ -88,3 +90,36 @@ class Force(PipelineModule):
         result.save()
         fig2, ax = show_quiver(tx, ty, cbar_str="tractions\n[Pa]")
         plt.savefig("force.png")
+
+    def get_code(self) -> Tuple[str, str]:
+        import_code = "from pyTFM.TFM_functions import TFM_tractions\n"
+
+        results = []
+        def code(my_force_parameters):  # pragma: no cover
+            # define the parameters for the piv deformation detection
+            force_parameters = my_force_parameters
+
+            # iterate over all the results objects
+            for result in results:
+                # set the parameters
+                result.piv_parameters = force_parameters
+
+                ps1 = result.pixel_size  # pixel size of the image of the beads
+                # dimensions of the image of the beads
+                im1_shape = result.shape
+                ps2 = ps1 * np.mean(
+                    np.array(im1_shape) / np.array(result.u.shape))  # pixel size of the deformation field
+                tx, ty = TFM_tractions(result.u, result.v, pixelsize1=ps1, pixelsize2=ps2,
+                                       h=force_parameters["h"], young=force_parameters["young"],
+                                       sigma=force_parameters["sigma"])
+
+                result.tx = tx
+                result.ty = ty
+
+        data = {
+            "my_force_parameters": self.result.force_parameters_tmp
+        }
+
+        code = get_code(code, data)
+
+        return import_code, code
