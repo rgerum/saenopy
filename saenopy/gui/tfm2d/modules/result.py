@@ -5,13 +5,16 @@ import numpy as np
 from tifffile import imread
 from pyTFM.plotting import show_quiver
 from saenopy.result_file import make_path_absolute
+from .draw import get_mask_using_gui
+from pyTFM.plotting import plot_continuous_boundary_stresses
 
 
 class Result2D(Saveable):
     __save_parameters__ = ['bf', 'input', 'reference_stack', 'output', 'pixel_size', 'u', 'v', 'mask_val', 'mask_std',
                            'tx', 'ty', 'fx', 'fy',
-                           'shape', 'mask',
+                           'shape', 'mask', 'res_dict',
                            'piv_parameters', 'force_parameters',
+                           'borders_inter_shape', 'borders_edge_lines', 'lt', 'min_v', 'max_v',
                            '___save_name__', '___save_version__']
     ___save_name__ = "Result2D"
     ___save_version__ = "1.0"
@@ -41,9 +44,17 @@ class Result2D(Saveable):
     shape: tuple = None
     mask: np.ndarray = None
 
+    res_dict: dict = None
+
     im_displacement: np.ndarray = None
     im_force: np.ndarray = None
     im_tension: np.ndarray = None
+
+    borders_inter_shape: tuple = None
+    borders_edge_lines: list = None
+    lt: dict = None
+    min_v: float = None
+    max_v: float = None
 
     def __init__(self, output, bf, input, reference_stack, pixel_size, **kwargs):
         self.bf = bf
@@ -51,6 +62,9 @@ class Result2D(Saveable):
         self.reference_stack = reference_stack
         self.pixel_size = pixel_size
         self.output = output
+        if "res_dict" not in kwargs:
+            kwargs["res_dict"] = {}
+        self.res_dict = {}
 
         path_b = Path(self.input)
         path_a = Path(self.reference_stack)
@@ -74,7 +88,6 @@ class Result2D(Saveable):
                     im = imread(self.input)
             else:
                 im = imread(self.input)
-            print(im.shape, self.input)
         elif index == -1:
             im = imread(self.bf)
         else:
@@ -85,7 +98,6 @@ class Result2D(Saveable):
                     im = imread(self.reference_stack)
             else:
                 im = imread(self.reference_stack)
-            print(im.shape, self.reference_stack)
         if self.shape is None:
             self.shape = im.shape
         return im
@@ -102,11 +114,23 @@ class Result2D(Saveable):
             self.im_force = fig_to_numpy(fig1, self.shape)
         return self.im_force
 
+    def get_line_tensions(self):
+        if self.im_tension is None:
+            fig3, ax = plot_continuous_boundary_stresses([self.borders_inter_shape, self.borders_edge_lines, self.lt, self.min_v, self.max_v],
+                                                         cbar_style="outside")
+            self.im_tension = fig_to_numpy(fig3, self.shape)
+        return self.im_tension
+
     def save(self, file_name=None):
         if file_name is None:
             file_name = self.output
         Path(self.output).parent.mkdir(exist_ok=True, parents=True)
         super().save(file_name)
+
+    def get_mask(self):
+        if self.mask is None:
+            self.mask = get_mask_using_gui(self.bf)
+        return self.mask
 
     def get_absolute_path(self):
         return make_path_absolute(self.input_corrected, Path(self.output).parent)
@@ -182,11 +206,6 @@ def get_stacks2D(output_path, bf_stack, active_stack, reference_stack, pixel_siz
                 results.append(data)
                 continue
 
-        print("output", output)
-        print("im0", im0)
-        print("im1", im1)
-        print("im2", im2)
-        print("pixel_size", pixel_size)
         data = Result2D(
             output=str(output),
             bf=str(im0),

@@ -131,7 +131,8 @@ class BatchEvaluate(QtWidgets.QWidget):
                     self.button_start_all = QtShortCuts.QPushButton(None, "run all", self.run_all)
                     with QtShortCuts.QHBoxLayout():
                         self.button_code = QtShortCuts.QPushButton(None, "export code", self.generate_code)
-                        self.button_export = QtShortCuts.QPushButton(None, "export images", lambda x: self.sub_module_export.export_window.show())
+                        self.button_excel = QtShortCuts.QPushButton(None, "export data", self.generate_data)
+                        #self.button_export = QtShortCuts.QPushButton(None, "export images", lambda x: self.sub_module_export.export_window.show())
 
         self.data = []
         self.list.setData(self.data)
@@ -149,6 +150,63 @@ class BatchEvaluate(QtWidgets.QWidget):
         # disable all tabs
         for i in range(self.tabs.count()-1, -1, -1):
             self.tabs.setTabEnabled(i, False)
+
+    def generate_data(self):
+        new_path = QtWidgets.QFileDialog.getSaveFileName(None, "Save Data CSV", os.getcwd(),
+                                                         "Comma Separated File (*.csv)")
+        if not new_path:
+            return None
+        # ensure filename ends in .py
+        if not new_path.endswith(".csv"):
+            new_path += ".csv"
+
+        key_units = {
+            "filename": "",
+            "area Cell Area": "m2",
+            "cell number": "",
+            "center of object": "",
+
+            "mean normal stress Cell Area": "N/m",
+            "max normal stress Cell Area": "N/m",
+            "max shear stress Cell Area": "N/m",
+            "cv mean normal stress Cell Area": "0.308",
+            "cv max normal stress Cell Area": "0.267",
+            "cv max shear stress Cell Area": "0.6",
+
+            "average magnitude line tension": "N/m",
+            "std magnitude line tension": "",
+            "average normal line tension": "N/m",
+            "std normal line tension": "",
+            "average shear line tension": "N/m",
+            "std shear line tension": "",
+
+            "average cell force": "N/m",
+            "average cell pressure": "N/m",
+            "average cell shear": "N/m",
+            "std cell force": "",
+            "std cell pressure": "",
+            "std cell shear": "",
+
+            "contractility": "N",
+            "area Traction Area": "m2",
+            "strain energy": "J",
+        }
+        data = ""
+        data += ",".join(key_units.keys())
+        data += "\n"
+        data += ",".join(key_units.values())
+        data += "\n"
+        for row in self.list.data:
+            result = row[2]
+            if result is None:
+                continue
+            data += result.bf
+            data += ",".join([str(result.res_dict.get(key, "")) for key in key_units.keys()])
+            data += "\n"
+            print(result.res_dict)
+        with open("data.csv", "w") as f:
+            f.write(data)
+        print(data)
 
     def on_mask_drawn(self):
         try:
@@ -185,9 +243,7 @@ class BatchEvaluate(QtWidgets.QWidget):
         try:
             data = json.loads(text)
             if "piv_parameters" in data and \
-                "mesh_parameters" in data and \
-                "material_parameters" in data and \
-                "solve_parameters" in data:
+                "force_parameters" in data:
                 return True
         except (ValueError, TypeError):
             return False
@@ -201,7 +257,7 @@ class BatchEvaluate(QtWidgets.QWidget):
         except ValueError:
             return False
         result = self.list.data[self.list.currentRow()][2]
-        params = ["piv_parameters", "mesh_parameters", "material_parameters", "solve_parameters"]
+        params = ["piv_parameters", "force_parameters"]
         for par in params:
             if par in data:
                 setattr(result, par+"_tmp", data[par])
@@ -217,6 +273,10 @@ class BatchEvaluate(QtWidgets.QWidget):
         self.progressbar.setValue(n)
 
     def generate_code(self):
+        try:
+            result = self.list.data[self.list.currentRow()][2]
+        except IndexError:
+            return
         new_path = QtWidgets.QFileDialog.getSaveFileName(None, "Save Session as Script", os.getcwd(), "Python File (*.py)")
         if new_path:
             # ensure filename ends in .py
@@ -225,7 +285,7 @@ class BatchEvaluate(QtWidgets.QWidget):
 
             import_code = "import numpy as np\n"
             run_code = ""
-            for module in [self.sub_bf, self.sub_draw2, self.sub_draw3, self.sub_force]:
+            for module in [self.sub_bf, self.sub_draw2, self.sub_draw3, self.sub_force, self.sub_force_gen, self.sub_stress]:
                 code1, code2 = module.get_code()
                 import_code += code1
                 run_code += code2 +"\n"

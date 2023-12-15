@@ -8,6 +8,7 @@ import sys
 import traceback
 from PIL import Image, ImageDraw
 import numpy as np
+import qtawesome as qta
 
 
 class GraphicsItemEventFilter(QtWidgets.QGraphicsItem):
@@ -193,6 +194,42 @@ class DrawWindow(QtWidgets.QWidget):
         return False
 
 
+class MinimalGui(QtWidgets.QWidget):
+    def __init__(self, filename):
+        super().__init__()
+        with QtShortCuts.QVBoxLayout(self) as layout:
+            self.draw = DrawWindow()
+            im = plt.imread(filename)
+            self.draw.setImage(im, shape=im.shape)
+            layout.addWidget(self.draw)
+
+            box = QtWidgets.QGroupBox("painting").addToLayout()
+            with QtShortCuts.QVBoxLayout(box) as layout:
+                self.slider_cursor_width = QtShortCuts.QInputNumber(None, "cursor width", 10, 1, 100, True, float=False)
+                self.slider_cursor_width.valueChanged.connect(lambda x: self.draw.setCursorSize(x))
+                self.slider_cursor_opacity = QtShortCuts.QInputNumber(None, "mask opacity", 0.5, 0, 1, True, float=True)
+                self.slider_cursor_opacity.valueChanged.connect(lambda x: self.draw.setOpacity(x))
+                with QtShortCuts.QHBoxLayout():
+                    self.button_red = QtShortCuts.QPushButton(None, "tractions", lambda x: self.draw.setColor(1),
+                                                              icon=qta.icon("fa5s.circle", color="red"))
+                    self.button_green = QtShortCuts.QPushButton(None, "cell boundary", lambda x: self.draw.setColor(2),
+                                                                icon=qta.icon("fa5s.circle", color="green"))
+
+app = None
+def get_mask_using_gui(filename):
+    global app
+    if app is None:
+        app = QtWidgets.QApplication(sys.argv)
+        if sys.platform.startswith('win'):
+            import ctypes
+            myappid = 'fabrylab.saenopy.master'  # arbitrary string
+            ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
+
+    window = MinimalGui(filename)
+    window.show()
+    res = app.exec_()
+    return window.draw.get_image()
+
 def main():
     app = QtWidgets.QApplication(sys.argv)
     if sys.platform.startswith('win'):
@@ -200,7 +237,7 @@ def main():
         myappid = 'fabrylab.saenopy.master'  # arbitrary string
         ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
 
-    window = DrawWindow()
+    window = MinimalGui("/home/richard/PycharmProjects/pyTFM/example_data_for_pyTFM-master/python_tutorial/04before.tif")
     window.show()
     try:
         import pyi_splash
@@ -228,4 +265,6 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    print(get_mask_using_gui("/home/richard/PycharmProjects/pyTFM/example_data_for_pyTFM-master/python_tutorial/04before.tif"))
+    print(get_mask_using_gui("/home/richard/PycharmProjects/pyTFM/example_data_for_pyTFM-master/clickpoints_tutorial/KO_analyzed/05bf_before.tif"))
+    #main()

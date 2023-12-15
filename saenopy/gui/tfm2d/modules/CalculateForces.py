@@ -77,10 +77,7 @@ class Force(PipelineModule):
         ps1 = result.pixel_size  # pixel size of the image of the beads
         # dimensions of the image of the beads
         im1_shape = result.shape
-        ps2 = ps1 * np.mean(np.array(im1_shape) / np.array(result.u.shape))  # pixel size of of the deformation field
-        young = 49000  # Young's modulus of the substrate in Pa
-        sigma = 0.49  # Poisson's ratio of the substrate
-        h = 300  # height of the substrate in µm, "infinite" is also accepted
+        ps2 = ps1 * np.mean(np.array(im1_shape) / np.array(result.u.shape))  # pixel size of the deformation field
         tx, ty = TFM_tractions(result.u, result.v, pixelsize1=ps1, pixelsize2=ps2,
                                h=force_parameters["h"], young=force_parameters["young"], sigma=force_parameters["sigma"])
 

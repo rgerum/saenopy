@@ -17,7 +17,9 @@ try:
     from scipy.ndimage import binary_fill_holes
 except ImportError:
     from scipy.ndimage.morphology import binary_fill_holes
-from pyTFM.grid_setup_solids_py import interpolation # a simple function to resize the mask
+from pyTFM.grid_setup_solids_py import interpolation  # a simple function to resize the mask
+from saenopy.gui.solver.modules.code_export import get_code
+from typing import List, Tuple
 
 
 class ForceGeneration(PipelineModule):
@@ -58,18 +60,7 @@ class ForceGeneration(PipelineModule):
         return result.tx is not None
 
     def tabChanged(self, tab):
-        if self.tab is not None and self.tab.parent() == tab:
-            if self.check_evaluated(self.result):
-                im = imread(self.result.reference_stack)
-
-                fig1, ax = show_quiver(self.result.tx, self.result.ty, cbar_str="tractions\n[Pa]")
-                ax.set_position([0, 0, 1, 1])
-                fig1.set_dpi(100)
-                fig1.set_size_inches(im.shape[1] / 100, im.shape[0] / 100)
-                plt.savefig("force.png")
-                im = plt.imread("force.png")
-                self.parent.draw.setImage(im*255)
-
+        pass
 
     def process(self, result: Result2D, force_gen_parameters: dict): # type: ignore
         mask = binary_fill_holes(result.mask == 1)  # the mask should be a single patch without holes
@@ -83,24 +74,58 @@ class ForceGeneration(PipelineModule):
         # strain energy:
         # first we calculate a map of strain energy
         energy_points = strain_energy_points(result.u, result.v, result.tx, result.ty, ps1, ps2)  # J/pixel
-        print(energy_points.shape)
-        print("v", result.v.shape)
-        print("u", result.u.shape)
-        print("tx", result.tx.shape)
-        print("ty", result.ty.shape)
-        plt.imsave("strain_energy.png", energy_points)
-        plt.imsave("mask.png", mask)
+        #plt.imsave("strain_energy.png", energy_points)
+        #plt.imsave("mask.png", mask)
         # then we sum all energy points in the area defined by mask
         strain_energy = np.sum(energy_points[mask])  # 2.14*10**-13 J
 
         # contractility
         contractile_force, proj_x, proj_y, center = contractillity(result.tx, result.ty, ps2, mask)  # 2.03*10**-6 N
 
-        print("strain energy", strain_energy)
-        print("contractile force", contractile_force)
-        print("projection", proj_x, proj_y)
-        print("projection", proj_x.shape, np.unique(proj_x), proj_y.shape, np.unique(proj_y))
-        print("center", center)
+        result.res_dict["contractility"] = contractile_force
+        result.res_dict["area Traction Area"] = np.sum(mask) * ((result.pixel_size * 10 ** -6) ** 2)
+        result.res_dict["strain energy"] = strain_energy
+        result.res_dict["center of object"] = center
 
         result.save()
 
+    def get_code(self) -> Tuple[str, str]:
+        import_code = "from pyTFM.TFM_functions import strain_energy_points, contractillity\nfrom scipy.ndimage import binary_fill_holes\nfrom pyTFM.grid_setup_solids_py import interpolation\n"
+
+        results: List[Result2D] = []
+        def code():  # pragma: no cover
+            # iterate over all the results objects
+            for result in results:
+                result.get_mask()
+                mask = binary_fill_holes(result.mask == 1)  # the mask should be a single patch without holes
+                # changing the masks dimensions to fit to the deformation and traction fields
+                mask = interpolation(mask, dims=result.u.shape)
+
+                ps1 = result.pixel_size  # pixel size of the image of the beads
+                # dimensions of the image of the beads
+                ps2 = ps1 * np.mean(
+                    np.array(result.shape) / np.array(result.u.shape))  # pixel size of the deformation field
+
+                # strain energy:
+                # first we calculate a map of strain energy
+                energy_points = strain_energy_points(result.u, result.v, result.tx, result.ty, ps1, ps2)  # J/pixel
+
+                # then we sum all energy points in the area defined by mask
+                strain_energy = np.sum(energy_points[mask])  # 2.14*10**-13 J
+
+                # contractility
+                contractile_force, proj_x, proj_y, center = contractillity(result.tx, result.ty, ps2,
+                                                                           mask)  # 2.03*10**-6 N
+
+                result.res_dict["contractility"] = contractile_force
+                result.res_dict["area Traction Area"] = np.sum(mask) * ((result.pixel_size * 10 ** -6) ** 2)
+                result.res_dict["strain energy"] = strain_energy
+                result.res_dict["center of object"] = center
+
+                result.save()
+
+        data = {}
+
+        code = get_code(code, data)
+
+        return import_code, code
