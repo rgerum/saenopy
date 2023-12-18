@@ -31,6 +31,8 @@ import ctypes
 
 from saenopy.gui.common.gui_classes import QVLine, QHLine
 from .MatplotlibWidget import MatplotlibWidget, NavigationToolbar
+from .helper import kill_thread, execute
+
 
 settings = QtCore.QSettings("Saenopy", "Saenopy")
 

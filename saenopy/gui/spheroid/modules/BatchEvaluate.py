@@ -32,6 +32,7 @@ import ctypes
 from .ListWidget import ListWidget
 from .QSlider import QSlider
 from .AddFilesDialog import AddFilesDialog
+from .helper import kill_thread, execute
 from saenopy.examples import get_examples_spheriod
 from saenopy.gui.spheroid.modules.LookupTable import SelectLookup
 from saenopy.gui.common.gui_classes import QVLine, QHLine, Spoiler, CheckAbleGroup
