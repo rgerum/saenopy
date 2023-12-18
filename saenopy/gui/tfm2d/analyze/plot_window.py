@@ -73,6 +73,7 @@ class PlottingWindow(QtWidgets.QWidget):
         self.current_plot_func = lambda: None
 
         with QtShortCuts.QVBoxLayout(self) as main_layout0:
+         main_layout0.setContentsMargins(0, 0, 0, 0)
          with QtShortCuts.QHBoxLayout() as main_layout00:
              self.button_save = QtShortCuts.QPushButton(None, "save", self.save)
              self.button_load = QtShortCuts.QPushButton(None, "load", self.load)
