@@ -108,6 +108,12 @@ class SemiAffineFiberMaterial(Material, Saveable):
 
     def __init__(self, k, d_0=None, lambda_s=None, d_s=None):
         super().__init__()
+        if d_0 == "None":
+            d_0 = None
+        if lambda_s == "None":
+            lambda_s = None
+        if d_s == "None":
+            d_s = None
         # parameters
         self.k = k
         self.d_0 = d_0 if d_0 is not None and d_0 >= 0 else None
