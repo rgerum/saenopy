@@ -99,21 +99,31 @@ class PlottingWindow(QtWidgets.QWidget):
                     self.setAcceptDrops(True)
 
             with QtShortCuts.QGroupBox(main_layout, "Plot Forces") as (_, layout):
-                self.type = QtShortCuts.QInputChoice(None, "type", "area Cell Area",
-                                                     ["area Cell Area",
+                self.type = QtShortCuts.QInputChoice(None, "type", "area",
+                                                     ["area",
                                                       "cell number",
-                                                      "mean normal stress Cell Area",
-                                                      "max normal stress Cell Area",
-                                                      "max shear stress Cell Area",
-                                                      "cv mean normal stress Cell Area",
-                                                      "cv max normal stress Cell Area",
-                                                      "cv max shear stress Cell Area",
+                                                      "mean normal stress",
+                                                      "max normal stress",
+                                                      "max shear stress",
+                                                      "cv mean normal stress",
+                                                      "cv max normal stress",
+                                                      "cv max shear stress",
                                                       "average magnitude line tension",
                                                       "std magnitude line tension",
                                                       "average normal line tension",
                                                       "std normal line tension",
                                                       "average shear line tension",
                                                       "std shear line tension",
+
+                                                      "average cell force",
+                                                      "average cell pressure",
+                                                      "average cell shear",
+                                                      "std cell force",
+                                                      "std cell pressure",
+                                                      "std cell shear",
+
+                                                      "contractility",
+                                                      "strain energy",
                                                       ])
                 self.type.valueChanged.connect(self.replot)
                 self.agg = QtShortCuts.QInputChoice(None, "aggregate", "mean",
@@ -281,48 +291,72 @@ class PlottingWindow(QtWidgets.QWidget):
         self.current_plot_func = self.barplot
         self.canvas.setActive()
         plt.cla()
-        if self.type.value() == "area Cell Area":
+        if self.type.value() == "area":
             mu_name = 'area Cell Area'
-            y_label = 'area Cell Area'
+            y_label = 'area (m$^2$)'
         elif self.type.value() == "cell number":
             mu_name = 'cell number'
             y_label = 'cell number'
-        elif self.type.value() == "mean normal stress Cell Area":
+        elif self.type.value() == "mean normal stress":
             mu_name = 'mean normal stress Cell Area'
-            y_label = 'mean normal stress Cell Area'
-        elif self.type.value() == "max normal stress Cell Area":
+            y_label = 'mean normal stress (N/m)'
+        elif self.type.value() == "max normal stress":
             mu_name = 'max normal stress Cell Area'
-            y_label = 'max normal stress Cell Area'
-        elif self.type.value() == "max shear stress Cell Area":
+            y_label = 'max normal stress (N/m)'
+        elif self.type.value() == "max shear stress":
             mu_name = 'max shear stress Cell Area'
-            y_label = 'max shear stress Cell Area'
-        elif self.type.value() == "cv mean normal stress Cell Area":
+            y_label = 'max shear stress (N/m)'
+        elif self.type.value() == "cv mean normal stress":
             mu_name = 'cv mean normal stress Cell Area'
-            y_label = 'cv mean normal stress Cell Area'
-        elif self.type.value() == "cv max normal stress Cell Area":
+            y_label = 'cv mean normal stress'
+        elif self.type.value() == "cv max normal stress":
             mu_name = 'cv max normal stress Cell Area'
-            y_label = 'cv max normal stress Cell Area'
-        elif self.type.value() == "cv max shear stress Cell Area":
+            y_label = 'cv max normal stress'
+        elif self.type.value() == "cv max shear stress":
             mu_name = 'cv max shear stress Cell Area'
-            y_label = 'cv max shear stress Cell Area'
+            y_label = 'cv max shear stress'
         elif self.type.value() == "average magnitude line tension":
             mu_name = 'average magnitude line tension'
-            y_label = 'average magnitude line tension'
+            y_label = 'average magnitude line tension (N/m)'
         elif self.type.value() == "std magnitude line tension":
             mu_name = 'std magnitude line tension'
             y_label = 'std magnitude line tension'
         elif self.type.value() == "average normal line tension":
             mu_name = 'average normal line tension'
-            y_label = 'average normal line tension'
+            y_label = 'average normal line tension (N/m)'
         elif self.type.value() == "std normal line tension":
             mu_name = 'std normal line tension'
             y_label = 'std normal line tension'
         elif self.type.value() == "average shear line tension":
             mu_name = 'average shear line tension'
-            y_label = 'average shear line tension'
+            y_label = 'average shear line tension (N/m)'
         elif self.type.value() == "std shear line tension":
             mu_name = 'std shear line tension'
             y_label = 'std shear line tension'
+        elif self.type.value() == "average cell force":
+            mu_name = 'average cell force'
+            y_label = 'average cell force (N/m)'
+        elif self.type.value() == "average cell pressure":
+            mu_name = 'average cell pressure'
+            y_label = 'average cell pressure (N/m)'
+        elif self.type.value() == "average cell shear":
+            mu_name = 'average cell shear'
+            y_label = 'average cell shear (N/m)'
+        elif self.type.value() == "std cell force":
+            mu_name = 'std cell force'
+            y_label = 'std cell force'
+        elif self.type.value() == "std cell pressure":
+            mu_name = 'std cell pressure'
+            y_label = 'std cell pressure'
+        elif self.type.value() == "std cell shear":
+            mu_name = 'std cell shear'
+            y_label = 'std cell shear'
+        elif self.type.value() == "contractility":
+            mu_name = 'contractility'
+            y_label = 'contractility (N)'
+        elif self.type.value() == "strain energy":
+            mu_name = 'strain energy'
+            y_label = 'strain energy (J)'
         elif self.type.value() == "":
             mu_name = ''
             y_label = ''
@@ -335,6 +369,8 @@ class PlottingWindow(QtWidgets.QWidget):
         del res["group"]
         res = res.groupby("filename").agg(self.agg.value())
         res["group"] = res0["group"]
+        if mu_name not in res:
+            res[mu_name] = np.nan
         #index = self.get_comparison_index()
         #res = res[res.index == index]
 

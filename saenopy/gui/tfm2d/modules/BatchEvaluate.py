@@ -169,9 +169,9 @@ class BatchEvaluate(QtWidgets.QWidget):
             "mean normal stress Cell Area": "N/m",
             "max normal stress Cell Area": "N/m",
             "max shear stress Cell Area": "N/m",
-            "cv mean normal stress Cell Area": "0.308",
-            "cv max normal stress Cell Area": "0.267",
-            "cv max shear stress Cell Area": "0.6",
+            "cv mean normal stress Cell Area": "",
+            "cv max normal stress Cell Area": "",
+            "cv max shear stress Cell Area": "",
 
             "average magnitude line tension": "N/m",
             "std magnitude line tension": "",
