@@ -102,7 +102,7 @@ class MainWindow(QtWidgets.QWidget):
                 with self.tabs.createTab("Orientation") as self.layout_orientation:
                     QtShortCuts.current_layout.setContentsMargins(0, 0, 0, 0)
 
-                with self.tabs.createTab("PyTFM") as self.layout_orientation:
+                with self.tabs.createTab("PyTFM") as self.layout_pytfm:
                     QtShortCuts.current_layout.setContentsMargins(0, 0, 0, 0)
 
                 with self.tabs.createTab("Code") as self.layout_code:
@@ -134,7 +134,7 @@ class MainWindow(QtWidgets.QWidget):
             self.setMinimumWidth(1600)
             self.setMinimumHeight(900)
         if value == 5 and self.pytfm2d is None:  # pragma: no cover
-            self.pytfm2d = MainWindow2D().addToLayout(self.layout_orientation)
+            self.pytfm2d = MainWindow2D().addToLayout(self.layout_pytfm)
             self.setMinimumWidth(1600)
             self.setMinimumHeight(900)
 
