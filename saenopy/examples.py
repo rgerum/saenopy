@@ -134,8 +134,8 @@ def get_examples_2D():
     image_path = Path(resource_path("thumbnails"))
     return {
         "WTKO": {
-            "desc": "TODO",
-            "img": image_path / "liver_fibroblast_icon.png",
+            "desc": "This data set contains raw data for 2 types of cell colonies: In one group a critical cytoskeletal protein has been knocked out.",
+            "img": image_path / "pyTFM_WTKO.png",
             "pixel_size": 0.201,
             "bf": example_path / 'WTKO/*/*_bf_before.tif',
             "reference": example_path / 'WTKO/*/*_after.tif',
