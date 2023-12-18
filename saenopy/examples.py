@@ -49,7 +49,10 @@ def load_example(name, target_folder=None, progress_callback=None, evaluated=Fal
     try:
         example = get_examples()[name]
     except KeyError:
-        example = get_examples_2D()[name]
+        try:
+            example = get_examples_2D()[name]
+        except KeyError:
+            example = get_examples_spheriod()[name]
     url = example["url"]
     download_files(url, target_folder, progress_callback=progress_callback)
 
@@ -146,5 +149,24 @@ def get_examples_2D():
             "url": "https://github.com/rgerum/saenopy/releases/download/v0.7.4/WTKO.zip",
             "url_evaluated": "https://github.com/rgerum/saenopy/releases/download/v0.7.4/WTKO_evaluated.zip",
             "url_evaluated_file": ["KO/04_bf_before.saenopy2D", "KO/05_bf_before.saenopy2D", "WT/03_bf_before.saenopy2D", "WT/10_bf_before.saenopy2D"],
+        },
+    }
+
+
+def get_examples_spheriod():
+    example_path = Path(appdirs.user_data_dir("saenopy", "rgerum"))
+    image_path = Path(resource_path("thumbnails"))
+    return {
+        "MCF7-time-lapse": {
+            "desc": "Test data for the spheriod model.",
+            "img": image_path / "MCF7-time-lapse.png",
+            "pixel_size": 0.201,
+            "input": example_path / 'MCF7-time-lapse/20160912-122130_Mic3_rep?_pos*_x0_y0_modeBF_zMinProj.tif',
+            "output_path": example_path / 'MCF7-time-lapse/example_output',
+            "piv_parameters": {'window_size': 100, 'overlap': 60, 'std_factor': 15},
+            "force_parameters": {'young': 49000, 'sigma': 0.49, 'h': 300},
+            "url": "https://github.com/rgerum/saenopy/releases/download/v0.7.4/MCF7-time-lapse.zip",
+            #"url_evaluated": "https://github.com/rgerum/saenopy/releases/download/v0.7.4/MCF7-time-lapse_evaluated.zip",
+            #"url_evaluated_file": ["KO/04_bf_before.saenopy2D", "KO/05_bf_before.saenopy2D", "WT/03_bf_before.saenopy2D", "WT/10_bf_before.saenopy2D"],
         },
     }

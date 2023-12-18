@@ -30,10 +30,10 @@ from pathlib import Path
 import ctypes
 
 
-from .modules.MatplotlibWidget import MatplotlibWidget, NavigationToolbar
-from .analyze.plot_window import PlottingWindow
-from .modules.LookupTable import SelectLookup
-from .modules.BatchEvaluate import BatchEvaluate
+from saenopy.gui.spheroid.modules.MatplotlibWidget import MatplotlibWidget, NavigationToolbar
+from saenopy.gui.spheroid.analyze.plot_window import PlottingWindow
+from saenopy.gui.spheroid.modules.LookupTable import SelectLookup
+from saenopy.gui.spheroid.modules.BatchEvaluate import BatchEvaluate
 from saenopy.gui.common.gui_classes import QVLine, QHLine, Spoiler, CheckAbleGroup
 
 settings = QtCore.QSettings("Saenopy", "Saenopy")
