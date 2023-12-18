@@ -186,6 +186,21 @@ class CalculateStress(PipelineModule):
         result.res_dict["average shear line tension"] = line_tension_sh[1]
         result.res_dict["std shear line tension"] = line_tension_sh[2]
 
+        avg_cell_force = mean_stress_vector_norm(lt, borders, norm_level="cells", vtype="t_vecs",
+                                                 exclude_colony_edge=True)
+        result.res_dict["average cell force"] = avg_cell_force[1]
+        result.res_dict["std cell force"] = avg_cell_force[2]
+
+        avg_cell_pressure = mean_stress_vector_norm(lt, borders, norm_level="cells", vtype="t_normal",
+                                                    exclude_colony_edge=True)
+        result.res_dict["average cell pressure"] = avg_cell_pressure[1]
+        result.res_dict["std cell pressure"] = avg_cell_pressure[2]
+
+        avg_cell_shear = mean_stress_vector_norm(lt, borders, norm_level="cells", vtype="t_shear",
+                                                 exclude_colony_edge=True)
+        result.res_dict["average cell shear"] = avg_cell_shear[1]
+        result.res_dict["std cell shear"] = avg_cell_shear[2]
+
         result.save()
 
     def get_code(self) -> Tuple[str, str]:
@@ -315,6 +330,21 @@ class CalculateStress(PipelineModule):
                                                           exclude_colony_edge=True)
                 result.res_dict["average shear line tension"] = line_tension_sh[1]
                 result.res_dict["std shear line tension"] = line_tension_sh[2]
+
+                avg_cell_force = mean_stress_vector_norm(lt, borders, norm_level="cells", vtype="t_vecs",
+                                                         exclude_colony_edge=True)
+                result.res_dict["average cell force"] = avg_cell_force[1]
+                result.res_dict["std cell force"] = avg_cell_force[2]
+
+                avg_cell_pressure = mean_stress_vector_norm(lt, borders, norm_level="cells", vtype="t_normal",
+                                                            exclude_colony_edge=True)
+                result.res_dict["average cell pressure"] = avg_cell_pressure[1]
+                result.res_dict["std cell pressure"] = avg_cell_pressure[2]
+
+                avg_cell_shear = mean_stress_vector_norm(lt, borders, norm_level="cells", vtype="t_shear",
+                                                         exclude_colony_edge=True)
+                result.res_dict["average cell shear"] = avg_cell_shear[1]
+                result.res_dict["std cell shear"] = avg_cell_shear[2]
 
                 result.save()
 
