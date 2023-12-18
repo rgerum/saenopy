@@ -29,7 +29,7 @@ class AddFilesDialog(QtWidgets.QDialog):
                 with self.tabs.createTab("New Measurement") as self.tab:
                     with QtShortCuts.QHBoxLayout():
                         with QtShortCuts.QVBoxLayout():
-                            label1 = QtWidgets.QLabel("brightfield").addToLayout()
+                            label1 = QtWidgets.QLabel("cell image").addToLayout()
                             self.stack_bf_input = QtShortCuts.QInputFilename(None, None, file_type="Image Files (*.tif)", settings=settings,
                                                                      settings_key="2d/input0", allow_edit=True, existing=True)
                         with QtShortCuts.QVBoxLayout():

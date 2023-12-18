@@ -28,7 +28,7 @@ from saenopy.gui.common.stack_selector_tif import add_last_voxel_size, add_last_
 #from saenopy.gui.solver.modules.exporter.Exporter import ExportViewer
 from .load_measurement_dialog import AddFilesDialog, FileExistsDialog
 from .draw import DrawWindow
-from .DisplayBrightfield import DisplayBrightfield
+from .DisplayCellImage import DisplayCellImage
 from .DisplayRelaxed import DeformationDetector
 from .DisplayDeformed import DeformationDetector2
 from .CalculateDisplacements import DeformationDetector3
@@ -101,7 +101,7 @@ class BatchEvaluate(QtWidgets.QWidget):
                 with QtShortCuts.QVBoxLayout() as layout0:
                     layout0.parent().setMaximumWidth(420)
                     layout0.setContentsMargins(0, 0, 0, 0)
-                    self.sub_bf = DisplayBrightfield(self, layout0)
+                    self.sub_bf = DisplayCellImage(self, layout0)
                     self.sub_draw = DeformationDetector(self, layout0)
                     self.sub_draw2 = DeformationDetector2(self, layout0)
                     self.sub_draw3 = DeformationDetector3(self, layout0)

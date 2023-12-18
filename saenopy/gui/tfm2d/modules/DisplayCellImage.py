@@ -6,12 +6,12 @@ from saenopy.gui.tfm2d.modules.result import Result2D, get_stacks2D
 from pathlib import Path
 
 
-class DisplayBrightfield(PipelineModule):
+class DisplayCellImage(PipelineModule):
 
     def __init__(self, parent=None, layout=None):
         super().__init__(parent, layout)
         self.parent = parent
-        with self.parent.tabs.createTab("Brightfield") as self.tab:
+        with self.parent.tabs.createTab("Cell Image") as self.tab:
             pass
 
     def check_evaluated(self, result):
@@ -27,7 +27,7 @@ class DisplayBrightfield(PipelineModule):
 
 
         def code(output1, bf1, filename1, reference_stack1, pixel_size1, result_file, crop1):  # pragma: no cover
-            # load the bright field, the relaxed and the contracted images
+            # load the cell image, the relaxed and the contracted images
             # use * to load multiple experiments for batch processing
             # load_existing=True allows to load an existing file of these images if it already exists
             results = get_stacks2D(
