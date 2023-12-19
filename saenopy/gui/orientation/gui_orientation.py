@@ -19,6 +19,8 @@ import glob
 import re
 from pathlib import Path
 
+from saenopy.gui.orientation.modules.AddFilesDialog import AddFilesDialog
+from saenopy.examples import get_examples_orientation
 
 
 ################
@@ -381,81 +383,29 @@ class BatchEvaluate(QtWidgets.QWidget):
                 widget.setValue("None")
 
     def show_files(self):
-        from CompactionAnalyzer.CompactionFunctions import generate_lists
 
-        class AddFilesDialog(QtWidgets.QDialog):
-            def __init__(self, parent):
-                super().__init__(parent)
-                self.setWindowTitle("Add Files")
-                with QtShortCuts.QVBoxLayout(self) as layout:
-                    self.label = QtWidgets.QLabel(
-                        "Select two paths as an input wildcard. Use * to specify a placeholder. One should be for the fiber images and one for the cell images.")
-                    layout.addWidget(self.label)
 
-                    self.cellText = QtShortCuts.QInputFilename(None, "Cell Images", file_type="Image (*.tif *.png *.jpg)", settings=settings,
-                                                                settings_key="batch/wildcard_cell", existing=True,
-                                                                allow_edit=True)
-                    self.fiberText = QtShortCuts.QInputFilename(None, "Fiber Images", file_type="Image (*.tif *.png *.jpg)", settings=settings,
-                                                                settings_key="batch/wildcard_fiber", existing=True,
-                                                                allow_edit=True)
-                    self.outputText = QtShortCuts.QInputFolder(None, "output", settings=settings,
-                                                               settings_key="batch/output_folder", allow_edit=True)
-
-                    def changed():
-                        fiber_list_string = os.path.normpath(self.fiberText.value())
-                        cell_list_string = os.path.normpath(self.cellText.value())
-                        output_folder = os.path.normpath(self.outputText.value())
-                        fiber_list, cell_list, out_list = generate_lists(fiber_list_string, cell_list_string,
-                                                                         output_main=output_folder)
-                        if self.fiberText.value() == "" or self.cellText.value() == "":
-                            self.label2.setText("")
-                            self.label2.setStyleSheet("QLabel { color : red; }")
-                            self.button_addList1.setDisabled(True)
-                        elif len(fiber_list) != len(cell_list):
-                            self.label2.setText(f"Warning: {len(fiber_list)} fiber images found and {len(cell_list)} cell images found. Numbers do not match.")
-                            self.label2.setStyleSheet("QLabel { color : red; }")
-                            self.button_addList1.setDisabled(True)
-                        else:
-                            if "*" not in fiber_list_string:
-                                if len(fiber_list) == 0:
-                                    self.label2.setText(f"'Fiber Images' not found")
-                                    self.label2.setStyleSheet("QLabel { color : red; }")
-                                    self.button_addList1.setDisabled(True)
-                                elif len(cell_list) == 0:
-                                    self.label2.setText(f"'Cell Images' not found")
-                                    self.label2.setStyleSheet("QLabel { color : red; }")
-                                    self.button_addList1.setDisabled(True)
-                                else:
-                                    self.label2.setText(f"No * found in 'Fiber Images', will only import a single image.")
-                                    self.label2.setStyleSheet("QLabel { color : orange; }")
-                                    self.button_addList1.setDisabled(False)
-                            else:
-                                self.label2.setText(
-                                    f"{len(fiber_list)} fiber images found and {len(cell_list)} cell images found.")
-                                self.label2.setStyleSheet("QLabel { color : green; }")
-                                self.button_addList1.setDisabled(False)
-                    self.fiberText.line.textChanged.connect(changed)
-                    self.cellText.line.textChanged.connect(changed)
-                    self.label2 = QtWidgets.QLabel()#.addToLayout()
-                    layout.addWidget(self.label2)
-
-                    with QtShortCuts.QHBoxLayout() as layout3:
-                        # self.button_clear = QtShortCuts.QPushButton(None, "clear list", self.clear_files)
-                        layout3.addStretch()
-                        self.button_addList2 = QtShortCuts.QPushButton(None, "cancel", self.reject)
-                        self.button_addList1 = QtShortCuts.QPushButton(None, "ok", self.accept)
-                    changed()
-
-        dialog = AddFilesDialog(self)
+        dialog = AddFilesDialog(self, settings)
         if not dialog.exec():
             return
 
         import glob
         import re
-        fiber_list_string = os.path.normpath(dialog.fiberText.value())
-        cell_list_string = os.path.normpath(dialog.cellText.value())
-        output_folder = os.path.normpath(dialog.outputText.value())
+        if dialog.mode == "new":
+            fiber_list_string = os.path.normpath(dialog.fiberText.value())
+            cell_list_string = os.path.normpath(dialog.cellText.value())
+            output_folder = os.path.normpath(dialog.outputText.value())
+        elif dialog.mode == "example":
+            # get the date from the example referenced by name
+            example = get_examples_orientation()[dialog.mode_data]
+            fiber_list_string = str(example["input_fiber"])
+            cell_list_string = str(example["input_cell"])
+            output_folder = str(example["output_path"])
+            print(fiber_list_string)
+            print(cell_list_string)
+            print(output_folder)
 
+        from CompactionAnalyzer.CompactionFunctions import generate_lists
         fiber_list, cell_list, out_list = generate_lists(fiber_list_string, cell_list_string, output_main=output_folder)
 
         import matplotlib as mpl

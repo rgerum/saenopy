@@ -46,13 +46,13 @@ def download_files(url, target_folder=None, progress_callback=None):
 def load_example(name, target_folder=None, progress_callback=None, evaluated=False):
     if target_folder is None:
         target_folder = appdirs.user_data_dir("saenopy", "rgerum")
-    try:
-        example = get_examples()[name]
-    except KeyError:
-        try:
-            example = get_examples_2D()[name]
-        except KeyError:
-            example = get_examples_spheriod()[name]
+    for ex in [get_examples, get_examples_2D, get_examples_spheriod, get_examples_orientation]:
+        examples = ex()
+        if name in examples:
+            example = examples[name]
+            break
+    else:
+        raise KeyError
     url = example["url"]
     download_files(url, target_folder, progress_callback=progress_callback)
 
@@ -163,9 +163,24 @@ def get_examples_spheriod():
             "pixel_size": 0.201,
             "input": example_path / 'MCF7-time-lapse/20160912-122130_Mic3_rep?_pos*_x0_y0_modeBF_zMinProj.tif',
             "output_path": example_path / 'MCF7-time-lapse/example_output',
-            "piv_parameters": {'window_size': 100, 'overlap': 60, 'std_factor': 15},
-            "force_parameters": {'young': 49000, 'sigma': 0.49, 'h': 300},
             "url": "https://github.com/rgerum/saenopy/releases/download/v0.7.4/MCF7-time-lapse.zip",
+            #"url_evaluated": "https://github.com/rgerum/saenopy/releases/download/v0.7.4/MCF7-time-lapse_evaluated.zip",
+            #"url_evaluated_file": ["KO/04_bf_before.saenopy2D", "KO/05_bf_before.saenopy2D", "WT/03_bf_before.saenopy2D", "WT/10_bf_before.saenopy2D"],
+        },
+    }
+
+def get_examples_orientation():
+    example_path = Path(appdirs.user_data_dir("saenopy", "rgerum"))
+    image_path = Path(resource_path("thumbnails"))
+    return {
+        "CellFibers": {
+            "desc": "Test data for the orientation model.",
+            "img": image_path / "CellFibers.png",
+            "pixel_size": 0.201,
+            "input_cell": example_path / 'CellFibers/Cell_*/C004.tif',
+            "input_fiber": example_path / 'CellFibers/Cell_*/C003.tif',
+            "output_path": example_path / 'CellFibers/example_output',
+            "url": "https://github.com/rgerum/saenopy/releases/download/v0.7.4/CellFibers.zip",
             #"url_evaluated": "https://github.com/rgerum/saenopy/releases/download/v0.7.4/MCF7-time-lapse_evaluated.zip",
             #"url_evaluated_file": ["KO/04_bf_before.saenopy2D", "KO/05_bf_before.saenopy2D", "WT/03_bf_before.saenopy2D", "WT/10_bf_before.saenopy2D"],
         },
