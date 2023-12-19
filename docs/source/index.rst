@@ -9,7 +9,8 @@ Welcome to the SAENOPY Documentation
 SAENOPY is a free open source 3D traction force microscopy software. Its material model is especially well suited for
 tissue-mimicking and typically highly non-linear biopolymer matrices such as collagen, fibrin, or Matrigel.
 
-It features a python package to use in scripts and an extensive graphical user interface.
+It features a python package to use in scripts and an extensive graphical user interface. The userinferface also has
+integrations for spheriods, fiber alignment and 2D traction force microscopy.
 
 This migration immune cell demonstrated what scientific discoveries you can achieve with saenop:
 
@@ -57,6 +58,42 @@ Now you can start the user interface with:
 
     ``saenopy``
 
+Integrations
+------------
+
+Aside from saenopy's main use or 3D traction force microscopy we provide in our interface
+integrations to related methods to asses cellular forces.
+
+Spheroid
+~~~~~~~~
+3D traction force microscopy on multicellular aggregates (so-called spheroids).
+
+https://github.com/christophmark/jointforces
+
+*  Mark C., Grundy T., Strissel P., Böhringer D., Grummel N., Gerum R., Steinwachs J., Hack C., Beckmann M., Eckstein M., Strick R., O'Neill G., Fabry B. (2020)
+   `"Collective forces of tumor spheroids in three-dimensional biopolymer networks" <https://doi.org/10.7554/eLife.51912>`_.
+   In eLife 9:e51912. doi.org/10.7554/eLife.51912
+
+Orientation
+~~~~~~~~~~~
+
+Use fiber alignment as a proxy for force if the material properties are not available.
+
+https://github.com/davidbhr/CompactionAnalyzer
+
+* Böhringer D., Bauer A., Moravec I., Bischof L., Kah D., Mark C., Grundy T.J., Görlach E., O’Neill G.M., Budday S. and Strissel P.L., 2023.
+  `"Fiber alignment in 3D collagen networks as a biophysical marker for cell contractility" <https://doi.org/10.1016/j.matbio.2023.11.004>`_.
+  Matrix Biology, 124, pp.39-48. doi.org/10.1016/j.matbio.2023.11.004
+
+pyTFM
+~~~~~
+Analyze force generation and stresses in cell colonies and confluent cell layers growing on a 2 dimensional surface.
+
+https://github.com/fabrylab/pyTFM
+
+* Bauer A., Prechová M., Fischer L., Thievessen I., Gregor M., & Fabry B. (2021).
+  `"pyTFM: A tool for traction force and monolayer stress microscopy" <https://doi.org/10.1371/journal.pcbi.1008364>`_.
+  PLoS computational biology, 17(6), e1008364. doi.org/10.1371/journal.pcbi.1008364
 
 Citing Saenopy
 --------------

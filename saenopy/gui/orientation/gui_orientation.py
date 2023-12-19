@@ -202,7 +202,7 @@ class BatchEvaluate(QtWidgets.QWidget):
                         with QtShortCuts.QHBoxLayout():
                             self.edge = QtShortCuts.QInputString(None, "edge", "40", type=int, settings=settings, settings_key="orientation/edge", tooltip="How many pixels to cut at the edge of the image.")
                             QtWidgets.QLabel("px").addToLayout()
-                            self.max_dist = QtShortCuts.QInputString(None, "max_dist", "None", type=int, settings=settings, settings_key="orientation/max_dist", tooltip="Optional: specify the maximal distance around the cell center")
+                            self.max_dist = QtShortCuts.QInputString(None, "max_dist", "None", type=int, settings=settings, settings_key="orientation/max_dist", tooltip="Optional: specify the maximal distance around the cell center", none_value=None)
                             QtWidgets.QLabel("px").addToLayout()
 
                         with QtShortCuts.QHBoxLayout():
