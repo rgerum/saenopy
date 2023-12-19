@@ -25,7 +25,8 @@ from .Regularizer import Regularizer
 from .ResultView import ResultView
 from .StackDisplay import StackDisplay
 from saenopy.gui.solver.modules.exporter.Exporter import ExportViewer
-from .load_measurement_dialog import AddFilesDialog, FileExistsDialog
+from .load_measurement_dialog import AddFilesDialog
+from saenopy.gui.common.AddFilesDialog import FileExistsDialog
 from .path_editor import start_path_change
 from saenopy.examples import get_examples
 

@@ -26,7 +26,8 @@ from saenopy.gui.common.stack_selector_tif import add_last_voxel_size, add_last_
 #from .ResultView import ResultView
 #from .StackDisplay import StackDisplay
 #from saenopy.gui.solver.modules.exporter.Exporter import ExportViewer
-from .load_measurement_dialog import AddFilesDialog, FileExistsDialog
+from .load_measurement_dialog import AddFilesDialog
+from saenopy.gui.common.AddFilesDialog import FileExistsDialog
 from .draw import DrawWindow
 from .DisplayCellImage import DisplayCellImage
 from .DisplayRelaxed import DeformationDetector
