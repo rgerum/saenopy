@@ -20,7 +20,7 @@ class MainWindow2D(QtWidgets.QWidget):
             with self.tabs.createTab("Analyse Measurements"):
                 with QtShortCuts.QHBoxLayout():
                     self.deformations = BatchEvaluate(self)
-                    QtShortCuts.current_layout.addWidget(self.deformations)
+                    QtShortCuts.currentLayout().addWidget(self.deformations)
 
             with self.tabs.createTab("Data Analysis"):
                 with QtShortCuts.QHBoxLayout():

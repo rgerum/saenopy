@@ -140,7 +140,7 @@ class MainWindowFit(QtWidgets.QWidget):
                 self.input_params.setDisabled(True)
                 self.input_params.valueChanged.connect(lambda x: self.set_value(x, "params"))
 
-                self.list = ListWidget(QtShortCuts.current_layout, add_item_button="add measurements", color_picker=True)
+                self.list = ListWidget(QtShortCuts.currentLayout(), add_item_button="add measurements", color_picker=True)
                 self.list.addItemClicked.connect(self.add_measurement)
                 self.list.itemSelectionChanged.connect(self.listSelected)
 

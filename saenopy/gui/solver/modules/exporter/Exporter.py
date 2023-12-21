@@ -174,7 +174,7 @@ class ExportViewer(PipelineModule):
                     self.input_use2D = QtShortCuts.QInputBool(None, "", False, icon=["3D", "2D"], group=True)
                     self.input_use2D.valueChanged.connect(self.hide2D)
                     self.input_use2D.valueChanged.connect(self.update_display)
-                    QtShortCuts.current_layout.addStretch()
+                    QtShortCuts.currentLayout().addStretch()
 
                 with QtShortCuts.QGroupBox(None, "image dimensions"):
                     with QtShortCuts.QHBoxLayout():
@@ -216,7 +216,7 @@ class ExportViewer(PipelineModule):
             self.widget_settings.setMaximumWidth(700)
             self.widget_settings.setMinimumWidth(700)
             with QtShortCuts.QVBoxLayout(self.widget_settings):
-                QtShortCuts.current_layout.setContentsMargins(0, 0, 0, 0)
+                QtShortCuts.currentLayout().setContentsMargins(0, 0, 0, 0)
                 with QtShortCuts.QGroupBox(None, "camera") as (self.box_camera, _):
                     with QtShortCuts.QHBoxLayout() as layout:
                         self.input_elevation = QtShortCuts.QInputNumber(None, "elevation", 35, min=-90, max=90, use_slider=True, step=10)
@@ -242,7 +242,7 @@ class ExportViewer(PipelineModule):
                         self.vtk_toolbar.use_nans.addToLayout()
                         self.input_reference_stack = QtShortCuts.QInputBool(None, "show reference stack", False)
                         self.input_reference_stack.valueChanged.connect(self.update_display)
-                        QtShortCuts.current_layout.addStretch()
+                        QtShortCuts.currentLayout().addStretch()
 
                 with QtShortCuts.QHBoxLayout() as layout:
                     self.input_arrows = QtShortCuts.QInputChoice(None, "arrows", "piv", values=["None", "piv", "target deformations", "fitted deformations", "fitted forces"])
@@ -251,7 +251,7 @@ class ExportViewer(PipelineModule):
                     self.input_average_range = QtShortCuts.QInputNumber(None, "averaging z thickness", min=0, max=0,
                                                                         step=10)
                     self.input_average_range.valueChanged.connect(self.update_display)
-                    QtShortCuts.current_layout.addStretch()
+                    QtShortCuts.currentLayout().addStretch()
 
                 with QtShortCuts.QHBoxLayout() as layout:
                     with QtShortCuts.QGroupBox(None, "deformation arrows") as (self.box_deformation_arrows, _):
@@ -297,7 +297,7 @@ class ExportViewer(PipelineModule):
                         self.channel_selectB.valueChanged.connect(self.update_display)
                         self.colormap_chooserB = QtShortCuts.QDragableColor("gray").addToLayout()
                         self.colormap_chooserB.valueChanged.connect(self.update_display)
-                        QtShortCuts.current_layout.addStretch()
+                        QtShortCuts.currentLayout().addStretch()
 
                 with QtShortCuts.QGroupBox(None, "scale bar") as (self.box_scalebar, _):
                     with QtShortCuts.QHBoxLayout():
@@ -324,7 +324,7 @@ class ExportViewer(PipelineModule):
 
                 with QtShortCuts.QGroupBox(None, "fiber display") as (self.box_fiberdisplay, _):
                     with QtShortCuts.QVBoxLayout():
-                        QtShortCuts.current_layout.setContentsMargins(0, 0, 0, 0)
+                        QtShortCuts.currentLayout().setContentsMargins(0, 0, 0, 0)
                         self.input_cropx = QtShortCuts.QRangeSlider(None, "crop x", 0, 200)
                         self.input_cropy = QtShortCuts.QRangeSlider(None, "crop y", 0, 200)
                         self.input_cropz = QtShortCuts.QRangeSlider(None, "crop z", 0, 200)
@@ -332,7 +332,7 @@ class ExportViewer(PipelineModule):
                         self.input_cropy.editingFinished.connect(self.update_display)
                         self.input_cropz.editingFinished.connect(self.update_display)
                     with QtShortCuts.QHBoxLayout():
-                        QtShortCuts.current_layout.setContentsMargins(0, 0, 0, 0)
+                        QtShortCuts.currentLayout().setContentsMargins(0, 0, 0, 0)
                         self.channel0_properties = ChannelProperties().addToLayout()
                         self.channel0_properties.valueChanged.connect(self.update_display)
                         self.channel1_properties = ChannelProperties(True).addToLayout()
@@ -391,7 +391,7 @@ class ExportViewer(PipelineModule):
                             self.zscan_steps = QtShortCuts.QInputNumber(None, "steps", 1, float=False)
                 self.render_progress = QtWidgets.QProgressBar().addToLayout()
                 self.render_progress.setRange(0, 100)
-                QtShortCuts.current_layout.addStretch()
+                QtShortCuts.currentLayout().addStretch()
 
         self.parameter_map = {
             "image": {
@@ -948,6 +948,7 @@ app = None
 exporter = None
 def render_image(params, result):
     global app, exporter
+    app = QtWidgets.QApplication.instance()
     if app is None:
         app = QtWidgets.QApplication([])
     if exporter is None:

@@ -30,11 +30,11 @@ class AddFilesDialog(AddFilesDialog):
                         self.reference_choice = QtShortCuts.QInputChoice(None, "Reference", 0, [0, 1],
                                                                          ["difference between time points",
                                                                           "single stack"])
-                        QtShortCuts.current_layout.addStretch()
+                        QtShortCuts.currentLayout().addStretch()
                     with QtShortCuts.QHBoxLayout():
                         with QtShortCuts.QHBoxLayout():
                             with QtShortCuts.QVBoxLayout():
-                                QtShortCuts.current_layout.setContentsMargins(0, 0, 0, 0)
+                                QtShortCuts.currentLayout().setContentsMargins(0, 0, 0, 0)
                                 self.place_holder_widget = QtWidgets.QWidget().addToLayout()
                                 layout_place_holder = QtWidgets.QVBoxLayout(self.place_holder_widget)
                                 layout_place_holder.addStretch()
@@ -44,15 +44,15 @@ class AddFilesDialog(AddFilesDialog):
                                     self.place_holder_widget.setVisible(not self.reference_choice.value())
 
                                 self.reference_choice.valueChanged.connect(ref_changed)
-                                self.stack_reference = StackSelector(QtShortCuts.current_layout, "reference")
+                                self.stack_reference = StackSelector(QtShortCuts.currentLayout(), "reference")
                                 self.stack_reference.glob_string_changed.connect \
                                     (lambda x, y: self.stack_reference_input.setText(y))
                                 self.stack_reference.setVisible(self.reference_choice.value())
 
                                 self.stack_reference_input = QtWidgets.QLineEdit().addToLayout()
                             with QtShortCuts.QVBoxLayout():
-                                QtShortCuts.current_layout.setContentsMargins(0, 0, 0, 0)
-                                self.stack_data = StackSelector(QtShortCuts.current_layout, "active stack(s)",
+                                QtShortCuts.currentLayout().setContentsMargins(0, 0, 0, 0)
+                                self.stack_data = StackSelector(QtShortCuts.currentLayout(), "active stack(s)",
                                                                 self.stack_reference, use_time=True)
                                 self.stack_data.setMinimumWidth(300)
                                 self.stack_reference.setMinimumWidth(300)
@@ -63,13 +63,13 @@ class AddFilesDialog(AddFilesDialog):
                     self.stack_crop = StackSelectorCrop(self.stack_data, self.reference_choice,
                                                         self.stack_reference).addToLayout()
                     self.stack_data.stack_crop = self.stack_crop
-                self.stack_preview = StackPreview(QtShortCuts.current_layout, self.reference_choice,
+                self.stack_preview = StackPreview(QtShortCuts.currentLayout(), self.reference_choice,
                                                   self.stack_reference, self.stack_data)
             self.outputText = QtShortCuts.QInputFolder(None, "output", settings=self.settings,
                                                        settings_key=f"{self.settings_group}/wildcard2", allow_edit=True)
             with QtShortCuts.QHBoxLayout():
                 # self.button_clear = QtShortCuts.QPushButton(None, "clear list", self.clear_files)
-                QtShortCuts.current_layout.addStretch()
+                QtShortCuts.currentLayout().addStretch()
                 self.button_addList00 = QtShortCuts.QPushButton(None, "cancel", self.reject)
 
                 self.button_addList0 = QtShortCuts.QPushButton(None, "ok", self.accept_new)

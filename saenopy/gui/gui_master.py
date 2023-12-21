@@ -90,23 +90,23 @@ class MainWindow(QtWidgets.QWidget):
                         layout2.addStretch()
                     layout.addStretch()
                 with self.tabs.createTab("Material Fit") as self.layout_code:
-                    QtShortCuts.current_layout.setContentsMargins(0, 0, 0, 0)
+                    QtShortCuts.currentLayout().setContentsMargins(0, 0, 0, 0)
                     self.fitter = MainWindowFit().addToLayout()
 
                 with self.tabs.createTab("Solver") as self.layout_solver:
-                    QtShortCuts.current_layout.setContentsMargins(0, 0, 0, 0)
+                    QtShortCuts.currentLayout().setContentsMargins(0, 0, 0, 0)
 
                 with self.tabs.createTab("Spheroid") as self.layout_spheroid:
-                    QtShortCuts.current_layout.setContentsMargins(0, 0, 0, 0)
+                    QtShortCuts.currentLayout().setContentsMargins(0, 0, 0, 0)
 
                 with self.tabs.createTab("Orientation") as self.layout_orientation:
-                    QtShortCuts.current_layout.setContentsMargins(0, 0, 0, 0)
+                    QtShortCuts.currentLayout().setContentsMargins(0, 0, 0, 0)
 
                 with self.tabs.createTab("PyTFM") as self.layout_pytfm:
-                    QtShortCuts.current_layout.setContentsMargins(0, 0, 0, 0)
+                    QtShortCuts.currentLayout().setContentsMargins(0, 0, 0, 0)
 
                 with self.tabs.createTab("Code") as self.layout_code:
-                    QtShortCuts.current_layout.setContentsMargins(0, 0, 0, 0)
+                    QtShortCuts.currentLayout().setContentsMargins(0, 0, 0, 0)
                     self.coder = MainWindowCode().addToLayout()
 
         #self.tabs.setCurrentIndex(self.settings.value("master_tab", 0))

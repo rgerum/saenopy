@@ -1,6 +1,8 @@
 import sys
+import os
 from qtpy import QtCore, QtWidgets, QtGui
 from saenopy.gui.common import QtShortCuts
+import saenopy
 
 
 class AddFilesDialog(QtWidgets.QDialog):
@@ -41,9 +43,9 @@ class AddFilesDialog(QtWidgets.QDialog):
                 for example_name, properties in examples.items():
                     with QtShortCuts.QGroupBox(None, example_name) as group:
                         group[0].setMaximumWidth(240)
-                        label1 = QtWidgets.QLabel(properties["desc"]).addToLayout(QtShortCuts.current_layout)
+                        label1 = QtWidgets.QLabel(properties["desc"]).addToLayout(QtShortCuts.currentLayout())
                         label1.setWordWrap(True)
-                        label = QtWidgets.QLabel().addToLayout(QtShortCuts.current_layout)
+                        label = QtWidgets.QLabel().addToLayout(QtShortCuts.currentLayout())
                         pix = QtGui.QPixmap(str(properties["img"]))
                         pix = pix.scaledToWidth(
                             int(200 * QtGui.QGuiApplication.primaryScreen().logicalDotsPerInch() / 96),
@@ -65,8 +67,8 @@ class AddFilesDialog(QtWidgets.QDialog):
                 lay.addStretch()
 
             self.tab4.addStretch()
-            self.download_state = QtWidgets.QLabel("").addToLayout(QtShortCuts.current_layout)
-            self.download_progress = QtWidgets.QProgressBar().addToLayout(QtShortCuts.current_layout)
+            self.download_state = QtWidgets.QLabel("").addToLayout(QtShortCuts.currentLayout())
+            self.download_progress = QtWidgets.QProgressBar().addToLayout(QtShortCuts.currentLayout())
             self.download_progress.setRange(0, 100)
 
     def __init__(self, parent, settings):
@@ -118,6 +120,30 @@ class AddFilesDialog(QtWidgets.QDialog):
                                     (percent, progress_size / (1024 * 1024), speed, duration))
         self.download_progress.setValue(percent)
 
+
+last_decision = None
+def do_overwrite(filename):
+    global last_decision
+
+    # if we are in demo mode always load the files
+    if os.environ.get("DEMO") == "true":  # pragma: no cover
+        return "read"
+
+    # if there is a last decistion stored use that
+    if last_decision is not None:
+        return last_decision
+
+    # ask the user if they want to overwrite or read the existing file
+    dialog = FileExistsDialog(self, filename)
+    result = dialog.exec()
+    # if the user clicked cancel
+    if not result:
+        return 0
+    # if the user wants to remember the last decision
+    if dialog.use_for_all.value():
+        last_decision = dialog.mode
+    # return the decision
+    return dialog.mode
 
 class FileExistsDialog(QtWidgets.QDialog):
     mode: str = None

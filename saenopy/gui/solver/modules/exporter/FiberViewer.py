@@ -188,7 +188,7 @@ class ChannelProperties(QtWidgets.QWidget):
         super().__init__()
         self.setMaximumHeight(100)
         with QtShortCuts.QHBoxLayout(self) as layout:
-            QtShortCuts.current_layout.setContentsMargins(0, 0, 0, 0)
+            QtShortCuts.currentLayout().setContentsMargins(0, 0, 0, 0)
             with QtShortCuts.QVBoxLayout() as layout:
                 with QtShortCuts.QHBoxLayout() as layout:
                     self.input_show = QtShortCuts.QInputBool(None, "show", True)
@@ -210,7 +210,7 @@ class ChannelProperties(QtWidgets.QWidget):
                     #self.input_alpha2 = QtShortCuts.QInputNumber(None, "alpha2", 0.2491, min=0, max=1, step=0.01)
                     #self.input_alpha3 = QtShortCuts.QInputNumber(None, "alpha3", 1, min=0, max=1, step=0.1)
                     self.input_cmap = QtShortCuts.QDragableColor("pink").addToLayout()
-                QtShortCuts.current_layout.addStretch()
+                QtShortCuts.currentLayout().addStretch()
 
             self.sigmoid = SigmoidWidget().addToLayout()
             self.input_cmap.valueChanged.connect(lambda x: self.sigmoid.p.set_cmap(x))

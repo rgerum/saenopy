@@ -97,7 +97,7 @@ class BatchEvaluate(QtWidgets.QWidget):
                                 self.tab_changed.emit(tab)
                             self.tabs.currentChanged.connect(tab_changed)
                             pass
-                        self.draw = DrawWindow(self, QtShortCuts.current_layout)
+                        self.draw = DrawWindow(self, QtShortCuts.currentLayout())
                         self.draw.signal_mask_drawn.connect(self.on_mask_drawn)
                 with QtShortCuts.QVBoxLayout() as layout0:
                     layout0.parent().setMaximumWidth(420)

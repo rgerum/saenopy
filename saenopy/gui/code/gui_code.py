@@ -54,10 +54,10 @@ class MainWindowCode(QtWidgets.QWidget):
                     self.tabs = QtWidgets.QTabBar().addToLayout()
                     self.tabs.setTabsClosable(True)
                     self.tabs.setMaximumHeight(32)
-                    QtShortCuts.current_layout.addStretch()
-                    QtShortCuts.current_layout.setSpacing(11)
+                    QtShortCuts.currentLayout().addStretch()
+                    QtShortCuts.currentLayout().setSpacing(11)
                 QtShortCuts.QHLine().addToLayout()
-                QtShortCuts.current_layout.setSpacing(0)
+                QtShortCuts.currentLayout().setSpacing(0)
 
             with QtShortCuts.QHBoxLayout():
                 self.input_filename = QtShortCuts.QInputString()

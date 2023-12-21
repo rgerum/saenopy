@@ -237,7 +237,7 @@ class CheckAbleGroup(QtWidgets.QWidget, QtShortCuts.EnterableLayout):
                 headerLine.setFrameShadow(QtWidgets.QFrame.Sunken)
                 headerLine.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Maximum)
 
-                #QtShortCuts.current_layout.addStretch()
+                #QtShortCuts.currentLayout().addStretch()
                 if url is not None:
                     self.label2 = QtWidgets.QPushButton(qta.icon("fa5s.question"), "").addToLayout()
                     self.label2.setToolTip("open the documentation in the browser")

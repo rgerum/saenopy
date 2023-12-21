@@ -26,18 +26,18 @@ import matplotlib as mpl
 import numpy as np
 from qtpy import QtCore, QtGui, QtWidgets
 
-current_layout = None
 
 def setCurrentLayout(layout):
-    global current_layout
-    current_layout = layout
+    app = QtWidgets.QApplication.instance()
+    app.current_layout = layout
 
 def currentLayout():
-    return current_layout
+    app = QtWidgets.QApplication.instance()
+    return getattr(app, 'current_layout', None)
 
 def addToLayout(self, layout=None):
-    if layout is None and current_layout is not None:
-        layout = current_layout
+    if layout is None and currentLayout() is not None:
+        layout = currentLayout()
     layout.addWidget(self)
     return self
 
@@ -71,8 +71,8 @@ class QInput(QtWidgets.QWidget):
         QtWidgets.QHBoxLayout(self)
         self.layout().setContentsMargins(0, 0, 0, 0)
 
-        if layout is None and current_layout is not None:
-            layout = current_layout
+        if layout is None and currentLayout() is not None:
+            layout = currentLayout()
 
         # add me to a parent layout
         if layout is not None:
@@ -699,8 +699,8 @@ class QInputFolder(QInput):
 class QPushButton(QtWidgets.QPushButton):
     def __init__(self, layout, name, connect=None, icon=None, tooltip=None):
         super().__init__(name)
-        if layout is None and current_layout is not None:
-            layout = current_layout
+        if layout is None and currentLayout() is not None:
+            layout = currentLayout()
         layout.addWidget(self)
         if connect is not None:
             self.clicked.connect(connect)
@@ -712,8 +712,8 @@ class QPushButton(QtWidgets.QPushButton):
 class QGroupBox(QtWidgets.QGroupBox):
     def __init__(self, layout, name):
         super().__init__(name)
-        if layout is None and current_layout is not None:
-            layout = current_layout
+        if layout is None and currentLayout() is not None:
+            layout = currentLayout()
         layout.addWidget(self)
         self.layout = QVBoxLayout(self)
 
@@ -727,8 +727,8 @@ class QTabWidget(QtWidgets.QTabWidget):
 
     def __init__(self, layout, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        if layout is None and current_layout is not None:
-            layout = current_layout
+        if layout is None and currentLayout() is not None:
+            layout = currentLayout()
         layout.addWidget(self)
 
     def createTab(self, name):
@@ -748,8 +748,8 @@ class QTabBarWidget(QtWidgets.QTabBar):
 
     def __init__(self, layout, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        if layout is None and current_layout is not None:
-            layout = current_layout
+        if layout is None and currentLayout() is not None:
+            layout = currentLayout()
         layout.addWidget(self)
         self.widgets = []
 
@@ -775,20 +775,18 @@ class QTabBarWidget(QtWidgets.QTabBar):
 
 class EnterableLayout:
     def __enter__(self):
-        global current_layout
-        self.old_layout = current_layout
-        current_layout = self.layout
+        self.old_layout = currentLayout()
+        setCurrentLayout(self.layout)
         return self.layout
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        global current_layout
-        current_layout = self.old_layout
+        setCurrentLayout(self.old_layout)
 
 
 class QVBoxLayout(QtWidgets.QVBoxLayout, EnterableLayout):
     def __init__(self, parent=None, no_margins=False):
-        if parent is None and current_layout is not None:
-            parent = current_layout
+        if parent is None and currentLayout() is not None:
+            parent = currentLayout()
         if getattr(parent, "addLayout", None) is None:
             super().__init__(parent)
         else:
@@ -801,8 +799,8 @@ class QVBoxLayout(QtWidgets.QVBoxLayout, EnterableLayout):
 
 class QHBoxLayout(QtWidgets.QHBoxLayout, EnterableLayout):
     def __init__(self, parent=None, no_margins=False):
-        if parent is None and current_layout is not None:
-            parent = current_layout
+        if parent is None and currentLayout() is not None:
+            parent = currentLayout()
         if getattr(parent, "addLayout", None) is None:#isinstance(parent, QtWidgets.QWidget):
             super().__init__(parent)
         else:
@@ -818,8 +816,8 @@ def QVLine(layout=None):
     line.setFrameShape(QtWidgets.QFrame.VLine)
     line.setFrameShadow(QtWidgets.QFrame.Sunken)
 
-    if current_layout is not None:
-        current_layout.addWidget(line)
+    if currentLayout() is not None:
+        currentLayout().addWidget(line)
     else:
         layout.addWidget(line)
     return line
@@ -830,8 +828,8 @@ def QHLine(layout=None):
     line.setFrameShape(QtWidgets.QFrame.HLine)
     line.setFrameShadow(QtWidgets.QFrame.Sunken)
 
-    if current_layout is not None:
-        current_layout.addWidget(line)
+    if currentLayout() is not None:
+        currentLayout().addWidget(line)
     else:
         layout.addWidget(line)
     return line
@@ -840,8 +838,8 @@ def QHLine(layout=None):
 class QSplitter(QtWidgets.QSplitter, EnterableLayout):
     def __init__(self, *args):
         super().__init__(*args)
-        if current_layout is not None:
-            current_layout.addWidget(self)
+        if currentLayout() is not None:
+            currentLayout().addWidget(self)
         self.layout = self
         self.widgets = []
 

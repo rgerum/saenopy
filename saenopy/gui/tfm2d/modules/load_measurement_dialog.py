@@ -46,12 +46,12 @@ class AddFilesDialog(AddFilesDialog):
                                                                        existing=True)
             self.pixel_size = QtShortCuts.QInputString(None, "pixel size", 0.201, settings=self.settings,
                                                        settings_key=f"{self.settings_group}/pixel_size", allow_none=False, type=float)
-            QtShortCuts.current_layout.addStretch()
+            QtShortCuts.currentLayout().addStretch()
             self.outputText = QtShortCuts.QInputFolder(None, "output", settings=self.settings,
                                                        settings_key=f"{self.settings_group}/wildcard", allow_edit=True)
             with QtShortCuts.QHBoxLayout():
                 # self.button_clear = QtShortCuts.QPushButton(None, "clear list", self.clear_files)
-                QtShortCuts.current_layout.addStretch()
+                QtShortCuts.currentLayout().addStretch()
                 self.button_addList00 = QtShortCuts.QPushButton(None, "cancel", self.reject)
 
                 self.button_addList0 = QtShortCuts.QPushButton(None, "ok", self.accept_new)

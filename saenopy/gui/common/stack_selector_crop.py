@@ -90,7 +90,7 @@ class StackSelectorCrop(QtWidgets.QWidget):
                 self.input_cropz.setDisabled(True)
                 self.input_voxel_size.setDisabled(True)
 
-                QtShortCuts.current_layout.addStretch()
+                QtShortCuts.currentLayout().addStretch()
 
             with QtShortCuts.QVBoxLayout():
                 with QtShortCuts.QHBoxLayout():
@@ -108,7 +108,7 @@ class StackSelectorCrop(QtWidgets.QWidget):
                 self.input_cropt.setValue((0, 1))
                 self.input_cropt.valueChanged.connect(self.z_moved)
                 self.input_t_label = QtWidgets.QLabel().addToLayout()
-                QtShortCuts.current_layout.addStretch()
+                QtShortCuts.currentLayout().addStretch()
 
                 self.input_cropt.setDisabled(True)
                 self.input_tbar_unit.setDisabled(True)
