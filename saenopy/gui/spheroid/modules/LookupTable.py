@@ -252,8 +252,8 @@ class LookupTableGenerator(QtWidgets.QDialog):
                     self.x1 = QtShortCuts.QInputString(layout2, "x1", "50", type=float)
                     self.n = QtShortCuts.QInputString(layout2, "n", "100", type=int)
 
-                self.lookup_table = QtShortCuts.QInputFilename(layout, "Output Lookup Table", 'lookup_example.pkl',
-                                                               file_type="Pickle Lookup Table (*.pkl)")
+                self.lookup_table = QtShortCuts.QInputFilename(layout, "Output Lookup Table", 'lookup_example.npy',
+                                                               file_type="Numpy File (*.npy)")
 
                 with QtShortCuts.QHBoxLayout(layout) as layout2:
                     layout2.addStretch()
@@ -291,12 +291,16 @@ class LookupTableGenerator(QtWidgets.QDialog):
             """.strip())
 
     def run(self):
-        lookup_table = jf.simulation.create_lookup_table_solver(str(self.output.value()),
+        filename = str(self.output.value())
+        if not filename.endswith(".npy"):
+            filename = filename + ".npy"
+        lookup_table = jf.simulation.create_lookup_table_solver(filename,
                                                                 x0=self.x0.value(),
                                                                 x1=self.x1.value(),
                                                                 n=self.n.value())
-        get_displacement, get_pressure = jf.simulation.create_lookup_functions(lookup_table)
-        jf.simulation.save_lookup_functions(get_displacement, get_pressure, str(self.lookup_table.value()))
+        jf.simulation.save_lookup_table(lookup_table, filename)
+        #get_displacement, get_pressure = jf.simulation.create_lookup_functions(lookup_table)
+        #jf.simulation.save_lookup_functions(get_displacement, get_pressure, str(self.lookup_table.value()))
         self.accept()
 
 class SelectLookup(QtWidgets.QDialog):
@@ -304,7 +308,7 @@ class SelectLookup(QtWidgets.QDialog):
 
     def loadExisting(self):
         last_folder = settings.value("batch", "batch/lookuptable_path")
-        filename = QtWidgets.QFileDialog.getOpenFileName(None, "Open Lookup Table", last_folder, "Pickle Lookup Table (*.pkl)")
+        filename = QtWidgets.QFileDialog.getOpenFileName(None, "Open Lookup Table", last_folder, "Numpy Lookup Table (*.npy);; Pickle Lookup Table (*.pkl)")
         filename = filename[0] if isinstance(filename, tuple) else str(filename) if filename is not None else None
 
         if filename == "":
@@ -333,8 +337,8 @@ class SelectLookup(QtWidgets.QDialog):
                 with QtShortCuts.QVBoxLayout(self):
                     self.label = QtWidgets.QLabel("Interpolate a pre-calculated lookup table to a new Young's Modulus.<br>Note that the poisson ratio for the fiber material model is always 0.25 for the linear case.").addToLayout()
                     self.label = QtWidgets.QLabel("Select a path where to save the Lookup Table.").addToLayout()
-                    self.inputText = QtShortCuts.QInputFilename(None, "Output Lookup Table", 'lookup_example.pkl',
-                                                                file_type="Pickle Lookup Table (*.pkl)",
+                    self.inputText = QtShortCuts.QInputFilename(None, "Output Lookup Table", 'lookup_example.npy',
+                                                                file_type="Numpy Lookup Table (*.npy)",
                                                                 settings=settings,
                                                                 settings_key="batch/lookuptable_path",
                                                                 existing=False)
@@ -345,8 +349,12 @@ class SelectLookup(QtWidgets.QDialog):
                         self.button_run = QtShortCuts.QPushButton(layout2, "generate", self.run_linear)
 
             def run_linear(self):
+                filename = str(self.inputText.value())
+                if not filename.endswith(".npy"):
+                    filename = filename + ".npy"
+                    self.inputText.setValue(filename)
                 jf.simulation.linear_lookup_interpolator(emodulus=self.youngs.value(),
-                                                         output_newtable=str(self.inputText.value()))
+                                                         output_newtable=filename)
                 QtWidgets.QMessageBox.information(self, "Lookup complete",
                                                   f"A lookuptable file for a Young's Modulus {self.youngs.value()} has been written to {self.inputText.value()}.")
                 self.accept()
