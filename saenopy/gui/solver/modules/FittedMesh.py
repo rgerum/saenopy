@@ -5,8 +5,8 @@ from saenopy.gui.common import QtShortCuts
 from saenopy.gui.common.gui_classes import MatplotlibWidget, NavigationToolbar
 from saenopy import Result
 
-from .PipelineModule import PipelineModule
-from .QTimeSlider import QTimeSlider
+from saenopy.gui.common.PipelineModule import PipelineModule
+from saenopy.gui.common.QTimeSlider import QTimeSlider
 from .VTK_Toolbar import VTK_Toolbar
 from .showVectorField import showVectorField2
 from .DeformationDetector import CamPos

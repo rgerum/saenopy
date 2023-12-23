@@ -14,8 +14,8 @@ import time
 from saenopy.gui.common import QtShortCuts
 from saenopy import Result
 
-from saenopy.gui.solver.modules.PipelineModule import PipelineModule
-from saenopy.gui.solver.modules.QTimeSlider import QTimeSlider
+from saenopy.gui.common.PipelineModule import PipelineModule
+from saenopy.gui.common.QTimeSlider import QTimeSlider
 from saenopy.gui.solver.modules.VTK_Toolbar import VTK_Toolbar
 from saenopy.gui.solver.modules.DeformationDetector import CamPos
 from saenopy.gui.common.sigmoid_widget import SigmoidWidget

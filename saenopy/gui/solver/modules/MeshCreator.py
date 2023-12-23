@@ -36,12 +36,12 @@ from saenopy.gui.common.gui_classes import Spoiler, CheckAbleGroup, QHLine, QVLi
 from saenopy.gui.common.stack_selector import StackSelector
 
 
-from .PipelineModule import PipelineModule
-from .QTimeSlider import QTimeSlider
+from saenopy.gui.common.PipelineModule import PipelineModule
+from saenopy.gui.common.QTimeSlider import QTimeSlider
 from .VTK_Toolbar import VTK_Toolbar
 from .showVectorField import showVectorField, showVectorField2
 from .DeformationDetector import CamPos
-from .code_export import get_code
+from saenopy.gui.common.code_export import get_code
 
 class MeshSizeWidget(QtWidgets.QWidget):
     valueChanged = QtCore.Signal(object)

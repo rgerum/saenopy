@@ -1,10 +1,26 @@
 import datetime
 import numpy as np
+from saenopy.gui.spheroid.modules.result import ResultSpheroid
 
+class Mesh2D:
+    pass
 
 def get_mesh_arrows(params, result):
     if params["arrows"] == "piv":
-        if result is not None:
+        if isinstance(result, ResultSpheroid):
+            if result.displacements is not None and params["time"]["t"] > 0:
+                try:
+                    disp = result.displacements[params["time"]["t"]-1]
+                    mesh = Mesh2D()
+                    mesh.units = "pixels"
+                    mesh.nodes = np.array([disp["x"].ravel(), disp["y"].ravel()]).T
+                    mesh.displacements_measured = np.array([disp["u"].ravel(), disp["v"].ravel()]).T
+
+                    if mesh is not None:
+                        return mesh, mesh.displacements_measured, params["deformation_arrows"], "displacements_measured"
+                except IndexError:
+                    pass
+        elif result is not None:
             mesh = result.mesh_piv[params["time"]["t"]]
             if mesh is not None and mesh.displacements_measured is not None:
                 return mesh, mesh.displacements_measured, params["deformation_arrows"], "displacements_measured"

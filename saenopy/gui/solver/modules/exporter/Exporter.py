@@ -20,8 +20,8 @@ from saenopy.gui.solver.modules.exporter.FiberViewer import ChannelProperties
 from saenopy.gui.solver.modules.exporter.ExporterRender3D import render_3d
 from saenopy.gui.solver.modules.exporter.ExporterRender2D import render_2d
 
-from saenopy.gui.solver.modules.PipelineModule import PipelineModule
-from saenopy.gui.solver.modules.QTimeSlider import QTimeSlider
+from saenopy.gui.common.PipelineModule import PipelineModule
+from saenopy.gui.common.QTimeSlider import QTimeSlider
 from saenopy.gui.solver.modules.VTK_Toolbar import VTK_Toolbar
 
 

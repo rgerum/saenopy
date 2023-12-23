@@ -44,7 +44,7 @@ class AddFilesDialog(AddFilesDialog):
                                                                        settings=self.settings,
                                                                        settings_key=f"{self.settings_group}/input2", allow_edit=True,
                                                                        existing=True)
-            self.pixel_size = QtShortCuts.QInputString(None, "pixel size", 0.201, settings=self.settings,
+            self.pixel_size = QtShortCuts.QInputString(None, "pixel size", 0.201, settings=self.settings, name_post='µm/px',
                                                        settings_key=f"{self.settings_group}/pixel_size", allow_none=False, type=float)
             QtShortCuts.currentLayout().addStretch()
             self.outputText = QtShortCuts.QInputFolder(None, "output", settings=self.settings,

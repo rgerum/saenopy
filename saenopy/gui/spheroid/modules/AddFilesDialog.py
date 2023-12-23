@@ -29,13 +29,13 @@ from pathlib import Path
 
 import ctypes
 import saenopy
-from saenopy.examples import get_examples_spheriod
+from saenopy.examples import get_examples_spheroid
 from saenopy.gui.common.AddFilesDialog import AddFilesDialog
 
 class AddFilesDialog(AddFilesDialog):
     settings_group = "open_sheriod"
 
-    examples_list = get_examples_spheriod()
+    examples_list = get_examples_spheroid()
 
     def add_new_measurement_tab(self):
         with self.tabs.createTab("New Measurement") as self.tab:
@@ -48,6 +48,9 @@ class AddFilesDialog(AddFilesDialog):
                                                             settings=self.settings,
                                                             settings_key=f"{self.settings_group}/wildcard", existing=True,
                                                             allow_edit=True)
+                self.pixel_size = QtShortCuts.QInputString(None, "pixel size", 1.29, settings=self.settings,
+                                                           settings_key=f"{self.settings_group}/pixel_size",
+                                                           allow_none=False, type=float)
                 self.outputText = QtShortCuts.QInputFolder(None, "output", settings=self.settings,
                                                            settings_key=f"{self.settings_group}/wildcard2", allow_edit=True)
 
@@ -63,7 +66,6 @@ class AddFilesDialog(AddFilesDialog):
                     data = {}
                     for file in files:
                         file = os.path.normpath(file)
-                        print(file, regex_string)
                         match = re.match(regex_string, file).groups()
                         reconstructed_file = regex_string
                         for element in match:

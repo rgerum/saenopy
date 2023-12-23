@@ -122,7 +122,7 @@ class AddFilesDialog(QtWidgets.QDialog):
 
 
 last_decision = None
-def do_overwrite(filename):
+def do_overwrite(filename, self):
     global last_decision
 
     # if we are in demo mode always load the files

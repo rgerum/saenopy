@@ -46,7 +46,7 @@ def download_files(url, target_folder=None, progress_callback=None):
 def load_example(name, target_folder=None, progress_callback=None, evaluated=False):
     if target_folder is None:
         target_folder = appdirs.user_data_dir("saenopy", "rgerum")
-    for ex in [get_examples, get_examples_2D, get_examples_spheriod, get_examples_orientation]:
+    for ex in [get_examples, get_examples_2D, get_examples_spheroid, get_examples_orientation]:
         examples = ex()
         if name in examples:
             example = examples[name]
@@ -153,14 +153,14 @@ def get_examples_2D():
     }
 
 
-def get_examples_spheriod():
+def get_examples_spheroid():
     example_path = Path(appdirs.user_data_dir("saenopy", "rgerum"))
     image_path = Path(resource_path("thumbnails"))
     return {
         "MCF7-time-lapse": {
-            "desc": "Test data for the spheriod model.",
+            "desc": "Test data for the spheroid model.",
             "img": image_path / "MCF7-time-lapse.png",
-            "pixel_size": 0.201,
+            "pixel_size": 1.29,
             "input": example_path / 'MCF7-time-lapse/20160912-122130_Mic3_rep?_pos*_x0_y0_modeBF_zMinProj.tif',
             "output_path": example_path / 'MCF7-time-lapse/example_output',
             "url": "https://github.com/rgerum/saenopy/releases/download/v0.7.4/MCF7-time-lapse.zip",

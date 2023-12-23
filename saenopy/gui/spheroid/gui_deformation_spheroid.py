@@ -57,9 +57,9 @@ class MainWindow(QtWidgets.QWidget):
 
             """ """
             with self.tabs.createTab("Analyse Measurements") as v_layout:
-                v_layout.setContentsMargins(0, 0, 0, 0)
+                #v_layout.setContentsMargins(0, 0, 0, 0)
                 with QtShortCuts.QHBoxLayout() as h_layout:
-                    h_layout.setContentsMargins(0, 0, 0, 0)
+                    #h_layout.setContentsMargins(0, 0, 0, 0)
                     #self.deformations = Deformation(h_layout, self)
                     self.deformations = BatchEvaluate(self)
                     h_layout.addWidget(self.deformations)

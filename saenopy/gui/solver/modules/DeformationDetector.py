@@ -15,11 +15,11 @@ from saenopy.gui.common import QtShortCuts
 from saenopy.gui.common.gui_classes import CheckAbleGroup, QProcess, ProcessSimple
 import saenopy.get_deformations
 
-from .PipelineModule import PipelineModule
-from .QTimeSlider import QTimeSlider
+from saenopy.gui.common.PipelineModule import PipelineModule
+from saenopy.gui.common.QTimeSlider import QTimeSlider
 from .VTK_Toolbar import VTK_Toolbar
 from .showVectorField import showVectorField, showVectorField2
-from .code_export import get_code
+from saenopy.gui.common.code_export import get_code
 
 
 class CamPos:

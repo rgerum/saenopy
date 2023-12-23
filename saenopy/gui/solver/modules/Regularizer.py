@@ -14,12 +14,12 @@ import saenopy.materials
 from saenopy.gui.common import QtShortCuts
 from saenopy.gui.common.gui_classes import CheckAbleGroup, MatplotlibWidget, NavigationToolbar
 
-from .PipelineModule import PipelineModule
-from .QTimeSlider import QTimeSlider
+from saenopy.gui.common.PipelineModule import PipelineModule
+from saenopy.gui.common.QTimeSlider import QTimeSlider
 from .VTK_Toolbar import VTK_Toolbar
 from .showVectorField import showVectorField, getVectorFieldImage
 from .DeformationDetector import CamPos
-from .code_export import get_code
+from saenopy.gui.common.code_export import get_code
 
 
 class Regularizer(PipelineModule):

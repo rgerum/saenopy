@@ -1,6 +1,7 @@
 import qtawesome as qta
 from qtpy import QtCore, QtWidgets
 from saenopy import Result
+from saenopy.gui.spheroid.modules.result import ResultSpheroid
 from typing import Tuple, List
 import traceback
 
@@ -94,6 +95,7 @@ class PipelineModule(QtWidgets.QWidget):
         self.processing_progress.connect(self.parent.progress)
 
     def setParameterMapping(self, params_name: str = None, parameter_dict: dict=None):
+        self.input_button.setEnabled(False)
         self.params_name = params_name
         if params_name is None:
             return
@@ -171,8 +173,11 @@ class PipelineModule(QtWidgets.QWidget):
         for mapping in self.parameter_mappings:
             mapping.setResult(result)
 
-        if result is not None:
-            self.t_slider.setRange(0, len(result.stacks) - 2)
+        if result is not None and getattr(self, "t_slider", None) is not None:
+            if isinstance(result, ResultSpheroid):
+                self.t_slider.setRange(0, len(result.images) - 1)
+            else:
+                self.t_slider.setRange(0, len(result.stacks) - 2)
 
         self.state_changed(result)
         if self.tab is not None:

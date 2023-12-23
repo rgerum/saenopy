@@ -10,8 +10,8 @@ from saenopy.gui.common import QtShortCuts
 from saenopy import Result, Solver
 from saenopy.materials import SemiAffineFiberMaterial
 
-from .PipelineModule import PipelineModule
-from .QTimeSlider import QTimeSlider
+from saenopy.gui.common.PipelineModule import PipelineModule
+from saenopy.gui.common.QTimeSlider import QTimeSlider
 
 
 result_view = None

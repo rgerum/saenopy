@@ -23,9 +23,9 @@ from saenopy import Result
 from saenopy.gui.common.resources import resource_icon
 
 
-from .PipelineModule import PipelineModule
-from .QTimeSlider import QTimeSlider
-from .code_export import get_code
+from saenopy.gui.common.PipelineModule import PipelineModule
+from saenopy.gui.common.QTimeSlider import QTimeSlider
+from saenopy.gui.common.code_export import get_code
 
 
 class StackDisplay(PipelineModule):

@@ -90,9 +90,17 @@ def render_2d_arrows(params, result, pil_image, im_scale, aa_scale, display_imag
         offset = np.array(display_image[0].shape[0:2]) / 2
 
         R = mesh.nodes.copy()
+        is3D = R.shape[1] == 3
         field = field.copy()
-        R = R[:, :2][:, ::-1] * scale + offset
-        field = field[:, :2][:, ::-1] * scale * params_arrows["arrow_scale"]
+        if getattr(mesh, "units", None) is "pixels":
+            R = R[:, :2]
+            R[:, 1] = display_image[0].shape[0] - R[:, 1]
+            field = field[:, :2] * params_arrows["arrow_scale"]
+            field[:, 1] = -field[:, 1]
+        else:  # "microns" + 3D
+            R = R[:, :2][:, ::-1] * scale + offset
+            field = field[:, :2][:, ::-1] * scale * params_arrows["arrow_scale"]
+
         if name == "forces":
             field *= 1e4
 
@@ -101,15 +109,20 @@ def render_2d_arrows(params, result, pil_image, im_scale, aa_scale, display_imag
         else:
             max_length = scale_max * params_arrows["arrow_scale"]
 
-        z_center = (params["averaging_size"] - result.stacks[0].shape[2] / 2) * display_image[1][2] * 1e-6
-        z_min = z_center - params["averaging_size"] * 1e-6
-        z_max = z_center + params["averaging_size"] * 1e-6
+        if is3D:
+            z_center = (params["averaging_size"] - result.stacks[0].shape[2] / 2) * display_image[1][2] * 1e-6
+            z_min = z_center - params["averaging_size"] * 1e-6
+            z_max = z_center + params["averaging_size"] * 1e-6
 
-        index = (z_min < mesh.nodes[:, 2]) & (mesh.nodes[:, 2] < z_max)
+            index = (z_min < mesh.nodes[:, 2]) & (mesh.nodes[:, 2] < z_max)
 
-        R = R[index]
-        field = field[index]
-        R, field = project_data(R, field, skip=skip)
+            R = R[index]
+            field = field[index]
+            R, field = project_data(R, field, skip=skip)
+        else:
+            length = np.linalg.norm(field, axis=1)
+            angle = np.arctan2(field[:, 1], field[:, 0])
+            field = pd.DataFrame(np.hstack((length[:, None], angle[:, None])), columns=["length", "angle"])
         pil_image = add_quiver(pil_image, R, field.length, field.angle, max_length=max_length, cmap=colormap,
                                alpha=alpha,
                                scale=im_scale * aa_scale,
