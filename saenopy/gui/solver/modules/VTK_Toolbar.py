@@ -235,11 +235,11 @@ class VTK_Toolbar(QtWidgets.QWidget):
     def scale_max_changed(self):
         self.scale_max.setDisabled(self.auto_scale.value())
         scalebar_max = self.getScaleMax()
-        print(scalebar_max, self.plotter.auto_value, type(self.plotter.auto_value))
-        if scalebar_max is None:
-            self.plotter.update_scalar_bar_range([0, self.plotter.auto_value])
-        else:
-            self.plotter.update_scalar_bar_range([0, scalebar_max])
+        if getattr(self.plotter, "auto_value", None) is not None:
+            if scalebar_max is None:
+                self.plotter.update_scalar_bar_range([0, self.plotter.auto_value])
+            else:
+                self.plotter.update_scalar_bar_range([0, scalebar_max])
         self.update_display()
 
     def getScaleMax(self):

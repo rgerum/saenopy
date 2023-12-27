@@ -161,6 +161,7 @@ def get_examples_spheroid():
             "desc": "Test data for the spheroid model.",
             "img": image_path / "MCF7-time-lapse.png",
             "pixel_size": 1.29,
+            "time_delta": 120,
             "input": example_path / 'MCF7-time-lapse/20160912-122130_Mic3_rep?_pos*_x0_y0_modeBF_zMinProj.tif',
             "output_path": example_path / 'MCF7-time-lapse/example_output',
             "url": "https://github.com/rgerum/saenopy/releases/download/v0.7.4/MCF7-time-lapse.zip",

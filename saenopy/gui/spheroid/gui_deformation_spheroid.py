@@ -159,7 +159,5 @@ if __name__ == '__main__':
     app = QtWidgets.QApplication(sys.argv)
     print(sys.argv)
     window = MainWindow()
-    if len(sys.argv) >= 2:
-        window.loadFile(sys.argv[1])
     window.show()
     sys.exit(app.exec_())

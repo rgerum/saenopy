@@ -42,7 +42,8 @@ class BatchEvaluate(BatchEvaluate):
         layout0 = QtShortCuts.currentLayout()
         self.sub_module_deformation = DeformationDetector(self, layout0)
         self.sub_module_forces = ForceCalculator(self, layout0)
-        self.modules = [self.sub_module_deformation, self.sub_module_forces]
+        self.sub_module_export = ExportViewer(self, layout0)
+        self.modules = [self.sub_module_deformation, self.sub_module_forces, self.sub_module_export]
 
     def path_editor(self):
         return
@@ -61,17 +62,20 @@ class BatchEvaluate(BatchEvaluate):
             input_path = dialog.inputText.value()
             output_path = dialog.outputText.value()
             pixel_size = dialog.pixel_size.value()
+            time_delta = dialog.time_delta.value()
         elif dialog.mode == "example":
             # get the date from the example referenced by name
             example = get_examples_spheroid()[dialog.mode_data]
             input_path = example["input"]
             output_path = example["output_path"]
             pixel_size = example["pixel_size"]
+            time_delta = example["time_delta"]
 
         results = get_stacks_spheroid(
             input_path,
             output_path,
             pixel_size=pixel_size,
+            time_delta=time_delta,
             exist_overwrite_callback=lambda x: do_overwrite(x, self),
         )
 

@@ -14,6 +14,7 @@ import json
 from pathlib import Path
 
 from saenopy import Result
+from saenopy.gui.spheroid.modules.result import ResultSpheroid
 from saenopy.gui.common import QtShortCuts, QExtendedGraphicsView
 from saenopy.gui.common.resources import resource_path
 from saenopy.gui.solver.modules.exporter.FiberViewer import ChannelProperties
@@ -633,37 +634,66 @@ class ExportViewer(PipelineModule):
                 writer.write(self.im)
 
     def check_evaluated(self, result: Result) -> bool:
-        return self.result is not None and result.stacks is not None and len(result.stacks) > 0
+        if result is None:
+            return False
+        if isinstance(result, ResultSpheroid):
+            return result.displacements is not None and len(result.displacements) > 0
+        return result.stacks is not None and len(result.stacks) > 0
 
     def setResult(self, result: Result, no_update_display=False):
         self.result = result
-        if result and result.stacks and result.stacks[0]:
-            self.z_slider.setRange(0, result.stacks[0].shape[2] - 1)
-            self.z_slider.setValue(result.stacks[0].shape[2] // 2)
+        if result:
+            data = result.get_data_structure()
+            self.input_arrows.setValues(["None"] + list(data["fields"].keys()))
+            self.input_arrows.setValue(next(iter(data["fields"].items()))[0])
 
-            if result.stacks[0].channels:
+            #if len(data["channels"]) == 1:
+            #    self.channel_selectB.setVisible(False)
+            #    self.colormap_chooserB.setVisible(False)
+            #else:
+            #    self.channel_selectB.setVisible(True)
+            #    self.colormap_chooserB.setVisible(True)
+
+            if data["dimensions"] == 2:
+                self.input_use2D.setValue(True)
+                self.input_use2D.setVisible(False)
+                self.hide2D()
+                self.z_slider.setVisible(False)
+                self.input_average_range.setVisible(False)
+                self.vtk_toolbar.button_z_proj.setVisible(False)
+
+                self.button_export_zscan.setEnabled(False)
+                self.zscan_fps.setEnabled(False)
+                self.zscan_steps.setEnabled(False)
+            else:
+                self.z_slider.setRange(0, data["z_slices_count"] - 1)
+                self.z_slider.setValue( data["z_slices_count"] // 2)
+
+            if len(data["channels"]) > 1:
                 value = self.vtk_toolbar.channel_select.value()
-                self.vtk_toolbar.channel_select.setValues(np.arange(len(result.stacks[0].channels)), result.stacks[0].channels)
+                self.vtk_toolbar.channel_select.setValues(np.arange(len(data["channels"])), data["channels"])
                 self.vtk_toolbar.channel_select.setValue(value)
                 self.vtk_toolbar.channel_select.setVisible(True)
 
                 value = self.channel_selectB.value()
-                self.channel_selectB.setValues([-1] + list(np.arange(len(result.stacks[0].channels))),
-                                               [""] + result.stacks[0].channels)
+                self.channel_selectB.setValues([-1] + list(np.arange(len(data["channels"]))),
+                                               [""] + data["channels"])
                 self.channel_selectB.setValue("")
                 self.channel_selectB.setVisible(True)
+                self.colormap_chooserB.setVisible(True)
 
                 value = self.channel1_properties.channel_select.value()
-                self.channel1_properties.channel_select.setValues(np.arange(len(result.stacks[0].channels))[1:],
-                                                                  result.stacks[0].channels[1:])
+                self.channel1_properties.channel_select.setValues(np.arange(len(data["channels"]))[1:],
+                                                                  data["channels"])
                 self.channel1_properties.channel_select.setValue(value)
                 self.channel1_properties.channel_select.setVisible(True)
             else:
                 self.vtk_toolbar.channel_select.setValue(0)
                 self.vtk_toolbar.channel_select.setVisible(False)
                 self.channel_selectB.setVisible(False)
+                self.colormap_chooserB.setVisible(False)
 
-            shape = result.stacks[0].shape
+            shape = data["im_shape"]
             self.input_cropx.setRange(0, shape[1])
             self.input_cropx.setValue((shape[1] // 2 - 100, shape[1] // 2 + 100))
             self.input_cropy.setRange(0, shape[0])
@@ -671,13 +701,13 @@ class ExportViewer(PipelineModule):
             self.input_cropz.setRange(0, shape[2])
             self.input_cropz.setValue((shape[2] // 2 - 25, shape[2] // 2 + 25))
 
-            if result.stacks[0].shape[-1] == 1:
+            if data["channels"] == 1:
                 self.channel1_properties.input_show.setValue(False)
                 self.channel1_properties.setDisabled(True)
             else:
                 self.channel1_properties.setDisabled(False)
 
-            self.input_average_range.setRange(0, shape[2] * result.stacks[0].voxel_size[2])
+            self.input_average_range.setRange(0, shape[2] * data["voxel_size"][2])
             self.input_average_range.setValue(10)
 
         super().setResult(result)

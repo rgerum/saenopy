@@ -217,7 +217,7 @@ class DeformationDetector(PipelineModule):
             [int(pil_image.width * im_scale * aa_scale), int(pil_image.height * im_scale * aa_scale)])
         #print(self.auto_scale.value(), self.getScaleMax())
         pil_image = render_2d_arrows({
-            'arrows': 'piv',
+            'arrows': 'deformation',
             'deformation_arrows': {
                 "autoscale": not self.auto_scale.value(),
                 "scale_max": self.getScaleMax(),

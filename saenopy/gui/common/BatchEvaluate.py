@@ -19,6 +19,7 @@ from saenopy.gui.common.gui_classes import ListWidget
 from saenopy.gui.common.stack_selector_tif import add_last_voxel_size, add_last_time_delta
 
 from saenopy.gui.common.AddFilesDialog import FileExistsDialog
+from saenopy.gui.spheroid.modules.result import ResultSpheroid
 
 
 class SharedProperties:
@@ -99,7 +100,8 @@ class BatchEvaluate(QtWidgets.QWidget):
                     self.button_start_all = QtShortCuts.QPushButton(None, "run all", self.run_all)
                     with QtShortCuts.QHBoxLayout():
                         self.button_code = QtShortCuts.QPushButton(None, "export code", self.generate_code)
-                        self.button_export = QtShortCuts.QPushButton(None, "export images", lambda x: self.sub_module_export.export_window.show())
+                        if getattr(self, "sub_module_export", None):
+                            self.button_export = QtShortCuts.QPushButton(None, "export images", lambda x: self.sub_module_export.export_window.show())
 
         self.data = []
         self.list.setData(self.data)
@@ -260,11 +262,15 @@ class BatchEvaluate(QtWidgets.QWidget):
             for p in sorted(glob.glob(str(path), recursive=True)):
                 print(p)
                 try:
-                    self.add_data(Result.load(p))
+                    if self.file_extension == ".saenopySpheroid":
+                        self.add_data(ResultSpheroid.load(p))
+                        pass
+                    else:
+                        self.add_data(Result.load(p))
                 except Exception as err:
                     QtWidgets.QMessageBox.critical(self, "Open Files", f"File {p} is not a valid Saenopy file.")
                     traceback.print_exc()
-        self.update_icons()
+        #self.update_icons()
 
     def add_data(self, data):
         self.list.addData(data.output, True, data, mpl.colors.to_hex(f"gray"))

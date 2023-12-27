@@ -95,7 +95,8 @@ class PipelineModule(QtWidgets.QWidget):
         self.processing_progress.connect(self.parent.progress)
 
     def setParameterMapping(self, params_name: str = None, parameter_dict: dict=None):
-        self.input_button.setEnabled(False)
+        if getattr(self, "input_button", None) is not None:
+            self.input_button.setEnabled(False)
         self.params_name = params_name
         if params_name is None:
             return

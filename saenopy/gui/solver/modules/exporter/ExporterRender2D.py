@@ -79,7 +79,7 @@ def render_2d_arrows(params, result, pil_image, im_scale, aa_scale, display_imag
     if mesh is None:
         return pil_image
 
-    scale_max = params_arrows["scale_max"] if params_arrows["autoscale"] else None
+    scale_max = params_arrows["scale_max"] if not params_arrows["autoscale"] else None
     colormap = params_arrows["colormap"]
     skip = params_arrows["skip"]
     alpha = params_arrows["arrow_opacity"]
@@ -92,7 +92,7 @@ def render_2d_arrows(params, result, pil_image, im_scale, aa_scale, display_imag
         R = mesh.nodes.copy()
         is3D = R.shape[1] == 3
         field = field.copy()
-        if getattr(mesh, "units", None) is "pixels":
+        if getattr(mesh, "units", None) == "pixels":
             R = R[:, :2]
             R[:, 1] = display_image[0].shape[0] - R[:, 1]
             field = field[:, :2] * params_arrows["arrow_scale"]
@@ -146,7 +146,7 @@ def render_2d_scalebar(params, result, pil_image, im_scale, aa_scale):
         return pixel, mu
 
     if params["scalebar"]["length"] == 0:
-        pixel, mu = getBarParameters(result.stacks[0].voxel_size[0])
+        pixel, mu = getBarParameters(result.get_data_structure()["voxel_size"][0])
     else:
         mu = params["scalebar"]["length"]
         pixel = mu / result.stacks[0].voxel_size[0]
@@ -223,7 +223,7 @@ def add_text(pil_image, text, position, fontsize=18):
     except IOError:
         font = ImageFont.truetype("times", font_size)
 
-    length_number = image.textsize(text, font=font)
+    length_number = image.textlength(text, font=font)
     x, y = position
 
     if x < 0:

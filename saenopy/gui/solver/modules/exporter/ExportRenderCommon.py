@@ -6,36 +6,16 @@ class Mesh2D:
     pass
 
 def get_mesh_arrows(params, result):
-    if params["arrows"] == "piv":
-        if isinstance(result, ResultSpheroid):
-            if result.displacements is not None and params["time"]["t"] > 0:
-                try:
-                    disp = result.displacements[params["time"]["t"]-1]
-                    mesh = Mesh2D()
-                    mesh.units = "pixels"
-                    mesh.nodes = np.array([disp["x"].ravel(), disp["y"].ravel()]).T
-                    mesh.displacements_measured = np.array([disp["u"].ravel(), disp["v"].ravel()]).T
-
-                    if mesh is not None:
-                        return mesh, mesh.displacements_measured, params["deformation_arrows"], "displacements_measured"
-                except IndexError:
-                    pass
-        elif result is not None:
-            mesh = result.mesh_piv[params["time"]["t"]]
-            if mesh is not None and mesh.displacements_measured is not None:
-                return mesh, mesh.displacements_measured, params["deformation_arrows"], "displacements_measured"
-    elif params["arrows"] == "target deformations":
-        M = result.solvers[params["time"]["t"]]
-        if M is not None:
-            return M.mesh, M.mesh.displacements_target, params["deformation_arrows"], "displacements_target"
-    elif params["arrows"] == "fitted deformations":
-        M = result.solvers[params["time"]["t"]]
-        if M is not None:
-            return M.mesh, M.mesh.displacements, params["deformation_arrows"], "displacements"
-    elif params["arrows"] == "fitted forces":
-        M = result.solvers[params["time"]["t"]]
-        if M is not None:
-            return M.mesh, -M.mesh.forces * M.mesh.regularisation_mask[:, None], params["force_arrows"], "forces"
+    data = result.get_data_structure()
+    if params["arrows"] not in data["fields"]:
+        return None, None, {}, ""
+    mesh, field = result.get_field_data(params["arrows"], params["time"]["t"])
+    if data["fields"][params["arrows"]]["measure"] == "deformation":
+        if mesh is not None and field is not None:
+            return mesh, field, params["deformation_arrows"], data["fields"][params["arrows"]]["name"]
+    if data["fields"][params["arrows"]]["measure"] == "deformation":
+        if mesh is not None and field is not None:
+            return mesh, field, params["force_arrows"], data["fields"][params["arrows"]]["name"]
     return None, None, {}, ""
 
 
@@ -68,31 +48,21 @@ def get_mesh_extent(params, result):
 
 
 def getVectorFieldImage(result, params, use_fixed_contrast_if_available=False, use_2D=False, exporter=None):
+    data = result.get_data_structure()
     try:
         image = params["stack"]["image"]
         if use_2D:
             image = 1
-        if image and params["time"]["t"] < len(result.stacks):
-            if params["stack"]["use_reference_stack"] and result.stack_reference:
-                stack = result.stack_reference
-            else:
-                stack = result.stacks[params["time"]["t"]]
-            channel = params["stack"]["channel"]
-            if isinstance(channel, str):
-                try:
-                    channel = result.stacks[0].channels.index(channel)
-                except ValueError:
-                    channel = 0
-            if channel >= len(stack.channels):
-                im = stack[:, :, :, params["stack"]["z"], 0]
-            else:
-                im = stack[:, :, :, params["stack"]["z"], channel]
+        if image and params["time"]["t"] < data["time_point_count"]:
+            stack = result.get_image_data(params["time"]["t"], params["stack"]["channel"],params["stack"]["use_reference_stack"])
             if params["stack"]["z_proj"]:
                 z_range = [0, 5, 10, 1000][params["stack"]["z_proj"]]
                 start = np.clip(params["stack"]["z"] - z_range, 0, stack.shape[2])
                 end = np.clip(params["stack"]["z"] + z_range, 0, stack.shape[2])
-                im = stack[:, :, :, start:end, channel]
+                im = stack[:, :, :, start:end]
                 im = np.max(im, axis=3)
+            else:
+                im = stack[:, :, :, params["stack"]["z"]]
 
             if params["stack"]["use_contrast_enhance"]:
                 if use_fixed_contrast_if_available and params["stack"]["contrast_enhance"]:
@@ -105,7 +75,7 @@ def getVectorFieldImage(result, params, use_fixed_contrast_if_available=False, u
                 im = im.astype(np.float64) * 255 / (max - min)
                 im = np.clip(im, 0, 255).astype(np.uint8)
 
-            display_image = [im, stack.voxel_size, params["stack"]["z"] - stack.shape[2] / 2]
+            display_image = [im, data["voxel_size"], params["stack"]["z"] - data["z_slices_count"] / 2]
             if params["stack"]["image"] == 2:
                 display_image[2] = -stack.shape[2] / 2
         else:

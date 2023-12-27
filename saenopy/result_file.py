@@ -545,3 +545,74 @@ class Result(Saveable):
             text += indent + "solve_parameters = " + str(self.solve_parameters) + "\n"
         text += ")" + "\n"
         return text
+
+    def get_data_structure(self):
+        return {
+            "dimensions": 3,
+            "time_point_count": len(self.stacks),
+            "has_reference": self.stack_reference is not None,
+            "z_slices_count": self.stacks[0].shape[2],
+            "im_shape": self.stacks[0].shape,
+            "voxel_size": self.stacks[0].voxel_size,
+            "time_delta": self.time_delta,
+            "channels": self.stacks[0].channels,
+            "fields": {
+                "piv": {
+                    "type": "vector",
+                    "measure": "deformation",
+                    "unit": "m",
+                    "name": "displacements_measured",
+                },
+                "target deformations": {
+                    "type": "vector",
+                    "measure": "deformation",
+                    "unit": "m",
+                    "name": "displacements_target",
+                },
+                "fitted deformations": {
+                    "type": "vector",
+                    "measure": "deformation",
+                    "unit": "m",
+                    "name": "displacements",
+                },
+                "fitted forces": {
+                    "type": "vector",
+                    "measure": "force",
+                    "unit": "N",
+                    "name": "forces",
+                }
+            }
+        }
+
+    def get_image_data(self, time_point, channel="default", use_reference=False):
+        if use_reference and self.stack_reference:
+            stack = self.stack_reference
+        else:
+            stack = self.stacks[time_point]
+        if isinstance(channel, str):
+            try:
+                channel = self.stacks[0].channels.index(channel)
+            except ValueError:
+                channel = 0
+        if channel >= len(stack.channels):
+            channel = 0
+        return stack[:, :, :, :, channel]
+
+    def get_field_data(result, name, time_point):
+        if name == "piv":
+            mesh = result.mesh_piv[time_point]
+            if mesh is not None and mesh.displacements_measured is not None:
+                return mesh, mesh.displacements_measured
+        elif name == "target deformations":
+            M = result.solvers[time_point]
+            if M is not None:
+                return M.mesh, M.mesh.displacements_target
+        elif name == "fitted deformations":
+            M = result.solvers[time_point]
+            if M is not None:
+                return M.mesh, M.mesh.displacements
+        elif name == "fitted forces":
+            M = result.solvers[time_point]
+            if M is not None:
+                return M.mesh, -M.mesh.forces * M.mesh.regularisation_mask[:, None]
+        return None, None

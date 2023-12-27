@@ -51,6 +51,9 @@ class AddFilesDialog(AddFilesDialog):
                 self.pixel_size = QtShortCuts.QInputString(None, "pixel size", 1.29, settings=self.settings,
                                                            settings_key=f"{self.settings_group}/pixel_size",
                                                            allow_none=False, type=float)
+                self.time_delta = QtShortCuts.QInputString(None, "time delta", 120, settings=self.settings,
+                                                           settings_key=f"{self.settings_group}/delta_t",
+                                                           allow_none=False, type=float)
                 self.outputText = QtShortCuts.QInputFolder(None, "output", settings=self.settings,
                                                            settings_key=f"{self.settings_group}/wildcard2", allow_edit=True)
 

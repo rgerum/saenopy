@@ -2,6 +2,7 @@ import io
 from typing import List
 
 import matplotlib.pyplot as plt
+
 from saenopy.saveable import Saveable
 import numpy as np
 from tifffile import imread
@@ -11,8 +12,12 @@ from natsort import natsorted
 import re
 
 
+class Mesh2D:
+    pass
+
+
 class ResultSpheroid(Saveable):
-    __save_parameters__ = ['template', 'images', 'output', 'pixel_size',
+    __save_parameters__ = ['template', 'images', 'output', 'pixel_size', 'time_delta',
                            'thresh_segmentation', 'continuous_segmentation',
                            'custom_mask', 'n_min', 'n_max',
 
@@ -29,6 +34,7 @@ class ResultSpheroid(Saveable):
     output: str = None
 
     pixel_size: float = None
+    time_delta: float = None
 
     thresh_segmentation = None
     continuous_segmentation = None
@@ -44,6 +50,8 @@ class ResultSpheroid(Saveable):
 
     res_data: dict = None
     res_angles: dict = None
+
+    shape = None
 
     def __init__(self, template, images, output, **kwargs):
         self.template = template
@@ -68,6 +76,51 @@ class ResultSpheroid(Saveable):
     def get_absolute_path(self):
         return make_path_absolute(self.template, Path(self.output).parent)
 
+    def get_data_structure(self):
+        if self.shape is None:
+            self.shape = list(imread(self.images[0]).shape[:2]) + [1]
+        return {
+            "dimensions": 2,
+            "z_slices_count": 1,
+            "im_shape": self.shape,
+            "time_point_count": len(self.images),
+            "has_reference": False,
+            "voxel_size": [self.pixel_size, self.pixel_size, 1],
+            "time_delta": self.time_delta,
+            "channels": ["default"],
+            "fields": {
+                "deformation": {
+                    "type": "vector",
+                    "measure": "deformation",
+                    "unit": "pixel",
+                    "name": "displacements_measured",
+                }
+            }
+        }
+
+    def get_image_data(self, time_point, channel="default", use_reference=False):
+        im = imread(self.images[time_point])
+        print(im.shape, im.dtype)
+        if len(im.shape) == 2:
+            return im[:, :, None, None]
+        return im[:, :, :, None]
+
+    def get_field_data(self, name, time_point):
+        if self.displacements is not None and time_point > 0:
+            print(time_point)
+            try:
+                disp = self.displacements[time_point - 1]
+                mesh = Mesh2D()
+                mesh.units = "pixels"
+                mesh.nodes = np.array([disp["x"].ravel(), disp["y"].ravel()]).T
+                mesh.displacements_measured = np.array([disp["u"].ravel(), disp["v"].ravel()]).T * 1
+
+                if mesh is not None:
+                    return mesh, mesh.displacements_measured
+            except IndexError:
+                print("index err")
+                pass
+        return None, None
 
 
 def fig_to_numpy(fig1, shape):
@@ -85,6 +138,7 @@ from pathlib import Path
 import os
 def get_stacks_spheroid(input_path, output_path,
                pixel_size=None,
+               time_delta=None,
                exist_overwrite_callback=None,
                load_existing=False) -> List[ResultSpheroid]:
     text = os.path.normpath(input_path)
@@ -136,6 +190,7 @@ def get_stacks_spheroid(input_path, output_path,
                 template=reconstructed_file,
                 images=[],
                 pixel_size=pixel_size,
+                time_delta=time_delta,
                 output=str(output),
             )
             results.append(data_dict[reconstructed_file])
