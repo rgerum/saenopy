@@ -1,31 +1,12 @@
-import os
-import time
-from qtpy import QtWidgets, QtCore
-import numpy as np
-from pyvistaqt import QtInteractor
-import inspect
-import tqdm
 from typing import Tuple
-import matplotlib.pyplot as plt
 import jointforces as jf
-from pathlib import Path
 
-import saenopy
-import saenopy.multigrid_helper
-import saenopy.materials
 from saenopy.gui.spheroid.modules.result import ResultSpheroid
-from saenopy.gui.common import QtShortCuts
-from saenopy.gui.common.gui_classes import CheckAbleGroup, QProcess, ProcessSimple
-import saenopy.get_deformations
 from saenopy.gui.spheroid.modules.LookupTable import SelectLookup
-from qtpy import QtCore, QtWidgets, QtGui
-from qimage2ndarray import array2qimage
-from saenopy.gui.common import QtShortCuts, QExtendedGraphicsView
+from saenopy.gui.common import QtShortCuts
 
-from saenopy.gui.common.gui_classes import QVLine, QHLine, Spoiler, CheckAbleGroup
+from saenopy.gui.common.gui_classes import CheckAbleGroup
 from saenopy.gui.common.PipelineModule import PipelineModule
-from saenopy.gui.common.QTimeSlider import QTimeSlider
-from saenopy.gui.common.resources import resource_icon
 from saenopy.gui.common.code_export import get_code
 
 
@@ -77,7 +58,7 @@ class ForceCalculator(PipelineModule):
         self.input_button.setEnabled(self.check_available(self.result))
 
     def check_available(self, result: ResultSpheroid) -> bool:
-        if self.lookup_table.value() is "None" or result.displacements is None or len(result.displacements) == 0:
+        if self.lookup_table.value() == "None" or result.displacements is None or len(result.displacements) == 0:
             return False
         return True
 

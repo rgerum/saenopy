@@ -1,40 +1,19 @@
-import sys
-
-# Setting the Qt bindings for QtPy
-import os
-
-import pandas as pd
-import qtawesome as qta
-
-os.environ["QT_API"] = "pyqt5"
-
 from qtpy import QtCore, QtWidgets, QtGui
 
-import numpy as np
-from natsort import natsorted
-
-
-from saenopy.gui.common import QtShortCuts, QExtendedGraphicsView
-from qimage2ndarray import array2qimage
+from saenopy.gui.common import QtShortCuts
 import matplotlib.pyplot as plt
-import imageio
 import threading
-import glob
 
-
-from matplotlib.figure import Figure
 import jointforces as jf
 import urllib
 from pathlib import Path
 
-import ctypes
-
-from saenopy.gui.common.gui_classes import QVLine, QHLine
+from saenopy.gui.common.gui_classes import QVLine
 from .MatplotlibWidget import MatplotlibWidget, NavigationToolbar
-from .helper import kill_thread, execute
-
+from .helper import kill_thread
 
 settings = QtCore.QSettings("Saenopy", "Saenopy")
+
 
 class LookUpTable(QtWidgets.QDialog):
     progress_signal = QtCore.Signal(int, int)

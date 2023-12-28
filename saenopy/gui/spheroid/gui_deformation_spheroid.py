@@ -1,40 +1,10 @@
 import sys
-
-# Setting the Qt bindings for QtPy
-import os
-
-import pandas as pd
-import qtawesome as qta
-
-os.environ["QT_API"] = "pyqt5"
-
 from qtpy import QtCore, QtWidgets, QtGui
-
-import numpy as np
-from natsort import natsorted
-
-
-from saenopy.gui.common import QtShortCuts, QExtendedGraphicsView
-from qimage2ndarray import array2qimage
-import matplotlib.pyplot as plt
-import imageio
-import threading
+from saenopy.gui.common import QtShortCuts
 import glob
 
-
-from matplotlib.figure import Figure
-import jointforces as jf
-import urllib
-from pathlib import Path
-
-import ctypes
-
-
-from saenopy.gui.spheroid.modules.MatplotlibWidget import MatplotlibWidget, NavigationToolbar
 from saenopy.gui.spheroid.analyze.plot_window import PlottingWindow
-from saenopy.gui.spheroid.modules.LookupTable import SelectLookup
 from saenopy.gui.spheroid.modules.BatchEvaluate import BatchEvaluate
-from saenopy.gui.common.gui_classes import QVLine, QHLine, Spoiler, CheckAbleGroup
 
 settings = QtCore.QSettings("Saenopy", "Saenopy")
 
@@ -150,9 +120,6 @@ class MainWindow(QtWidgets.QWidget):
         files = glob.glob(self.input_filename.value())
         self.input_label.setText("\n".join(files))
 #        self.input_filename
-
-
-
 
 
 if __name__ == '__main__':

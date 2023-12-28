@@ -1,27 +1,15 @@
-import os
-import time
-from qtpy import QtWidgets, QtCore
 import numpy as np
-from pyvistaqt import QtInteractor
-import inspect
-import tqdm
 from typing import Tuple
 import matplotlib.pyplot as plt
 import jointforces as jf
 from pathlib import Path
 
-import saenopy
-import saenopy.multigrid_helper
-import saenopy.materials
 from saenopy.gui.spheroid.modules.result import ResultSpheroid
-from saenopy.gui.common import QtShortCuts
-from saenopy.gui.common.gui_classes import CheckAbleGroup, QProcess, ProcessSimple
-import saenopy.get_deformations
 from qtpy import QtCore, QtWidgets, QtGui
 from qimage2ndarray import array2qimage
 from saenopy.gui.common import QtShortCuts, QExtendedGraphicsView
 
-from saenopy.gui.common.gui_classes import QVLine, QHLine, Spoiler, CheckAbleGroup
+from saenopy.gui.common.gui_classes import QHLine, CheckAbleGroup
 from saenopy.gui.common.PipelineModule import PipelineModule
 from saenopy.gui.common.QTimeSlider import QTimeSlider
 from saenopy.gui.common.resources import resource_icon

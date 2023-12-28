@@ -6,7 +6,6 @@ import matplotlib.pyplot as plt
 from saenopy.saveable import Saveable
 import numpy as np
 from tifffile import imread
-from pyTFM.plotting import show_quiver
 from saenopy.result_file import make_path_absolute
 from natsort import natsorted
 import re

@@ -1,13 +1,10 @@
 from .PipelineModule import PipelineModule
-from tifffile import imread
-from qtpy import QtCore, QtWidgets, QtGui
-from saenopy.gui.common.gui_classes import CheckAbleGroup, QProcess, ProcessSimple
-from saenopy.gui.common import QtShortCuts, QExtendedGraphicsView
+from saenopy.gui.common.gui_classes import CheckAbleGroup
+from saenopy.gui.common import QtShortCuts
 from pyTFM.frame_shift_correction import correct_stage_drift
 from .result import Result2D
-from pathlib import Path
 from saenopy.gui.common.code_export import get_code
-from typing import List, Tuple
+from typing import Tuple
 
 class DeformationDetector2(PipelineModule):
 

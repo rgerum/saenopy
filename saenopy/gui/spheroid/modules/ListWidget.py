@@ -1,43 +1,6 @@
-import sys
-
-# Setting the Qt bindings for QtPy
-import os
-
-import pandas as pd
 import qtawesome as qta
 
-os.environ["QT_API"] = "pyqt5"
-
 from qtpy import QtCore, QtWidgets, QtGui
-
-import numpy as np
-from natsort import natsorted
-
-
-from saenopy.gui.common import QtShortCuts, QExtendedGraphicsView
-from qimage2ndarray import array2qimage
-import matplotlib.pyplot as plt
-import imageio
-import threading
-import glob
-
-
-from matplotlib.figure import Figure
-import jointforces as jf
-import urllib
-from pathlib import Path
-
-import ctypes
-
-from qtpy import API_NAME as QT_API_NAME
-if QT_API_NAME.startswith("PyQt4"):
-    from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg as Canvas
-    from matplotlib.backends.backend_qt4agg import FigureManager
-    from matplotlib.backends.backend_qt4 import NavigationToolbar2QT as NavigationToolbar
-else:
-    from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as Canvas
-    from matplotlib.backends.backend_qt5agg import FigureManager
-    from matplotlib.backends.backend_qt5 import NavigationToolbar2QT as NavigationToolbar
 
 settings = QtCore.QSettings("Saenopy", "Saenopy")
 

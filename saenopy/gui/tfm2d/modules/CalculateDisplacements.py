@@ -1,18 +1,12 @@
 import matplotlib.pyplot as plt
-import numpy as np
 from qtpy import QtCore, QtWidgets, QtGui
-from saenopy.gui.common import QtShortCuts, QExtendedGraphicsView
-from qimage2ndarray import array2qimage
-import sys
-import traceback
-from PIL import Image, ImageDraw
+from saenopy.gui.common import QtShortCuts
 from .PipelineModule import PipelineModule
 from tifffile import imread
-from saenopy.gui.common.gui_classes import CheckAbleGroup, QProcess, ProcessSimple
+from saenopy.gui.common.gui_classes import CheckAbleGroup
 from .result import Result2D
 from pyTFM.TFM_functions import calculate_deformation
 from pyTFM.plotting import show_quiver
-from pyTFM.frame_shift_correction import correct_stage_drift
 from saenopy.gui.common.code_export import get_code
 from typing import List, Tuple
 

@@ -1,21 +1,8 @@
-import sys
 from qtpy import QtCore, QtWidgets, QtGui
-import time
-
-import saenopy
-import saenopy.multigrid_helper
-import saenopy.get_deformations
-import saenopy.multigrid_helper
-import saenopy.materials
 from saenopy.gui.common import QtShortCuts
-from saenopy.gui.common.stack_selector import StackSelector
-from saenopy.gui.common.stack_selector_crop import StackSelectorCrop
-from saenopy.gui.common.stack_preview import StackPreview
-
 from saenopy.examples import get_examples_2D
-
-
 from saenopy.gui.common.AddFilesDialog import AddFilesDialog
+
 
 class AddFilesDialog(AddFilesDialog):
     file_extension = ".saenopy2D"

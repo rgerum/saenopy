@@ -1,5 +1,5 @@
 from .PipelineModule import PipelineModule
-from tifffile import imread
+
 
 class DeformationDetector(PipelineModule):
 

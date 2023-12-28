@@ -1,31 +1,12 @@
-import json
-import sys
 import os
-
 import qtawesome as qta
 from qtpy import QtCore, QtWidgets, QtGui
 import numpy as np
-import glob
-import threading
-from pathlib import Path
-import matplotlib as mpl
-
 import traceback
 
-from saenopy import get_stacks
-from saenopy import Result
-from saenopy.gui.tfm2d.modules.result import Result2D, get_stacks2D
+from saenopy.gui.tfm2d.modules.result import get_stacks2D
 from saenopy.gui.common import QtShortCuts
-from saenopy.gui.common.gui_classes import ListWidget
-from saenopy.gui.common.stack_selector_tif import add_last_voxel_size, add_last_time_delta
 
-#from .DeformationDetector import DeformationDetector
-#from .FittedMesh import FittedMesh
-#from .MeshCreator import MeshCreator
-#from .Regularizer import Regularizer
-#from .ResultView import ResultView
-#from .StackDisplay import StackDisplay
-#from saenopy.gui.solver.modules.exporter.Exporter import ExportViewer
 from .load_measurement_dialog import AddFilesDialog
 from saenopy.gui.common.AddFilesDialog import FileExistsDialog
 from .draw import DrawWindow
@@ -36,7 +17,6 @@ from .CalculateDisplacements import DeformationDetector3
 from .CalculateForces import Force
 from .CalculateForceGeneration import ForceGeneration
 from .CalculateStress import CalculateStress
-#from .path_editor import start_path_change
 from saenopy.examples import get_examples_2D
 
 from saenopy.gui.common.BatchEvaluate import BatchEvaluate

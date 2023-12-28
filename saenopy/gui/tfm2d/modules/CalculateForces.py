@@ -1,13 +1,9 @@
 import matplotlib.pyplot as plt
 from qtpy import QtCore, QtWidgets, QtGui
-from saenopy.gui.common import QtShortCuts, QExtendedGraphicsView
-from qimage2ndarray import array2qimage
-import sys
-import traceback
-from PIL import Image, ImageDraw
+from saenopy.gui.common import QtShortCuts
 from .PipelineModule import PipelineModule
 from tifffile import imread
-from saenopy.gui.common.gui_classes import CheckAbleGroup, QProcess, ProcessSimple
+from saenopy.gui.common.gui_classes import CheckAbleGroup
 from .result import Result2D
 from pyTFM.TFM_functions import TFM_tractions
 from pyTFM.plotting import show_quiver

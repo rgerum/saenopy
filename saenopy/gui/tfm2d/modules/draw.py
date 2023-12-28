@@ -1,5 +1,3 @@
-import os
-
 import matplotlib.pyplot as plt
 from qtpy import QtCore, QtWidgets, QtGui
 from saenopy.gui.common import QtShortCuts, QExtendedGraphicsView
