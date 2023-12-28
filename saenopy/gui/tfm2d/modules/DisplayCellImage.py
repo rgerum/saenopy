@@ -1,6 +1,6 @@
 from .PipelineModule import PipelineModule
 from tifffile import imread
-from saenopy.gui.solver.modules.code_export import get_code
+from saenopy.gui.common.code_export import get_code
 from typing import List, Tuple
 from saenopy.gui.tfm2d.modules.result import Result2D, get_stacks2D
 from pathlib import Path

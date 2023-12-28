@@ -65,7 +65,6 @@ class ResultSpheroid(Saveable):
         self.res_angles = {}
 
         super().__init__(**kwargs)
-        print(self.pixel_size)
 
     def save(self, file_name=None):
         if file_name is None:
@@ -100,14 +99,12 @@ class ResultSpheroid(Saveable):
 
     def get_image_data(self, time_point, channel="default", use_reference=False):
         im = imread(self.images[time_point])
-        print(im.shape, im.dtype)
         if len(im.shape) == 2:
             return im[:, :, None, None]
         return im[:, :, :, None]
 
     def get_field_data(self, name, time_point):
         if self.displacements is not None and time_point > 0:
-            print(time_point)
             try:
                 disp = self.displacements[time_point - 1]
                 mesh = Mesh2D()
@@ -118,7 +115,6 @@ class ResultSpheroid(Saveable):
                 if mesh is not None:
                     return mesh, mesh.displacements_measured
             except IndexError:
-                print("index err")
                 pass
         return None, None
 
@@ -143,7 +139,6 @@ def get_stacks_spheroid(input_path, output_path,
                load_existing=False) -> List[ResultSpheroid]:
     text = os.path.normpath(input_path)
     glob_string = text.replace("?", "*")
-    # print("globbing", glob_string)
     files = natsorted(glob.glob(glob_string))
 
     output_base = glob_string
@@ -156,7 +151,6 @@ def get_stacks_spheroid(input_path, output_path,
     results = []
     for file in files:
         file = os.path.normpath(file)
-        #print(file, regex_string)
         match = re.match(regex_string, file).groups()
         reconstructed_file = regex_string
         for element in match:
@@ -165,7 +159,7 @@ def get_stacks_spheroid(input_path, output_path,
         reconstructed_file = re.sub(r'\\(.)', r'\1', reconstructed_file)
 
         if reconstructed_file not in data_dict:
-            output = Path(output_path) / os.path.relpath(file, output_base)
+            output = Path(output_path) / os.path.relpath(reconstructed_file.replace("*", "{t}"), output_base)
             output = output.parent / (output.stem + ".saenopySpheroid")
 
             if output.exists():

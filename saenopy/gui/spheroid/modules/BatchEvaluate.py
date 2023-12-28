@@ -70,6 +70,13 @@ class BatchEvaluate(BatchEvaluate):
             output_path = example["output_path"]
             pixel_size = example["pixel_size"]
             time_delta = example["time_delta"]
+        elif dialog.mode == "example_evaluated":
+            self.load_from_path(dialog.examples_output)
+            return
+        # load existing files
+        elif dialog.mode == "existing":
+            self.load_from_path(dialog.outputText3.value())
+            return
 
         results = get_stacks_spheroid(
             input_path,

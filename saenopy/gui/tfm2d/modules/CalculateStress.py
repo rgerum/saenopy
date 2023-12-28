@@ -25,7 +25,7 @@ from pyTFM.stress_functions import lineTension
 from pyTFM.plotting import plot_continuous_boundary_stresses
 from pyTFM.stress_functions import all_stress_measures, coefficient_of_variation
 from pyTFM.stress_functions import mean_stress_vector_norm
-from saenopy.gui.solver.modules.code_export import get_code
+from saenopy.gui.common.code_export import get_code
 from typing import List, Tuple
 
 

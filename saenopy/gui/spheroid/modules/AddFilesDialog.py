@@ -1,39 +1,18 @@
-import sys
-
-# Setting the Qt bindings for QtPy
 import os
-
-import pandas as pd
-import qtawesome as qta
-
-os.environ["QT_API"] = "pyqt5"
 
 from qtpy import QtCore, QtWidgets, QtGui
 
 import numpy as np
 from natsort import natsorted
 
-
-from saenopy.gui.common import QtShortCuts, QExtendedGraphicsView
-from qimage2ndarray import array2qimage
-import matplotlib.pyplot as plt
-import imageio
-import threading
-import glob
-import time
-
-from matplotlib.figure import Figure
-import jointforces as jf
-import urllib
-from pathlib import Path
-
-import ctypes
-import saenopy
+from saenopy.gui.common import QtShortCuts
 from saenopy.examples import get_examples_spheroid
 from saenopy.gui.common.AddFilesDialog import AddFilesDialog
 
+
 class AddFilesDialog(AddFilesDialog):
     settings_group = "open_sheriod"
+    file_extension = ".saenopySpheroid"
 
     examples_list = get_examples_spheroid()
 

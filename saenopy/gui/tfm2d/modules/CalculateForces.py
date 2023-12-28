@@ -12,7 +12,7 @@ from .result import Result2D
 from pyTFM.TFM_functions import TFM_tractions
 from pyTFM.plotting import show_quiver
 import numpy as np
-from saenopy.gui.solver.modules.code_export import get_code
+from saenopy.gui.common.code_export import get_code
 from typing import List, Tuple
 
 

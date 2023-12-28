@@ -18,7 +18,7 @@ from saenopy.examples import get_examples_2D
 from saenopy.gui.common.AddFilesDialog import AddFilesDialog
 
 class AddFilesDialog(AddFilesDialog):
-    file_extenstion = ".saenopy2D"
+    file_extension = ".saenopy2D"
     settings_group = "open_2d"
 
     examples_list = get_examples_2D()

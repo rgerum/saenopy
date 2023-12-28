@@ -13,7 +13,7 @@ from .result import Result2D
 from pyTFM.TFM_functions import calculate_deformation
 from pyTFM.plotting import show_quiver
 from pyTFM.frame_shift_correction import correct_stage_drift
-from saenopy.gui.solver.modules.code_export import get_code
+from saenopy.gui.common.code_export import get_code
 from typing import List, Tuple
 
 

@@ -18,7 +18,7 @@ try:
 except ImportError:
     from scipy.ndimage.morphology import binary_fill_holes
 from pyTFM.grid_setup_solids_py import interpolation  # a simple function to resize the mask
-from saenopy.gui.solver.modules.code_export import get_code
+from saenopy.gui.common.code_export import get_code
 from typing import List, Tuple
 
 

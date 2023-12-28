@@ -6,7 +6,7 @@ from saenopy.gui.common import QtShortCuts, QExtendedGraphicsView
 from pyTFM.frame_shift_correction import correct_stage_drift
 from .result import Result2D
 from pathlib import Path
-from saenopy.gui.solver.modules.code_export import get_code
+from saenopy.gui.common.code_export import get_code
 from typing import List, Tuple
 
 class DeformationDetector2(PipelineModule):

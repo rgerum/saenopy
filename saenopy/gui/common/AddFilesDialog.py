@@ -1,5 +1,6 @@
 import sys
 import os
+import time
 from qtpy import QtCore, QtWidgets, QtGui
 from saenopy.gui.common import QtShortCuts
 import saenopy
@@ -10,7 +11,7 @@ class AddFilesDialog(QtWidgets.QDialog):
     mode_data: str = None
     start_time: float = 0
 
-    file_extenstion = None
+    file_extension = None
     settings_group = "batch"
 
     examples_list = None
@@ -19,11 +20,11 @@ class AddFilesDialog(QtWidgets.QDialog):
         pass
 
     def add_existing_measurent_tab(self):
-        if self.file_extenstion is None:
+        if self.file_extension is None:
             return
         with self.tabs.createTab("Existing Measurement") as self.tab3:
             self.outputText3 = QtShortCuts.QInputFilename(None, "output", settings=self.settings,
-                                                          file_type=f"Results Files (*{self.file_extenstion})",
+                                                          file_type=f"Results Files (*{self.file_extension})",
                                                           settings_key=f"{self.settings_group}/wildcard_existing",
                                                           allow_edit=True, existing=True)
             self.tab3.addStretch()
