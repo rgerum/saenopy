@@ -170,6 +170,7 @@ class ExportViewer(PipelineModule):
                     QtShortCuts.QPushButton(None, "save parameters", self.save_parameters)
                     QtShortCuts.QPushButton(None, "load parameters", self.load_parameters)
                     QtShortCuts.QPushButton(None, "copy to clipboard parameters", self.copy_parameters)
+                    QtShortCuts.QPushButton(None, "export code", self.generate_code)
 
                 with QtShortCuts.QHBoxLayout():
                     self.input_use2D = QtShortCuts.QInputBool(None, "", False, icon=["3D", "2D"], group=True)
@@ -589,6 +590,27 @@ class ExportViewer(PipelineModule):
         text = repr(self.get_parameters())
         cb = QtGui.QGuiApplication.clipboard()
         cb.setText(text, mode=cb.Clipboard)
+
+    def generate_code(self):
+        if self.result is None:
+            return
+        new_path = QtWidgets.QFileDialog.getSaveFileName(None, "Save Session as Script", os.getcwd(), "Python File (*.py)")
+        if new_path:
+            # ensure filename ends in .py
+            if not new_path.endswith(".py"):
+                new_path += ".py"
+
+            run_code = f"""import matplotlib.pyplot as plt
+import saenopy
+
+params = {json.dumps(self.get_parameters(), indent=2).replace("true", "True").replace("false", "False").replace("null", "None")}
+
+im = saenopy.render_image(params, saenopy.load("{self.result.output}"))
+plt.imsave("output.png", im)
+"""
+            #print(run_code)
+            with open(new_path, "w") as fp:
+                fp.write(run_code)
 
     def progress_iterator(self, iter):
         self.render_progress.setRange(0, len(iter))

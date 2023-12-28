@@ -1000,6 +1000,13 @@ def load_solver(filename: str) -> Solver:
 
 
 def load(filename: str) -> Result:
+    from saenopy.gui.spheroid.modules.result import ResultSpheroid
+    from saenopy.gui.tfm2d.modules.result import Result2D
+
+    if filename.endswith(".saenopySpheroid"):
+        return ResultSpheroid.load(filename)
+    if filename.endswith(".saenopy2D"):
+        return Result2D.load(filename)
     return Result.load(filename)
 
 
