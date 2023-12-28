@@ -20,6 +20,7 @@ from saenopy.gui.common.stack_selector_tif import add_last_voxel_size, add_last_
 
 from saenopy.gui.common.AddFilesDialog import FileExistsDialog
 from saenopy.gui.spheroid.modules.result import ResultSpheroid
+from saenopy.gui.tfm2d.modules.result import Result2D
 
 
 class SharedProperties:
@@ -53,6 +54,28 @@ class BatchEvaluate(QtWidgets.QWidget):
     def add_modules(self):
         self.modules = []
 
+    def add_tabs(self):
+        layout = QtShortCuts.currentLayout()
+        with QtShortCuts.QTabWidget(layout) as self.tabs:
+            self.tabs.setMinimumWidth(500)
+            old_tab = None
+            cam_pos = None
+
+            def tab_changed(x):
+                nonlocal old_tab, cam_pos
+                tab = self.tabs.currentWidget()
+                if old_tab is not None and getattr(old_tab, "plotter", None):
+                    cam_pos = old_tab.plotter.camera_position
+                if cam_pos is not None and getattr(tab, "plotter", None):
+                    tab.plotter.camera_position = cam_pos
+                if old_tab is not None:
+                    tab.t_slider.setValue(old_tab.t_slider.value())
+                old_tab = tab
+                self.tab_changed.emit(tab)
+
+            self.tabs.currentChanged.connect(tab_changed)
+            pass
+
     def __init__(self, parent=None):
         super().__init__(parent)
 
@@ -75,23 +98,7 @@ class BatchEvaluate(QtWidgets.QWidget):
                     self.progressbar.setOrientation(QtCore.Qt.Horizontal)
                 with QtShortCuts.QHBoxLayout() as layout:
                     layout.setContentsMargins(0, 0, 0, 0)
-                    with QtShortCuts.QTabWidget(layout) as self.tabs:
-                        self.tabs.setMinimumWidth(500)
-                        old_tab = None
-                        cam_pos = None
-                        def tab_changed(x):
-                            nonlocal old_tab, cam_pos
-                            tab = self.tabs.currentWidget()
-                            if old_tab is not None and getattr(old_tab, "plotter", None):
-                                cam_pos = old_tab.plotter.camera_position
-                            if cam_pos is not None and getattr(tab, "plotter", None):
-                                tab.plotter.camera_position = cam_pos
-                            if old_tab is not None:
-                                tab.t_slider.setValue(old_tab.t_slider.value())
-                            old_tab = tab
-                            self.tab_changed.emit(tab)
-                        self.tabs.currentChanged.connect(tab_changed)
-                        pass
+                    self.add_tabs()
                 with QtShortCuts.QVBoxLayout() as layout0:
                     layout0.parent().setMaximumWidth(420)
                     layout0.setContentsMargins(0, 0, 0, 0)
@@ -100,6 +107,8 @@ class BatchEvaluate(QtWidgets.QWidget):
                     self.button_start_all = QtShortCuts.QPushButton(None, "run all", self.run_all)
                     with QtShortCuts.QHBoxLayout():
                         self.button_code = QtShortCuts.QPushButton(None, "export code", self.generate_code)
+                        if getattr(self, "generate_data", None):
+                            self.button_excel = QtShortCuts.QPushButton(None, "export data", self.generate_data)
                         if getattr(self, "sub_module_export", None):
                             self.button_export = QtShortCuts.QPushButton(None, "export images", lambda x: self.sub_module_export.export_window.show())
 
@@ -170,6 +179,12 @@ class BatchEvaluate(QtWidgets.QWidget):
         self.progressbar.setValue(n)
 
     def generate_code(self):
+        try:
+            result = self.list.data[self.list.currentRow()][2]
+            if result is None:
+                return
+        except IndexError:
+            return
         new_path = QtWidgets.QFileDialog.getSaveFileName(None, "Save Session as Script", os.getcwd(), "Python File (*.py)")
         if new_path:
             # ensure filename ends in .py
@@ -192,12 +207,9 @@ class BatchEvaluate(QtWidgets.QWidget):
             if not self.data[i][1]:
                 continue
             result = self.data[i][2]
-            if self.sub_module_deformation.group.value() is True:
-                self.sub_module_deformation.start_process(result=result)
-            if self.sub_module_mesh.group.value() is True:
-                self.sub_module_mesh.start_process(result=result)
-            if self.sub_module_regularize.group.value() is True:
-                self.sub_module_regularize.start_process(result=result)
+            for module in self.modules:
+                if getattr(module, "group", None) and module.group.value() is True:
+                    module.start_process(result=result)
 
     def addTask(self, task, result, params, name):
         self.tasks.append([task, result, params, name])
@@ -265,6 +277,8 @@ class BatchEvaluate(QtWidgets.QWidget):
                     if self.file_extension == ".saenopySpheroid":
                         self.add_data(ResultSpheroid.load(p))
                         pass
+                    elif self.file_extension == ".saenopy2D":
+                        self.add_data(Result2D.load(p))
                     else:
                         self.add_data(Result.load(p))
                 except Exception as err:

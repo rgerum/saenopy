@@ -1,34 +1,12 @@
-import json
-import sys
-import os
-
-import qtawesome as qta
-from qtpy import QtCore, QtWidgets, QtGui
-import numpy as np
-import glob
-import threading
-from pathlib import Path
-import matplotlib as mpl
-
-import traceback
-
-from saenopy import get_stacks
-from saenopy import Result
 from saenopy.gui.common import QtShortCuts
-from saenopy.gui.common.gui_classes import ListWidget
-from saenopy.gui.common.stack_selector_tif import add_last_voxel_size, add_last_time_delta
 
 from .AddFilesDialog import AddFilesDialog
 from saenopy.gui.common.AddFilesDialog import do_overwrite
 from .DeformationDetector import DeformationDetector
 from saenopy.gui.solver.modules.exporter.Exporter import ExportViewer
-#from .load_measurement_dialog import AddFilesDialog
-from saenopy.gui.common.AddFilesDialog import FileExistsDialog
-#from .path_editor import start_path_change
-from saenopy.examples import get_examples
 from saenopy.gui.common.BatchEvaluate import BatchEvaluate
 from saenopy.examples import get_examples_spheroid
-from saenopy.gui.spheroid.modules.result import ResultSpheroid, get_stacks_spheroid
+from saenopy.gui.spheroid.modules.result import get_stacks_spheroid
 from .ForceCalculator import ForceCalculator
 
 
@@ -36,7 +14,7 @@ class BatchEvaluate(BatchEvaluate):
     settings_key = "Spheroid"
     file_extension = ".saenopySpheroid"
 
-    result_params = params = ["piv_parameters", "force_parameters"]
+    result_params = ["piv_parameters", "force_parameters"]
 
     def add_modules(self):
         layout0 = QtShortCuts.currentLayout()

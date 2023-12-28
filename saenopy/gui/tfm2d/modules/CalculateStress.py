@@ -40,7 +40,7 @@ class CalculateStress(PipelineModule):
 
         with QtShortCuts.QVBoxLayout(self) as layout:
             layout.setContentsMargins(0, 0, 0, 0)
-            with CheckAbleGroup(self, "stress", url="https://saenopy.readthedocs.io/en/latest/interface_solver.html#detect-deformations").addToLayout() as self.group:
+            with CheckAbleGroup(self, "stress").addToLayout() as self.group:
                 with QtShortCuts.QVBoxLayout():
                     self.label = QtWidgets.QLabel(
                         "draw a mask with the red color to select an area slightly larger then the colony. Draw a mask with the green color to circle every single cell and mark their boundaries.").addToLayout()
@@ -204,7 +204,7 @@ class CalculateStress(PipelineModule):
         result.save()
 
     def get_code(self) -> Tuple[str, str]:
-        import_code = "from pyTFM.grid_setup_solids_py import prepare_forces\nfrom pyTFM.grid_setup_solids_py import interpolation\nfrom pyTFM.grid_setup_solids_py import prepare_forces\nfrom pyTFM.grid_setup_solids_py import grid_setup, FEM_simulation\nfrom pyTFM.grid_setup_solids_py import find_borders\nfrom pyTFM.plotting import plot_continuous_boundary_stresses\nfrom pyTFM.stress_functions import all_stress_measures, coefficient_of_variation\nfrom pyTFM.stress_functions import mean_stress_vector_norm\nfrom pyTFM.stress_functions import lineTension\nimport matplotlib.pyplot as plt\n"
+        import_code = "import numpy as np\nfrom pyTFM.grid_setup_solids_py import prepare_forces\nfrom pyTFM.grid_setup_solids_py import interpolation\nfrom pyTFM.grid_setup_solids_py import prepare_forces\nfrom pyTFM.grid_setup_solids_py import grid_setup, FEM_simulation\nfrom pyTFM.grid_setup_solids_py import find_borders\nfrom pyTFM.plotting import plot_continuous_boundary_stresses\nfrom pyTFM.stress_functions import all_stress_measures, coefficient_of_variation\nfrom pyTFM.stress_functions import mean_stress_vector_norm\nfrom pyTFM.stress_functions import lineTension\nimport matplotlib.pyplot as plt\n"
 
         results: List[Result2D] = []
         def code():  # pragma: no cover

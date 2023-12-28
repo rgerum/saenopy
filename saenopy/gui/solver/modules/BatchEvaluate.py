@@ -36,7 +36,7 @@ class BatchEvaluate(BatchEvaluate):
     settings_key = "Seanopy_deformation"
     file_extension = ".saenopy"
 
-    result_params = params = ["piv_parameters", "mesh_parameters", "material_parameters", "solve_parameters"]
+    result_params = ["piv_parameters", "mesh_parameters", "material_parameters", "solve_parameters"]
 
     def add_modules(self):
         layout0 = QtShortCuts.currentLayout()
