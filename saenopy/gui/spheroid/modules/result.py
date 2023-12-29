@@ -1,14 +1,16 @@
+import numpy as np
 import io
 from typing import List
+import traceback
+from natsort import natsorted
+import re
 
+from tifffile import imread
 import matplotlib.pyplot as plt
 
 from saenopy.saveable import Saveable
-import numpy as np
-from tifffile import imread
 from saenopy.result_file import make_path_absolute
-from natsort import natsorted
-import re
+
 
 
 class Mesh2D:
@@ -18,7 +20,7 @@ class Mesh2D:
 class ResultSpheroid(Saveable):
     __save_parameters__ = ['template', 'images', 'output', 'pixel_size', 'time_delta',
                            'thresh_segmentation', 'continuous_segmentation',
-                           'custom_mask', 'n_min', 'n_max',
+                           'custom_mask', 'n_min', 'n_max', 'shape',
 
                            'piv_parameters', 'force_parameters',
 
@@ -56,6 +58,8 @@ class ResultSpheroid(Saveable):
         self.template = template
         self.images = images
         self.output = str(output)
+        if "shape" not in kwargs:
+            kwargs["shape"] = None
         if "res_data" not in kwargs:
             kwargs["res_data"] = {}
         self.res_data = {}
@@ -97,7 +101,17 @@ class ResultSpheroid(Saveable):
         }
 
     def get_image_data(self, time_point, channel="default", use_reference=False):
-        im = imread(self.images[time_point])
+        try:
+            im = imread(self.images[time_point])
+        except FileNotFoundError as err:
+            traceback.print_exception(err)
+            h = 255
+            w = 255
+            if self.shape is not None:
+                h, w = self.shape[:2]
+            im = np.zeros([h, w, 3], dtype=np.uint8)
+            im[:, :, 0] = 255
+            im[:, :, 2] = 255
         if len(im.shape) == 2:
             return im[:, :, None, None]
         return im[:, :, :, None]

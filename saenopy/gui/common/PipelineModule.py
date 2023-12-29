@@ -180,7 +180,7 @@ class PipelineModule(QtWidgets.QWidget):
             #    self.t_slider.setRange(0, len(result.images) - 1)
             #else:
             #    self.t_slider.setRange(0, len(result.stacks) - 2)
-            self.t_slider.setRange(0, data["time_point_count"])
+            self.t_slider.setRange(0, data["time_point_count"] - 1)
 
         self.state_changed(result)
         if self.tab is not None:

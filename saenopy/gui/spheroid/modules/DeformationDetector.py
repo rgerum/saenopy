@@ -182,7 +182,8 @@ class DeformationDetector(PipelineModule):
 
         import imageio
         t = self.t_slider.value()
-        im = imageio.v2.imread(self.result.images[t]).astype(float)
+        im = self.result.get_image_data(t).astype(float)
+        #im = imageio.v2.imread(self.result.images[t]).astype(float)
         im0 = im.copy()
         im = im - im.min()
         im = (im / im.max() * 255).astype(np.uint8)

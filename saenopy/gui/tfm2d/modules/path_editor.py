@@ -15,6 +15,13 @@ def start_path_change(parent, result):
     result.reference_stack = path_editor.input_folder2.value()
     result.input = path_editor.input_folder3.value()
 
+    path_b = Path(result.input)
+    path_a = Path(result.reference_stack)
+    path_b = path_b.parent / (path_b.stem + "_corrected" + path_b.suffix)
+    path_a = path_a.parent / (path_a.stem + "_corrected" + path_a.suffix)
+    result.input_corrected = str(path_b)
+    result.reference_stack_corrected = str(path_a)
+
     #if path_editor.input_pack.value():
     #    for stack in result.stacks:
     #        stack.pack_files()

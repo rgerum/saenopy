@@ -5,6 +5,7 @@ import os
 import numpy as np
 from tifffile import imread
 import matplotlib.pyplot as plt
+import traceback
 
 from saenopy.saveable import Saveable
 from saenopy.result_file import make_path_absolute
@@ -85,24 +86,34 @@ class Result2D(Saveable):
         super().__init__(**kwargs)
 
     def get_image(self, index, corrected=True):
-        if index == 0:
-            if corrected:
-                try:
-                    im = imread(self.input_corrected)
-                except FileNotFoundError:
+        try:
+            if index == 0:
+                if corrected:
+                    try:
+                        im = imread(self.input_corrected)
+                    except FileNotFoundError:
+                        im = imread(self.input)
+                else:
                     im = imread(self.input)
+            elif index == -1:
+                im = imread(self.bf)
             else:
-                im = imread(self.input)
-        elif index == -1:
-            im = imread(self.bf)
-        else:
-            if corrected:
-                try:
-                    im = imread(self.reference_stack_corrected)
-                except FileNotFoundError:
+                if corrected:
+                    try:
+                        im = imread(self.reference_stack_corrected)
+                    except FileNotFoundError:
+                        im = imread(self.reference_stack)
+                else:
                     im = imread(self.reference_stack)
-            else:
-                im = imread(self.reference_stack)
+        except FileNotFoundError as err:
+            traceback.print_exception(err)
+            h = 255
+            w = 255
+            if self.shape is not None:
+                h, w = self.shape[:2]
+            im = np.zeros([h, w, 3], dtype=np.uint8)
+            im[:, :, 0] = 255
+            im[:, :, 2] = 255
         if self.shape is None:
             self.shape = im.shape
         return im

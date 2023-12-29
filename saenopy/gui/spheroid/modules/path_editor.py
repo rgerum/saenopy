@@ -11,8 +11,10 @@ def start_path_change(parent, result):
     if not path_editor.exec():
         return
 
-    path_changer = PathChanger(result.template.replace("*", "{t}"), path_editor.input_folder.value())
+    path_changer = PathChanger(result.template.replace("*", "{t}"), path_editor.input_folder.value().replace("*", "{t}"))
+    print(result.images)
     result.images = [path_changer.change_path(path) for path in result.images]
+    print(result.images)
     result.template = path_changer.change_path(result.template.replace("*", "{t}")).replace("{t}", "*")
 
     #if path_editor.input_folder2 is not None:
