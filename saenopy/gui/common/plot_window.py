@@ -87,8 +87,8 @@ class PlottingWindow(QtWidgets.QWidget):
         with QtShortCuts.QVBoxLayout(self) as main_layout0:
          main_layout0.setContentsMargins(0, 0, 0, 0)
          with QtShortCuts.QHBoxLayout() as main_layout00:
-             self.button_save = QtShortCuts.QPushButton(None, "save", self.save)
-             self.button_load = QtShortCuts.QPushButton(None, "load", self.load)
+             self.button_save = QtShortCuts.QPushButton(None, "save", lambda x: self.save())
+             self.button_load = QtShortCuts.QPushButton(None, "load", lambda x: self.load())
              main_layout00.addStretch()
          with QtShortCuts.QHBoxLayout() as main_layout:
             with QtShortCuts.QVBoxLayout() as layout:
@@ -132,24 +132,26 @@ class PlottingWindow(QtWidgets.QWidget):
         self.addGroup()
         self.current_plot_func = self.run2
 
-    def save(self):
-        new_path = QtWidgets.QFileDialog.getSaveFileName(None, "Save Session", os.getcwd(), "JSON File (*.json)")
-        if new_path:
-            if not new_path.endswith(".json"):
-                new_path += ".json"
+    def save(self, filename=None):
+        if filename is None:
+            filename = QtWidgets.QFileDialog.getSaveFileName(None, "Save Session", os.getcwd(), "JSON File (*.json)")
+        if filename:
+            if not filename.endswith(".json"):
+                filename += ".json"
             list_new = []
             for item in self.list.data:
                 list_new.append({"name": item[0], "selected": item[1], "color": item[3], "paths": []})
                 for item2 in item[2]:
                     list_new[-1]["paths"].append({"path": item2[0], "selected": item[1]})
 
-            with open(new_path, "w") as fp:
+            with open(filename, "w") as fp:
                 json.dump(list_new, fp, indent=2)
 
-    def load(self):
-        new_path = QtWidgets.QFileDialog.getOpenFileName(None, "Load Session", os.getcwd(), "JSON File (*.json)")
-        if new_path:
-            with open(new_path, "r") as fp:
+    def load(self, filename=None):
+        if filename is None:
+            filename = QtWidgets.QFileDialog.getOpenFileName(None, "Load Session", os.getcwd(), "JSON File (*.json)")
+        if filename:
+            with open(filename, "r") as fp:
                 list_new = json.load(fp)
             self.list.clear()
             self.list.setData([[i["name"], i["selected"], [], i["color"]] for i in list_new])

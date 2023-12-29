@@ -1,3 +1,4 @@
+import json
 import sys
 import traceback
 
@@ -114,6 +115,30 @@ class MainWindow(QtWidgets.QWidget):
 
         for file in sys.argv[1:]:
             print(file)
+            if file.endswith(".json"):
+                try:
+                    with open(file, "r") as fp:
+                        data = json.load(fp)
+                    filename = data[0]["paths"][0]["path"]
+                    if filename.endswith(".saenopy"):
+                        self.setTab(2)
+                        self.solver.tabs.setCurrentIndex(1)
+                        self.solver.plotting_window.load(file)
+                    elif filename.endswith("saenopy2D"):
+                        self.setTab(5)
+                        self.pytfm2d.tabs.setCurrentIndex(1)
+                        self.pytfm2d.plotting_window.load(file)
+                    elif filename.endswith(".saenopySpheroid"):
+                        self.setTab(3)
+                        self.spheroid.tabs.setCurrentIndex(1)
+                        self.spheroid.plotting_window.load(file)
+                    elif filename.endswith(".saenopyOrientation"):
+                        self.setTab(4)
+                        self.orientation.tabs.setCurrentIndex(1)
+                        self.orientation.plotting_window.load(file)
+                    continue
+                except:
+                    continue
             if file.endswith(".py"):
                 self.setTab(6)
             elif file.endswith(".saenopy"):
