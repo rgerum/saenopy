@@ -22,6 +22,7 @@ from saenopy.examples import get_examples_2D
 
 from saenopy.gui.common.BatchEvaluate import BatchEvaluate
 from ...solver.modules.exporter.Exporter import ExportViewer
+from saenopy.gui.common.ModuleScaleBar import ModuleScaleBar
 
 
 class BatchEvaluate(BatchEvaluate):
@@ -75,6 +76,7 @@ class BatchEvaluate(BatchEvaluate):
                 pass
             self.draw = DrawWindow(self, QtShortCuts.currentLayout())
             self.draw.signal_mask_drawn.connect(self.on_mask_drawn)
+            self.scale1 = ModuleScaleBar(self, self.draw.view1)
 
     def generate_data(self):
         new_path = QtWidgets.QFileDialog.getSaveFileName(None, "Save Data CSV", os.getcwd(),
@@ -237,6 +239,7 @@ class BatchEvaluate(BatchEvaluate):
                 self.draw.setMask(np.zeros(pipe.shape, dtype=np.uint8))
             else:
                 self.draw.setMask(pipe.mask.astype(np.uint8))
+            self.scale1.setScale([pipe.pixel_size])
             self.set_current_result.emit(pipe)
             tab = self.tabs.currentWidget()
             self.tab_changed.emit(tab)

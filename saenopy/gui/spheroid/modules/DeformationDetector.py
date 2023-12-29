@@ -14,6 +14,7 @@ from saenopy.gui.common.PipelineModule import PipelineModule
 from saenopy.gui.common.QTimeSlider import QTimeSlider
 from saenopy.gui.common.resources import resource_icon
 from saenopy.gui.common.code_export import get_code
+from saenopy.gui.common.ModuleScaleBar import ModuleScaleBar
 
 
 class DeformationDetector(PipelineModule):
@@ -74,6 +75,7 @@ class DeformationDetector(PipelineModule):
                     #self.plotter.set_background("black")
                     #layout.addWidget(self.plotter.interactor)
                     self.label = QExtendedGraphicsView.QExtendedGraphicsView().addToLayout()
+                    self.scale1 = ModuleScaleBar(self, self.label)
                     #self.label.setMinimumWidth(300)
                     self.pixmap = QtWidgets.QGraphicsPixmapItem(self.label.origin)
                     self.contour = QtWidgets.QGraphicsPathItem(self.label.origin)
@@ -222,6 +224,7 @@ class DeformationDetector(PipelineModule):
         im = np.asarray(pil_image)
         self.pixmap.setPixmap(QtGui.QPixmap(array2qimage(im)))
         self.label.setExtend(im.shape[1], im.shape[0])
+        self.scale1.setScale([self.result.pixel_size])
 
         if self.show_seg.value():
             thresh_segmentation = self.thresh_segmentation.value()
