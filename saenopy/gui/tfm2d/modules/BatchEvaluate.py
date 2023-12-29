@@ -17,6 +17,7 @@ from .CalculateDisplacements import DeformationDetector3
 from .CalculateForces import Force
 from .CalculateForceGeneration import ForceGeneration
 from .CalculateStress import CalculateStress
+from .path_editor import start_path_change
 from saenopy.examples import get_examples_2D
 
 from saenopy.gui.common.BatchEvaluate import BatchEvaluate
@@ -142,7 +143,7 @@ class BatchEvaluate(BatchEvaluate):
 
     def path_editor(self):
         result = self.list.data[self.list.currentRow()][2]
-        #start_path_change(self, result)
+        start_path_change(self, result)
 
     def add_measurement(self):
         last_decision = None
