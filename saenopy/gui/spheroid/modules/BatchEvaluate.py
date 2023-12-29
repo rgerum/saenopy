@@ -5,6 +5,7 @@ from saenopy.gui.common.AddFilesDialog import do_overwrite
 from .DeformationDetector import DeformationDetector
 from saenopy.gui.solver.modules.exporter.Exporter import ExportViewer
 from saenopy.gui.common.BatchEvaluate import BatchEvaluate
+from .path_editor import start_path_change
 from saenopy.examples import get_examples_spheroid
 from saenopy.gui.spheroid.modules.result import get_stacks_spheroid
 from .ForceCalculator import ForceCalculator
@@ -24,9 +25,8 @@ class BatchEvaluate(BatchEvaluate):
         self.modules = [self.sub_module_deformation, self.sub_module_forces, self.sub_module_export]
 
     def path_editor(self):
-        return
-        #result = self.list.data[self.list.currentRow()][2]
-        #start_path_change(self, result)
+        result = self.list.data[self.list.currentRow()][2]
+        start_path_change(self, result)
 
     def add_measurement(self):
         settings = self.settings
