@@ -203,8 +203,7 @@ class Result2D(Saveable):
             vx = self.tx
             vy = self.ty
             vf = 0.1
-        print("vx", vx)
-        print("vx shape", vx is not None)
+
         if vx is not None:
             mesh = Mesh2D()
             mesh.units = "pixels"
@@ -216,7 +215,6 @@ class Result2D(Saveable):
             mesh.nodes = np.array([x.ravel(), y.ravel()]).T
             mesh.displacements_measured = np.array([vx.ravel(), -vy.ravel()]).T * vf
             return mesh, mesh.displacements_measured
-        #print("tx", self.tx.shape)
         return None, None
 
 

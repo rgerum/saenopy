@@ -56,9 +56,9 @@ class ResultSpheroid(Saveable):
         self.template = template
         self.images = images
         self.output = str(output)
-        if "res_dict" not in kwargs:
-            kwargs["res_dict"] = {}
-        self.res_dict = {}
+        if "res_data" not in kwargs:
+            kwargs["res_data"] = {}
+        self.res_data = {}
         if "res_angles" not in kwargs:
             kwargs["res_angles"] = {}
         self.res_angles = {}

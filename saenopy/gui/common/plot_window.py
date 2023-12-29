@@ -74,7 +74,7 @@ class PlottingWindow(QtWidgets.QWidget):
         super().__init__(parent)
 
         # QSettings
-        self.settings = QtCore.QSettings("Saenopy", "Saenopy")
+        self.settings = QtCore.QSettings("Saenopy", self.settings_key)
 
         self.setMinimumWidth(800)
         self.setMinimumHeight(400)
@@ -221,7 +221,8 @@ class PlottingWindow(QtWidgets.QWidget):
         print("time_values", time_values)
         if time_values is False:
             self.barplot()
-        self.agg.setEnabled(time_values)
+        if getattr(self, "agg", None) is not None:
+            self.agg.setEnabled(time_values)
         self.button_run.setEnabled(time_values)
         self.button_run2.setEnabled(time_values)
 
@@ -288,13 +289,16 @@ class PlottingWindow(QtWidgets.QWidget):
         # get all the data as a pandas dataframe
         res = self.getAllCurrentPandasData()
 
-        # limit the dataframe to the comparison time
-        res0 = res.groupby("filename").agg("max")
-        del res["group"]
-        res = res.groupby("filename").agg(self.agg.value())
-        res["group"] = res0["group"]
-        #index = self.get_comparison_index()
-        #res = res[res.index == index]
+        if getattr(self, "agg", None) is not None:
+            # limit the dataframe to the comparison time
+            res0 = res.groupby("filename").agg("max")
+            del res["group"]
+            res = res.groupby("filename").agg(self.agg.value())
+            res["group"] = res0["group"]
+        else:
+            # limit the dataframe to the comparison time
+            index = self.get_comparison_index()
+            res = res[res.index == index]
 
         code_data = [res, ["group", mu_name]]
 
@@ -339,6 +343,11 @@ class PlottingWindow(QtWidgets.QWidget):
         res = self.getAllCurrentPandasData()
 
         code_data = [res, ["t", "group", mu_name, "filename"]]
+
+        # add a vertical line where the comparison time is
+        if getattr(self, "input_tbar", None) and self.input_tbar.value() is not None:
+            comp_h = self.get_comparison_index() * (res.iloc[1]["t"] - res.iloc[0]["t"])
+            plt.axvline(comp_h, color="k")
 
         color_dict = {d[0]: d[3] for d in self.data_folders}
 

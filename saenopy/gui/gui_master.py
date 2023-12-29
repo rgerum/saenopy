@@ -137,7 +137,7 @@ class MainWindow(QtWidgets.QWidget):
                         self.orientation.tabs.setCurrentIndex(1)
                         self.orientation.plotting_window.load(file)
                     continue
-                except:
+                except (IndexError, KeyError):
                     continue
             if file.endswith(".py"):
                 self.setTab(6)
