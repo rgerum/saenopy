@@ -122,12 +122,12 @@ class BatchEvaluate(QtWidgets.QWidget):
         self.thread = None
         self.signal_task_finished.connect(self.run_finished)
 
-        # load paths
-        self.load_from_path([arg for arg in sys.argv if arg.endswith(self.file_extension)])
-
         # disable all tabs
         for i in range(self.tabs.count()-1, -1, -1):
             self.tabs.setTabEnabled(i, False)
+
+        # load paths
+        self.load_from_path([arg for arg in sys.argv if arg.endswith(self.file_extension)])
 
     def copy_params(self):
         result = self.list.data[self.list.currentRow()][2]
@@ -288,6 +288,7 @@ class BatchEvaluate(QtWidgets.QWidget):
 
     def add_data(self, data):
         self.list.addData(data.output, True, data, mpl.colors.to_hex(f"gray"))
+        self.list.setCurrentRow(len(self.data) - 1)
 
     def update_icons(self):
         for j in range(self.list.count( ) -1):

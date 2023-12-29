@@ -94,6 +94,10 @@ class MainWindowCode(QtWidgets.QWidget):
 
         self.select_tab(-1)
 
+        for arg in sys.argv[1:]:
+            if arg.endswith(".py"):
+                self.do_load(arg)
+
     def update_console(self, open_script):
         if len(self.open_scripts) and open_script == self.open_scripts[self.open_scripts_index]:
             self.console.setText(open_script.console)
@@ -187,9 +191,5 @@ if __name__ == '__main__':  # pragma: no cover
     window.setMinimumHeight(900)
     window.setWindowTitle("Saenopy Viewer")
     window.setWindowIcon(resource_icon("Icon.ico"))
-    for arg in sys.argv[1:]:
-        if arg.endswith(".py"):
-            pass
-            window.do_load(arg)
     window.show()
     sys.exit(app.exec_())

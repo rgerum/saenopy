@@ -112,6 +112,21 @@ class MainWindow(QtWidgets.QWidget):
         #self.tabs.setCurrentIndex(self.settings.value("master_tab", 0))
         self.first_tab_change = False
 
+        for file in sys.argv[1:]:
+            print(file)
+            if file.endswith(".py"):
+                self.setTab(6)
+            elif file.endswith(".saenopy"):
+                self.setTab(2)
+            elif file.endswith(".saenopy2D"):
+                self.setTab(5)
+            elif file.endswith(".saenopySpheroid"):
+                self.setTab(3)
+            elif file.endswith(".saenopyOrientation"):
+                self.setTab(4)
+            else:
+                raise ValueError("Unknown file type")
+
     first_tab_change = True
     solver = None
     spheroid = None
@@ -180,8 +195,8 @@ if __name__ == '__main__':  # pragma: no cover
     # On Windows calling this function is necessary.
     multiprocessing.freeze_support()
 
-    if len(sys.argv) >= 2 and sys.argv[1].endswith(".py"):
-        source = open(sys.argv[1]).read()
+    if len(sys.argv) >= 3 and sys.argv[1] == "run" and sys.argv[2].endswith(".py"):
+        source = open(sys.argv[2]).read()
         code = compile(source, sys.argv[1], 'exec')
         exec(code)
         exit(0)
