@@ -50,7 +50,8 @@ class MainWindow(QtWidgets.QWidget):
                     self.deformations = BatchEvaluate(self)
                     h_layout.addWidget(self.deformations)
                     self.description = QtWidgets.QTextEdit()
-                    self.description.setDisabled(True)
+                    self.description.setReadOnly(True)
+                    self.description.setStyleSheet("QTextEdit { background: #f0f0f0}")
                     self.description.setMaximumWidth(300)
                     h_layout.addWidget(self.description)
                     self.description.setText("""
@@ -96,7 +97,8 @@ class MainWindow(QtWidgets.QWidget):
                     h_layout.addWidget(self.deformations)
 
                     self.description = QtWidgets.QTextEdit()
-                    self.description.setDisabled(True)
+                    self.description.setReadOnly(True)
+                    self.description.setStyleSheet("QTextEdit { background: #f0f0f0}")
                     h_layout.addWidget(self.description)
                     self.description.setText("""
                             <h1>Data Analysis</h1>

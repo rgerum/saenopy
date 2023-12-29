@@ -11,7 +11,7 @@ from saenopy.gui.common.AddFilesDialog import AddFilesDialog
 
 
 class AddFilesDialog(AddFilesDialog):
-    settings_group = "open_sheriod"
+    settings_group = "open_spheroid"
     file_extension = ".saenopySpheroid"
 
     examples_list = get_examples_spheroid()
@@ -28,10 +28,10 @@ class AddFilesDialog(AddFilesDialog):
                                                             settings_key=f"{self.settings_group}/wildcard", existing=True,
                                                             allow_edit=True)
                 self.pixel_size = QtShortCuts.QInputString(None, "pixel size", 1.29, settings=self.settings,
-                                                           settings_key=f"{self.settings_group}/pixel_size",
+                                                           settings_key=f"{self.settings_group}/pixel_size", unit="µm",
                                                            allow_none=False, type=float)
                 self.time_delta = QtShortCuts.QInputString(None, "time delta", 120, settings=self.settings,
-                                                           settings_key=f"{self.settings_group}/delta_t",
+                                                           settings_key=f"{self.settings_group}/delta_t", unit="s",
                                                            allow_none=False, type=float)
                 self.outputText = QtShortCuts.QInputFolder(None, "output", settings=self.settings,
                                                            settings_key=f"{self.settings_group}/wildcard2", allow_edit=True)
