@@ -533,12 +533,13 @@ class ExportViewer(PipelineModule):
         self.rotate_steps.setEnabled(is3D)
 
     def hide_timestamp(self):
-        isTimeAvailable = self.result is not None and self.result.time_delta is not None
+        data = self.result.get_data_structure() if self.result is not None else None
+        isTimeAvailable = data and data["time_delta"] is not None
         self.time_check.setEnabled(isTimeAvailable)
         self.button_export_time.setEnabled(isTimeAvailable)
         self.time_fps.setEnabled(isTimeAvailable)
         self.time_steps.setEnabled(isTimeAvailable)
-        isTime = self.time_check.value() and self.result is not None and self.result.time_delta is not None
+        isTime = self.time_check.value() and self.result is not None and data["time_delta"] is not None
         self.time_format.setEnabled(isTime)
         self.time_start.setEnabled(isTime)
         self.time_size.setEnabled(isTime)
@@ -552,8 +553,10 @@ class ExportViewer(PipelineModule):
         self.input_thresh.setEnabled(isActiveBoth)
 
     def hide_arrow(self):
-        isDeformation = self.input_arrows.value() in ["piv", "target deformations", "fitted deformations"]
-        isForce = self.input_arrows.value() in ["fitted forces"]
+        data = self.result.get_data_structure() if self.result is not None else {}
+        measure = data.get("fields", {}).get(self.input_arrows.value(), {}).get("measure", "")
+        isDeformation = measure == "deformation"
+        isForce = measure == "force"
 
         self.box_deformation_arrows.setEnabled(isDeformation)
         self.box_force_arrows.setEnabled(isForce)
@@ -658,9 +661,7 @@ plt.imsave("output.png", im)
     def check_evaluated(self, result: Result) -> bool:
         if result is None:
             return False
-        if isinstance(result, ResultSpheroid):
-            return result.displacements is not None and len(result.displacements) > 0
-        return result.stacks is not None and len(result.stacks) > 0
+        return True
 
     def setResult(self, result: Result, no_update_display=False):
         self.result = result
@@ -734,6 +735,7 @@ plt.imsave("output.png", im)
 
         super().setResult(result)
         self.hide_timestamp()
+        self.hide_arrow()
         if not no_update_display:
             self.update_display()
 

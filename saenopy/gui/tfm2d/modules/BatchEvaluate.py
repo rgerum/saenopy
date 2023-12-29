@@ -20,6 +20,7 @@ from .CalculateStress import CalculateStress
 from saenopy.examples import get_examples_2D
 
 from saenopy.gui.common.BatchEvaluate import BatchEvaluate
+from ...solver.modules.exporter.Exporter import ExportViewer
 
 
 class BatchEvaluate(BatchEvaluate):
@@ -39,7 +40,7 @@ class BatchEvaluate(BatchEvaluate):
         self.sub_force = Force(self, layout0)
         self.sub_force_gen = ForceGeneration(self, layout0)
         self.sub_stress = CalculateStress(self, layout0)
-        # self.sub_module_export = ExportViewer(self, layout0)
+        self.sub_module_export = ExportViewer(self, layout0)
         layout0.addStretch()
 
         box = QtWidgets.QGroupBox("painting").addToLayout()

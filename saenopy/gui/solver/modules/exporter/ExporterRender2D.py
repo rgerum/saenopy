@@ -101,8 +101,8 @@ def render_2d_arrows(params, result, pil_image, im_scale, aa_scale, display_imag
             R = R[:, :2][:, ::-1] * scale + offset
             field = field[:, :2][:, ::-1] * scale * params_arrows["arrow_scale"]
 
-        if name == "forces":
-            field *= 1e4
+            if name == "forces":
+                field *= 1e4
 
         if scale_max is None:
             max_length = np.nanmax(np.linalg.norm(field, axis=1))# * params_arrows["arrow_scale"]
@@ -161,7 +161,8 @@ def render_2d_scalebar(params, result, pil_image, im_scale, aa_scale):
 
 
 def render_2d_time(params, result, pil_image):
-    if result is not None and result.time_delta is not None and params["time"]["display"]:
+    data = result.get_data_structure()
+    if result is not None and data["time_delta"] is not None and params["time"]["display"]:
         pil_image = add_text(pil_image, get_time_text(params, result), position=(10, 10))
     return pil_image
 

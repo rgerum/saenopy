@@ -175,10 +175,12 @@ class PipelineModule(QtWidgets.QWidget):
             mapping.setResult(result)
 
         if result is not None and getattr(self, "t_slider", None) is not None:
-            if isinstance(result, ResultSpheroid):
-                self.t_slider.setRange(0, len(result.images) - 1)
-            else:
-                self.t_slider.setRange(0, len(result.stacks) - 2)
+            data = result.get_data_structure()
+            #if isinstance(result, ResultSpheroid):
+            #    self.t_slider.setRange(0, len(result.images) - 1)
+            #else:
+            #    self.t_slider.setRange(0, len(result.stacks) - 2)
+            self.t_slider.setRange(0, data["time_point_count"])
 
         self.state_changed(result)
         if self.tab is not None:

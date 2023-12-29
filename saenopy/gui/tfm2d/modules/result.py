@@ -1,12 +1,17 @@
 import io
-import matplotlib.pyplot as plt
-from saenopy.saveable import Saveable
+import glob
+from pathlib import Path
+import os
 import numpy as np
 from tifffile import imread
-from pyTFM.plotting import show_quiver
+import matplotlib.pyplot as plt
+
+from saenopy.saveable import Saveable
 from saenopy.result_file import make_path_absolute
 from .draw import get_mask_using_gui
+
 from pyTFM.plotting import plot_continuous_boundary_stresses
+from pyTFM.plotting import show_quiver
 
 
 class Result2D(Saveable):
@@ -147,43 +152,72 @@ class Result2D(Saveable):
         return {
             "dimensions": 2,
             "z_slices_count": 1,
-            "im_shape": self.shape,
+            "im_shape": [self.shape[0], self.shape[1], 1],
             "time_point_count": 1,
             "has_reference": True,
             "voxel_size": [self.pixel_size, self.pixel_size, 1],
             "time_delta": None,
-            "channels": ["default"],
+            "channels": ["cells", "beads"],
             "fields": {
                 "deformation": {
                     "type": "vector",
                     "measure": "deformation",
                     "unit": "pixel",
                     "name": "displacements_measured",
+                },
+                "forces": {
+                    "type": "vector",
+                    "measure": "force",
+                    "unit": "pixel",
+                    "name": "force",
                 }
             }
         }
 
     def get_image_data(self, time_point, channel="default", use_reference=False):
-        im = imread(self.images[time_point])
+        if channel == "cells":
+            im = self.get_image(-1)
+        else:
+            if use_reference:
+                im = self.get_image(0)
+            else:
+                im = self.get_image(1)
         if len(im.shape) == 2:
             return im[:, :, None, None]
         return im[:, :, :, None]
 
     def get_field_data(self, name, time_point):
-        if self.displacements is not None and time_point > 0:
-            try:
-                disp = self.displacements[time_point - 1]
-                mesh = Mesh2D()
-                mesh.units = "pixels"
-                mesh.nodes = np.array([disp["x"].ravel(), disp["y"].ravel()]).T
-                mesh.displacements_measured = np.array([disp["u"].ravel(), disp["v"].ravel()]).T * 1
+        class Mesh2D:
+            pass
 
-                if mesh is not None:
-                    return mesh, mesh.displacements_measured
-            except IndexError:
-                pass
+        vx = None
+        vy = None
+        vf = 1
+
+        if name == "deformation":
+            vx = self.u
+            vy = self.v
+            vf = 10
+        if name == "forces":
+            print("do force")
+            vx = self.tx
+            vy = self.ty
+            vf = 0.1
+        print("vx", vx)
+        print("vx shape", vx is not None)
+        if vx is not None:
+            mesh = Mesh2D()
+            mesh.units = "pixels"
+            f = self.shape[0] / vx.shape[0]
+            x, y = np.meshgrid(np.arange(vx.shape[1]), np.arange(vx.shape[0]))
+            x = x * f
+            y = y * f
+            y = self.shape[0] - y
+            mesh.nodes = np.array([x.ravel(), y.ravel()]).T
+            mesh.displacements_measured = np.array([vx.ravel(), -vy.ravel()]).T * vf
+            return mesh, mesh.displacements_measured
+        #print("tx", self.tx.shape)
         return None, None
-
 
 
 def fig_to_numpy(fig1, shape):
@@ -196,9 +230,7 @@ def fig_to_numpy(fig1, shape):
         buff.seek(0)
         return plt.imread(buff)
 
-import glob
-from pathlib import Path
-import os
+
 def get_stacks2D(output_path, bf_stack, active_stack, reference_stack, pixel_size,
                exist_overwrite_callback=None,
                load_existing=False):

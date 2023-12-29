@@ -13,7 +13,7 @@ def get_mesh_arrows(params, result):
     if data["fields"][params["arrows"]]["measure"] == "deformation":
         if mesh is not None and field is not None:
             return mesh, field, params["deformation_arrows"], data["fields"][params["arrows"]]["name"]
-    if data["fields"][params["arrows"]]["measure"] == "deformation":
+    if data["fields"][params["arrows"]]["measure"] == "force":
         if mesh is not None and field is not None:
             return mesh, field, params["force_arrows"], data["fields"][params["arrows"]]["name"]
     return None, None, {}, ""
