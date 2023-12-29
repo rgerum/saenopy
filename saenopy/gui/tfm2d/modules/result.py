@@ -141,6 +141,49 @@ class Result2D(Saveable):
     def get_absolute_path_bf(self):
         return make_path_absolute(self.bf, Path(self.output).parent)
 
+    def get_data_structure(self):
+        if self.shape is None:
+            self.get_image(0)
+        return {
+            "dimensions": 2,
+            "z_slices_count": 1,
+            "im_shape": self.shape,
+            "time_point_count": 1,
+            "has_reference": True,
+            "voxel_size": [self.pixel_size, self.pixel_size, 1],
+            "time_delta": None,
+            "channels": ["default"],
+            "fields": {
+                "deformation": {
+                    "type": "vector",
+                    "measure": "deformation",
+                    "unit": "pixel",
+                    "name": "displacements_measured",
+                }
+            }
+        }
+
+    def get_image_data(self, time_point, channel="default", use_reference=False):
+        im = imread(self.images[time_point])
+        if len(im.shape) == 2:
+            return im[:, :, None, None]
+        return im[:, :, :, None]
+
+    def get_field_data(self, name, time_point):
+        if self.displacements is not None and time_point > 0:
+            try:
+                disp = self.displacements[time_point - 1]
+                mesh = Mesh2D()
+                mesh.units = "pixels"
+                mesh.nodes = np.array([disp["x"].ravel(), disp["y"].ravel()]).T
+                mesh.displacements_measured = np.array([disp["u"].ravel(), disp["v"].ravel()]).T * 1
+
+                if mesh is not None:
+                    return mesh, mesh.displacements_measured
+            except IndexError:
+                pass
+        return None, None
+
 
 
 def fig_to_numpy(fig1, shape):

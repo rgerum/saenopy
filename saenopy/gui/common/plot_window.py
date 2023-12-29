@@ -9,13 +9,13 @@ from matplotlib import pyplot as plt
 from matplotlib.backends.backend_qt import NavigationToolbar2QT as NavigationToolbar
 from qtpy import QtWidgets, QtCore, QtGui
 
-from saenopy.gui.tfm2d.modules.result import Result2D
 from saenopy.gui.common import QtShortCuts
 from saenopy.gui.common.gui_classes import ListWidget, MatplotlibWidget, execute
 
 
 class AddFilesDialog(QtWidgets.QDialog):
-    def __init__(self, parent, settings):
+
+    def __init__(self, parent, settings, file_extension):
         super().__init__(parent)
         self.setWindowTitle("Add Files")
         with QtShortCuts.QVBoxLayout(self) as layout:
@@ -24,10 +24,10 @@ class AddFilesDialog(QtWidgets.QDialog):
             layout.addWidget(self.label)
 
             def checker(filename):
-                return filename + "/**/*.saenopy2D"
+                return filename + "/**/*"+file_extension
 
             self.inputText = QtShortCuts.QInputFolder(None, None, settings=settings, filename_checker=checker,
-                                                      settings_key="pytfm/analyse_force_wildcard", allow_edit=True)
+                                                      settings_key="batch_eval/analyse_force_wildcard", allow_edit=True)
             with QtShortCuts.QHBoxLayout() as layout3:
                 # self.button_clear = QtShortCuts.QPushButton(None, "clear list", self.clear_files)
                 layout3.addStretch()
@@ -43,9 +43,9 @@ class ExportDialog(QtWidgets.QDialog):
             self.label = QtWidgets.QLabel("Select a path to export the plot script with the data.")
             layout.addWidget(self.label)
             self.inputText = QtShortCuts.QInputFilename(None, None, file_type="Python Script (*.py)", settings=settings,
-                                                        settings_key="pytfm/export_plot", existing=False)
-            self.strip_data = QtShortCuts.QInputBool(None, "export only essential data columns", True, settings=settings, settings_key="pytfm/export_complete_df")
-            self.include_df = QtShortCuts.QInputBool(None, "include dataframe in script", True, settings=settings, settings_key="pytfm/export_include_df")
+                                                        settings_key="batch_eval/export_plot", existing=False)
+            self.strip_data = QtShortCuts.QInputBool(None, "export only essential data columns", True, settings=settings, settings_key="batch_eval/export_complete_df")
+            self.include_df = QtShortCuts.QInputBool(None, "include dataframe in script", True, settings=settings, settings_key="batch_eval/export_include_df")
             with QtShortCuts.QHBoxLayout() as layout3:
                 # self.button_clear = QtShortCuts.QPushButton(None, "clear list", self.clear_files)
                 layout3.addStretch()
@@ -53,131 +53,22 @@ class ExportDialog(QtWidgets.QDialog):
                 self.button_addList = QtShortCuts.QPushButton(None, "ok", self.accept)
 
 
-from saenopy.gui.common.plot_window import PlottingWindow
+class PlottingWindow(QtWidgets.QWidget):
+    progress_signal = QtCore.Signal(int, int, int, int)
+    finished_signal = QtCore.Signal()
+    thread = None
 
-class PlottingWindow(PlottingWindow):
     settings_key = "Seanopy_deformation"
     file_extension = ".saenopy"
 
     def add_parameters(self):
-        self.type = QtShortCuts.QInputChoice(None, "type", "area",
-                                             ["area",
-                                              "cell number",
-                                              "mean normal stress",
-                                              "max normal stress",
-                                              "max shear stress",
-                                              "cv mean normal stress",
-                                              "cv max normal stress",
-                                              "cv max shear stress",
-                                              "average magnitude line tension",
-                                              "std magnitude line tension",
-                                              "average normal line tension",
-                                              "std normal line tension",
-                                              "average shear line tension",
-                                              "std shear line tension",
-
-                                              "average cell force",
-                                              "average cell pressure",
-                                              "average cell shear",
-                                              "std cell force",
-                                              "std cell pressure",
-                                              "std cell shear",
-
-                                              "contractility",
-                                              "strain energy",
-                                              ])
-        self.type.valueChanged.connect(self.replot)
-        self.agg = QtShortCuts.QInputChoice(None, "aggregate", "mean",
-                                            ["mean", "max", "min", "median"])
-        self.agg.valueChanged.connect(self.replot)
-        self.agg.setHidden(True)
+        pass
 
     def load_file(self, file):
-        print("load file", file)
-        res: Result2D = Result2D.load(file)
-        res.resulting_data = pd.DataFrame([res.res_dict])
-        res.resulting_data["filename"] = file
-        print(res.resulting_data)
-        print(res.res_dict)
-        return res
+        pass
 
     def get_label(self):
-        if self.type.value() == "area":
-            mu_name = 'area Cell Area'
-            y_label = 'area (m$^2$)'
-        elif self.type.value() == "cell number":
-            mu_name = 'cell number'
-            y_label = 'cell number'
-        elif self.type.value() == "mean normal stress":
-            mu_name = 'mean normal stress Cell Area'
-            y_label = 'mean normal stress (N/m)'
-        elif self.type.value() == "max normal stress":
-            mu_name = 'max normal stress Cell Area'
-            y_label = 'max normal stress (N/m)'
-        elif self.type.value() == "max shear stress":
-            mu_name = 'max shear stress Cell Area'
-            y_label = 'max shear stress (N/m)'
-        elif self.type.value() == "cv mean normal stress":
-            mu_name = 'cv mean normal stress Cell Area'
-            y_label = 'cv mean normal stress'
-        elif self.type.value() == "cv max normal stress":
-            mu_name = 'cv max normal stress Cell Area'
-            y_label = 'cv max normal stress'
-        elif self.type.value() == "cv max shear stress":
-            mu_name = 'cv max shear stress Cell Area'
-            y_label = 'cv max shear stress'
-        elif self.type.value() == "average magnitude line tension":
-            mu_name = 'average magnitude line tension'
-            y_label = 'average magnitude line tension (N/m)'
-        elif self.type.value() == "std magnitude line tension":
-            mu_name = 'std magnitude line tension'
-            y_label = 'std magnitude line tension'
-        elif self.type.value() == "average normal line tension":
-            mu_name = 'average normal line tension'
-            y_label = 'average normal line tension (N/m)'
-        elif self.type.value() == "std normal line tension":
-            mu_name = 'std normal line tension'
-            y_label = 'std normal line tension'
-        elif self.type.value() == "average shear line tension":
-            mu_name = 'average shear line tension'
-            y_label = 'average shear line tension (N/m)'
-        elif self.type.value() == "std shear line tension":
-            mu_name = 'std shear line tension'
-            y_label = 'std shear line tension'
-        elif self.type.value() == "average cell force":
-            mu_name = 'average cell force'
-            y_label = 'average cell force (N/m)'
-        elif self.type.value() == "average cell pressure":
-            mu_name = 'average cell pressure'
-            y_label = 'average cell pressure (N/m)'
-        elif self.type.value() == "average cell shear":
-            mu_name = 'average cell shear'
-            y_label = 'average cell shear (N/m)'
-        elif self.type.value() == "std cell force":
-            mu_name = 'std cell force'
-            y_label = 'std cell force'
-        elif self.type.value() == "std cell pressure":
-            mu_name = 'std cell pressure'
-            y_label = 'std cell pressure'
-        elif self.type.value() == "std cell shear":
-            mu_name = 'std cell shear'
-            y_label = 'std cell shear'
-        elif self.type.value() == "contractility":
-            mu_name = 'contractility'
-            y_label = 'contractility (N)'
-        elif self.type.value() == "strain energy":
-            mu_name = 'strain energy'
-            y_label = 'strain energy (J)'
-        elif self.type.value() == "":
-            mu_name = ''
-            y_label = ''
-        return mu_name, y_label
-
-
-class PlottingWindowX(QtWidgets.QWidget):
-    progress_signal = QtCore.Signal(int, int, int, int)
-    finished_signal = QtCore.Signal()
-    thread = None
+        return "", ""
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -221,37 +112,7 @@ class PlottingWindowX(QtWidgets.QWidget):
                     self.setAcceptDrops(True)
 
             with QtShortCuts.QGroupBox(main_layout, "Plot Forces") as (_, layout):
-                self.type = QtShortCuts.QInputChoice(None, "type", "area",
-                                                     ["area",
-                                                      "cell number",
-                                                      "mean normal stress",
-                                                      "max normal stress",
-                                                      "max shear stress",
-                                                      "cv mean normal stress",
-                                                      "cv max normal stress",
-                                                      "cv max shear stress",
-                                                      "average magnitude line tension",
-                                                      "std magnitude line tension",
-                                                      "average normal line tension",
-                                                      "std normal line tension",
-                                                      "average shear line tension",
-                                                      "std shear line tension",
-
-                                                      "average cell force",
-                                                      "average cell pressure",
-                                                      "average cell shear",
-                                                      "std cell force",
-                                                      "std cell pressure",
-                                                      "std cell shear",
-
-                                                      "contractility",
-                                                      "strain energy",
-                                                      ])
-                self.type.valueChanged.connect(self.replot)
-                self.agg = QtShortCuts.QInputChoice(None, "aggregate", "mean",
-                                                     ["mean", "max", "min", "median"])
-                self.agg.valueChanged.connect(self.replot)
-                self.agg.setHidden(True)
+                self.add_parameters()
 
                 self.canvas = MatplotlibWidget(self)
                 layout.addWidget(self.canvas)
@@ -260,16 +121,16 @@ class PlottingWindowX(QtWidgets.QWidget):
                 with QtShortCuts.QHBoxLayout() as layout2:
                     self.button_export = QtShortCuts.QPushButton(layout2, "Export", self.export)
                     layout2.addStretch()
-                    #self.button_run = QtShortCuts.QPushButton(layout2, "Single Time Course", self.run2)
-                    #self.button_run2 = QtShortCuts.QPushButton(layout2, "Grouped Time Courses", self.plot_groups)
+                    self.button_run = QtShortCuts.QPushButton(layout2, "Single Time Course", self.run2)
+                    self.button_run2 = QtShortCuts.QPushButton(layout2, "Grouped Time Courses", self.plot_groups)
                     self.button_run3 = QtShortCuts.QPushButton(layout2, "Grouped Bar Plot", self.barplot)
-                    self.plot_buttons = [self.button_run3]
+                    self.plot_buttons = [self.button_run, self.button_run2, self.button_run3]
                     for button in self.plot_buttons:
                         button.setCheckable(True)
 
         self.list.setData(self.data_folders)
         self.addGroup()
-        self.current_plot_func = self.barplot
+        self.current_plot_func = self.run2
 
     def save(self):
         new_path = QtWidgets.QFileDialog.getSaveFileName(None, "Save Session", os.getcwd(), "JSON File (*.json)")
@@ -321,10 +182,10 @@ class PlottingWindowX(QtWidgets.QWidget):
             url = url.toLocalFile()
             if url[0] == "/" and url[2] == ":":
                 url = url[1:]
-            if url.endswith(".saenopy2D"):
+            if url.endswith(self.file_extension):
                 urls += [url]
             else:
-                urls += glob.glob(url + "/**/*.saenopy2D", recursive=True)
+                urls += glob.glob(url + "/**/*"+self.file_extension, recursive=True)
         self.add_files(urls)
 
     def add_files(self, urls):
@@ -336,10 +197,12 @@ class PlottingWindowX(QtWidgets.QWidget):
                 continue
             try:
                 print("Add file", file)
-
+                res = self.load_file(file)
+                if res is None:
+                    continue
                 if self.list2.data is current_group:
                     self.list2.addData(file, True, res)
-                    self.replot()
+                    #self.replot()
                 #app.processEvents()
             except FileNotFoundError:
                 continue
@@ -347,11 +210,18 @@ class PlottingWindowX(QtWidgets.QWidget):
 
     def check_results_with_time(self):
         time_values = False
+        for name, checked, files, color in self.data_folders:
+            if checked != 0:
+                for name2, checked2, res, color in files:
+                    data = res.get_data_structure()
+                    if data["time_delta"] is not None:
+                        time_values = True
+        print("time_values", time_values)
         if time_values is False:
             self.barplot()
         self.agg.setEnabled(time_values)
-        #self.button_run.setEnabled(time_values)
-        #self.button_run2.setEnabled(time_values)
+        self.button_run.setEnabled(time_values)
+        self.button_run2.setEnabled(time_values)
 
 
     def update_group_name(self):
@@ -368,7 +238,7 @@ class PlottingWindowX(QtWidgets.QWidget):
         self.list.editItem(item)
 
     def addFiles(self):
-        dialog = AddFilesDialog(self, self.settings)
+        dialog = AddFilesDialog(self, self.settings, self.file_extension)
         if not dialog.exec():
             return
 
@@ -388,8 +258,10 @@ class PlottingWindowX(QtWidgets.QWidget):
     def getAllCurrentPandasData(self):
         results = []
         for name, checked, files, color in self.data_folders:
+            print(name, checked, files)
             if checked != 0:
                 for name2, checked2, res, color in files:
+                    print("name2", name2, checked2)
                     if checked2 != 0:
                         res.resulting_data["group"] = name
                         results.append(res.resulting_data)
@@ -409,75 +281,7 @@ class PlottingWindowX(QtWidgets.QWidget):
         self.current_plot_func = self.barplot
         self.canvas.setActive()
         plt.cla()
-        if self.type.value() == "area":
-            mu_name = 'area Cell Area'
-            y_label = 'area (m$^2$)'
-        elif self.type.value() == "cell number":
-            mu_name = 'cell number'
-            y_label = 'cell number'
-        elif self.type.value() == "mean normal stress":
-            mu_name = 'mean normal stress Cell Area'
-            y_label = 'mean normal stress (N/m)'
-        elif self.type.value() == "max normal stress":
-            mu_name = 'max normal stress Cell Area'
-            y_label = 'max normal stress (N/m)'
-        elif self.type.value() == "max shear stress":
-            mu_name = 'max shear stress Cell Area'
-            y_label = 'max shear stress (N/m)'
-        elif self.type.value() == "cv mean normal stress":
-            mu_name = 'cv mean normal stress Cell Area'
-            y_label = 'cv mean normal stress'
-        elif self.type.value() == "cv max normal stress":
-            mu_name = 'cv max normal stress Cell Area'
-            y_label = 'cv max normal stress'
-        elif self.type.value() == "cv max shear stress":
-            mu_name = 'cv max shear stress Cell Area'
-            y_label = 'cv max shear stress'
-        elif self.type.value() == "average magnitude line tension":
-            mu_name = 'average magnitude line tension'
-            y_label = 'average magnitude line tension (N/m)'
-        elif self.type.value() == "std magnitude line tension":
-            mu_name = 'std magnitude line tension'
-            y_label = 'std magnitude line tension'
-        elif self.type.value() == "average normal line tension":
-            mu_name = 'average normal line tension'
-            y_label = 'average normal line tension (N/m)'
-        elif self.type.value() == "std normal line tension":
-            mu_name = 'std normal line tension'
-            y_label = 'std normal line tension'
-        elif self.type.value() == "average shear line tension":
-            mu_name = 'average shear line tension'
-            y_label = 'average shear line tension (N/m)'
-        elif self.type.value() == "std shear line tension":
-            mu_name = 'std shear line tension'
-            y_label = 'std shear line tension'
-        elif self.type.value() == "average cell force":
-            mu_name = 'average cell force'
-            y_label = 'average cell force (N/m)'
-        elif self.type.value() == "average cell pressure":
-            mu_name = 'average cell pressure'
-            y_label = 'average cell pressure (N/m)'
-        elif self.type.value() == "average cell shear":
-            mu_name = 'average cell shear'
-            y_label = 'average cell shear (N/m)'
-        elif self.type.value() == "std cell force":
-            mu_name = 'std cell force'
-            y_label = 'std cell force'
-        elif self.type.value() == "std cell pressure":
-            mu_name = 'std cell pressure'
-            y_label = 'std cell pressure'
-        elif self.type.value() == "std cell shear":
-            mu_name = 'std cell shear'
-            y_label = 'std cell shear'
-        elif self.type.value() == "contractility":
-            mu_name = 'contractility'
-            y_label = 'contractility (N)'
-        elif self.type.value() == "strain energy":
-            mu_name = 'strain energy'
-            y_label = 'strain energy (J)'
-        elif self.type.value() == "":
-            mu_name = ''
-            y_label = ''
+        mu_name, y_label = self.get_label()
 
         # get all the data as a pandas dataframe
         res = self.getAllCurrentPandasData()
@@ -487,8 +291,6 @@ class PlottingWindowX(QtWidgets.QWidget):
         del res["group"]
         res = res.groupby("filename").agg(self.agg.value())
         res["group"] = res0["group"]
-        if mu_name not in res:
-            res[mu_name] = np.nan
         #index = self.get_comparison_index()
         #res = res[res.index == index]
 
@@ -528,21 +330,7 @@ class PlottingWindowX(QtWidgets.QWidget):
             button.setChecked(False)
         self.button_run2.setChecked(True)
         self.current_plot_func = self.plot_groups
-        if self.type.value() == "strain_energy":
-            mu_name = 'strain_energy'
-            y_label = 'Strain Energy'
-        elif self.type.value() == "contractility":
-            mu_name = 'contractility'
-            y_label = 'Contractility'
-        elif self.type.value() == "polarity":
-            mu_name = 'polarity'
-            y_label = 'Polarity'
-        elif self.type.value() == "99_percentile_deformation":
-            mu_name = '99_percentile_deformation'
-            y_label = 'Deformation'
-        elif self.type.value() == "99_percentile_force":
-            mu_name = '99_percentile_force'
-            y_label = 'Force'
+        mu_name, y_label = self.get_label()
 
         self.canvas.setActive()
         plt.cla()
@@ -589,21 +377,7 @@ class PlottingWindowX(QtWidgets.QWidget):
         self.button_run.setChecked(True)
         #return
         self.current_plot_func = self.run2
-        if self.type.value() == "area Cell Area":
-            mu_name = 'area Cell Area'
-            y_label = 'area Cell Area'
-        elif self.type.value() == "contractility":
-            mu_name = 'contractility'
-            y_label = 'Contractility'
-        elif self.type.value() == "polarity":
-            mu_name = 'polarity'
-            y_label = 'Polarity'
-        elif self.type.value() == "99_percentile_deformation":
-            mu_name = '99_percentile_deformation'
-            y_label = 'Deformation'
-        elif self.type.value() == "99_percentile_force":
-            mu_name = '99_percentile_force'
-            y_label = 'Force'
+        mu_name, y_label = self.get_label()
         if 0:
             if self.type.value() == "Contractility":
                 mu_name = 'Mean Contractility (µN)'
@@ -620,8 +394,7 @@ class PlottingWindowX(QtWidgets.QWidget):
             return
 
         #plt.figure(figsize=(6, 3))
-        print(res)
-        code_data = [res, [mu_name]]
+        code_data = [res, ["t", mu_name]]
 
         #res["t"] = res.index * self.dt.value() / 60
 
@@ -656,8 +429,8 @@ class PlottingWindowX(QtWidgets.QWidget):
         with open(str(dialog.inputText.value()), "wb") as fp:
             code = ""
             code += "import matplotlib.pyplot as plt\n"
-            code += "import pandas as pd\n"
             code += "import numpy as np\n"
+            code += "import pandas as pd\n"
             code += "import io\n"
             code += "\n"
             code += "# the data for the plot\n"
