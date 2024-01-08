@@ -158,10 +158,10 @@ def get_examples_spheroid():
     image_path = Path(resource_path("thumbnails"))
     return {
         "MCF7-time-lapse": {
-            "desc": "Test data for the spheroid model.",
+            "desc": "MCF7 spheroid contracting for 12h within a 1.2mg/ml collagen gel",
             "img": image_path / "MCF7-time-lapse.png",
             "pixel_size": 1.29,
-            "time_delta": 120,
+            "time_delta": 300,
             "input": example_path / 'MCF7-time-lapse/20160912-122130_Mic3_rep?_pos*_x0_y0_modeBF_zMinProj.tif',
             "output_path": example_path / 'MCF7-time-lapse/example_output',
             "url": "https://github.com/rgerum/saenopy/releases/download/v0.7.4/MCF7-time-lapse.zip",
