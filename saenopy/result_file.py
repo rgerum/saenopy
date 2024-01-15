@@ -429,7 +429,7 @@ class Result(Saveable):
             data_dict["___save_version__"] = "1.4"
         return super().from_dict(data_dict)
 
-    def __init__(self, output=None, template=None, stack=None, time_delta=None, **kwargs):
+    def __init__(self, output=None, template="", stack=None, time_delta=None, **kwargs):
         if output is not None:
             self.output = str(Path(output).absolute())
 
@@ -551,11 +551,11 @@ class Result(Saveable):
             "dimensions": 3,
             "time_point_count": len(self.stacks),
             "has_reference": self.stack_reference is not None,
-            "z_slices_count": self.stacks[0].shape[2],
-            "im_shape": self.stacks[0].shape,
-            "voxel_size": self.stacks[0].voxel_size,
+            "z_slices_count": self.stacks[0].shape[2] if self.stacks else 0,
+            "im_shape": self.stacks[0].shape if self.stacks else (0,0,0),
+            "voxel_size": self.stacks[0].voxel_size if self.stacks else (0,0,0),
             "time_delta": self.time_delta,
-            "channels": self.stacks[0].channels,
+            "channels": self.stacks[0].channels if self.stacks else [],
             "fields": {
                 "piv": {
                     "type": "vector",
@@ -599,20 +599,23 @@ class Result(Saveable):
         return stack[:, :, :, :, channel]
 
     def get_field_data(result, name, time_point):
-        if name == "piv":
-            mesh = result.mesh_piv[time_point]
-            if mesh is not None and mesh.displacements_measured is not None:
-                return mesh, mesh.displacements_measured
-        elif name == "target deformations":
-            M = result.solvers[time_point]
-            if M is not None:
-                return M.mesh, M.mesh.displacements_target
-        elif name == "fitted deformations":
-            M = result.solvers[time_point]
-            if M is not None:
-                return M.mesh, M.mesh.displacements
-        elif name == "fitted forces":
-            M = result.solvers[time_point]
-            if M is not None:
-                return M.mesh, -M.mesh.forces * M.mesh.regularisation_mask[:, None]
+        try:
+            if name == "piv":
+                mesh = result.mesh_piv[time_point]
+                if mesh is not None and mesh.displacements_measured is not None:
+                    return mesh, mesh.displacements_measured
+            elif name == "target deformations":
+                M = result.solvers[time_point]
+                if M is not None:
+                    return M.mesh, M.mesh.displacements_target
+            elif name == "fitted deformations":
+                M = result.solvers[time_point]
+                if M is not None:
+                    return M.mesh, M.mesh.displacements
+            elif name == "fitted forces":
+                M = result.solvers[time_point]
+                if M is not None:
+                    return M.mesh, -M.mesh.forces * M.mesh.regularisation_mask[:, None]
+        except IndexError:
+            return None, None         
         return None, None

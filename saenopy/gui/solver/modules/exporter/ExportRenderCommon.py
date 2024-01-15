@@ -19,32 +19,15 @@ def get_mesh_arrows(params, result):
     return None, None, {}, ""
 
 
-def get_mesh_extent(params, result):
-    if params["arrows"] == "piv":
-        mesh = result.mesh_piv[params["time"]["t"]]
-        if mesh is not None and mesh.displacements_measured is not None:
-            return [mesh.nodes.min(axis=0) * 1e6, mesh.nodes.max(axis=0) * 1e6]
-    elif params["arrows"] == "target deformations":
-        M = result.solvers[params["time"]["t"]]
-        if M is not None:
-            return [M.mesh.nodes.min(axis=0) * 1e6, M.mesh.nodes.max(axis=0) * 1e6]
-    elif params["arrows"] == "fitted deformations":
-        M = result.solvers[params["time"]["t"]]
-        if M is not None:
-            return [M.mesh.nodes.min(axis=0) * 1e6, M.mesh.nodes.max(axis=0) * 1e6]
-    elif params["arrows"] == "fitted forces":
-        M = result.solvers[params["time"]["t"]]
-        if M is not None:
-            return [M.mesh.nodes.min(axis=0) * 1e6, M.mesh.nodes.max(axis=0) * 1e6]
+def get_mesh_extent(params, result): 
+    mesh, field = result.get_field_data(params["arrows"], params["time"]["t"]) 
+    if mesh is None:
+        return None
     else:
-        M = result.solvers[params["time"]["t"]]
-        if M is not None:
-            return [M.mesh.nodes.min(axis=0) * 1e6, M.mesh.nodes.max(axis=0) * 1e6]
-        else:
-            M = result.mesh_piv[params["time"]["t"]]
-            if M is not None:
-                return [M.mesh.nodes.min(axis=0) * 1e6, M.mesh.nodes.max(axis=0) * 1e6]
-    return None
+        return [mesh.nodes.min(axis=0) * 1e6, mesh.nodes.max(axis=0) * 1e6]
+  
+
+
 
 
 def getVectorFieldImage(result, params, use_fixed_contrast_if_available=False, use_2D=False, exporter=None):

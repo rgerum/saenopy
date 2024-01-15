@@ -72,6 +72,8 @@ def render_3d_fibers(params, result, plotter, exporter):
     t = params["time"]["t"]
     t_start = time.time()
     stack_data = None
+    if len(result.stacks) == 0:
+        return
     stack = result.stacks[t]
 
     if params["stack"]["use_reference_stack"]:
