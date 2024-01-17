@@ -76,6 +76,13 @@ class BatchEvaluate(QtWidgets.QWidget):
             self.tabs.currentChanged.connect(tab_changed)
             pass
 
+    def set_plot_window(self, plot_window):
+        self.plot_window = plot_window
+
+    def get_copy_to_menu(self):
+        result = self.list.data[self.list.currentRow()][2]
+        return self.plot_window.get_copy_to_menu(result.output)
+
     def __init__(self, parent=None):
         super().__init__(parent)
 
@@ -88,7 +95,7 @@ class BatchEvaluate(QtWidgets.QWidget):
             with QtShortCuts.QSplitter() as lay:
                 with QtShortCuts.QVBoxLayout() as layout:
                     layout.setContentsMargins(0, 0, 0, 0)
-                    self.list = ListWidget(layout, add_item_button="add measurements", copy_params=True, allow_paste_callback=self.allow_paste)
+                    self.list = ListWidget(layout, add_item_button="add measurements", copy_params=True, allow_paste_callback=self.allow_paste, copy_to_callback=self.get_copy_to_menu)
                     self.list.addItemClicked.connect(self.add_measurement)
                     self.list.signal_act_copy_clicked.connect(self.copy_params)
                     self.list.signal_act_paste_clicked.connect(self.paste_params)

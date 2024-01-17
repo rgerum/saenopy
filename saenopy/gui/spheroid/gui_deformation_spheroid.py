@@ -76,7 +76,7 @@ class MainWindow(QtWidgets.QWidget):
             """ """
             with self.tabs.createTab("Data Analysis"):
                 with QtShortCuts.QHBoxLayout() as h_layout:
-                    self.plotting_window = PlottingWindow(self)
+                    self.plotting_window = PlottingWindow(self, self.deformations)
                     h_layout.addWidget(self.plotting_window)
 
                     self.description = QtWidgets.QTextEdit()

@@ -292,7 +292,8 @@ class ListWidget(QtWidgets.QListWidget):
     signal_act_paths_clicked = QtCore.Signal()
 
     data = []
-    def __init__(self, layout, editable=False, add_item_button=False, color_picker=False, copy_params=False, allow_paste_callback=None):
+    def __init__(self, layout, editable=False, add_item_button=False, color_picker=False, copy_params=False,
+                 allow_paste_callback=None, copy_to_callback=None):
         super().__init__()
         layout.addWidget(self)
         self.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
@@ -315,6 +316,7 @@ class ListWidget(QtWidgets.QListWidget):
             self.act_paste2 = QtWidgets.QAction(qta.icon("fa5s.paste"), "Paste Parameters to All", self)
             self.act_paste2.triggered.connect(self.signal_act_paste2_clicked)
             self.allow_paste_callback = allow_paste_callback
+            self.copy_to_callback = copy_to_callback
             self.act_path = QtWidgets.QAction(qta.icon("mdi.folder-multiple-image"), "Adjust Paths", self)
             self.act_path.triggered.connect(self.signal_act_paths_clicked)
 
@@ -379,6 +381,11 @@ class ListWidget(QtWidgets.QListWidget):
                 menu.addAction(self.act_paste)
                 menu.addAction(self.act_paste2)
                 menu.addAction(self.act_path)
+                menu.addSeparator()
+                if self.copy_to_callback:
+                    m = self.copy_to_callback()
+                    if m:
+                        menu.addMenu(m)
 
             menu.addAction(self.act_delete)
 

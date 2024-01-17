@@ -8,6 +8,7 @@ import pandas as pd
 from matplotlib import pyplot as plt
 from matplotlib.backends.backend_qt import NavigationToolbar2QT as NavigationToolbar
 from qtpy import QtWidgets, QtCore, QtGui
+import qtawesome as qta
 
 from saenopy.gui.common import QtShortCuts
 from saenopy.gui.common.gui_classes import ListWidget, MatplotlibWidget, execute
@@ -70,8 +71,29 @@ class PlottingWindow(QtWidgets.QWidget):
     def get_label(self):
         return "", ""
 
-    def __init__(self, parent=None):
+    def get_copy_to_menu(self, filename):
+        menu2 = QtWidgets.QMenu("Copy to Analysis")
+        menu2.setIcon(qta.icon("mdi.clipboard-arrow-right-outline"))
+        self.copy_to_actions = []
+        for index, folder in enumerate(self.data_folders):
+            name, checked, files, color = folder
+            act = QtWidgets.QAction(qta.icon("fa5s.circle", options=[dict(color=color)]), name, self)
+            def clicked(index=index):
+                self.list.setCurrentRow(index)
+                self.add_files([filename])
+                self.list2.setCurrentRow(self.list2.count()-2)
+            act.triggered.connect(clicked)
+            menu2.addAction(act)
+            self.copy_to_actions.append(act)
+        menu2.addSeparator()
+        return menu2
+
+    def __init__(self, parent=None, batch_evluate_instance=None):
         super().__init__(parent)
+
+        self.batch_evluate_instance = batch_evluate_instance
+        if batch_evluate_instance is not None:
+            self.batch_evluate_instance.set_plot_window(self)
 
         # QSettings
         self.settings = QtCore.QSettings("Saenopy", self.settings_key)

@@ -25,7 +25,7 @@ class MainWindow2D(QtWidgets.QWidget):
 
             with self.tabs.createTab("Data Analysis"):
                 with QtShortCuts.QHBoxLayout():
-                    self.plotting_window = PlottingWindow(self).addToLayout()
+                    self.plotting_window = PlottingWindow(self, self.deformations).addToLayout()
 
 
 if __name__ == '__main__':  # pragma: no cover
