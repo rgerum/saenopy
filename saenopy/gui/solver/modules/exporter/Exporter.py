@@ -303,7 +303,7 @@ class ExportViewer(PipelineModule):
 
                 with QtShortCuts.QGroupBox(None, "scale bar") as (self.box_scalebar, _):
                     with QtShortCuts.QHBoxLayout():
-                        self.input_scalebar_um = QtShortCuts.QInputNumber(None, "length", 0, min=0, max=10000)
+                        self.input_scalebar_um = QtShortCuts.QInputNumber(None, "length", 0, min=0, max=10000, unit="µm")
                         self.input_scalebar_um.valueChanged.connect(self.update_display)
                         self.input_scalebar_width = QtShortCuts.QInputNumber(None, "width", 5, min=0, max=100)
                         self.input_scalebar_width.valueChanged.connect(self.update_display)

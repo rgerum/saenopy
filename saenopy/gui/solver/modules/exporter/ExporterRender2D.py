@@ -133,6 +133,8 @@ def render_2d_arrows(params, result, pil_image, im_scale, aa_scale, display_imag
 
 
 def render_2d_scalebar(params, result, pil_image, im_scale, aa_scale):
+    data = result.get_data_structure()
+
     def getBarParameters(pixtomu, scale=1):
         mu = 200 * pixtomu / scale
         values = [1, 5, 10, 25, 50, 75, 100, 150, 200, 250, 500, 1000, 1500, 2000, 2500, 5000, 10000]
@@ -146,10 +148,10 @@ def render_2d_scalebar(params, result, pil_image, im_scale, aa_scale):
         return pixel, mu
 
     if params["scalebar"]["length"] == 0:
-        pixel, mu = getBarParameters(result.get_data_structure()["voxel_size"][0])
+        pixel, mu = getBarParameters(data["voxel_size"][0])
     else:
         mu = params["scalebar"]["length"]
-        pixel = mu / result.stacks[0].voxel_size[0]
+        pixel = mu / data["voxel_size"][0]
 
     pil_image = add_scalebar(pil_image, scale=1, image_scale=im_scale * aa_scale,
                              width=params["scalebar"]["width"] * aa_scale,
