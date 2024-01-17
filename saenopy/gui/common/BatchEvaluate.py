@@ -92,6 +92,7 @@ class BatchEvaluate(QtWidgets.QWidget):
                     self.list.addItemClicked.connect(self.add_measurement)
                     self.list.signal_act_copy_clicked.connect(self.copy_params)
                     self.list.signal_act_paste_clicked.connect(self.paste_params)
+                    self.list.signal_act_paste2_clicked.connect(self.paste_params2)
                     self.list.signal_act_paths_clicked.connect(self.path_editor)
                     self.list.itemSelectionChanged.connect(self.listSelected)
                     self.progressbar = QtWidgets.QProgressBar().addToLayout()
@@ -168,6 +169,22 @@ class BatchEvaluate(QtWidgets.QWidget):
         for par in params:
             if par in data:
                 setattr(result, par+"_tmp", data[par])
+        self.set_current_result.emit(result)
+
+    def paste_params2(self):
+        cb = QtGui.QGuiApplication.clipboard()
+        text = cb.text(mode=cb.Clipboard)
+        try:
+            data = json.loads(text)
+        except ValueError:
+            return False
+        for i in range(len(self.list.data)):
+            result = self.list.data[i][2]
+            params = self.result_params
+            for par in params:
+                if par in data:
+                    setattr(result, par + "_tmp", data[par])
+        result = self.list.data[self.list.currentRow()][2]
         self.set_current_result.emit(result)
 
     def path_editor(self):

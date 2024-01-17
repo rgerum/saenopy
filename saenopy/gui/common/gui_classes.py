@@ -288,6 +288,7 @@ class ListWidget(QtWidgets.QListWidget):
     addItemClicked = QtCore.Signal()
     signal_act_copy_clicked = QtCore.Signal()
     signal_act_paste_clicked = QtCore.Signal()
+    signal_act_paste2_clicked = QtCore.Signal()
     signal_act_paths_clicked = QtCore.Signal()
 
     data = []
@@ -311,6 +312,8 @@ class ListWidget(QtWidgets.QListWidget):
             self.act_copy.triggered.connect(self.signal_act_copy_clicked)
             self.act_paste = QtWidgets.QAction(qta.icon("fa5s.paste"), "Paste Parameters", self)
             self.act_paste.triggered.connect(self.signal_act_paste_clicked)
+            self.act_paste2 = QtWidgets.QAction(qta.icon("fa5s.paste"), "Paste Parameters to All", self)
+            self.act_paste2.triggered.connect(self.signal_act_paste2_clicked)
             self.allow_paste_callback = allow_paste_callback
             self.act_path = QtWidgets.QAction(qta.icon("mdi.folder-multiple-image"), "Adjust Paths", self)
             self.act_path.triggered.connect(self.signal_act_paths_clicked)
@@ -372,7 +375,9 @@ class ListWidget(QtWidgets.QListWidget):
             if self.act_copy is not None:
                 menu.addAction(self.act_copy)
                 self.act_paste.setDisabled(not self.allow_paste_callback())
+                self.act_paste2.setDisabled(not self.allow_paste_callback())
                 menu.addAction(self.act_paste)
+                menu.addAction(self.act_paste2)
                 menu.addAction(self.act_path)
 
             menu.addAction(self.act_delete)
