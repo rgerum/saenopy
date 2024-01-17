@@ -16,7 +16,8 @@ import os
 from saenopy.gui.gui_master import MainWindow
 from saenopy.gui.solver.gui_solver import MainWindowSolver
 from saenopy.gui.solver.modules.BatchEvaluate import BatchEvaluate
-from saenopy.gui.solver.modules.load_measurement_dialog import AddFilesDialog, FileExistsDialog
+from saenopy.gui.solver.modules.load_measurement_dialog import AddFilesDialog
+from saenopy.gui.common.AddFilesDialog import FileExistsDialog
 np.random.seed(1234)
 
 
@@ -46,6 +47,7 @@ app.setFont(font)
 
 def init_app():
     from saenopy.gui.gui_master import MainWindow
+    sys.argv = []
     window: MainWindow = MainWindow()  # gui_master.py:MainWindow
     window.setTab(2)
 
