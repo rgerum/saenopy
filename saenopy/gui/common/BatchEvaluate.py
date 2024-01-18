@@ -101,6 +101,8 @@ class BatchEvaluate(QtWidgets.QWidget):
                     self.list.signal_act_paste_clicked.connect(self.paste_params)
                     self.list.signal_act_paste2_clicked.connect(self.paste_params2)
                     self.list.signal_act_paths_clicked.connect(self.path_editor)
+                    self.list.signal_act_paths2_clicked.connect(self.path_open)
+                    self.list.signal_act_paths3_clicked.connect(self.path_copy)
                     self.list.itemSelectionChanged.connect(self.listSelected)
                     self.progressbar = QtWidgets.QProgressBar().addToLayout()
                     self.progressbar.setOrientation(QtCore.Qt.Horizontal)
@@ -196,6 +198,15 @@ class BatchEvaluate(QtWidgets.QWidget):
 
     def path_editor(self):
         pass
+
+    def path_open(self):
+        result = self.list.data[self.list.currentRow()][2]
+        QtGui.QDesktopServices.openUrl(QtCore.QUrl.fromLocalFile(str(Path(result.output).parent)))
+
+    def path_copy(self):
+        result = self.list.data[self.list.currentRow()][2]
+        cb = QtGui.QGuiApplication.clipboard()
+        cb.setText(str(result.output), mode=cb.Clipboard)
 
     def progress(self, tup):
         n, total = tup
