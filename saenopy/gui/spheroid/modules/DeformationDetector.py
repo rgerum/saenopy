@@ -15,6 +15,7 @@ from saenopy.gui.common.QTimeSlider import QTimeSlider
 from saenopy.gui.common.resources import resource_icon
 from saenopy.gui.common.code_export import get_code
 from saenopy.gui.common.ModuleScaleBar import ModuleScaleBar
+from saenopy.gui.common.ModuleColorBar import ModuleColorBar
 
 
 class DeformationDetector(PipelineModule):
@@ -76,6 +77,7 @@ class DeformationDetector(PipelineModule):
                     #layout.addWidget(self.plotter.interactor)
                     self.label = QExtendedGraphicsView.QExtendedGraphicsView().addToLayout()
                     self.scale1 = ModuleScaleBar(self, self.label)
+                    self.color1 = ModuleColorBar(self, self.label)
                     #self.label.setMinimumWidth(300)
                     self.pixmap = QtWidgets.QGraphicsPixmapItem(self.label.origin)
                     self.contour = QtWidgets.QGraphicsPathItem(self.label.origin)
@@ -207,10 +209,10 @@ class DeformationDetector(PipelineModule):
         pil_image = pil_image.resize(
             [int(pil_image.width * im_scale * aa_scale), int(pil_image.height * im_scale * aa_scale)])
         #print(self.auto_scale.value(), self.getScaleMax())
-        pil_image = render_2d_arrows({
+        pil_image, scale_max = render_2d_arrows({
             'arrows': 'deformation',
             'deformation_arrows': {
-                "autoscale": not self.auto_scale.value(),
+                "autoscale": self.auto_scale.value(),
                 "scale_max": self.getScaleMax(),
                 "colormap": self.colormap_chooser.value(),
                 "skip": 1,
@@ -219,12 +221,13 @@ class DeformationDetector(PipelineModule):
             },
             "time": {"t": t},
             '2D_arrows': {'width': 2.0, 'headlength': 5.0, 'headheight': 5.0},
-        }, self.result, pil_image, im_scale, aa_scale, display_image)
+        }, self.result, pil_image, im_scale, aa_scale, display_image, return_scale=True)
 
         im = np.asarray(pil_image)
         self.pixmap.setPixmap(QtGui.QPixmap(array2qimage(im)))
         self.label.setExtend(im.shape[1], im.shape[0])
         self.scale1.setScale([self.result.pixel_size])
+        self.color1.setScale(0, scale_max, self.colormap_chooser.value())
 
         if self.show_seg.value():
             thresh_segmentation = self.thresh_segmentation.value()

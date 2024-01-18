@@ -61,7 +61,7 @@ def render_2d_image(params, result, exporter):
     return pil_image, display_image, im_scale, aa_scale
 
 
-def render_2d_arrows(params, result, pil_image, im_scale, aa_scale, display_image):
+def render_2d_arrows(params, result, pil_image, im_scale, aa_scale, display_image, return_scale=False):
     def project_data(R, field, skip=1):
         length = np.linalg.norm(field, axis=1)
         angle = np.arctan2(field[:, 1], field[:, 0])
@@ -77,6 +77,8 @@ def render_2d_arrows(params, result, pil_image, im_scale, aa_scale, display_imag
     mesh, field, params_arrows, name = get_mesh_arrows(params, result)
 
     if mesh is None:
+        if return_scale:
+            return pil_image, None
         return pil_image
 
     scale_max = params_arrows["scale_max"] if not params_arrows["autoscale"] else None
@@ -106,6 +108,7 @@ def render_2d_arrows(params, result, pil_image, im_scale, aa_scale, display_imag
 
         if scale_max is None:
             max_length = np.nanmax(np.linalg.norm(field, axis=1))# * params_arrows["arrow_scale"]
+            scale_max = max_length / params_arrows["arrow_scale"]
         else:
             max_length = scale_max * params_arrows["arrow_scale"]
 
@@ -129,6 +132,8 @@ def render_2d_arrows(params, result, pil_image, im_scale, aa_scale, display_imag
                                width=params["2D_arrows"]["width"],
                                headlength=params["2D_arrows"]["headlength"],
                                headheight=params["2D_arrows"]["headheight"])
+    if return_scale:
+        return pil_image, scale_max
     return pil_image
 
 
