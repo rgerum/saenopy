@@ -93,6 +93,7 @@ def get_nodes_with_one_face(tetrahedra):
     faces = np.sort(np.array(tetrahedra[:, [[0, 1, 2], [0, 1, 3], [0, 2, 3], [1, 2, 3]]]).reshape(-1, 3), axis=1)
     # encode the faces as integers
     maxi = np.max(faces) + 1
+    assert maxi<=(np.iinfo(faces.dtype).max)**(1/3)
     face_index = faces[:, 0] * maxi ** 2 + faces[:, 1] * maxi ** 1 + faces[:, 2]
     # count how often each face is present
     face_counts = pd.Series(face_index).value_counts()
