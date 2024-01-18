@@ -28,6 +28,7 @@ class Result2D(Saveable):
     input: str = None
     reference_stack: str = None
     output: str = None
+    state: False
     pixel_size: float = None
 
     u: np.ndarray = None
