@@ -33,7 +33,7 @@ class ResultSpheroid(Saveable):
     template: str = None
     images: list = None
     output: str = None
-    state: False
+    state : bool = False
 
     pixel_size: float = None
     time_delta: float = None
