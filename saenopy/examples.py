@@ -178,7 +178,7 @@ def get_examples_spheroid():
                 "url": "https://github.com/rgerum/saenopy/releases/download/v0.7.4/Jointforces_FibroblastSpheroids_RockInhibition.zip",
                 "url_evaluated": "https://github.com/rgerum/saenopy/releases/download/v0.7.4/Jointforces_FibroblastSpheroids_RockInhibition_evaluated.zip",
                 "url_evaluated_file": ["Control/20201021-180200_Mic5_rep{t}_pos09_in-focus_modeBF_slice0_z0.saenopySpheroid",
-                                       "RockInhibitor10um/20201021-180200_Mic5_rep{t}_pos29_in-focus_modeBF_slice0_z0.saenopySpheroid"],
+                                       "RockInhibitor10um/20201021-180200_Mic5_rep{t}_pos32_in-focus_modeBF_slice0_z0.saenopySpheroid"],
                 },
             "Mouse organoids": {
                 "desc": "Mouse intestinal organoid responding to mechanosensitive agonist (added after 48h) for 3 days in 1.2mg/ml collagen (~1GB)",
