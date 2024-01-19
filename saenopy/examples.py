@@ -168,7 +168,22 @@ def get_examples_spheroid():
             "url_evaluated": "https://github.com/rgerum/saenopy/releases/download/v0.7.4/Jointforces_MCF7-time-lapse_evaluated.zip",
             "url_evaluated_file": ["20160912-122130_Mic3_rep{t}_pos6_x0_y0_modeBF_zMinProj.saenopySpheroid"],
         },
-    }
+            "Mouse organoids": {
+                "desc": "Mouse intestinal organoid responding to mechanosensitive agonist (added after 48h) for 3 days in 1.2mg/ml collagen (~1GB)",
+                "img": image_path / "StainedOrganoid_icon.png",
+                "pixel_size": 1.02385,
+                "time_delta": 3600,
+                "input": example_path / 'Jointforces_MouseOrganoids_MechanoAgonist/Mic5_rep?_pos*_in-focus_modeBF_slice0_z0.tiff',
+                "output_path": example_path / 'Jointforces_MouseOrganoids_MechanoAgonist/example_output',
+                "url": "https://github.com/rgerum/saenopy/releases/download/v0.7.4/Jointforces_MouseOrganoids_MechanoAgonist.zip",
+                "url_evaluated": "https://github.com/rgerum/saenopy/releases/download/v0.7.4/Jointforces_MouseOrganoids_MechanoAgonist_evaluated.zip",
+                "url_evaluated_file": ["Mic5_rep{t}_pos42_in-focus_modeBF_slice0_z0.saenopySpheroid",
+                                       "Mic5_rep{t}_pos43_in-focus_modeBF_slice0_z0.saenopySpheroid",
+                                       "Mic5_rep{t}_pos52_in-focus_modeBF_slice0_z0.saenopySpheroid",
+                                       "Mic5_rep{t}_pos129_in-focus_modeBF_slice0_z0.saenopySpheroid"],
+                }           
+        }
+       
 
 def get_examples_orientation():
     example_path = Path(appdirs.user_data_dir("saenopy", "rgerum"))
