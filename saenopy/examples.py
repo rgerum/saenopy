@@ -68,7 +68,7 @@ def get_examples():
     image_path = Path(resource_path("thumbnails"))
     return {
         "ClassicSingleCellTFM": {
-            "desc": "Hepatic stellate cells in 1.2mg/ml collagen with relaxed and deformed stacks.\nRelaxed state induced with cytochalasin D.\n3 examples",
+            "desc": "Hepatic stellate cells in 1.2mg/ml collagen with relaxed and deformed stacks.\nRelaxed state induced with cytochalasin D.\n3 examples (~800MB)",
             "img": image_path / "liver_fibroblast_icon.png",
             "voxel_size": [0.7211, 0.7211, 0.988],
             "stack": example_path / '1_ClassicSingleCellTFM/Deformed/Mark_and_Find_001/Pos*_S001_z{z}_ch{c:00}.tif',
@@ -83,7 +83,7 @@ def get_examples():
             "url_evaluated_file": ["Pos004_S001_z{z}_ch{c00}.saenopy", "Pos007_S001_z{z}_ch{c00}.saenopy", "Pos008_S001_z{z}_ch{c00}.saenopy"],
         },
         "DynamicalSingleCellTFM": {
-            "desc": "Single natural killer cell that migrated through 1.2mg/ml collagen, recorded for 24min.\n1 example",
+            "desc": "Single natural killer cell that migrated through 1.2mg/ml collagen, recorded for 24min.\n1 example (~1.3GB)",
             "img": image_path / "Dynamic_icon.png",
             "voxel_size": [0.2407, 0.2407, 1.0071],
             "time_delta": 60,
@@ -99,7 +99,7 @@ def get_examples():
             "url_evaluated_file": ["Pos002_S001_t{t}_z{z}_ch{c00}.saenopy"],
         },
         "OrganoidTFM": {
-            "desc": "Intestinal organoid in 1.2mg/ml collagen",
+            "desc": "Intestinal organoid in 1.2mg/ml collagen (~20MB)",
             "img": image_path / "StainedOrganoid_icon.png",
             "voxel_size": [1.444, 1.444, 1.976],
             "stack": example_path / '4_OrganoidTFM/Pos007_S001_t50_z{z}_ch00.tif',
@@ -114,7 +114,7 @@ def get_examples():
             "url_evaluated_file": ["Pos007_S001_t50_z{z}_ch00.saenopy"],
         },
         "BrightfieldTFM": {
-            "desc": "Traction forces around an immune cell in collagen 1.2mg/ml calculated on simple brightfield images",
+            "desc": "Traction forces around an immune cell in collagen 1.2mg/ml calculated on simple brightfield images (~1GB)",
             "img": image_path / "BFTFM_2.png",
             "voxel_size": [0.15, 0.15, 2.0],
             "crop": {'x': (1590, 2390), 'y': (878, 1678), 'z': (30, 90)},
