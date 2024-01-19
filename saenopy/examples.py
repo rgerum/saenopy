@@ -169,10 +169,10 @@ def get_examples_spheroid():
             "url_evaluated_file": ["20160912-122130_Mic3_rep{t}_pos6_x0_y0_modeBF_zMinProj.saenopySpheroid"],
         },
             "Human fibroblast spheroids": {
-                "desc": "Human liver fibroblast spheroids (4000 cells) treated with and without inhibition of contractile forces using Rho-kinase inhibitor (added at 0h) for 12h in 1.2mg/ml collagen (~1GB)",
+                "desc": "Human liver fibroblast spheroids (4000 cells) treated with and without inhibition of contractile forces using Rho-kinase inhibitor (added at 0h) for 10h in 1.2mg/ml collagen (~1GB)",
                 "img": image_path / "SpheroidBlue.png",
                 "pixel_size": 1.02385,
-                "time_delta": 900,
+                "time_delta": 600,
                 "input": example_path / 'Jointforces_FibroblastSpheroids_RockInhibition/*/*Mic5_rep?_pos*_in-focus_modeBF_slice0_z0.tif',
                 "output_path": example_path / 'Jointforces_FibroblastSpheroids_RockInhibition/example_output',
                 "url": "https://github.com/rgerum/saenopy/releases/download/v0.7.4/Jointforces_FibroblastSpheroids_RockInhibition.zip",
