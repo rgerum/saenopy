@@ -157,15 +157,15 @@ def get_examples_spheroid():
     example_path = Path(appdirs.user_data_dir("saenopy", "rgerum"))
     image_path = Path(resource_path("thumbnails"))
     return {
-        "MCF7-time-lapse": {
-            "desc": "MCF7 spheroid contracting for 12h within a 1.2mg/ml collagen gel",
+        "MCF7 spheroid": {
+            "desc": "MCF7 spheroid contracting for 12h within a 1.2mg/ml collagen gel (~300MB)",
             "img": image_path / "MCF7-time-lapse.png",
             "pixel_size": 1.29,
             "time_delta": 300,
-            "input": example_path / 'MCF7-time-lapse/20160912-122130_Mic3_rep?_pos*_x0_y0_modeBF_zMinProj.tif',
-            "output_path": example_path / 'MCF7-time-lapse/example_output',
-            "url": "https://github.com/rgerum/saenopy/releases/download/v0.7.4/MCF7-time-lapse.zip",
-            "url_evaluated": "https://github.com/rgerum/saenopy/releases/download/v0.7.4/MCF7-time-lapse_evaluated.zip",
+            "input": example_path / 'Jointforces_MCF7-time-lapse/20160912-122130_Mic3_rep?_pos*_x0_y0_modeBF_zMinProj.tif',
+            "output_path": example_path / 'Jointforces_MCF7-time-lapse/example_output',
+            "url": "https://github.com/rgerum/saenopy/releases/download/v0.7.4/Jointforces_MCF7-time-lapse.zip",
+            "url_evaluated": "https://github.com/rgerum/saenopy/releases/download/v0.7.4/Jointforces_MCF7-time-lapse_evaluated.zip",
             "url_evaluated_file": ["20160912-122130_Mic3_rep{t}_pos6_x0_y0_modeBF_zMinProj.saenopySpheroid"],
         },
     }
