@@ -8,7 +8,7 @@ from saenopy.gui.common.plot_window import PlottingWindow
 
 
 class PlottingWindow(PlottingWindow):
-    settings_key = "saenopy_sheroid"
+    settings_key = "saenopy_spheroid"
     file_extension = ".saenopySpheroid"
 
     dt = 1

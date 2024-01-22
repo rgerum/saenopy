@@ -4,7 +4,7 @@ from qtpy import QtCore, QtWidgets, QtGui
 import numpy as np
 import traceback
 
-from saenopy.gui.tfm2d.modules.result import get_stacks2D
+from saenopy.gui.tfm2d.modules.result import get_stacks2D, Result2D
 from saenopy.gui.common import QtShortCuts
 
 from .load_measurement_dialog import AddFilesDialog
@@ -28,6 +28,7 @@ from saenopy.gui.common.ModuleScaleBar import ModuleScaleBar
 class BatchEvaluate(BatchEvaluate):
     settings_key = "Seanopy_deformation"
     file_extension = ".saenopy2D"
+    result: Result2D = None
 
     result_params = ["piv_parameters", "force_parameters"]
 

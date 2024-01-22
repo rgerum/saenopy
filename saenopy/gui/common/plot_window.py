@@ -78,7 +78,7 @@ class PlottingWindow(QtWidgets.QWidget):
         for index, folder in enumerate(self.data_folders):
             name, checked, files, color = folder
             act = QtWidgets.QAction(qta.icon("fa5s.circle", options=[dict(color=color)]), name, self)
-            def clicked(index=index):
+            def clicked(*, index=index):
                 self.list.setCurrentRow(index)
                 try:
                     self.add_files([filename])
