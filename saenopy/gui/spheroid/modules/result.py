@@ -9,7 +9,7 @@ from tifffile import imread
 import matplotlib.pyplot as plt
 
 from saenopy.saveable import Saveable
-from saenopy.result_file import make_path_absolute
+from saenopy.result_file import make_path_absolute, make_path_relative
 
 
 
@@ -70,11 +70,30 @@ class ResultSpheroid(Saveable):
 
         super().__init__(**kwargs)
 
-    def save(self, file_name=None):
-        if file_name is None:
-            file_name = self.output
+    def save(self, filename: str = None):
+        if filename is None:
+            self.template = make_path_absolute(self.template, Path(self.output).parent)
+            for i in range(len(self.images)):
+                self.images[i] = make_path_absolute(self.images[i], Path(self.output).parent)
+
+            filename = self.output
+
+            self.template = make_path_relative(self.template, Path(self.output).parent)
+            for i in range(len(self.images)):
+                self.images[i] = make_path_relative(self.images[i], Path(self.output).parent)
         Path(self.output).parent.mkdir(exist_ok=True, parents=True)
-        super().save(file_name)
+        super().save(filename)
+
+    def on_load(self, filename: str):
+        self.template = make_path_relative(self.template, Path(self.output).parent)
+        for i in range(len(self.images)):
+            self.images[i] = make_path_relative(self.images[i], Path(self.output).parent)
+
+        self.output = str(Path(filename))
+
+        self.template = make_path_absolute(self.template, Path(self.output).parent)
+        for i in range(len(self.images)):
+            self.images[i] = make_path_absolute(self.images[i], Path(self.output).parent)
 
     def get_absolute_path(self):
         return make_path_absolute(self.template, Path(self.output).parent)
@@ -101,9 +120,11 @@ class ResultSpheroid(Saveable):
             }
         }
 
-    def get_image_data(self, time_point, channel="default", use_reference=False):
+    def get_image_data(self, time_point, channel="default", use_reference=False, return_filename=False):
         try:
-            im = imread(self.images[time_point])
+            if return_filename:
+                return make_path_absolute(self.images[time_point], Path(self.output).parent)
+            im = imread(make_path_absolute(self.images[time_point], Path(self.output).parent))
         except FileNotFoundError as err:
             traceback.print_exception(err)
             h = 255

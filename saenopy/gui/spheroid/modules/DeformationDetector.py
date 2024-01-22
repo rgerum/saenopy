@@ -22,6 +22,7 @@ class DeformationDetector(PipelineModule):
     pipeline_name = "find deformations"
     use_thread = False
     progress_signal = QtCore.Signal(int, str)
+    result: ResultSpheroid = None
 
     def __init__(self, parent: "BatchEvaluate", layout):
         super().__init__(parent, layout)
@@ -232,7 +233,7 @@ class DeformationDetector(PipelineModule):
         if self.show_seg.value():
             thresh_segmentation = self.thresh_segmentation.value()
             if not self.continuous_segmentation.value():
-                im0 = imageio.v2.imread(self.result.images[0]).astype(float)
+                im0 = imageio.v2.imread(self.result.get_image_data(0, return_filename=True)).astype(float)
             seg0 = jf.piv.segment_spheroid(im0, True, thresh_segmentation)
             from skimage import measure
             # Find contours at a constant value of 0.8

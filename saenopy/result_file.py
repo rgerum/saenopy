@@ -1,6 +1,7 @@
 import glob
 import re
 from pathlib import Path
+from pathlib import PurePath, PureWindowsPath
 import os
 import natsort
 from typing import List
@@ -227,21 +228,35 @@ def common_start(values):
             start = start[:-1]
 
 
-def make_path_relative(template, output):
-    template = str(Path(template).absolute())
-    output = str(Path(output).absolute())
-    # relative and optionally go up to two folders up
-    try:
-        template = Path(template).relative_to(output)
-    except ValueError:
-        try:
-            template = Path("..") / Path(template).relative_to(Path(output).parent)
-        except ValueError:
-            try:
-                template = Path("../..") / Path(template).relative_to(Path(output).parent.parent)
-            except ValueError:
-                pass
-    return str(template)
+def make_path_relative(filename, base):
+    """
+    Returns the relative path of `filename` with respect to the `base` directory,
+    working cross-platform for Windows paths on non-Windows systems.
+
+    :param filename: The path of the file.
+    :param base: The base directory to which the path should be relative.
+    :return: The relative path of the file.
+    """
+    # Convert to PurePath for cross-platform compatibility
+    base_path = PurePath(base)
+    file_path = PurePath(filename)
+
+    # Use PureWindowsPath if on a non-Windows system handling Windows paths
+    if not isinstance(base_path, PureWindowsPath) and '\\' in str(base):
+        base_path = PureWindowsPath(base)
+    if not isinstance(file_path, PureWindowsPath) and '\\' in str(filename):
+        file_path = PureWindowsPath(filename)
+
+    if not file_path.is_absolute():
+        return file_path
+
+    offset = ""
+    for i in range(3):
+        if file_path.is_relative_to(base_path):
+            return str(offset / file_path.relative_to(base_path))
+        base_path = base_path.parent
+        offset /= PurePath("..")
+    return file_path
 
 
 def make_path_absolute(template, output):

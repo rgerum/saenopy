@@ -144,6 +144,9 @@ class Result2D(Saveable):
         Path(self.output).parent.mkdir(exist_ok=True, parents=True)
         super().save(file_name)
 
+    def on_load(self, filename: str):
+        self.output = str(Path(filename))
+
     def get_mask(self):
         if self.mask is None:
             self.mask = get_mask_using_gui(self.bf)

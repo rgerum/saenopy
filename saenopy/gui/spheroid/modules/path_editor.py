@@ -4,9 +4,10 @@ import re
 
 from saenopy.gui.common import QtShortCuts
 from saenopy.gui.solver.modules.path_editor import PathChanger
+from saenopy.gui.spheroid.modules.result import ResultSpheroid
 
 
-def start_path_change(parent, result):
+def start_path_change(parent, result: ResultSpheroid):
     path_editor = PathEditor(parent, result)
     if not path_editor.exec():
         return

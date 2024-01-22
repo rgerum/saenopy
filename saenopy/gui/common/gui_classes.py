@@ -302,7 +302,7 @@ class ListWidget(QtWidgets.QListWidget):
         self.customContextMenuRequested.connect(self.list2_context_menu)
         self.itemChanged.connect(self.list2_checked_changed)
         self.itemChanged = self.itemChanged2
-        self.act_delete = QtWidgets.QAction(qta.icon("fa.minus"), "Remove", self)
+        self.act_delete = QtWidgets.QAction(qta.icon("fa5s.minus"), "Remove", self)
         self.act_delete.triggered.connect(self.delete_item)
 
         self.act_color = None
