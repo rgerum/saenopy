@@ -80,7 +80,12 @@ class PlottingWindow(QtWidgets.QWidget):
             act = QtWidgets.QAction(qta.icon("fa5s.circle", options=[dict(color=color)]), name, self)
             def clicked(index=index):
                 self.list.setCurrentRow(index)
-                self.add_files([filename])
+                try:
+                    self.add_files([filename])
+                except Exception as e:
+                    QtWidgets.QMessageBox.critical(self, "Error", f"Measurement could not be added to Analysis.\n"
+                                                                  f"Is it evaluated completely?")
+                    return
                 self.list2.setCurrentRow(self.list2.count()-2)
             act.triggered.connect(clicked)
             menu2.addAction(act)
