@@ -113,7 +113,7 @@ class DeformationDetector(PipelineModule):
                     self.window_scale = QtWidgets.QWidget()
                     self.window_scale.setWindowTitle("Saenopy - Arrow Scale")
                     with QtShortCuts.QVBoxLayout(self.window_scale):
-                        self.arrow_scale = QtShortCuts.QInputNumber(None, "arrow scale", 1, 0.1, 10, use_slider=True,
+                        self.arrow_scale = QtShortCuts.QInputNumber(None, "arrow scale", 1, 0.01, 100, use_slider=True,
                                                                     log_slider=True)
                         self.arrow_scale.valueChanged.connect(self.update_display)
                         #self.arrow_scale.valueChanged.connect(
