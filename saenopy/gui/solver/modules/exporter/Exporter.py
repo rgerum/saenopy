@@ -532,6 +532,11 @@ class ExportViewer(PipelineModule):
         self.rotate_fps.setEnabled(is3D)
         self.rotate_steps.setEnabled(is3D)
 
+        if is2D:
+            self.pixmap1.sceneEvent = None
+        else:
+            self.pixmap1.sceneEvent = self.sceneEventFilter
+
     def hide_timestamp(self):
         data = self.result.get_data_structure() if self.result is not None else None
         isTimeAvailable = data and data["time_delta"] is not None
