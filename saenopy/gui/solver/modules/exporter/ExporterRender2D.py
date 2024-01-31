@@ -14,13 +14,15 @@ def render_2d(params, result, exporter=None):
     if pil_image is None:
         return np.zeros((10, 10))
 
-    pil_image = render_2d_arrows(params, result, pil_image, im_scale, aa_scale, display_image)
+    pil_image, disp_params = render_2d_arrows(params, result, pil_image, im_scale, aa_scale, display_image, return_scale=True)
 
     if aa_scale == 2:
         pil_image = pil_image.resize([pil_image.width // 2, pil_image.height // 2])
         aa_scale = 1
 
     pil_image = render_2d_scalebar(params, result, pil_image, im_scale, aa_scale)
+    if disp_params != None:
+        pil_image = render_2d_colorbar(params, result, pil_image, im_scale, aa_scale, scale_max=disp_params["scale_max"], colormap=disp_params["colormap"])
 
     pil_image = render_2d_time(params, result, pil_image)
 
@@ -76,15 +78,22 @@ def render_2d_arrows(params, result, pil_image, im_scale, aa_scale, display_imag
 
     mesh, field, params_arrows, name = get_mesh_arrows(params, result)
 
+    if params_arrows is None:
+        scale_max = None
+    else:
+        scale_max = params_arrows["scale_max"] if not params_arrows["autoscale"] else None
+        colormap = params_arrows["colormap"]
+        skip = params_arrows["skip"]
+        alpha = params_arrows["arrow_opacity"]
+
     if mesh is None:
         if return_scale:
+            if scale_max is None:
+                return pil_image, None
+            else:
+                return pil_image, {"scale_max": scale_max, "colormap": colormap}
             return pil_image, None
         return pil_image
-
-    scale_max = params_arrows["scale_max"] if not params_arrows["autoscale"] else None
-    colormap = params_arrows["colormap"]
-    skip = params_arrows["skip"]
-    alpha = params_arrows["arrow_opacity"]
 
     if field is not None:
         # rescale and offset
@@ -133,7 +142,7 @@ def render_2d_arrows(params, result, pil_image, im_scale, aa_scale, display_imag
                                headlength=params["2D_arrows"]["headlength"],
                                headheight=params["2D_arrows"]["headheight"])
     if return_scale:
-        return pil_image, scale_max
+        return pil_image, {"scale_max": scale_max, "colormap": colormap}
     return pil_image
 
 
@@ -164,6 +173,22 @@ def render_2d_scalebar(params, result, pil_image, im_scale, aa_scale):
                              ypos=params["scalebar"]["ypos"] * aa_scale,
                              fontsize=params["scalebar"]["fontsize"] * aa_scale, pixel_width=pixel,
                              size_in_um=mu, color="w", unit="µm")
+    return pil_image
+
+def render_2d_colorbar(params, result, pil_image, im_scale, aa_scale, colormap="viridis", scale_max=1):
+    pil_image = add_colorbar(pil_image, scale=1,
+                             colormap=colormap,#params["colorbar"]["colorbar"],
+                             #bar_width=params["colorbar"]["bar_width"] * aa_scale,
+                             #bar_height=params["colorbar"]["bar_height"] * aa_scale,
+                             #tick_height=params["colorbar"]["tick_height"] * aa_scale,
+                             #tick_count=params["colorbar"]["tick_count"],
+                             #min_v=params["scalebar"]["min_v"],
+                             max_v=scale_max,#params["colorbar"]["max_v"],
+                             #offset_x=params["colorbar"]["offset_x"] * aa_scale,
+                             #offset_y=params["colorbar"]["offset_y"] * aa_scale,
+                             #fontsize=params["colorbar"]["fontsize"] * aa_scale,
+                             )
+
     return pil_image
 
 
@@ -243,6 +268,63 @@ def add_text(pil_image, text, position, fontsize=18):
         color = int(np.mean(color))
 
     image.text((x, y), text, color, font=font)
+    return pil_image
+
+def add_colorbar(pil_image,
+                 colormap="viridis",
+                 bar_width=150,
+                 bar_height=10,
+                 tick_height=5,
+                 tick_count=3,
+                 min_v=0,
+                 max_v=10,
+                 offset_x=15,
+                 offset_y=-10,
+                 scale=1, fontsize=16, color="w"):
+    cmap = plt.get_cmap(colormap)
+    if offset_x < 0:
+        offset_x = pil_image.size[0] + offset_x
+    if offset_y < 0:
+        offset_y = pil_image.size[1] + offset_y
+
+    color = tuple((matplotlib.colors.to_rgba_array(color)[0, :3] * 255).astype("uint8"))
+    if pil_image.mode != "RGB":
+        color = int(np.mean(color))
+
+    colors = np.zeros((bar_height, bar_width, 3), dtype=np.uint8)
+    for i in range(bar_width):
+        c = plt.get_cmap(cmap)(int(i / bar_width * 255))
+        colors[:, i, :] = [c[0] * 255, c[1] * 255, c[2] * 255]
+    pil_image.paste(Image.fromarray(colors), (offset_x, offset_y - bar_height))
+
+    image = ImageDraw.ImageDraw(pil_image)
+    import matplotlib.ticker as ticker
+
+    font_size = int(
+        round(fontsize * scale * 4 / 3))  # the 4/3 appears to be a factor of "converting" screel dpi to image dpi
+    try:
+        font = ImageFont.truetype("arial", font_size)  # ImageFont.truetype("tahoma.ttf", font_size)
+    except IOError:
+        font = ImageFont.truetype("times", font_size)
+
+    locator = ticker.MaxNLocator(nbins=tick_count - 1)
+    #tick_positions = locator.tick_values(min_v, max_v)
+    tick_positions = np.linspace(min_v, max_v, tick_count)
+    for i, pos in enumerate(tick_positions):
+        x0 = offset_x + (bar_width - 2) / (tick_count - 1) * i
+        y0 = offset_y - bar_height - 1
+
+        image.rectangle([x0, y0-5, x0+1, y0])
+
+        text = "%d" % pos
+        length_number = image.textlength(text, font=font)
+        height_number = image.textbbox((0, 0), text, font=font)[3]
+
+        x = x0 - length_number * 0.5 + 1
+        y = y0 - height_number - tick_height - 3
+        # draw the text for the number and the unit
+        image.text((x, y), text, color, font=font)
+    #image.rectangle([pil_image.size[0]-10, 0, pil_image.size[0], 10], fill="w")
     return pil_image
 
 def add_scalebar(pil_image, scale, image_scale, width, xpos, ypos, fontsize, pixel_width, size_in_um, color="w", unit="µm"):

@@ -210,7 +210,7 @@ class DeformationDetector(PipelineModule):
         pil_image = pil_image.resize(
             [int(pil_image.width * im_scale * aa_scale), int(pil_image.height * im_scale * aa_scale)])
         #print(self.auto_scale.value(), self.getScaleMax())
-        pil_image, scale_max = render_2d_arrows({
+        pil_image, disp_params = render_2d_arrows({
             'arrows': 'deformation',
             'deformation_arrows': {
                 "autoscale": self.auto_scale.value(),
@@ -228,7 +228,7 @@ class DeformationDetector(PipelineModule):
         self.pixmap.setPixmap(QtGui.QPixmap(array2qimage(im)))
         self.label.setExtend(im.shape[1], im.shape[0])
         self.scale1.setScale([self.result.pixel_size])
-        self.color1.setScale(0, scale_max, self.colormap_chooser.value())
+        self.color1.setScale(0, disp_params["scale_max"] if disp_params else None, self.colormap_chooser.value())
 
         if self.show_seg.value():
             thresh_segmentation = self.thresh_segmentation.value()
