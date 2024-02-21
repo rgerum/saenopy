@@ -245,7 +245,7 @@ class Regularizer(PipelineModule):
 
             # iterate over all the results objects
             for result in results:
-                result.mesh_parameters = material_parameters
+                result.material_parameters = material_parameters
                 result.solve_parameters = solve_parameters
                 for index, M in enumerate(result.solvers):
                     # optionally copy the displacement field from the previous time step as a starting value
