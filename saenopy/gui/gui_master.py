@@ -205,14 +205,15 @@ def main():  # pragma: no cover
     except (ImportError, RuntimeError):
         pass
 
-    while True:
-        try:
-            res = app.exec_()
-            break
-        except Exception as err:
-            traceback.print_traceback(err)
-            QtWidgets.QMessageBox.critical(window, "Error", f"An Error occurred:\n{err}")
-            continue
+    from traceback import format_exception
+    def except_hook(type_, value, tb):
+        print(*format_exception(type_, value, tb), file=sys.stderr)
+        QtWidgets.QMessageBox.critical(window, "Error", f"An Error occurred:\n{type_.__name__}: {value}")
+        return
+
+    sys.excepthook = except_hook
+
+    res = app.exec_()
     sys.exit(res)
 
 
@@ -225,13 +226,6 @@ if __name__ == '__main__':  # pragma: no cover
         code = compile(source, sys.argv[1], 'exec')
         exec(code)
         exit(0)
-
-
-    """ some magic to prevent PyQt5 from swallowing exceptions """
-    # Back up the reference to the exceptionhook
-    sys._excepthook = sys.excepthook
-    # Set the exception hook to our wrapping function
-    sys.excepthook = lambda *args: sys._excepthook(*args)
 
     for arg in sys.argv:
         if arg == "--demo":
