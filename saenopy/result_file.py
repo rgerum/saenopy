@@ -471,7 +471,7 @@ class Result(Saveable):
                 stack.paths_relative(self)
             if self.stack_reference is not None:
                 self.stack_reference.paths_relative(self)
-            self.template = make_path_relative(self.template, Path(self.output).parent)
+            self.template = str(make_path_relative(self.template, Path(self.output).parent))
 
 
         # if demo move parts to simulate empty result
@@ -532,6 +532,8 @@ class Result(Saveable):
     def __repr__(self):
         folders = [str(Path(stack.template)) for stack in self.stacks]
         base_folder = common_start(folders)
+        if base_folder is None:
+            base_folder = " "
         base_folder = os.sep.join(base_folder.split(os.sep)[:-1])
         indent = "    "
         text = "Result(" + "\n"
