@@ -228,6 +228,16 @@ def common_start(values):
             start = start[:-1]
 
 
+def is_relative_to(path, base):
+    """
+    Check if 'path' is relative to 'base'.
+    """
+    try:
+        path.relative_to(base)
+        return True
+    except ValueError:
+        return False
+
 def make_path_relative(filename, base):
     """
     Returns the relative path of `filename` with respect to the `base` directory,
@@ -252,7 +262,7 @@ def make_path_relative(filename, base):
 
     offset = ""
     for i in range(3):
-        if file_path.is_relative_to(base_path):
+        if is_relative_to(file_path,base_path):
             return str(offset / file_path.relative_to(base_path))
         base_path = base_path.parent
         offset /= PurePath("..")
