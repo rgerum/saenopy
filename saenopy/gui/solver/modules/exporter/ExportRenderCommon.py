@@ -64,7 +64,7 @@ def getVectorFieldImage(result, params, use_fixed_contrast_if_available=False, u
 
             display_image = [im, data["voxel_size"], params["stack"]["z"] - data["z_slices_count"] / 2]
             if params["stack"]["image"] == 2:
-                display_image[2] = -stack.shape[2] / 2
+                display_image[2] = -stack.shape[3] / 2
         else:
             display_image = None
     except FileNotFoundError:
