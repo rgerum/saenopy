@@ -41,11 +41,11 @@ def getVectorFieldImage(result, params, use_fixed_contrast_if_available=False, u
         if use_2D:
             image = 1
         if image and params["time"]["t"] < data["time_point_count"]:
-            stack = result.get_image_data(params["time"]["t"], params["stack"]["channel"],params["stack"]["use_reference_stack"])
+            stack = result.get_image_data(params["time"]["t"], params["stack"]["channel"], params["stack"]["use_reference_stack"])
             if params["stack"]["z_proj"]:
                 z_range = [0, 5, 10, 1000][params["stack"]["z_proj"]]
-                start = np.clip(params["stack"]["z"] - z_range, 0, stack.shape[2])
-                end = np.clip(params["stack"]["z"] + z_range, 0, stack.shape[2])
+                start = np.clip(params["stack"]["z"] - z_range, 0, stack.shape[3])
+                end = np.clip(params["stack"]["z"] + z_range, 0, stack.shape[3])
                 im = stack[:, :, :, start:end]
                 im = np.max(im, axis=3)
             else:
