@@ -110,10 +110,9 @@ as a reference stack ("median"). It is also possible to specify an individual ti
 mesh element size
 ~~~~~~~~~~~~~~~~~
 The element size for the mesh to which the mesh from the PIV step will be interpolated.
-Smaller element sizes will produce a finer mesh, which will capture more detail of the deformation field, but will take longer to
-but will take longer to calculate in the Fit Forces step.
-To reduce the loss of information
-when interpolating to a new mesh, it may be beneficial to use the same mesh size as the final mesh or an integral multiple of it.
+Smaller element sizes will produce a finer mesh, which will capture more detail of the deformation field, but will take longer to 
+calculate in the Fit Forces step. To reduce the loss of information when interpolating to a new mesh, it may 
+be beneficial to use the same mesh size as the final mesh or an integral multiple of it.
 
 .. figure:: images/parameters/mesh_size.png
 
