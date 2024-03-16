@@ -55,7 +55,7 @@ function inject_style(style) {
 function add_logo(parentDom, params) {
   const logo = document.createElement("img");
   logo.className = ccs_prefix + "logo";
-  logo.src = "https://saenopy.readthedocs.io/en/latest/_images/Logo_black.png";
+  logo.src = "https://saenopy.readthedocs.io/en/latest/_static/img/Logo_black.png";
   parentDom.appendChild(logo);
   inject_style(`
        .${ccs_prefix}logo {
