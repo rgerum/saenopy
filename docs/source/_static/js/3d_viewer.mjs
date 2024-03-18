@@ -10,6 +10,79 @@ import { GUI } from "three/addons/libs/lil-gui.module.min.js";
 import { loadNpy } from "./load_numpy.js";
 import { cmaps } from "./colormaps.js";
 
+
+      import {
+  BlobWriter,
+              BlobReader,
+              ZipReader,
+} from "https://unpkg.com/@zip.js/zip.js/index.js";
+// Creates a ZipReader object reading the zip content via `zipFileReader`,
+// retrieves metadata (name, dates, etc.) of the first entry, retrieves its
+// content via `helloWorldWriter`, and closes the reader.
+
+async function glob_to_canvas(blob) {
+  return new Promise((accept, reject) => {
+  // Assuming `blob` is your Blob object representing a JPEG file
+const blobUrl = URL.createObjectURL(blob);
+
+// Create a new Image object
+const img = new Image();
+
+// Set up onload handler to draw the image to the canvas once it's loaded
+img.onload = function() {
+    // Create a canvas element
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+
+    // Set canvas dimensions to the image dimensions
+    canvas.width = img.width;
+    canvas.height = img.height;
+
+    // Draw the image onto the canvas
+    ctx.drawImage(img, 0, 0);
+
+    // Now you can work with the canvas or add it to the DOM
+    //document.body.appendChild(canvas);
+    accept(canvas);
+
+    // Release the Blob URL to free up memory
+    URL.revokeObjectURL(blobUrl);
+};
+
+// Set the source of the image to the Blob URL
+img.src = blobUrl;
+})
+}
+
+const zip_entries = {}
+async function get_file_from_zip(url, filename, return_type="blob") {
+  if(zip_entries[url] === undefined) {
+    async function get_entries(url) {
+      const zipReader = new ZipReader(new BlobReader(await (await fetch(url)).blob()));
+      const entries = await zipReader.getEntries();
+      const entry_map = {}
+      for (let entry of entries) {
+        entry_map[entry.filename] = entry;
+      }
+      await zipReader.close();
+      return entry_map
+    }
+    zip_entries[url] = get_entries(url);
+  }
+  const entry = (await zip_entries[url])[filename];
+  if(!entry)
+    console.error("file", filename, "not found in", url);
+
+  if(entry.filename === filename) {
+    const blob = await entry.getData(new BlobWriter());
+    if(return_type === "url")
+      return URL.createObjectURL(blob);
+    if(return_type === "texture")
+      return new THREE.TextureLoader().load(URL.createObjectURL(blob));
+    return blob;
+  }
+}
+
 const ccs_prefix = "saenopy_";
 
 // Arrowhead geometry (cone)
@@ -62,7 +135,7 @@ function add_logo(parentDom, params) {
            position: absolute;
            left: 0;
            top: 0;
-           width: ${params.logo_width};
+           width: min(${params.logo_width}, 40%);
        }`);
 }
 
@@ -174,13 +247,14 @@ function init_scene(dom_elem) {
     dom_elem.appendChild(canvas);
     dom_elem = canvas;
   }
+  dom_elem.style.display = "block";
 
   scene = new THREE.Scene();
   camera = new THREE.PerspectiveCamera(
     75,
     window.innerWidth / window.innerHeight,
     0.1,
-    1000,
+    1500,
   );
   scene.camera = camera;
   renderer = new THREE.WebGLRenderer({ alpha: true, canvas: dom_elem, antialias: true });
@@ -276,50 +350,74 @@ function pad_zero(num, places) {
   return String(num).padStart(places, "0");
 }
 
-function add_image(scene, params, data) {
-  let w = data.stacks.im_shape[0] * data.stacks.voxel_size[0];
-  let h = data.stacks.im_shape[1] * data.stacks.voxel_size[1];
+
+const pending = {
+  state: 'pending',
+};
+
+function getPromiseState(promise) {
+  // We put `pending` promise after the promise to test,
+  // which forces .race to test `promise` first
+  return Promise.race([promise, pending]).then(
+    (value) => {
+      if (value === pending) {
+        return value;
+      }
+      return {
+        state: 'resolved',
+        value
+      };
+    },
+    (reason) => ({ state: 'rejected', reason })
+  );
+}
+
+async function add_image(scene, params) {
+  let w = params.data.stacks.im_shape[0] * params.data.stacks.voxel_size[0];
+  let h = params.data.stacks.im_shape[1] * params.data.stacks.voxel_size[1];
   let d = 0;
   // Image setup
   const imageGeometry = new THREE.PlaneGeometry(w, h);
+  // a black image texture to start
   const texture = new THREE.TextureLoader().load(
-    params.path + "/stack/000.jpg",
+    "data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs="
   );
   const imageMaterial = new THREE.MeshBasicMaterial({ map: texture });
+  imageMaterial.side = THREE.DoubleSide;
   let imagePlane = new THREE.Mesh(imageGeometry, imageMaterial);
-  //imagePlane.position.y = -d/2 + 0.2*d; // Custom Z position
   imagePlane.rotation.x = -Math.PI / 2;
   scene.add(imagePlane);
 
+  //const texture_await = get_textures_from_zip("data/stack/stack.zip");
+  //let textures;
+
   const textures = [];
-  for (let i = 0; i < data.stacks.z_slices_count; i++) {
-    if(params.pre_load_images)
-      textures.push(new THREE.TextureLoader().load(params.path + "/stack/" + pad_zero(i+1, 3) + ".jpg"));
-    else
-      textures.push(null);
+  for (let i = 0; i < params.data.stacks.z_slices_count; i++) {
+    textures.push(get_file_from_zip(params.data.path, "0/stack/" + params.data.stacks.channels[0] + "/" + pad_zero(i, 3) + ".jpg", "texture"));
+    textures[i].then((v) => {textures[i] = v})
   }
 
-  function update() {
+  async function update() {
     if (params.image === "z-pos") {
       imagePlane.position.y =
-        (-data.stacks.im_shape[2] * data.stacks.voxel_size[2]) / 2 +
-        params.z * data.stacks.voxel_size[2];
+        (-params.data.stacks.im_shape[2] * params.data.stacks.voxel_size[2]) / 2 +
+        params.z * params.data.stacks.voxel_size[2];
       imagePlane.scale.x = 1;
     } else if (params.image === "floor") {
       imagePlane.position.y =
-        (-data.stacks.im_shape[2] * data.stacks.voxel_size[2]) / 2;
+        (-params.data.stacks.im_shape[2] * params.data.stacks.voxel_size[2]) / 2;
       imagePlane.scale.x = 1;
     } else {
       imagePlane.scale.x = 0;
     }
     const z = Math.floor(params.z);
-    if (!textures[z])
-      textures[z] = new THREE.TextureLoader().load(
-        params.path + "/stack/" + pad_zero(Math.ceil(params.z) + 1, 3) + ".jpg",
-      );
-    imagePlane.material.map = textures[z];
+    if(textures[z].then === undefined)
+      imagePlane.material.map = await textures[z];
+    else {
+      textures[z].then(update)
+    }
   }
-  update();
+  update()
   return update;
 }
 
@@ -363,12 +461,8 @@ async function add_test(scene, params) {
       needs_update = true;
       if (params.field !== "none") {
         try {
-          nodes = await loadNpy(
-            params.path + "/" + params.data.fields[params.field].nodes,
-          );
-          vectors = await loadNpy(
-            params.path + "/" + params.data.fields[params.field].vectors,
-          );
+          nodes = await loadNpy(await get_file_from_zip(params.data.path, "0/" + params.data.fields[params.field].nodes, "blob"));
+          vectors = await loadNpy(await get_file_from_zip(params.data.path, "0/" + params.data.fields[params.field].vectors, "blob"));
         } catch (e) {}
       }
 
@@ -495,10 +589,10 @@ export async function init(initial_params) {
   const params = {
     scale: 1,
     cmap: "turbo", // ["turbo", "viridis"]
-    field: "none",  // fitted deformations
+    field: "fitted deformations",  // fitted deformations
     z: 0,
     cube: "field", // ["none", "stack", "field"]
-    image: "none", // ["none", "z-pos", "floor"]
+    image: "z-pos", // ["none", "z-pos", "floor"]
     background: "black",
     height: "400px",
     width: "auto",
@@ -525,9 +619,11 @@ export async function init(initial_params) {
 
   add_logo(scene.renderer.domElement.parentElement, params);
 
-  const data = await (await fetch(initial_params.path + "/data.json")).json();
-  params.data = data;
-  const update_image = (params.data.stacks ? add_image(scene, params, data) : () => {});
+  if(params.data === undefined) {
+    const data = await (await fetch(initial_params.path + "/data.json")).json();
+    params.data = data;
+  }
+  const update_image = (params.data.stacks ? await add_image(scene, params) : () => {});
 
   if(params.mouse_control) {
     const controlsCam = new OrbitControls(camera, renderer.domElement);
@@ -549,7 +645,6 @@ export async function init(initial_params) {
     await update_field();
     update_cube();
   }
-
     // Animation loop
   animate(params, update_all);
 
@@ -560,7 +655,7 @@ export async function init(initial_params) {
     window.gui = gui;
 
     const options = ["none"];
-    for (let name in data.fields) {
+    for (let name in params.data.fields) {
       options.push(name);
     }
     if (options.length > 1) {
@@ -568,7 +663,7 @@ export async function init(initial_params) {
       gui.add(params, "field", options).onChange(update_all);
     }
     if(options.length > 1)
-      gui.add(params, "cmap", ["turbo", "viridis"]).onChange(update_all);
+      gui.add(params, "cmap", Object.keys(cmaps)).onChange(update_all);
     const cube_options = ["none"]
     if(options.length > 1)
       cube_options.push("field")
@@ -580,7 +675,7 @@ export async function init(initial_params) {
     if(options.length > 1)
       gui.add(params, "show_colormap").onChange(update_all);
     if(params.data.stacks)
-      gui.add(params, "z", 0, data.stacks.z_slices_count - 2, 1).onChange(update_all);
+      gui.add(params, "z", 0, params.data.stacks.z_slices_count - 1, 1).onChange(update_all);
 
     gui.close();
   }

@@ -1,6 +1,12 @@
 export async function loadNpy(url) {
-  const response = await fetch(url);
-  const arrayBuffer = await response.arrayBuffer();
+  let arrayBuffer;
+  if(typeof url === "string") {
+    const response = await fetch(url);
+    arrayBuffer = await response.arrayBuffer();
+  }
+  else {
+    arrayBuffer = await url.arrayBuffer();
+  }
   const dataView = new DataView(arrayBuffer);
 
   // Check magic number
@@ -34,11 +40,5 @@ export async function loadNpy(url) {
   } else {
     throw new Error("Unsupported dtype. Only Uint8 is supported. Got" + dtype);
   }
-
   return data;
-  return {
-    dtype: dtype,
-    shape: shape,
-    data: data,
-  };
 }
