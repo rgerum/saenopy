@@ -13,11 +13,11 @@ import { cmaps } from "./colormaps.js";
 const ccs_prefix = "saenopy_";
 
 // Arrowhead geometry (cone)
-const arrowheadGeometry = new THREE.ConeGeometry(0.5, 1, 32);
+const arrowheadGeometry = new THREE.ConeGeometry(0.5, 1, 6);
 arrowheadGeometry.translate(0, 0.5, 0); // Translate to align the base of the cone with the origin
 
 // Shaft geometry (cylinder)
-const shaftGeometry = new THREE.CylinderGeometry(0.2, 0.2, 2, 32);
+const shaftGeometry = new THREE.CylinderGeometry(0.2, 0.2, 2, 6);
 shaftGeometry.translate(0, -1, 0); // Translate to align the cylinder correctly with the cone base
 
 // Merge geometries
@@ -322,16 +322,14 @@ function add_image(scene, params, data) {
   update();
   return update;
 }
-let stems = undefined;
-async function add_test(scene, nodes, vectors, params) {
+
+async function add_test(scene, params) {
   const color = new THREE.Color();
 
-  const count = nodes.length / 3;
+  let count = 0;
   //const material = new THREE.MeshBasicMaterial({ color: 0xffffff });
   const material = new THREE.MeshPhongMaterial({ color: 0xdfdfdf });
-
-  const mesh = new THREE.InstancedMesh(arrowGeometry, material, count);
-  stems = mesh;
+  let mesh = undefined;
   const dummyObject = new THREE.Object3D();
 
   const light = new THREE.HemisphereLight(0xffffff, 0x888888, 3);
@@ -344,44 +342,25 @@ async function add_test(scene, nodes, vectors, params) {
     return new THREE.Vector3(-y * f, z * f, -x * f);
   }
   function convert_vec(x, y, z) {
-    const f = params.data.fields[params.field].factor;
+    const f = params.data.fields[params.field]?.factor || 1;
     return new THREE.Vector3(-y * f, z * f, -x * f);
   }
-
-  const arrows = [];
-  let max_length = 0;
-  for (let i = 0; i < count; i++) {
-    const position = convert_pos(
-      nodes[i * 3],
-      nodes[i * 3 + 1],
-      nodes[i * 3 + 2],
-    );
-    const orientationVector = convert_vec(
-      vectors[i * 3],
-      vectors[i * 3 + 1],
-      vectors[i * 3 + 2],
-    );
-    const target = position.clone().add(orientationVector);
-    const scaleValue = orientationVector.length();
-    if (scaleValue > max_length) {
-      max_length = scaleValue;
-    }
-    arrows.push([position, target, scaleValue]);
-  }
-
   const colormap_update = add_colormap_gui(scene.renderer.domElement, params);
 
   let scaleFactor = 1;
   let last_field = {};
+  let nodes, vectors;
   async function draw() {
     let arrows = last_field.arrows || [];
     let max_length = last_field.max_length || 0;
+    let needs_update = false;
+
     if (params.path !== last_field.path || params.field !== last_field.field) {
       max_length = 0;
       arrows = [];
       last_field.path = params.path;
       last_field.field = params.field;
-      let nodes, vectors;
+      needs_update = true;
       if (params.field !== "none") {
         try {
           nodes = await loadNpy(
@@ -395,7 +374,7 @@ async function add_test(scene, nodes, vectors, params) {
 
       if (!nodes || !vectors) {
       } else {
-        for (let i = 0; i < count; i++) {
+        for (let i = 0; i < nodes.length; i++) {
           const position = convert_pos(
             nodes[i * 3],
             nodes[i * 3 + 1],
@@ -414,44 +393,67 @@ async function add_test(scene, nodes, vectors, params) {
           arrows.push([position, target, scaleValue]);
         }
       }
+
+      if(nodes) {
+        const [min_x, max_x] = get_extend(nodes, 0);
+        const [min_y, max_y] = get_extend(nodes, 1);
+        const [min_z, max_z] = get_extend(nodes, 2);
+        params.extent = [min_x, max_x, min_y, max_y, min_z, max_z];
+      }
     }
     last_field.arrows = arrows;
     last_field.max_length = max_length;
 
     const cmap = cmaps[params.cmap];
-    mesh.count = arrows.length;
-    for (let i = 0; i < arrows.length; i++) {
-      const [position, target, scaleValue] = arrows[i];
-
-      dummyObject.position.copy(position);
-      dummyObject.lookAt(target);
-      dummyObject.scale.set(
-        scaleValue * params.scale,
-        scaleValue * params.scale,
-        scaleValue * params.scale,
-      ); // Set uniform scale based on the vector's length
-      dummyObject.updateMatrix();
-
-      mesh.setMatrixAt(i, dummyObject.matrix);
-      mesh.setColorAt(
-        i,
-        color.setHex(
-          cmap[
-            Math.min(
-              cmap.length - 1,
-              Math.floor((scaleValue / max_length) * (cmap.length - 1)),
-            )
-          ],
-        ),
-      );
+    if(last_field.cmap !== params.cmap) {
+      last_field.cmap = params.cmap;
+      needs_update = true;
     }
-    mesh.instanceMatrix.needsUpdate = true;
-    mesh.instanceColor.needsUpdate = true;
 
-    const [min_x, max_x] = get_extend(nodes, 0);
-    const [min_y, max_y] = get_extend(nodes, 1);
-    const [min_z, max_z] = get_extend(nodes, 2);
-    params.extent = [min_x, max_x, min_y, max_y, min_z, max_z];
+    if(arrows.length > count) {
+      count = arrows.length;
+      if(mesh)
+        scene.remove(mesh)
+      mesh = new THREE.InstancedMesh(arrowGeometry, material, count);
+      scene.add(mesh);
+    }
+    if(mesh)
+      mesh.count = arrows.length;
+    if(last_field.scale !== params.scale) {
+      last_field.scale = params.scale;
+      needs_update = true;
+    }
+    if(needs_update) {
+      for (let i = 0; i < arrows.length; i++) {
+        const [position, target, scaleValue] = arrows[i];
+
+        dummyObject.position.copy(position);
+        dummyObject.lookAt(target);
+        dummyObject.scale.set(
+            scaleValue * params.scale,
+            scaleValue * params.scale,
+            scaleValue * params.scale,
+        ); // Set uniform scale based on the vector's length
+        dummyObject.updateMatrix();
+
+        mesh.setMatrixAt(i, dummyObject.matrix);
+        mesh.setColorAt(
+            i,
+            color.setHex(
+                cmap[
+                    Math.min(
+                        cmap.length - 1,
+                        Math.floor((scaleValue / max_length) * (cmap.length - 1)),
+                    )
+                    ],
+            ),
+        );
+      }
+      if (mesh) {
+        mesh.instanceMatrix.needsUpdate = true;
+        mesh.instanceColor.needsUpdate = true;
+      }
+    }
 
     colormap_update(
       params.cmap,
@@ -466,7 +468,6 @@ async function add_test(scene, nodes, vectors, params) {
     draw();
   }
 
-  scene.add(mesh);
   return { setScale, draw };
 }
 
@@ -486,15 +487,7 @@ function get_extend(nodes, offset) {
 }
 
 async function load_add_field(scene, params) {
-  let nodes = await loadNpy(
-            params.path + "/" + params.data.fields[params.field].nodes,
-          );
-          let vectors = await loadNpy(
-            params.path + "/" + params.data.fields[params.field].vectors,
-          );
-  const scale = 1;
-
-  const controls = await add_test(scene, nodes, vectors, params);
+  const controls = await add_test(scene, params);
   return controls.draw;
 }
 
@@ -502,9 +495,9 @@ export async function init(initial_params) {
   const params = {
     scale: 1,
     cmap: "turbo", // ["turbo", "viridis"]
-    field: "fitted deformations",
+    field: "none",  // fitted deformations
     z: 0,
-    cube: "none", // ["none", "stack", "field"]
+    cube: "field", // ["none", "stack", "field"]
     image: "none", // ["none", "z-pos", "floor"]
     background: "black",
     height: "400px",
@@ -546,14 +539,14 @@ export async function init(initial_params) {
   const update_field = (params.data.fields ? await load_add_field(scene, params) : () => {});
   const update_cube = add_cube(scene, params);
 
-  const radius = (params.data.fields ?
+  const radius = (params.extent[0] ?
       (params.extent[1] * 1e6 * 4) :
       (params.data.stacks.im_shape[0]*params.data.stacks.voxel_size[0] * 2));
-  set_camera(scene, radius / params.zoom, 30, 20);
+  set_camera(scene, radius / params.zoom, 30, 60);
 
-  function update_all() {
+  async function update_all() {
     update_image();
-    update_field();
+    await update_field();
     update_cube();
   }
 
