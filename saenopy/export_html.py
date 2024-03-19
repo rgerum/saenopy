@@ -33,19 +33,23 @@ def export_html(result: saenopy.Result, path, zip_filename="data.zip", stack_qua
 
         path_data = "0/"
         def save(path, data, dtype):
-            new_data = np.zeros(data.shape, dtype=dtype)
-            new_data[:] = data
-            print(new_data.strides, new_data.shape)
+            #new_data = np.zeros(data.shape, dtype=dtype)
+            #new_data[:] = data
+            #print(new_data.strides, new_data.shape)
 
             image_file = BytesIO()
-            np.save(image_file, new_data)
+            np.save(image_file, np.asarray(data).astype(dtype))
             zipFp.writestr(path, image_file.getvalue())
 
         data = {}
         mesh = result.solvers[0].mesh
         piv = result.mesh_piv[0]
-        save(path_data + "nodes_piv.npy", piv.nodes, np.float32)
-        save(path_data + "displacements_piv.npy", piv.displacements_measured, np.float32)
+
+        path_data = "mesh_piv/0/"
+        save(path_data + "nodes.npy", piv.nodes, np.float32)
+        save(path_data + "displacements_measured.npy", piv.displacements_measured, np.float32)
+
+        path_data = "solvers/0/mesh/"
         save(path_data + "nodes.npy", mesh.nodes, np.float32)
         save(path_data + "displacements_target.npy", mesh.displacements_target, np.float32)
         save(path_data + "displacements.npy", mesh.displacements, np.float32)
@@ -67,13 +71,15 @@ def export_html(result: saenopy.Result, path, zip_filename="data.zip", stack_qua
             if stack_downsample > 1:
                 im = im.resize((im.width//stack_downsample, im.height//stack_downsample), Image.Resampling.LANCZOS)
             im.save(image_file, 'JPEG', quality=stack_quality)
-            zipFp.writestr(f"0/stack/0/{z//stack_downsample_z:03d}.jpg", image_file.getvalue())
+            zipFp.writestr(f"stacks/0/0/{z//stack_downsample_z:03d}.jpg", image_file.getvalue())
             z_count += 1
+        voxel_size = result.get_data_structure()["voxel_size"]
+        voxel_size[2] = voxel_size[2] * stack_downsample_z
+
+        save("stacks/0/voxel_size.npy", voxel_size, np.float32)
 
     im_shape = [int(x) for x in result.get_data_structure()["im_shape"]]
     im_shape[2] = im_shape[2]//stack_downsample_z
-    voxel_size = result.get_data_structure()["voxel_size"]
-    voxel_size[2] = voxel_size[2] * stack_downsample_z
 
     data["path"] = zip_filename
 
@@ -83,12 +89,14 @@ def export_html(result: saenopy.Result, path, zip_filename="data.zip", stack_qua
         "im_shape": tuple(im_shape),
         "voxel_size": tuple(voxel_size),
     }
+    """
     data["fields"] = {
-        "measured deformations": {"nodes": "nodes_piv.npy", "vectors": "displacements_piv.npy", "unit": "µm", "factor": 1e6},
-        "target deformations": {"nodes": "nodes.npy", "vectors": "displacements_target.npy", "unit": "µm", "factor": 1e6},
-        "fitted deformations": {"nodes": "nodes.npy", "vectors": "displacements.npy", "unit": "µm", "factor": 1e6},
-        "fitted forces": {"nodes": "nodes.npy", "vectors": "forces.npy", "unit": "nN", "factor": 1e9},
+        "measured deformations": {"nodes": "mesh_piv/0/nodes.npy", "vectors": "mesh_piv/0/displacements_measured.npy", "unit": "µm", "factor": 1e6},
+        "target deformations": {"nodes": "solvers/0/mesh/nodes.npy", "vectors": "solvers/0/mesh/displacements_target.npy", "unit": "µm", "factor": 1e6},
+        "fitted deformations": {"nodes": "solvers/0/mesh/nodes.npy", "vectors": "solvers/0/mesh/displacements.npy", "unit": "µm", "factor": 1e6},
+        "fitted forces": {"nodes": "solvers/0/mesh/nodes.npy", "vectors": "solvers/0/mesh/forces.npy", "unit": "nN", "factor": 1e9},
     }
+    """
     data["time_point_count"] = result.get_data_structure()["time_point_count"]
 
     print(data)
@@ -115,7 +123,7 @@ def export_html(result: saenopy.Result, path, zip_filename="data.zip", stack_qua
             "imports": {
               "three": "https://unpkg.com/three@v0.158.0/build/three.module.js",
               "three/addons/": "https://unpkg.com/three@v0.158.0/examples/jsm/",
-              "3d_viewer": "https://saenopy.readthedocs.io/en/latest/_static/js/3d_viewer.mjs"
+              "3d_viewer": "./3d_viewer.mjs"
             }
           }
         </script>

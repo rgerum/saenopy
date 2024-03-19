@@ -58,7 +58,13 @@ const zip_entries = {}
 async function get_file_from_zip(url, filename, return_type="blob") {
   if(zip_entries[url] === undefined) {
     async function get_entries(url) {
-      const zipReader = new ZipReader(new BlobReader(await (await fetch(url)).blob()));
+      let zipReader;
+      if(typeof url === "string") {
+        zipReader = new ZipReader(new BlobReader(await (await fetch(url)).blob()));
+      }
+      else {
+        zipReader = new ZipReader(new BlobReader(url));
+      }
       const entries = await zipReader.getEntries();
       const entry_map = {}
       for (let entry of entries) {
@@ -393,7 +399,7 @@ async function add_image(scene, params) {
 
   const textures = [];
   for (let i = 0; i < params.data.stacks.z_slices_count; i++) {
-    textures.push(get_file_from_zip(params.data.path, "0/stack/" + params.data.stacks.channels[0] + "/" + pad_zero(i, 3) + ".jpg", "texture"));
+    textures.push(get_file_from_zip(params.data.path, "stacks/0/" + params.data.stacks.channels[0] + "/" + pad_zero(i, 3) + ".jpg", "texture"));
     textures[i].then((v) => {textures[i] = v})
   }
 
@@ -461,24 +467,34 @@ async function add_test(scene, params) {
       needs_update = true;
       if (params.field !== "none") {
         try {
-          nodes = await loadNpy(await get_file_from_zip(params.data.path, "0/" + params.data.fields[params.field].nodes, "blob"));
-          vectors = await loadNpy(await get_file_from_zip(params.data.path, "0/" + params.data.fields[params.field].vectors, "blob"));
+          nodes = await loadNpy(await get_file_from_zip(params.data.path, params.data.fields[params.field].nodes, "blob"));
+          vectors = await loadNpy(await get_file_from_zip(params.data.path, params.data.fields[params.field].vectors, "blob"));
         } catch (e) {}
       }
 
       if (!nodes || !vectors) {
       } else {
-        for (let i = 0; i < nodes.length; i++) {
-          const position = convert_pos(
-            nodes[i * 3],
-            nodes[i * 3 + 1],
-            nodes[i * 3 + 2],
-          );
-          const orientationVector = convert_vec(
-            vectors[i * 3],
-            vectors[i * 3 + 1],
-            vectors[i * 3 + 2],
-          );
+        for (let i = 0; i < nodes.header.shape[0]; i++) {
+          const position = nodes.header.fortran_order ?
+              convert_pos(
+                nodes[i],
+                nodes[i + nodes.header.shape[0]],
+                nodes[i + nodes.header.shape[0]*2],
+              ) : convert_pos(
+                nodes[i * nodes.header.shape[1]],
+                nodes[i * nodes.header.shape[1] + 1],
+                nodes[i * nodes.header.shape[1] + 2],
+              );
+          const orientationVector = vectors.header.fortran_order ?
+              convert_vec(
+                vectors[i],
+                vectors[i + vectors.header.shape[0]],
+                vectors[i + vectors.header.shape[0]*2],
+              ) : convert_vec(
+                vectors[i * vectors.header.shape[1]],
+                vectors[i * vectors.header.shape[1] + 1],
+                vectors[i * vectors.header.shape[1] + 2],
+              );
           const target = position.clone().add(orientationVector);
           const scaleValue = orientationVector.length();
           if (scaleValue > max_length) {
@@ -606,6 +622,15 @@ export async function init(initial_params) {
     extent: [0, 1, 0, 1, 0, 1],
     ...initial_params,
   };
+  params.data = {
+    "fields": {
+      "measured deformations": {"nodes": "mesh_piv/0/nodes.npy", "vectors": "mesh_piv/0/displacements_measured.npy", "unit": "\u00b5m", "factor": 1000000.0},
+      "target deformations": {"nodes": "solvers/0/mesh/nodes.npy", "vectors": "solvers/0/mesh/displacements_target.npy", "unit": "\u00b5m", "factor": 1000000.0},
+      "fitted deformations": {"nodes": "solvers/0/mesh/nodes.npy", "vectors": "solvers/0/mesh/displacements.npy", "unit": "\u00b5m", "factor": 1000000.0},
+      "fitted forces": {"nodes": "solvers/0/mesh/nodes.npy", "vectors": "solvers/0/mesh/forces.npy", "unit": "nN", "factor": 1000000000.0}
+    },
+    ...params.data
+  }
 
   if(initial_params.dom_node) {
     initial_params.dom_node.style.position = "relative";

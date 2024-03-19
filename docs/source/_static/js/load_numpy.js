@@ -40,5 +40,6 @@ export async function loadNpy(url) {
   } else {
     throw new Error("Unsupported dtype. Only Uint8 is supported. Got" + dtype);
   }
+  data.header = header;
   return data;
 }
