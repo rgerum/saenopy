@@ -10,80 +10,47 @@ import { GUI } from "three/addons/libs/lil-gui.module.min.js";
 import { loadNpy } from "./load_numpy.js";
 import { cmaps } from "./colormaps.js";
 
-
-      import {
+import {
   BlobWriter,
-              BlobReader,
-              ZipReader,
+  BlobReader,
+  ZipReader,
 } from "https://unpkg.com/@zip.js/zip.js/index.js";
 // Creates a ZipReader object reading the zip content via `zipFileReader`,
 // retrieves metadata (name, dates, etc.) of the first entry, retrieves its
 // content via `helloWorldWriter`, and closes the reader.
 
-async function glob_to_canvas(blob) {
-  return new Promise((accept, reject) => {
-  // Assuming `blob` is your Blob object representing a JPEG file
-const blobUrl = URL.createObjectURL(blob);
 
-// Create a new Image object
-const img = new Image();
-
-// Set up onload handler to draw the image to the canvas once it's loaded
-img.onload = function() {
-    // Create a canvas element
-    const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d');
-
-    // Set canvas dimensions to the image dimensions
-    canvas.width = img.width;
-    canvas.height = img.height;
-
-    // Draw the image onto the canvas
-    ctx.drawImage(img, 0, 0);
-
-    // Now you can work with the canvas or add it to the DOM
-    //document.body.appendChild(canvas);
-    accept(canvas);
-
-    // Release the Blob URL to free up memory
-    URL.revokeObjectURL(blobUrl);
-};
-
-// Set the source of the image to the Blob URL
-img.src = blobUrl;
-})
-}
-
-const zip_entries = {}
-async function get_file_from_zip(url, filename, return_type="blob") {
-  if(zip_entries[url] === undefined) {
+const zip_entries = {};
+async function get_file_from_zip(url, filename, return_type = "blob") {
+  if (zip_entries[url] === undefined) {
     async function get_entries(url) {
       let zipReader;
-      if(typeof url === "string") {
-        zipReader = new ZipReader(new BlobReader(await (await fetch(url)).blob()));
-      }
-      else {
+      if (typeof url === "string") {
+        zipReader = new ZipReader(
+          new BlobReader(await (await fetch(url)).blob()),
+        );
+      } else {
         zipReader = new ZipReader(new BlobReader(url));
       }
       const entries = await zipReader.getEntries();
-      const entry_map = {}
+      const entry_map = {};
       for (let entry of entries) {
+        console.log(entry.filename);
+
         entry_map[entry.filename] = entry;
       }
       await zipReader.close();
-      return entry_map
+      return entry_map;
     }
     zip_entries[url] = get_entries(url);
   }
   const entry = (await zip_entries[url])[filename];
-  if(!entry)
-    console.error("file", filename, "not found in", url);
+  if (!entry) console.error("file", filename, "not found in", url);
 
-  if(entry.filename === filename) {
+  if (entry.filename === filename) {
     const blob = await entry.getData(new BlobWriter());
-    if(return_type === "url")
-      return URL.createObjectURL(blob);
-    if(return_type === "texture")
+    if (return_type === "url") return URL.createObjectURL(blob);
+    if (return_type === "texture")
       return new THREE.TextureLoader().load(URL.createObjectURL(blob));
     return blob;
   }
@@ -106,8 +73,6 @@ const arrowGeometry = mergeGeometries(
 );
 arrowGeometry.rotateX(Math.PI / 2);
 arrowGeometry.translate(0, 0, 2);
-
-
 
 function color_to_hex(color) {
   let hex = color.toString(16);
@@ -134,7 +99,8 @@ function inject_style(style) {
 function add_logo(parentDom, params) {
   const logo = document.createElement("img");
   logo.className = ccs_prefix + "logo";
-  logo.src = "https://saenopy.readthedocs.io/en/latest/_static/img/Logo_black.png";
+  logo.src =
+    "https://saenopy.readthedocs.io/en/latest/_static/img/Logo_black.png";
   parentDom.appendChild(logo);
   inject_style(`
        .${ccs_prefix}logo {
@@ -145,10 +111,43 @@ function add_logo(parentDom, params) {
        }`);
 }
 
+function add_drop_show(parentDom, params) {
+  const dropshow = document.createElement("div");
+  dropshow.className = ccs_prefix + "drop_show";
+  dropshow.innerText = "drop .savenopy file"
+  parentDom.appendChild(dropshow);
+  inject_style(`
+        .${ccs_prefix}drop_show {
+           position: absolute;
+           left: 0;
+           top: 0;
+           bottom: 0;
+           right: 0;
+           border: 5px dashed darkred;
+           border-radius: 20px;
+           pointer-events: none;
+           margin: 0px;
+           z-index: 100000;
+          font-size: 2rem;
+          color: white;
+          text-align: center;
+          display: grid;
+          place-content: center;
+          font-family: sans;
+          backdrop-filter: blur(3px) brightness(0.5);
+          opacity: 0;
+          transition: opacity 300ms, margin 300ms;
+       }
+       .${ccs_prefix}highlight .${ccs_prefix}drop_show {
+           opacity: 1;
+           margin: 10px;
+       }`);
+}
+
 function add_colormap_gui(parentDom, params) {
   const colorbar = document.createElement("div");
   colorbar.className = ccs_prefix + "colorbar";
-  scene.renderer.domElement.parentElement.appendChild(colorbar);
+  parentDom.parentElement.appendChild(colorbar);
   const colorbar_gradient = document.createElement("div");
   colorbar_gradient.className = ccs_prefix + "colorbar_gradient";
   colorbar.appendChild(colorbar_gradient);
@@ -240,8 +239,6 @@ function add_colormap_gui(parentDom, params) {
   return update;
 }
 
-let scene, camera, renderer, cube, imagePlane;
-
 function init_scene(dom_elem) {
   // if no element is defined, add a new one to the body
   if (!dom_elem) {
@@ -255,15 +252,19 @@ function init_scene(dom_elem) {
   }
   dom_elem.style.display = "block";
 
-  scene = new THREE.Scene();
-  camera = new THREE.PerspectiveCamera(
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(
     75,
     window.innerWidth / window.innerHeight,
     0.1,
     1500,
   );
   scene.camera = camera;
-  renderer = new THREE.WebGLRenderer({ alpha: true, canvas: dom_elem, antialias: true });
+  const renderer = new THREE.WebGLRenderer({
+    alpha: true,
+    canvas: dom_elem,
+    antialias: true,
+  });
   //renderer.setSize(window.innerWidth, window.innerHeight);
   //document.body.appendChild(renderer.domElement);
   scene.renderer = renderer;
@@ -356,9 +357,8 @@ function pad_zero(num, places) {
   return String(num).padStart(places, "0");
 }
 
-
 const pending = {
-  state: 'pending',
+  state: "pending",
 };
 
 function getPromiseState(promise) {
@@ -370,11 +370,11 @@ function getPromiseState(promise) {
         return value;
       }
       return {
-        state: 'resolved',
-        value
+        state: "resolved",
+        value,
       };
     },
-    (reason) => ({ state: 'rejected', reason })
+    (reason) => ({ state: "rejected", reason }),
   );
 }
 
@@ -386,7 +386,7 @@ async function add_image(scene, params) {
   const imageGeometry = new THREE.PlaneGeometry(w, h);
   // a black image texture to start
   const texture = new THREE.TextureLoader().load(
-    "data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs="
+    "data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=",
   );
   const imageMaterial = new THREE.MeshBasicMaterial({ map: texture });
   imageMaterial.side = THREE.DoubleSide;
@@ -399,31 +399,45 @@ async function add_image(scene, params) {
 
   const textures = [];
   for (let i = 0; i < params.data.stacks.z_slices_count; i++) {
-    textures.push(get_file_from_zip(params.data.path, "stacks/0/" + params.data.stacks.channels[0] + "/" + pad_zero(i, 3) + ".jpg", "texture"));
-    textures[i].then((v) => {textures[i] = v})
+    textures.push(
+      get_file_from_zip(
+        params.data.path,
+        "stacks/0/" +
+          params.data.stacks.channels[0] +
+          "/" +
+          pad_zero(i, 3) +
+          ".jpg",
+        "texture",
+      ),
+    );
+    textures[i].then((v) => {
+      textures[i] = v;
+    });
   }
 
   async function update() {
     if (params.image === "z-pos") {
       imagePlane.position.y =
-        (-params.data.stacks.im_shape[2] * params.data.stacks.voxel_size[2]) / 2 +
+        (-params.data.stacks.im_shape[2] * params.data.stacks.voxel_size[2]) /
+          2 +
         params.z * params.data.stacks.voxel_size[2];
       imagePlane.scale.x = 1;
     } else if (params.image === "floor") {
       imagePlane.position.y =
-        (-params.data.stacks.im_shape[2] * params.data.stacks.voxel_size[2]) / 2;
+        (-params.data.stacks.im_shape[2] * params.data.stacks.voxel_size[2]) /
+        2;
       imagePlane.scale.x = 1;
     } else {
       imagePlane.scale.x = 0;
     }
     const z = Math.floor(params.z);
-    if(textures[z].then === undefined)
+    if (textures[z].then === undefined)
       imagePlane.material.map = await textures[z];
     else {
-      textures[z].then(update)
+      textures[z].then(update);
     }
   }
-  update()
+  update();
   return update;
 }
 
@@ -459,38 +473,53 @@ async function add_test(scene, params) {
     let max_length = last_field.max_length || 0;
     let needs_update = false;
 
-    if (params.path !== last_field.path || params.field !== last_field.field) {
+    if (params.path !== last_field.path || params.field !== last_field.field || params.data.path !== last_field.data_path) {
       max_length = 0;
       arrows = [];
       last_field.path = params.path;
       last_field.field = params.field;
+      last_field.data_path = params.data.path;
       needs_update = true;
       if (params.field !== "none") {
         try {
-          nodes = await loadNpy(await get_file_from_zip(params.data.path, params.data.fields[params.field].nodes, "blob"));
-          vectors = await loadNpy(await get_file_from_zip(params.data.path, params.data.fields[params.field].vectors, "blob"));
+          nodes = await loadNpy(
+            await get_file_from_zip(
+              params.data.path,
+              params.data.fields[params.field].nodes,
+              "blob",
+            ),
+          );
+          vectors = await loadNpy(
+            await get_file_from_zip(
+              params.data.path,
+              params.data.fields[params.field].vectors,
+              "blob",
+            ),
+          );
         } catch (e) {}
       }
 
       if (!nodes || !vectors) {
       } else {
         for (let i = 0; i < nodes.header.shape[0]; i++) {
-          const position = nodes.header.fortran_order ?
-              convert_pos(
+          const position = nodes.header.fortran_order
+            ? convert_pos(
                 nodes[i],
                 nodes[i + nodes.header.shape[0]],
-                nodes[i + nodes.header.shape[0]*2],
-              ) : convert_pos(
+                nodes[i + nodes.header.shape[0] * 2],
+              )
+            : convert_pos(
                 nodes[i * nodes.header.shape[1]],
                 nodes[i * nodes.header.shape[1] + 1],
                 nodes[i * nodes.header.shape[1] + 2],
               );
-          const orientationVector = vectors.header.fortran_order ?
-              convert_vec(
+          const orientationVector = vectors.header.fortran_order
+            ? convert_vec(
                 vectors[i],
                 vectors[i + vectors.header.shape[0]],
-                vectors[i + vectors.header.shape[0]*2],
-              ) : convert_vec(
+                vectors[i + vectors.header.shape[0] * 2],
+              )
+            : convert_vec(
                 vectors[i * vectors.header.shape[1]],
                 vectors[i * vectors.header.shape[1] + 1],
                 vectors[i * vectors.header.shape[1] + 2],
@@ -504,7 +533,7 @@ async function add_test(scene, params) {
         }
       }
 
-      if(nodes) {
+      if (nodes) {
         const [min_x, max_x] = get_extend(nodes, 0);
         const [min_y, max_y] = get_extend(nodes, 1);
         const [min_z, max_z] = get_extend(nodes, 2);
@@ -515,48 +544,46 @@ async function add_test(scene, params) {
     last_field.max_length = max_length;
 
     const cmap = cmaps[params.cmap];
-    if(last_field.cmap !== params.cmap) {
+    if (last_field.cmap !== params.cmap) {
       last_field.cmap = params.cmap;
       needs_update = true;
     }
 
-    if(arrows.length > count) {
+    if (arrows.length > count) {
       count = arrows.length;
-      if(mesh)
-        scene.remove(mesh)
+      if (mesh) scene.remove(mesh);
       mesh = new THREE.InstancedMesh(arrowGeometry, material, count);
       scene.add(mesh);
     }
-    if(mesh)
-      mesh.count = arrows.length;
-    if(last_field.scale !== params.scale) {
+    if (mesh) mesh.count = arrows.length;
+    if (last_field.scale !== params.scale) {
       last_field.scale = params.scale;
       needs_update = true;
     }
-    if(needs_update) {
+    if (needs_update) {
       for (let i = 0; i < arrows.length; i++) {
         const [position, target, scaleValue] = arrows[i];
 
         dummyObject.position.copy(position);
         dummyObject.lookAt(target);
         dummyObject.scale.set(
-            scaleValue * params.scale,
-            scaleValue * params.scale,
-            scaleValue * params.scale,
+          scaleValue * params.scale,
+          scaleValue * params.scale,
+          scaleValue * params.scale,
         ); // Set uniform scale based on the vector's length
         dummyObject.updateMatrix();
 
         mesh.setMatrixAt(i, dummyObject.matrix);
         mesh.setColorAt(
-            i,
-            color.setHex(
-                cmap[
-                    Math.min(
-                        cmap.length - 1,
-                        Math.floor((scaleValue / max_length) * (cmap.length - 1)),
-                    )
-                    ],
-            ),
+          i,
+          color.setHex(
+            cmap[
+              Math.min(
+                cmap.length - 1,
+                Math.floor((scaleValue / max_length) * (cmap.length - 1)),
+              )
+            ],
+          ),
         );
       }
       if (mesh) {
@@ -568,7 +595,9 @@ async function add_test(scene, params) {
     colormap_update(
       params.cmap,
       params.show_colormap ? max_length : 0,
-      params.data.fields[params.field] ? `${params.field} (${params.data.fields[params.field].unit})` : '',
+      params.data.fields[params.field]
+        ? `${params.field} (${params.data.fields[params.field].unit})`
+        : "",
     );
   }
   await draw();
@@ -605,7 +634,7 @@ export async function init(initial_params) {
   const params = {
     scale: 1,
     cmap: "turbo", // ["turbo", "viridis"]
-    field: "fitted deformations",  // fitted deformations
+    field: "fitted deformations", // fitted deformations
     z: 0,
     cube: "field", // ["none", "stack", "field"]
     image: "z-pos", // ["none", "z-pos", "floor"]
@@ -623,46 +652,71 @@ export async function init(initial_params) {
     ...initial_params,
   };
   params.data = {
-    "fields": {
-      "measured deformations": {"nodes": "mesh_piv/0/nodes.npy", "vectors": "mesh_piv/0/displacements_measured.npy", "unit": "\u00b5m", "factor": 1000000.0},
-      "target deformations": {"nodes": "solvers/0/mesh/nodes.npy", "vectors": "solvers/0/mesh/displacements_target.npy", "unit": "\u00b5m", "factor": 1000000.0},
-      "fitted deformations": {"nodes": "solvers/0/mesh/nodes.npy", "vectors": "solvers/0/mesh/displacements.npy", "unit": "\u00b5m", "factor": 1000000.0},
-      "fitted forces": {"nodes": "solvers/0/mesh/nodes.npy", "vectors": "solvers/0/mesh/forces.npy", "unit": "nN", "factor": 1000000000.0}
+    fields: {
+      "measured deformations": {
+        nodes: "mesh_piv/0/nodes.npy",
+        vectors: "mesh_piv/0/displacements_measured.npy",
+        unit: "\u00b5m",
+        factor: 1000000.0,
+      },
+      "target deformations": {
+        nodes: "solvers/0/mesh/nodes.npy",
+        vectors: "solvers/0/mesh/displacements_target.npy",
+        unit: "\u00b5m",
+        factor: 1000000.0,
+      },
+      "fitted deformations": {
+        nodes: "solvers/0/mesh/nodes.npy",
+        vectors: "solvers/0/mesh/displacements.npy",
+        unit: "\u00b5m",
+        factor: 1000000.0,
+      },
+      "fitted forces": {
+        nodes: "solvers/0/mesh/nodes.npy",
+        vectors: "solvers/0/mesh/forces.npy",
+        unit: "nN",
+        factor: 1000000000.0,
+      },
     },
-    ...params.data
-  }
+    ...params.data,
+  };
 
-  if(initial_params.dom_node) {
+  if (initial_params.dom_node) {
     initial_params.dom_node.style.position = "relative";
     initial_params.dom_node.style.background = params.background;
-    initial_params.dom_node.style.height = params.height;
+    initial_params.dom_node.style.minHeight = params.height;
     initial_params.dom_node.style.width = params.width;
   }
 
   // Scene setup
-  scene = init_scene(initial_params.dom_node, params);
+  const scene = init_scene(initial_params.dom_node, params);
 
   add_logo(scene.renderer.domElement.parentElement, params);
+  add_drop_show(scene.renderer.domElement.parentElement, params);
 
-  if(params.data === undefined) {
+  if (params.data === undefined) {
     const data = await (await fetch(initial_params.path + "/data.json")).json();
     params.data = data;
   }
-  const update_image = (params.data.stacks ? await add_image(scene, params) : () => {});
+  const update_image = params.data.stacks
+    ? await add_image(scene, params)
+    : () => {};
 
-  if(params.mouse_control) {
-    const controlsCam = new OrbitControls(camera, renderer.domElement);
+  if (params.mouse_control) {
+    const controlsCam = new OrbitControls(scene.camera, scene.renderer.domElement);
     controlsCam.update();
     scene.controls = controlsCam;
   }
 
   //add_arrows();
-  const update_field = (params.data.fields ? await load_add_field(scene, params) : () => {});
+  const update_field = params.data.fields
+    ? await load_add_field(scene, params)
+    : () => {};
   const update_cube = add_cube(scene, params);
 
-  const radius = (params.extent[0] ?
-      (params.extent[1] * 1e6 * 4) :
-      (params.data.stacks.im_shape[0]*params.data.stacks.voxel_size[0] * 2));
+  const radius = params.extent[0]
+    ? params.extent[1] * 1e6 * 4
+    : params.data.stacks.im_shape[0] * params.data.stacks.voxel_size[0] * 2;
   set_camera(scene, radius / params.zoom, 30, 60);
 
   async function update_all() {
@@ -670,11 +724,11 @@ export async function init(initial_params) {
     await update_field();
     update_cube();
   }
-    // Animation loop
-  animate(params, update_all);
+  // Animation loop
+  animate(scene, params, update_all);
 
-  if(params.show_controls) {
-    const gui = new GUI({container: scene.renderer.domElement.parentElement});
+  if (params.show_controls) {
+    const gui = new GUI({ container: scene.renderer.domElement.parentElement });
     gui.domElement.classList.add("autoPlace");
     gui.domElement.style.position = "absolute";
     window.gui = gui;
@@ -687,68 +741,139 @@ export async function init(initial_params) {
       gui.add(params, "scale", 0, 10).onChange(update_all);
       gui.add(params, "field", options).onChange(update_all);
     }
-    if(options.length > 1)
+    if (options.length > 1)
       gui.add(params, "cmap", Object.keys(cmaps)).onChange(update_all);
-    const cube_options = ["none"]
-    if(options.length > 1)
-      cube_options.push("field")
-    if(params.data.stacks)
-      cube_options.push("stack")
+    const cube_options = ["none"];
+    if (options.length > 1) cube_options.push("field");
+    if (params.data.stacks) cube_options.push("stack");
     gui.add(params, "cube", cube_options).onChange(update_all);
-    if(params.data.stacks)
+    if (params.data.stacks)
       gui.add(params, "image", ["none", "z-pos", "floor"]).onChange(update_all);
-    if(options.length > 1)
+    if (options.length > 1)
       gui.add(params, "show_colormap").onChange(update_all);
-    if(params.data.stacks)
-      gui.add(params, "z", 0, params.data.stacks.z_slices_count - 1, 1).onChange(update_all);
+    if (params.data.stacks)
+      gui
+        .add(params, "z", 0, params.data.stacks.z_slices_count - 1, 1)
+        .onChange(update_all);
 
     gui.close();
   }
+  add_drop(scene.renderer.domElement.parentElement, params, update_all);
 }
 
 let animation_time = new Date();
-function animate(params, update_all) {
-  requestAnimationFrame(() => animate(params, update_all));
+function animate(scene, params, update_all) {
+  requestAnimationFrame(() => animate(scene, params, update_all));
 
   const current_time = new Date();
-  const delta_t = (current_time - animation_time)/1000;
-  animation_time = current_time
+  const delta_t = (current_time - animation_time) / 1000;
+  animation_time = current_time;
 
-  if(params.mouse_control)
-    scene.controls.update();
-  for(let animation of params.animations) {
-    if(animation.type === "scan") {
+  if (params.mouse_control) scene.controls.update();
+  for (let animation of params.animations) {
+    if (animation.type === "scan") {
       animation.z = animation.z || 0;
-      animation.z += (animation.speed || 10)*delta_t;
+      animation.z += (animation.speed || 10) * delta_t;
       params.z = Math.floor(animation.z % params.data.stacks.z_slices_count);
       update_all();
     }
-    if(animation.type === "rotate") {
+    if (animation.type === "rotate") {
       const campos = new THREE.Spherical().setFromVector3(camera.position);
-      campos.theta += (animation.speed || 10)*Math.PI/180*delta_t;
+      campos.theta += (((animation.speed || 10) * Math.PI) / 180) * delta_t;
       scene.camera.position.setFromSpherical(campos);
       scene.camera.lookAt(scene.position);
     }
-    if(animation.type === "scroll-tilt") {
-      if (scene.renderer.domElement.getBoundingClientRect().top !== animation.last_top_pos) {
-        const factor = (scene.renderer.domElement.getBoundingClientRect().top + scene.renderer.domElement.getBoundingClientRect().height) / (window.innerHeight + scene.renderer.domElement.getBoundingClientRect().height);
+    if (animation.type === "scroll-tilt") {
+      if (
+        scene.renderer.domElement.getBoundingClientRect().top !==
+        animation.last_top_pos
+      ) {
+        const factor =
+          (scene.renderer.domElement.getBoundingClientRect().top +
+            scene.renderer.domElement.getBoundingClientRect().height) /
+          (window.innerHeight +
+            scene.renderer.domElement.getBoundingClientRect().height);
         const top = animation.top || 120;
         const bottom = animation.bottom || 30;
-        set_camera(scene, undefined, undefined, top * (1-factor) + bottom * factor);
-        animation.last_top_pos = scene.renderer.domElement.getBoundingClientRect().top;
+        set_camera(
+          scene,
+          undefined,
+          undefined,
+          top * (1 - factor) + bottom * factor,
+        );
+        animation.last_top_pos =
+          scene.renderer.domElement.getBoundingClientRect().top;
       }
     }
   }
 
-  if(scene.light) {
-    const campos = new THREE.Spherical().setFromVector3(camera.position);
+  if (scene.light) {
+    const campos = new THREE.Spherical().setFromVector3(scene.camera.position);
     const lightpos = new THREE.Spherical(
-        campos.radius,
-        campos.phi,
-        campos.theta + (30 / 180) * Math.PI,
+      campos.radius,
+      campos.phi,
+      campos.theta + (30 / 180) * Math.PI,
     );
     scene.light.position.setFromSpherical(lightpos);
   }
 
-  renderer.render(scene, camera);
+  scene.renderer.render(scene, scene.camera);
+}
+
+function add_drop(dropZone, params, update_all) {
+  // Prevent default drag behaviors
+  ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+    dropZone.addEventListener(eventName, preventDefaults, false);
+    document.body.addEventListener(eventName, preventDefaults, false);
+  });
+
+  // Highlight drop area when item is dragged over it
+  ['dragenter', 'dragover'].forEach(eventName => {
+    dropZone.addEventListener(eventName, highlight, false);
+  });
+
+  ['dragleave', 'drop'].forEach(eventName => {
+    dropZone.addEventListener(eventName, unhighlight, false);
+  });
+
+  // Handle dropped files
+  dropZone.addEventListener('drop', handleDrop, false);
+
+  function preventDefaults(e) {
+    e.preventDefault();
+    e.stopPropagation();
+  }
+
+  function highlight(e) {
+    dropZone.classList.add(ccs_prefix+'highlight');
+  }
+
+  function unhighlight(e) {
+    dropZone.classList.remove(ccs_prefix+'highlight');
+  }
+
+  function handleDrop(e) {
+    var dt = e.dataTransfer;
+    var files = dt.files;
+
+    handleFiles(files);
+  }
+
+  function handleFiles(files) {
+    ([...files]).forEach(loadFile);
+  }
+
+  function loadFile(file) {
+    console.log("loadFile", file)
+    params.data.path = file;
+    update_all();
+    return
+    var reader = new FileReader();
+    reader.readAsText(file); // Or readAsDataURL(file) for images
+    reader.onloadend = function() {
+      console.log(reader.result); // Do something with the file content
+      // For example, display the file content in the drop zone
+      dropZone.textContent = reader.result;
+    };
+  }
 }
