@@ -1,19 +1,20 @@
 import numpy as np
+from scipy.ndimage import binary_fill_holes
 
-try:
-    from scipy.ndimage import binary_fill_holes
-except ImportError:
-    from scipy.ndimage.morphology import binary_fill_holes
+from saenopy.pyTFM.calculate_stress_imports.mask_interpolation import mask_interpolation
+from saenopy.pyTFM.calculate_stress_imports.grid_setup_solids_py import prepare_forces
+from saenopy.pyTFM.calculate_stress_imports.grid_setup_solids_py import grid_setup
+from saenopy.pyTFM.calculate_stress_imports.grid_setup_solids_py import FEM_simulation
+from saenopy.pyTFM.calculate_stress_imports.find_borders import find_borders
 
-from saenopy.pyTFM.grid_setup_solids_py import (
-    interpolation,
-)  # a simple function to resize the mask
-from saenopy.pyTFM.grid_setup_solids_py import prepare_forces
-from saenopy.pyTFM.grid_setup_solids_py import grid_setup, FEM_simulation
-from saenopy.pyTFM.grid_setup_solids_py import find_borders
-from saenopy.pyTFM.stress_functions import line_tension
-from saenopy.pyTFM.stress_functions import all_stress_measures, coefficient_of_variation
-from saenopy.pyTFM.stress_functions import mean_stress_vector_norm
+from saenopy.pyTFM.calculate_stress_imports.stress_functions import line_tension
+from saenopy.pyTFM.calculate_stress_imports.stress_functions import all_stress_measures
+from saenopy.pyTFM.calculate_stress_imports.stress_functions import (
+    coefficient_of_variation,
+)
+from saenopy.pyTFM.calculate_stress_imports.stress_functions import (
+    mean_stress_vector_norm,
+)
 
 
 def calculate_stress(mask, pixel_size, shape, u, tx, ty):
@@ -31,12 +32,12 @@ def calculate_stress(mask, pixel_size, shape, u, tx, ty):
         mask == 1
     )  # the mask should be a single patch without holes
     # changing the masks dimensions to fit to the deformation and traction field:
-    mask_fem = interpolation(mask_fem, dims=tx.shape)
+    mask_fem = mask_interpolation(mask_fem, dims=tx.shape)
 
     # second mask: The area of the cells. Average stresses and other values are calculated only
     # on the actual area of the cell, represented by this mask.
     mask_cells_full = binary_fill_holes(mask == 2)
-    mask_cells = interpolation(mask_cells_full, dims=tx.shape)
+    mask_cells = mask_interpolation(mask_cells_full, dims=tx.shape)
 
     # converting traction forces (forces per surface area) to actual forces
     # and correcting imbalanced forces and torques
@@ -58,7 +59,9 @@ def calculate_stress(mask, pixel_size, shape, u, tx, ty):
     sigma_max, sigma_min, sigma_max_abs, tau_max, phi_n, phi_shear, sigma_mean = (
         all_stress_measures(stress_tensor, px_size=ps2 * 10**-6)
     )
-    mask_int = interpolation(mask_cells_full, dims=sigma_mean.shape, min_cell_size=100)
+    mask_int = mask_interpolation(
+        mask_cells_full, dims=sigma_mean.shape, min_cell_size=100
+    )
     res_dict["mean normal stress Cell Area"] = np.mean(np.abs(sigma_mean[mask_int]))
     res_dict["max normal stress Cell Area"] = np.mean(np.abs(sigma_max_abs[mask_int]))
     res_dict["max shear stress Cell Area"] = np.mean(np.abs(tau_max[mask_int]))

@@ -7,7 +7,14 @@ from .suppress_warnings import suppress_warnings
 
 
 def ffttc_traction(
-    u, v, pixel_size1, pixel_size2, young, sigma=0.49, spatial_filter="gaussian", fs=None
+    u,
+    v,
+    pixel_size1,
+    pixel_size2,
+    young,
+    sigma=0.49,
+    spatial_filter="gaussian",
+    fs=None,
 ):
     """
     fourier transform based calculation of the traction force. U and v must be given  as deformations in pixel. Size of
@@ -281,12 +288,20 @@ def ffttc_traction_finite_thickness(
 
 
 def TFM_tractions(
-    u, v, pixel_size1, pixel_size2, h, young, sigma=0.49, spatial_filter="gaussian", fs=6
+    u,
+    v,
+    pixel_size1,
+    pixel_size2,
+    h,
+    young,
+    sigma=0.49,
+    spatial_filter="gaussian",
+    fs=6,
 ):
     """
     height correction breaks down due to numerical reasons at large gel height and small wavelengths of deformations.
-    In this case the height corrected ffttc-function returns Nans. THis function falls back
-     to the non height-corrected FTTC function if this happens
+    In this case the height corrected ffttc-function returns Nans. This function falls back
+    to the non height-corrected FTTC function if this happens
     :return:
     """
     # translate the filter size to pixels of traction field

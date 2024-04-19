@@ -1,13 +1,8 @@
 import numpy as np
+from scipy.ndimage import binary_fill_holes
 
-try:
-    from scipy.ndimage import binary_fill_holes
-except ImportError:
-    from scipy.ndimage.morphology import binary_fill_holes
 from saenopy.pyTFM.TFM_functions import strain_energy_points, contractility
-from saenopy.pyTFM.grid_setup_solids_py import (
-    interpolation,
-)  # a simple function to resize the mask
+from saenopy.pyTFM.calculate_stress_imports.mask_interpolation import mask_interpolation
 
 
 def calculate_strain_energy(mask, pixel_size, shape, u, v, tx, ty):
@@ -15,7 +10,7 @@ def calculate_strain_energy(mask, pixel_size, shape, u, v, tx, ty):
         mask == 1
     )  # the mask should be a single patch without holes
     # changing the masks dimensions to fit to the deformation and traction fields
-    mask = interpolation(mask, dims=u.shape)
+    mask = mask_interpolation(mask, dims=u.shape)
     ps1 = pixel_size  # pixel size of the image of the beads
     # dimensions of the image of the beads
     ps2 = ps1 * np.mean(

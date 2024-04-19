@@ -358,7 +358,13 @@ def identify_line_segments(graph, points):  #
 
 
 def find_neighbor_lines(
-    graph, start_ps, other_endpoint, own_points, end_points, visited=None, neighbours=None
+    graph,
+    start_ps,
+    other_endpoint,
+    own_points,
+    end_points,
+    visited=None,
+    neighbours=None,
 ):
     """
     recursive function to find neighbouring line. Explores the graph around the endpoint of a line. Notes the id of
