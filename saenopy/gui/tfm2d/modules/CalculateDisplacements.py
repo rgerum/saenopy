@@ -1,7 +1,6 @@
 import matplotlib.pyplot as plt
 from qtpy import QtWidgets
 from saenopy.gui.common import QtShortCuts
-from tifffile import imread
 from typing import Tuple
 
 from saenopy.gui.common.gui_classes import CheckAbleGroup
@@ -9,7 +8,7 @@ from saenopy.gui.common.code_export import get_code
 from .PipelineModule import PipelineModule
 from .result import Result2D
 
-from saenopy.pyTFM.TFM_functions import calculate_deformation
+from saenopy.pyTFM.calculate_deformation import calculate_deformation
 from saenopy.pyTFM.plotting import show_quiver
 
 
@@ -45,18 +44,6 @@ class DeformationDetector3(PipelineModule):
             "std_factor": self.input_std
         })
 
-    def valueChanged(self):
-        if self.check_available(self.result):
-            im = imread(self.result.reference_stack).shape
-            #voxel_size1 = self.result.stacks[0].voxel_size
-            #stack_deformed = self.result.stacks[0]
-            #overlap = 1 - (self.input_element_size.value() / self.input_win.value())
-            #stack_size = np.array(stack_deformed.shape)[:3] * voxel_size1 - self.input_win.value()
-            #self.label.setText(
-            #    f"""Overlap between neighbouring windows\n(size={self.input_win.value()}µm or {(self.input_win.value() / np.array(voxel_size1)).astype(int)} px) is choosen \n to {int(overlap * 100)}% for an element_size of {self.input_element_size.value():.1f}μm elements.\nTotal region is {stack_size}.""")
-        else:
-            self.label.setText("")
-
     def check_available(self, result):
         return True
 
@@ -87,7 +74,7 @@ class DeformationDetector3(PipelineModule):
         plt.savefig("deformation.png")
 
     def get_code(self) -> Tuple[str, str]:
-        import_code = "from saenopy.pyTFM.TFM_functions import calculate_deformation\n"
+        import_code = "from saenopy.pyTFM.calculate_deformation import calculate_deformation\n"
 
         results = []
         def code(my_piv_params):  # pragma: no cover

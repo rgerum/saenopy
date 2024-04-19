@@ -74,7 +74,7 @@ def plot_continuous_boundary_stresses(plot_values, mask_boundaries=None, plot_t_
             n_vecs = interp["n_vecs"]
             # plotting line segments
 
-            c = matplotlib.cm.get_cmap(cmap)(
+            c = matplotlib.colormaps.get_cmap(cmap)(
                 (t_norm - min_v) / (max_v - min_v))  # normalization and creating a color range
             ## see how well that works
             if line_id in edge_lines:  # plot lines at the edge
