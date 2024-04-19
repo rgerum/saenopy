@@ -136,3 +136,29 @@ It can be loaded using `np.loadtxt` and added to the solver using :py:meth:`~.So
 
     node_displacement = np.loadtxt("measured_displacement.txt")
     M.setTargetDisplacements(node_displacement)
+
+
+.. raw:: html
+
+    <div id="root"></div>
+
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://unpkg.com/three@v0.158.0/build/three.module.js",
+          "three/addons/": "https://unpkg.com/three@v0.158.0/examples/jsm/"
+        }
+      }
+    </script>
+    <script type="module">
+      import { init } from "./_static/js/3d_viewer.mjs";
+      init({
+        path: "./_static/vector_data2",
+        scale: 1,
+        dom_node: document.getElementById("root"),
+        zoom: 1.5,
+        image: "z-pos",
+        mouse_control: false,
+        animations: [{type: "scroll-tilt"}]
+      });
+    </script>

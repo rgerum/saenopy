@@ -1,25 +1,31 @@
-import matplotlib.pyplot as plt
-from qtpy import QtCore, QtWidgets, QtGui
-from saenopy.gui.common import QtShortCuts
-from .PipelineModule import PipelineModule
-from tifffile import imread
-from saenopy.gui.common.gui_classes import CheckAbleGroup
-from .result import Result2D
 import numpy as np
+import matplotlib.pyplot as plt
+from qtpy import QtWidgets
+from saenopy.gui.common import QtShortCuts
+from tifffile import imread
 try:
     from scipy.ndimage import binary_fill_holes
 except ImportError:
     from scipy.ndimage.morphology import binary_fill_holes
-from pyTFM.grid_setup_solids_py import interpolation  # a simple function to resize the mask
-from pyTFM.grid_setup_solids_py import prepare_forces
-from pyTFM.grid_setup_solids_py import grid_setup, FEM_simulation
-from pyTFM.grid_setup_solids_py import find_borders
-from pyTFM.stress_functions import lineTension
-from pyTFM.plotting import plot_continuous_boundary_stresses
-from pyTFM.stress_functions import all_stress_measures, coefficient_of_variation
-from pyTFM.stress_functions import mean_stress_vector_norm
-from saenopy.gui.common.code_export import get_code
 from typing import List, Tuple
+
+
+from saenopy.gui.common.gui_classes import CheckAbleGroup
+from saenopy.gui.common.code_export import get_code
+
+from .PipelineModule import PipelineModule
+from .result import Result2D
+
+from saenopy.pyTFM.grid_setup_solids_py import interpolation  # a simple function to resize the mask
+from saenopy.pyTFM.grid_setup_solids_py import prepare_forces
+from saenopy.pyTFM.grid_setup_solids_py import grid_setup, FEM_simulation
+from saenopy.pyTFM.grid_setup_solids_py import find_borders
+
+from saenopy.pyTFM.plotting import plot_continuous_boundary_stresses
+
+from saenopy.pyTFM.stress_functions import lineTension
+from saenopy.pyTFM.stress_functions import all_stress_measures, coefficient_of_variation
+from saenopy.pyTFM.stress_functions import mean_stress_vector_norm
 
 
 class CalculateStress(PipelineModule):
@@ -197,7 +203,7 @@ class CalculateStress(PipelineModule):
         result.save()
 
     def get_code(self) -> Tuple[str, str]:
-        import_code = "import numpy as np\nfrom pyTFM.grid_setup_solids_py import prepare_forces\nfrom pyTFM.grid_setup_solids_py import interpolation\nfrom pyTFM.grid_setup_solids_py import prepare_forces\nfrom pyTFM.grid_setup_solids_py import grid_setup, FEM_simulation\nfrom pyTFM.grid_setup_solids_py import find_borders\nfrom pyTFM.plotting import plot_continuous_boundary_stresses\nfrom pyTFM.stress_functions import all_stress_measures, coefficient_of_variation\nfrom pyTFM.stress_functions import mean_stress_vector_norm\nfrom pyTFM.stress_functions import lineTension\nimport matplotlib.pyplot as plt\n"
+        import_code = "import numpy as np\nfrom saenopy.pyTFM.grid_setup_solids_py import prepare_forces\nfrom saenopy.pyTFM.grid_setup_solids_py import interpolation\nfrom saenopy.pyTFM.grid_setup_solids_py import prepare_forces\nfrom saenopy.pyTFM.grid_setup_solids_py import grid_setup, FEM_simulation\nfrom saenopy.pyTFM.grid_setup_solids_py import find_borders\nfrom saenopy.pyTFM.plotting import plot_continuous_boundary_stresses\nfrom saenopy.pyTFM.stress_functions import all_stress_measures, coefficient_of_variation\nfrom saenopy.pyTFM.stress_functions import mean_stress_vector_norm\nfrom saenopy.pyTFM.stress_functions import lineTension\nimport matplotlib.pyplot as plt\n"
 
         results: List[Result2D] = []
         def code():  # pragma: no cover

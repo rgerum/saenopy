@@ -1,14 +1,16 @@
 import matplotlib.pyplot as plt
-from qtpy import QtCore, QtWidgets, QtGui
+from qtpy import QtWidgets
 from saenopy.gui.common import QtShortCuts
-from .PipelineModule import PipelineModule
 from tifffile import imread
+from typing import Tuple
+
 from saenopy.gui.common.gui_classes import CheckAbleGroup
-from .result import Result2D
-from pyTFM.TFM_functions import calculate_deformation
-from pyTFM.plotting import show_quiver
 from saenopy.gui.common.code_export import get_code
-from typing import List, Tuple
+from .PipelineModule import PipelineModule
+from .result import Result2D
+
+from saenopy.pyTFM.TFM_functions import calculate_deformation
+from saenopy.pyTFM.plotting import show_quiver
 
 
 class DeformationDetector3(PipelineModule):
@@ -85,7 +87,7 @@ class DeformationDetector3(PipelineModule):
         plt.savefig("deformation.png")
 
     def get_code(self) -> Tuple[str, str]:
-        import_code = "from pyTFM.TFM_functions import calculate_deformation\n"
+        import_code = "from saenopy.pyTFM.TFM_functions import calculate_deformation\n"
 
         results = []
         def code(my_piv_params):  # pragma: no cover

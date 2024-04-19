@@ -11,8 +11,8 @@ from saenopy.saveable import Saveable
 from saenopy.result_file import make_path_absolute
 from .draw import get_mask_using_gui
 
-from pyTFM.plotting import plot_continuous_boundary_stresses
-from pyTFM.plotting import show_quiver
+from saenopy.pyTFM.plotting import plot_continuous_boundary_stresses
+from saenopy.pyTFM.plotting import show_quiver
 
 
 class Result2D(Saveable):

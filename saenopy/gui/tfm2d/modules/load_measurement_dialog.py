@@ -1,4 +1,5 @@
 from qtpy import QtCore, QtWidgets, QtGui
+
 from saenopy.gui.common import QtShortCuts
 from saenopy.examples import get_examples_2D
 from saenopy.gui.common.AddFilesDialog import AddFilesDialog

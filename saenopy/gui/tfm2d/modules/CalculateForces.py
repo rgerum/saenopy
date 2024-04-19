@@ -1,15 +1,18 @@
 import matplotlib.pyplot as plt
-from qtpy import QtCore, QtWidgets, QtGui
-from saenopy.gui.common import QtShortCuts
-from .PipelineModule import PipelineModule
+from qtpy import QtWidgets
 from tifffile import imread
-from saenopy.gui.common.gui_classes import CheckAbleGroup
-from .result import Result2D
-from pyTFM.TFM_functions import TFM_tractions
-from pyTFM.plotting import show_quiver
 import numpy as np
+from typing import Tuple
+
+from saenopy.gui.common import QtShortCuts
+from saenopy.gui.common.gui_classes import CheckAbleGroup
 from saenopy.gui.common.code_export import get_code
-from typing import List, Tuple
+
+from .PipelineModule import PipelineModule
+from .result import Result2D
+
+from saenopy.pyTFM.TFM_tractions import TFM_tractions
+from saenopy.pyTFM.plotting import show_quiver
 
 
 class Force(PipelineModule):
@@ -73,6 +76,7 @@ class Force(PipelineModule):
         ps1 = result.pixel_size  # pixel size of the image of the beads
         # dimensions of the image of the beads
         im1_shape = result.shape
+        print("process", force_parameters)
         ps2 = ps1 * np.mean(np.array(im1_shape) / np.array(result.u.shape))  # pixel size of the deformation field
         tx, ty = TFM_tractions(result.u, result.v, pixelsize1=ps1, pixelsize2=ps2,
                                h=force_parameters["h"], young=force_parameters["young"], sigma=force_parameters["sigma"])
@@ -85,7 +89,7 @@ class Force(PipelineModule):
         plt.savefig("force.png")
 
     def get_code(self) -> Tuple[str, str]:
-        import_code = "from pyTFM.TFM_functions import TFM_tractions\n"
+        import_code = "from saenopy.pyTFM.TFM_functions import TFM_tractions\n"
 
         results = []
         def code(my_force_parameters):  # pragma: no cover

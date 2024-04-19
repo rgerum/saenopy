@@ -1,12 +1,13 @@
-import matplotlib.pyplot as plt
-from qtpy import QtCore, QtWidgets, QtGui
-from saenopy.gui.common import QtShortCuts, QExtendedGraphicsView
-from qimage2ndarray import array2qimage
+import numpy as np
 import sys
 import traceback
 from PIL import Image, ImageDraw
-import numpy as np
+import matplotlib.pyplot as plt
 import qtawesome as qta
+from qtpy import QtCore, QtWidgets, QtGui
+from qimage2ndarray import array2qimage
+
+from saenopy.gui.common import QtShortCuts, QExtendedGraphicsView
 
 
 class GraphicsItemEventFilter(QtWidgets.QGraphicsItem):

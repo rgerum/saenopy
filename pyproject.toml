@@ -33,8 +33,7 @@ sphinx = { version = ">=1.6,<7", optional = true }
 sphinx-rtd-theme = { version = "^1.2.2", optional = true }
 nbsphinx = { version = "^0.9.2", optional = true }
 sphinx-gallery = {version = "^0.13.0", optional = true }
-pytfm = {git = "https://github.com/fabrylab/pyTFM"}
-
+solidspy = "*"
 
 [tool.poetry.extras]
 docs = ["sphinx", "sphinx-rtd-theme", "nbsphinx", "sphinx-gallery"]

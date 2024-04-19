@@ -1,0 +1,6 @@
+.logo {
+   position: absolute;
+   left: 0;
+   top: 0;
+   width: min(var(--width, 200px), 40%);
+}

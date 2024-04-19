@@ -1,8 +1,10 @@
-from .PipelineModule import PipelineModule
-from saenopy.gui.common.code_export import get_code
-from typing import Tuple
-from saenopy.gui.tfm2d.modules.result import get_stacks2D
 from pathlib import Path
+from typing import Tuple
+
+from saenopy.gui.common.code_export import get_code
+from saenopy.gui.tfm2d.modules.result import get_stacks2D
+
+from .PipelineModule import PipelineModule
 
 
 class DisplayCellImage(PipelineModule):

@@ -6,4 +6,6 @@ from .examples import load_example
 import importlib.metadata
 from .gui.solver.modules.exporter.Exporter import render_image
 
+from . import pyTFM as pyTFM
+
 __version__ = importlib.metadata.metadata('saenopy')['version']

@@ -1,10 +1,13 @@
-from .PipelineModule import PipelineModule
+from typing import Tuple
+
+from saenopy.gui.common.code_export import get_code
 from saenopy.gui.common.gui_classes import CheckAbleGroup
 from saenopy.gui.common import QtShortCuts
-from pyTFM.frame_shift_correction import correct_stage_drift
+
+from .PipelineModule import PipelineModule
 from .result import Result2D
-from saenopy.gui.common.code_export import get_code
-from typing import Tuple
+
+from saenopy.pyTFM.frame_shift_correction import correct_stage_drift
 
 class DeformationDetector2(PipelineModule):
 
@@ -40,7 +43,7 @@ class DeformationDetector2(PipelineModule):
         a_save.save(result.reference_stack_corrected)
 
     def get_code(self) -> Tuple[str, str]:
-        import_code = "from pyTFM.frame_shift_correction import correct_stage_drift\n"
+        import_code = "from saenopy.pyTFM.frame_shift_correction import correct_stage_drift\n"
 
         results = []
         def code():  # pragma: no cover
