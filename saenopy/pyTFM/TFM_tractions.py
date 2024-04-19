@@ -1,12 +1,9 @@
-# basic functions for traction force microscopy
-import matplotlib.pyplot as plt
 import numpy as np
-import openpiv.filters
 import scipy.fft
-
-from .suppress_warnings import suppress_warnings
 from scipy.ndimage import median_filter, gaussian_filter
 from scipy.ndimage import uniform_filter
+
+from .suppress_warnings import suppress_warnings
 
 
 def ffttc_traction(u, v, pixelsize1, pixelsize2, young, sigma=0.49, spatial_filter="gaussian", fs=None):
@@ -106,6 +103,7 @@ def ffttc_traction(u, v, pixelsize1, pixelsize2, young, sigma=0.49, spatial_filt
         ty_filter = median_filter(ty_cut, size=fs)
 
     return tx_filter, ty_filter
+
 
 def ffttc_traction_finite_thickness(u, v, pixelsize1, pixelsize2, h, young, sigma=0.49, spatial_filter="gaussian", fs=None):
     """
@@ -207,6 +205,7 @@ def ffttc_traction_finite_thickness(u, v, pixelsize1, pixelsize2, h, young, sigm
         ty_filter = median_filter(ty_cut, size=fs)
 
     return tx_filter, ty_filter
+
 
 def TFM_tractions(u, v, pixelsize1, pixelsize2, h, young, sigma=0.49, spatial_filter="gaussian", fs=6):
     """

@@ -18,6 +18,7 @@ def strain_energy_points(u, v, tx, ty, pixelsize1, pixelsize2):
     energy_points -= bg
     return energy_points
 
+
 def get_xy_for_quiver(u):
     """
     accessory function to calculate grid for plt.quiver. Size of the array will correspond to input u.
@@ -31,6 +32,7 @@ def get_xy_for_quiver(u):
     for j in range(np.shape(u)[1]):  # is inverted in other skript
         ys[:, j] = np.arange(0, np.shape(u)[0], 1)
     return xs, ys
+
 
 def contractillity(tx, ty, pixelsize, mask):
 
@@ -146,5 +148,3 @@ def calculate_deformation(im1, im2, window_size=64, overlap=32, std_factor=20):
 
     u, v = openpiv.filters.replace_outliers(u, v, method='localmean', max_iter=10, kernel_size=2)
     return u, -v, mask, mask_std  # return -v because of image inverted axis
-
-

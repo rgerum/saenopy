@@ -12,14 +12,13 @@ import solidspy.assemutil as ass
 import solidspy.postprocesor as pos
 import solidspy.solutil as sol
 from .stress_functions import calculate_stress_tensor, normal_vectors_from_splines
-from .graph_theory_for_cell_boundaries import mask_to_graph, FindingBorderError, find_lines_simple, remove_endpoints_wrapper, graph_to_mask, identify_line_segments, find_dead_end_lines, find_exact_line_endpoints
+from .graph_theory_for_cell_boundaries import (mask_to_graph, FindingBorderError, find_lines_simple,
+                                               remove_endpoints_wrapper, graph_to_mask, identify_line_segments,
+                                               find_dead_end_lines, find_exact_line_endpoints)
 from .utilities_TFM import make_random_discrete_color_range, join_dictionary
 from scipy.interpolate import splprep, splev
-from scipy.ndimage import binary_closing as binary_clo
-from scipy.ndimage import find_objects
 from scipy.ndimage import binary_fill_holes
 from scipy.optimize import least_squares
-from scipy.signal import convolve2d
 from scipy.sparse import csr_matrix
 from scipy.sparse.linalg import lsqr
 from skimage.measure import regionprops
@@ -501,34 +500,6 @@ class Cells_and_Lines2(Cells_and_Lines):
         label_mask, self.n_cells = label(~mask_boundaries, connectivity=1, return_num=True)
 
 
-def prepare_mask_FEM(mask, shape):
-    """
-    this function usese skeletonize to transform the cellboundraies to one pixel width. Loose ends are trimmed by
-    converison to a graph and then deleting all nodes with only one neighbour.
-    :param mask:
-    :param min_cell_size: minimal sze of cells in pixles, any hole below that will be filled up. If none, then
-        some estimated value is used
-    :return: mask of type bool
-    """
-    mask = remove_small_objects(mask.astype(bool), 200).astype(bool)  # removing other small bits
-    # interpolating the area to the size of future FEM-grd
-    mask_int = interpolation(binary_fill_holes(mask), shape)
-    mask_int = binary_fill_holes(mask_int).astype(bool)  # sometime first binary fill holes is not enough
-
-    # removing unsuitable pixels for grid later --> a pixel must be connected to at least more then 2 others
-    m = convolve2d(mask_int.astype(int), np.array([[0, 1, 0], [1, 0, 1], [0, 1, 0]]), mode="same", boundary="fill",
-                   fillvalue=0)  # convoultion will produce 1 if only one direct (distance 1) neighbour exists
-    p = np.where(np.logical_and(m == 1, mask_int))  # problematic coordinates
-
-    for x, y in zip(p[0], p[1]):
-        new_ps = np.array([[x + 1, y], [x, y + 1], [x - 1, y], [x, y - 1]])  # all relevant neigbouring points
-        new_p = new_ps[mask_int[new_ps[:, 0], new_ps[:, 1]]][
-            0]  # checking where a possible replacement point could be located this can only have one result
-        mask_int[x, y] = False  # removing old point
-        mask_int[new_p[0], new_p[1]] = True  # adding new point
-    return mask_int
-
-
 def find_borders(mask, shape, raise_error=True, type="colony", min_length=0):
     #### maybe reintroduce small cell filter
     # removing small bits
@@ -596,35 +567,6 @@ def interpolation_single_point(point, shape_target, shape_origin):
     return point_interp
 
 
-def alligne_objects(mask1, mask2):
-    """
-    function to cut the object from mask2 and set it in an array of mask1.shape, so that the center of the bounding
-    box of the object in mask1 and the new array are the same
-    :param mask1: array deetermining the output shape and center of the binding box f the output object
-    :param mask2: array from which an object is cut out
-    :return: mas2_alligne: output array
-    """
-    rectangle1 = find_objects(mask1, 1)
-    lengths1 = [rectangle1[0][0].stop - rectangle1[0][0].start,
-                rectangle1[0][1].stop - rectangle1[0][1].start]  # ä side lengths of hte recangle that was cut out
-    rect_center1 = [rectangle1[0][0].start + lengths1[0] / 2, rectangle1[0][1].start + lengths1[1] / 2]
-
-    rectangle2 = find_objects(mask2, 1)
-    lengths2 = [rectangle2[0][0].stop - rectangle2[0][0].start,
-                rectangle2[0][1].stop - rectangle2[0][1].start]  # ä side lengths of hte recangle that was cut out
-
-    # set in around com of fl image:
-    mask2_alligne = np.zeros(np.shape(mask1))
-
-    new_cords1 = [int(rect_center1[0] - lengths2[0] / 2),
-                  int(rect_center1[0] + lengths2[0] / 2),
-                  int(rect_center1[1] - lengths2[1] / 2),
-                  int(rect_center1[1] + lengths2[1] / 2)
-                  ]
-    mask2_alligne[new_cords1[0]: new_cords1[1], new_cords1[2]:new_cords1[3]] = mask2[rectangle2[0][0], rectangle2[0][1]]
-    return mask2_alligne.astype(int)
-
-
 def cut_mask_from_edge(mask, cut_factor, warn_flag=False, fill=True):
     sum_mask1 = np.sum(mask)
     dims = mask.shape
@@ -643,12 +585,6 @@ def cut_mask_from_edge(mask, cut_factor, warn_flag=False, fill=True):
     sum_mask2 = np.sum(mask_cut)
     warn = "mask was cut close to image edge" if (sum_mask2 < sum_mask1 and warn_flag) else ""
     return mask_cut, warn
-
-
-def cut_mask_from_edge_wrapper(cut_factor, mask, parameter_dict, cut=True, warn=""):
-    if cut:
-        mask, warn = cut_mask_from_edge(mask, cut_factor, parameter_dict["TFM_mode"] == "colony")
-    return mask, warn
 
 
 def FEM_simulation(nodes, elements, loads, mats, mask_area, verbose=False, **kwargs):
@@ -781,13 +717,6 @@ def prepare_forces(tx, ty, ps, mask):
     f_x_c2, f_y_c2, p = correct_torque(f_x_c1, f_y_c1, mask)
     return f_x_c2, f_y_c2
 
-def correct_forces(f_x,f_y, mask_area):
-    f_x[~mask_area] = np.nan  # setting all values outside of mask area to zero
-    f_y[~mask_area] = np.nan
-    f_x_c1 = f_x - np.nanmean(f_x)  # normalizing traction force to sum up to zero (no displacement)
-    f_y_c1 = f_y - np.nanmean(f_y)
-    f_x_c2, f_y_c2, p = correct_torque(f_x_c1, f_y_c1, mask_area)
-    return f_x_c2, f_y_c2, p
 
 def correct_torque(fx, fy, mask_area):
     com = regionprops(mask_area.astype(int))[0].centroid  # finding center of mass
@@ -847,193 +776,6 @@ def correct_torque(fx, fy, mask_area):
     q[:, :, 1] = + np.sin(p) * (f[:, :, 0]) + np.cos(p) * (f[:, :, 1])
 
     return q[:, :, 0], q[:, :, 1], p  # returns corrected forces and rotation angle
-
-
-def get_torque1(fx, fy, mask_area, return_map=False):
-    com = regionprops(mask_area.astype(int))[0].centroid  # finding center of mass
-    com = (com[1], com[0])  # as x y coorinate
-
-    c_x, c_y = np.meshgrid(range(fx.shape[1]), range(fx.shape[0]))  # arrays with all x and y coordinates
-    r = np.zeros((fx.shape[0], fx.shape[1], 2))  # array with all positional vectors
-    r[:, :, 0] = c_x  # note maybe its also enough to chose any point as refernece point
-    r[:, :, 1] = c_y
-    r = r - np.array(com)
-
-    f = np.zeros((fx.shape[0], fx.shape[1], 2))  # array with all force vectors
-    f[:, :, 0] = fx
-    f[:, :, 1] = fy
-    if return_map:
-        return np.cross(r, f, axisa=2, axisb=2)
-    else:
-        return np.nansum(np.cross(r, f, axisa=2, axisb=2))
-
-
-def check_unbalanced_forces(fx, fy, mask=None, raise_error=False):
-    if not isinstance(mask, np.ndarray):
-        mask = np.logical_or(fy != 0, fx != 0)
-    torque = get_torque1(fx, fy, mask, return_map=False)  # torque of the system
-    net_force = np.array([np.sum(fx), np.sum(fy)])
-    print("torque = " + str(torque))
-    print("net force = " + str(net_force))
-    if raise_error and (torque == 0 or np.sum(net_force == 0) > 0):
-        raise Exception("torque or net force is not zero")
-
-
-def make_field(nodes, values, dims):
-    """
-    function to write e.g. loads or deformation data to array
-    :param nodes:
-    :param values:
-    :return:
-    """
-    nodes = nodes.astype(int)
-    fx = np.zeros(dims)
-    fy = np.zeros(dims)
-    fx[nodes[:, 2], nodes[:, 1]] = values[:, 0]
-    fy[nodes[:, 2], nodes[:, 1]] = values[:, 1]
-    return fx, fy
-
-
-def make_solids_py_values_list(nodes, fx, fy, mask, shape=1):
-    """
-    function to create a list of values, eg deformation as needed by solidspy
-
-    :param nodes:
-    :param fx:
-    :param fy:
-    :return:
-    """
-    nodes = nodes.astype(int)
-    mask = mask.astype(bool)
-    if shape == 1:
-        l = np.zeros((len(nodes) * 2))
-        l[np.arange(0, len(nodes) * 2) % 2 == 0] = fx[mask].flatten()  # ordering in solidspy is x,y..
-        l[np.arange(0, len(nodes) * 2) % 2 != 0] = fy[mask].flatten()
-    else:
-        l = np.zeros((len(nodes), 2))
-        l[:, 0] = fx[mask][nodes[:, 2], nodes[:, 1]]
-        l[:, 1] = fy[mask][nodes[:, 2], nodes[:, 1]]
-    return l
-
-
-def normalizing(img):
-    img = img - np.nanmin(img)
-    img = img / np.nanmax(img)
-    img[img < 0] = 0.0
-    img[img > 1] = 1.0
-    return img
-
-
-def get_torque2(nodes, loads):
-    nodes = nodes.astype(int)
-
-    k, l = (np.max(nodes[:, 1]) + 1, np.max(nodes[:, 2]) + 1)
-    fx = np.zeros((k, l))
-    fy = np.zeros((k, l))
-    area = np.zeros((k, l), dtype=int)
-    fx[nodes[:, 1], nodes[:, 2]] = loads[:, 1]
-    fy[nodes[:, 1], nodes[:, 2]] = loads[:, 2]
-    area[nodes[:, 1], nodes[:, 2]] = 1
-
-    com = regionprops(area)[0].centroid  # finding center of mass
-    com = (com[1], com[0])  # as x y coorinate
-
-    c_x, c_y = np.meshgrid(range(fx.shape[1]), range(fx.shape[0]))  # arrays with all x and y coordinates
-    r = np.zeros((fx.shape[0], fx.shape[1], 2))  # array with all positional vectors
-    r[:, :, 0] = c_x  # note maybe its also enough to chose any point as refernece point
-    r[:, :, 1] = c_y
-    r = r - np.array(com)
-
-    f = np.zeros((fx.shape[0], fx.shape[1], 2))  # array with all force vectors
-    f[:, :, 0] = fx
-    f[:, :, 1] = fy
-    torque = np.sum(np.cross(r, f, axisa=2, axisb=2))  # note order ju
-    return (torque)
-
-
-def calculate_rotation(a1, a2, mask):
-    """
-
-
-
-    hopefully caclualtes the rotaton of a body from a rotaion filed
-    :param dx:eithr array with dx values or nodes
-    :param dy:
-    :return:
-    """
-    mask = mask.astype(bool)
-    if a1.shape[1] == 5 and a1.shape[0] != a1.shape[1]:  # this would recognize a nodes array
-        dx, dy = make_field(a1.astype(int), a2, mask.shape)  # an construct a field from it
-
-    else:
-        dx, dy = a1, a2
-
-    r = np.zeros((dx.shape[0], dx.shape[1], 2))  # array with all positional vectors
-    d = np.zeros((dx.shape[0], dx.shape[1], 2))
-
-    c_x, c_y = np.meshgrid(range(mask.shape[1]), range(mask.shape[0]))
-    r[:, :, 0] = c_x  # note maybe its also enough to chose any point as refernece point
-    r[:, :, 1] = c_y
-    com = (np.mean(r[:, :, 0][mask]), np.mean(r[:, :, 1][mask]))
-    r = r - np.array(com)
-    r[~mask] = 0
-    d[:, :, 0][mask] = dx[mask].flatten()  # note maybe its also enough to chose any point as refernece point
-    d[:, :, 1][mask] = dy[mask].flatten()
-    return np.sum(np.cross(r, d, axisa=2, axisb=2))
-
-
-# applying rotation
-def rot_displacement(p, r, r_n):
-    r_n[:, :, 0] = + np.cos(p) * (r[:, :, 0]) - np.sin(p) * (r[:, :, 1])  # rotation of postional vectors
-    r_n[:, :, 1] = + np.sin(p) * (r[:, :, 0]) + np.cos(p) * (r[:, :, 1])
-    disp = r - r_n
-    return disp  # norma error measure
-
-
-def correct_rotation(def_x, def_y, mask):
-    """
-    function to apply rigid body translation and rotation to a deformation field, to minimize rotation
-    and translation
-    :return:
-    """
-    mask = mask.astype(bool)
-    trans = np.array([np.mean(def_x[mask]), np.mean(def_y[mask])])  # translation
-    def_xc1 = def_x - trans[0]  # correction of translation
-    def_yc1 = def_y - trans[1]
-    ##
-    # insert method to calculate angular rotaton??
-    ##
-    # constructinoon positional vectors and
-    r = np.zeros((def_x.shape[0], def_x.shape[1], 2))  # array with all positional vectors
-    r_n = np.zeros((def_x.shape[0], def_x.shape[1], 2))
-    d = np.zeros((def_x.shape[0], def_x.shape[1], 2))
-    d_n = np.zeros((def_x.shape[0], def_x.shape[1], 2))
-    c_x, c_y = np.meshgrid(range(def_x.shape[1]), range(def_x.shape[0]))
-    r[:, :, 0] = c_x  # note maybe its also enough to chose any point as refernece point
-    r[:, :, 1] = c_y
-    com = (np.mean(r[:, :, 0][mask]), np.mean(r[:, :, 1][mask]))  ## why inverted indices??????????
-    r = r - np.array(com)
-    r[~mask] = 0
-    d[:, :, 0][mask] = def_xc1[mask].flatten()  # note maybe its also enough to chose any point as refernece point
-    d[:, :, 1][mask] = def_yc1[mask].flatten()
-
-    # fit to corect rotation
-    def displacement_error(p):
-        r_n[:, :, 0] = + np.cos(p) * (r[:, :, 0]) - np.sin(p) * (r[:, :, 1])  # rotation of postional vectors
-        r_n[:, :, 1] = + np.sin(p) * (r[:, :, 0]) + np.cos(p) * (r[:, :, 1])
-        disp = r - r_n
-        return np.sum(np.linalg.norm((d[mask] - disp[mask]), axis=1))  # norma error measure
-
-    pstart = -1
-    bounds = ([-np.pi], [np.pi])
-    ## just use normal gradient descent??
-    p = least_squares(fun=displacement_error, x0=pstart, bounds=bounds, method="trf",
-                      max_nfev=100000000, xtol=3e-32, ftol=3e-32, gtol=3e-32, args=())["x"]  # trust region algorithm,
-    ## note only works if displacement can be reached in "one rotation!!!!
-    # get the part of displacement originating form a rotation of p
-    d_rot = rot_displacement(p, r, r_n)
-    d_n[mask] = d[mask] - d_rot[mask]  # correcting this part of rotation
-    return d_n[:, :, 0], d_n[:, :, 1], trans, p
 
 
 def find_eq_position(nodes, IBC, neq):
@@ -1123,7 +865,3 @@ def custom_solver(mat, rhs, mask_area, nodes, IBC, verbose=False):
         raise TypeError("Matrix should be numpy array or csr_matrix.")
 
     return u_sol, error
-
-
-#TODO: implement seperate mask to average stresses and stuff optionally even multiple stresses
-#TODO: Move away from recursive functions to identfy lines

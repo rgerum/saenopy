@@ -12,7 +12,7 @@ def normalizing(img):
     return img
 
 
-def croping_after_shift(image, shift_x, shift_y):
+def cropping_after_shift(image, shift_x, shift_y):
     if shift_x <= 0:
         image = image[:, int(np.ceil(-shift_x)):]
     else:
@@ -28,11 +28,11 @@ def correct_stage_drift(image1, image2, additional_images=[]):
     """
     # correcting frame shift between images of beads before and after cell removal.
 
-    # the correction is done by finding the shift between two images using image registration. Then the images are cropped
-    # to the common field of view. If this script finds further images of the cells, it wil also cropp them to this field
-    # of view. The output is saved to the input folder. For each "experiment" a new folder is created. An experiment is
-    # identified as a directory that contains one folder for the images before cell removal and one folder with images after
-    # the cell removal.
+    # the correction is done by finding the shift between two images using image registration. Then the images are
+    # cropped to the common field of view. If this script finds further images of the cells, it wil also crop them to
+    # this field of view. The output is saved to the input folder. For each "experiment" a new folder is created. An
+    # experiment is identified as a directory that contains one folder for the images before cell removal and one folder
+    # with images after the cell removal.
 
     :param image1:
     :param image2:
@@ -50,8 +50,8 @@ def correct_stage_drift(image1, image2, additional_images=[]):
     image1_shift = shift(image1, shift=(-shift_y, -shift_x), order=5)
 
     # normalizing and converting to image format
-    b = normalizing(croping_after_shift(image1_shift, shift_x, shift_y))
-    a = normalizing(croping_after_shift(image2, shift_x, shift_y))
+    b = normalizing(cropping_after_shift(image1_shift, shift_x, shift_y))
+    a = normalizing(cropping_after_shift(image2, shift_x, shift_y))
     b_save = Image.fromarray(b * 255)
     a_save = Image.fromarray(a * 255)
 
@@ -59,7 +59,7 @@ def correct_stage_drift(image1, image2, additional_images=[]):
     additional_images_save = []
     for add_image in additional_images:
         add_image_shift = shift(add_image, shift=(-shift_y, -shift_x), order=5)
-        add_image_norm = normalizing(croping_after_shift(add_image_shift, shift_x, shift_y))
+        add_image_norm = normalizing(cropping_after_shift(add_image_shift, shift_x, shift_y))
         add_image_save = Image.fromarray(add_image_norm * 255)
         additional_images_save.append(add_image_save)
 
