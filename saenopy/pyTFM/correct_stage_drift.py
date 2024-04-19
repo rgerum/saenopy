@@ -14,17 +14,17 @@ def normalizing(img):
 
 def cropping_after_shift(image, shift_x, shift_y):
     if shift_x <= 0:
-        image = image[:, int(np.ceil(-shift_x)):]
+        image = image[:, int(np.ceil(-shift_x)) :]
     else:
-        image = image[:, :-int(np.ceil(shift_x))]
+        image = image[:, : -int(np.ceil(shift_x))]
     if shift_y <= 0:
-        image = image[int(np.ceil(-shift_y)):, :]
+        image = image[int(np.ceil(-shift_y)) :, :]
     else:
-        image = image[:-int(np.ceil(shift_y)), :]
+        image = image[: -int(np.ceil(shift_y)), :]
     return np.array(image, dtype=float)
 
 
-def correct_stage_drift(image1, image2, additional_images=[]):
+def correct_stage_drift(image1, image2, additional_images=None):
     """
     # correcting frame shift between images of beads before and after cell removal.
 
@@ -39,6 +39,8 @@ def correct_stage_drift(image1, image2, additional_images=[]):
     :param additional_images:
     :return:
     """
+    if additional_images is None:
+        additional_images = []
 
     # find shift with image registration
     shift_values = phase_cross_correlation(image1, image2, upsample_factor=100)
@@ -59,7 +61,9 @@ def correct_stage_drift(image1, image2, additional_images=[]):
     additional_images_save = []
     for add_image in additional_images:
         add_image_shift = shift(add_image, shift=(-shift_y, -shift_x), order=5)
-        add_image_norm = normalizing(cropping_after_shift(add_image_shift, shift_x, shift_y))
+        add_image_norm = normalizing(
+            cropping_after_shift(add_image_shift, shift_x, shift_y)
+        )
         add_image_save = Image.fromarray(add_image_norm * 255)
         additional_images_save.append(add_image_save)
 

@@ -1,18 +1,12 @@
 import numpy as np
-import openpiv.filters
-
-from openpiv.pyprocess import extended_search_area_piv
-import openpiv.scaling
-import openpiv.tools
-import openpiv.validation
 
 
-def strain_energy_points(u, v, tx, ty, pixelsize1, pixelsize2):
-    pixelsize1 *= 10 ** -6
-    pixelsize2 *= 10 ** -6  # conversion to m
-    # u is given in pixels/minutes where a pixel is from the original image (pixelsize1)
-    # tx is given in forces/pixels**2 where a pixel is from the deformation/traction field (pixelsize2)
-    energy_points = 0.5 * (pixelsize2 ** 2) * (tx * u * pixelsize1 + ty * v * pixelsize1)
+def strain_energy_points(u, v, tx, ty, pixel_size1, pixel_size2):
+    pixel_size1 *= 10 ** -6
+    pixel_size2 *= 10 ** -6  # conversion to m
+    # u is given in pixels/minutes where a pixel is from the original image (pixel_size1)
+    # tx is given in forces/pixels**2 where a pixel is from the deformation/traction field (pixel_size2)
+    energy_points = 0.5 * (pixel_size2 ** 2) * (tx * u * pixel_size1 + ty * v * pixel_size1)
     # value of a background point
     bg = np.percentile(energy_points, 20)
     energy_points -= bg
@@ -34,14 +28,13 @@ def get_xy_for_quiver(u):
     return xs, ys
 
 
-def contractillity(tx, ty, pixelsize, mask):
-
+def contractility(tx, ty, pixel_size, mask):
     """
     Calculation of contractile force and force epicenter.Contractile force is the sum of all projection of traction
     forces (in N) towards the force epicenter. The force epicenter is the point that maximizes the contractile force.
     :param tx: traction forces in x direction in Pa
     :param ty: traction forces in y direction in Pa
-    :param pixelsize: pixelsize of the traction field
+    :param pixel_size: pixel size of the traction field
     :param mask: mask of which values to use for calculation
     :return: contractile_force,contractile force in N
              proj_x, projection of traction forces towards the force epicenter, x component
@@ -56,19 +49,19 @@ def contractillity(tx, ty, pixelsize, mask):
     ty_filter = np.zeros(np.shape(ty))
     ty_filter[mask] = ty[mask]
 
-    tract_abs = np.sqrt(tx_filter ** 2 + ty_filter ** 2)
+    tract_abs = np.sqrt(tx_filter**2 + ty_filter**2)
 
-    area = (pixelsize * (10 ** -6)) ** 2  # in meter
+    area = (pixel_size * (10 ** -6)) ** 2  # in meter
     fx = tx_filter * area  # calculating forces (in Newton) by multiplying with area
     fy = ty_filter * area
 
     x, y = get_xy_for_quiver(tx)
-    bx = np.sum(x * (tract_abs ** 2) + fx * (tx_filter * fx + ty_filter * fy))
-    by = np.sum(y * (tract_abs ** 2) + fy * (tx_filter * fx + ty_filter * fy))
+    bx = np.sum(x * (tract_abs**2) + fx * (tx_filter * fx + ty_filter * fy))
+    by = np.sum(y * (tract_abs**2) + fy * (tx_filter * fx + ty_filter * fy))
 
-    axx = np.sum(tract_abs ** 2 + fx ** 2)
+    axx = np.sum(tract_abs**2 + fx**2)
     axy = np.sum(fx * fy)
-    ayy = np.sum(tract_abs ** 2 + fy ** 2)
+    ayy = np.sum(tract_abs**2 + fy**2)
     # ayx=np.sum(tx*ty)
 
     A = np.array([[axx, axy], [axy, ayy]])
@@ -85,7 +78,7 @@ def contractillity(tx, ty, pixelsize, mask):
 
     dist_x = center[0] - x
     dist_y = center[1] - y
-    dist_abs = np.sqrt(dist_y ** 2 + dist_x ** 2)
+    dist_abs = np.sqrt(dist_y**2 + dist_x**2)
     proj_abs = (fx * dist_x + fy * dist_y) / dist_abs
     contractile_force = np.nansum(proj_abs)
 
@@ -94,4 +87,3 @@ def contractillity(tx, ty, pixelsize, mask):
     proj_y = proj_abs * dist_y / dist_abs
 
     return contractile_force, proj_x, proj_y, center  # unit of contractile force is N
-

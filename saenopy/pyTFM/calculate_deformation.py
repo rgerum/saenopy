@@ -40,15 +40,20 @@ def calculate_deformation(im1, im2, window_size=64, overlap=32, std_factor=20):
     else:
         raise ValueError
 
-    u, v, sig2noise = extended_search_area_piv(frame_a, frame_b, window_size=window_size,
-                                               overlap=overlap,
-                                               dt=1, subpixel_method="gaussian",
-                                               search_area_size=window_size,
-                                               sig2noise_method='peak2peak')
+    u, v, sig2noise = extended_search_area_piv(
+        frame_a,
+        frame_b,
+        window_size=window_size,
+        overlap=overlap,
+        dt=1,
+        subpixel_method="gaussian",
+        search_area_size=window_size,
+        sig2noise_method="peak2peak",
+    )
 
     u, v, mask = openpiv.validation.sig2noise_val(u, v, sig2noise, threshold=1.05)
 
-    def_abs = np.sqrt(u ** 2 + v ** 2)
+    def_abs = np.sqrt(u**2 + v**2)
     m = np.nanmean(def_abs)
     std = np.nanstd(def_abs)
 
@@ -57,5 +62,7 @@ def calculate_deformation(im1, im2, window_size=64, overlap=32, std_factor=20):
     u[mask_std] = np.nan
     v[mask_std] = np.nan
 
-    u, v = openpiv.filters.replace_outliers(u, v, method='localmean', max_iter=10, kernel_size=2)
+    u, v = openpiv.filters.replace_outliers(
+        u, v, method="localmean", max_iter=10, kernel_size=2
+    )
     return u, -v, mask, mask_std  # return -v because of image inverted axis
