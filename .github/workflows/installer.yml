@@ -50,7 +50,7 @@ jobs:
       run: gh release upload $TAG output/saenopy_run/saenopy --clobber
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        TAG: v1.0.3
+        TAG: v1.0.4
 
   build-windows:
 
@@ -92,7 +92,7 @@ jobs:
           path: output/saenopy_run
 
       - name: Upload GitHub release assets
-        run: gh release upload v1.0.3 "output\saenopy_run\saenopy.exe" --clobber
+        run: gh release upload v1.0.4 "output\saenopy_run\saenopy.exe" --clobber
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TAG: v1.0.3
+          TAG: v1.0.4
