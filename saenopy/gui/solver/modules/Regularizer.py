@@ -153,6 +153,7 @@ class Regularizer(PipelineModule):
             return
 
         for i in range(len(result.solvers)):
+            print(f"Current Timstep: {i}")
             M = result.solvers[i]
 
             if i > 0 and solve_parameters["prev_t_as_start"]:
