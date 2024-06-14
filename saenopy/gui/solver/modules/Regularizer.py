@@ -174,6 +174,7 @@ class Regularizer(PipelineModule):
 
             # clear the cache of the solver
             result.clear_cache(i)
+            result.save()
 
     def property_changed(self, name, value):
         if name == "z_slider":
