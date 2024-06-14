@@ -1021,8 +1021,8 @@ def subtract_reference_state(mesh_piv, mode):
     # correct for the median position
     if len(U) > 2:
         xpos2 = np.cumsum(U, axis=0)
-        if mode == "first":
-            xpos2 -= xpos2[0]
+        if mode == "cumul.":
+            xpos2 = xpos2
         elif mode == "median":
             xpos2 -= np.nanmedian(xpos2, axis=0)
         elif mode == "last":

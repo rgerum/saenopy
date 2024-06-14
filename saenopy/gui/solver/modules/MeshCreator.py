@@ -172,7 +172,7 @@ class MeshCreator(PipelineModule):
                 self.vtk_toolbar.channel_select.setVisible(False)
 
             if result.stack_reference is None:
-                self.input_reference.setValues(["next", "median"])
+                self.input_reference.setValues(["next", "median", "cumul."])
                 self.input_reference.setEnabled(True)
             else:
                 self.input_reference.setValues(["reference stack"])
