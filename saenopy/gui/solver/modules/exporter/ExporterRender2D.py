@@ -167,16 +167,18 @@ def render_2d_scalebar(params, result, pil_image, im_scale, aa_scale):
         mu = params["scalebar"]["length"]
         pixel = mu / data["voxel_size"][0]
 
+    scale = params["image"]["scale_overlay"] * params["image"]["scale"]
+
     pil_image = add_scalebar(pil_image, scale=1, image_scale=im_scale * aa_scale,
-                             width=params["scalebar"]["width"] * aa_scale,
-                             xpos=params["scalebar"]["xpos"] * aa_scale,
-                             ypos=params["scalebar"]["ypos"] * aa_scale,
-                             fontsize=params["scalebar"]["fontsize"] * aa_scale, pixel_width=pixel,
+                             width=params["scalebar"]["width"] * aa_scale * scale,
+                             xpos=params["scalebar"]["xpos"] * aa_scale * scale,
+                             ypos=params["scalebar"]["ypos"] * aa_scale * scale,
+                             fontsize=params["scalebar"]["fontsize"] * aa_scale * scale, pixel_width=pixel,
                              size_in_um=mu, color="w", unit="µm")
     return pil_image
 
 def render_2d_colorbar(params, result, pil_image, im_scale, aa_scale, colormap="viridis", scale_max=1):
-    pil_image = add_colorbar(pil_image, scale=1,
+    pil_image = add_colorbar(pil_image, scale=params["image"]["scale_overlay"] * params["image"]["scale"],
                              colormap=colormap,#params["colorbar"]["colorbar"],
                              #bar_width=params["colorbar"]["bar_width"] * aa_scale,
                              #bar_height=params["colorbar"]["bar_height"] * aa_scale,
@@ -200,12 +202,14 @@ def render_2d_time(params, result, pil_image):
 
 
 def render_2d_logo(params, result, pil_image, aa_scale):
+    scale = params["image"]["scale_overlay"] * params["image"]["scale"]
+
     if params["image"]["logo_size"] >= 10:
         if params["theme"] == "dark":
             im_logo = Image.open(resource_path("Logo_black.png"))
         else:
             im_logo = Image.open(resource_path("Logo.png"))
-        scale = params["image"]["logo_size"] / im_logo.width  # im.width/400*0.2
+        scale = params["image"]["logo_size"] / im_logo.width * scale  # im.width/400*0.2
         im_logo = im_logo.resize([int(400 * scale * aa_scale), int(200 * scale * aa_scale)])
         padding = int(im_logo.width * 0.1)
 
@@ -282,6 +286,13 @@ def add_colorbar(pil_image,
                  offset_y=-10,
                  scale=1, fontsize=16, color="w"):
     cmap = plt.get_cmap(colormap)
+    offset_x = int(offset_x * scale)
+    offset_y = int(offset_y * scale)
+
+    bar_width = int(bar_width*scale)
+    bar_height = int(bar_height*scale)
+    tick_height = int(tick_height*scale)
+
     if offset_x < 0:
         offset_x = pil_image.size[0] + offset_x
     if offset_y < 0:

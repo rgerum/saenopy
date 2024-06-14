@@ -180,16 +180,23 @@ class ExportViewer(PipelineModule):
 
                 with QtShortCuts.QGroupBox(None, "image dimensions"):
                     with QtShortCuts.QHBoxLayout():
-                        self.input_width = QtShortCuts.QInputNumber(None, "width", 1024, float=False)
-                        self.input_height = QtShortCuts.QInputNumber(None, "height", 768, float=False)
                         self.input_scale = QtShortCuts.QInputNumber(None, "scale", 1, min=0.1, max=10,
                                                                     use_slider=True, log_slider=True)
                         self.input_scale.valueChanged.connect(self.update_display)
+
                         self.input_antialiase = QtShortCuts.QInputBool(None, "antialiasing", True)
                         self.input_antialiase.valueChanged.connect(self.update_display)
 
-                        self.input_logosize = QtShortCuts.QInputNumber(None, "logo size", 200, float=False, step=10)
 
+                    with QtShortCuts.QHBoxLayout():
+                        self.input_width = QtShortCuts.QInputNumber(None, "width", 1024, float=False)
+                        self.input_height = QtShortCuts.QInputNumber(None, "height", 768, float=False)
+
+                        self.input_scale_overlay = QtShortCuts.QInputNumber(None, "scale overlay", 1, min=0.1, max=10,
+                                                                            use_slider=True, log_slider=True)
+                        self.input_scale_overlay.valueChanged.connect(self.update_display)
+
+                        self.input_logosize = QtShortCuts.QInputNumber(None, "logo size", 200, float=False, step=10)
                         self.input_width.valueChanged.connect(self.update_display)
                         self.input_height.valueChanged.connect(self.update_display)
                         self.input_logosize.valueChanged.connect(self.update_display)
@@ -402,6 +409,7 @@ class ExportViewer(PipelineModule):
                 "logo_size": self.input_logosize,
                 "scale": self.input_scale,
                 "antialiase": self.input_antialiase,
+                "scale_overlay": self.input_scale_overlay,
             },
 
             "camera": {
@@ -507,6 +515,7 @@ class ExportViewer(PipelineModule):
         is3D = not self.input_use2D.value()
         self.input_width.setVisible(is3D)
         self.input_height.setVisible(is3D)
+        self.input_scale_overlay.setVisible(is2D)
 
         self.input_scale.setVisible(is2D)
         self.input_antialiase.setVisible(is2D)
