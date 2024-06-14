@@ -56,7 +56,7 @@ def plot_continuous_boundary_stresses(
     fig = plt.figure(figsize=figsize)
     ax = plt.Axes(fig, [0.0, 0.0, 1.0, 1.0])
     background_color = (
-        matplotlib.cm.get_cmap(cmap)(0)
+        plt.get_cmap(cmap)(0)
         if background_color == "cmap_0"
         else background_color
     )
@@ -88,14 +88,10 @@ def plot_continuous_boundary_stresses(
             t_vecs = interp["t_vecs"]
             n_vecs = interp["n_vecs"]
             # plotting line segments
-            try:
-                c = matplotlib.colormaps.get_cmap(cmap)(
-                    (t_norm - min_v) / (max_v - min_v)
-                )  # normalization and creating a color range
-            except:
-                c = matplotlib.cm.get_cmap(cmap)(
-                    (t_norm - min_v) / (max_v - min_v)
-                )  # normalization and creating a color range
+            c = plt.get_cmap.get_cmap(cmap)(
+                (t_norm - min_v) / (max_v - min_v)
+            )  # normalization and creating a color range
+     
                 
             # see how well that works
             if line_id in edge_lines:  # plot lines at the edge
@@ -175,10 +171,8 @@ def add_colorbar(
     cbar_title_pad=1,
 ):
     norm = matplotlib.colors.Normalize(vmin=vmin, vmax=vmax)
-    try:
-        sm = plt.cm.ScalarMappable(cmap=matplotlib.colormaps.get_cmap(cmap), norm=norm)
-    except:
-        sm = plt.cm.ScalarMappable(cmap=matplotlib.cm.get_cmap(cmap), norm=norm)
+    sm = plt.cm.ScalarMappable(cmap=plt.get_cmap(cmap), norm=norm)
+    
     
     sm.set_array([])  # bug fix for lower matplotlib version
     if cbar_style == "clickpoints":  # colorbar inside of the plot
