@@ -5,6 +5,7 @@ import numpy as np
 from pyvistaqt import QtInteractor
 import inspect
 from typing import Tuple
+from pathlib import Path
 
 import saenopy
 import saenopy.multigrid_helper
@@ -153,6 +154,11 @@ class Regularizer(PipelineModule):
             return
 
         for i in range(len(result.solvers)):
+            self.parent.progress_label.setText(f"{i + 1}/{len(result.solvers)} fitting forces")
+            self.parent.progressbar.setRange(0, 1)
+            self.parent.progressbar.setValue(0)
+            self.parent.progress_label2.setText(f"{Path(result.output).name}")
+
             print(f"Current Timstep: {i}")
             M = result.solvers[i]
 

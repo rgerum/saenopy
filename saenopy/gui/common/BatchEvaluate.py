@@ -104,8 +104,13 @@ class BatchEvaluate(QtWidgets.QWidget):
                     self.list.signal_act_paths2_clicked.connect(self.path_open)
                     self.list.signal_act_paths3_clicked.connect(self.path_copy)
                     self.list.itemSelectionChanged.connect(self.listSelected)
+
+                    self.progress_label2 = QtWidgets.QLabel().addToLayout()
+
                     self.progressbar = QtWidgets.QProgressBar().addToLayout()
                     self.progressbar.setOrientation(QtCore.Qt.Horizontal)
+
+                    self.progress_label = QtWidgets.QLabel().addToLayout()
                 with QtShortCuts.QHBoxLayout() as layout:
                     layout.setContentsMargins(0, 0, 0, 0)
                     self.add_tabs()
