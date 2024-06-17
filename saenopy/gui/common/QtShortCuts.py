@@ -1096,9 +1096,12 @@ class ColorMapChoose(QtWidgets.QDialog):
         main_layout.addLayout(self.layout)
         button_layout = QtWidgets.QHBoxLayout()
         main_layout.addLayout(button_layout)
+
         self.button_cancel = QtWidgets.QPushButton("Cancel")
         self.button_cancel.clicked.connect(lambda _: self.done(0))
         button_layout.addStretch()
+        self.input_invert = QInputBool(button_layout, "invert", False)
+        self.input_invert.valueChanged.connect(self.set_invert)
         button_layout.addWidget(self.button_cancel)
 
         self.maps = plt.colormaps()
@@ -1139,11 +1142,21 @@ class ColorMapChoose(QtWidgets.QDialog):
             for cmap in cmap_list:
                 button = QtWidgets.QPushButton(cmap)
                 button.setStyleSheet("text-align: center; border: 2px solid black; "+self.getBackground(cmap))
-                button.clicked.connect(lambda _, cmap=cmap: self.buttonClicked(cmap))
+                button.clicked.connect(lambda _, cmap=cmap, button=button: self.buttonClicked(button.text()))
                 self.buttons.append(button)
                 layout.addWidget(button)
             layout.addStretch()
             self.layout.addLayout(layout)
+
+    def set_invert(self):
+        for button in self.buttons:
+            cmap = button.text()
+            if not self.input_invert.value() and cmap.endswith("_r"):
+                cmap = cmap[:-2]
+            elif self.input_invert.value() and not cmap.endswith("_r"):
+                cmap = cmap + "_r"
+            button.setText(cmap)
+            button.setStyleSheet("text-align: center; border: 2px solid black; "+self.getBackground(cmap))
 
     def buttonClicked(self, text: str):
         """ the used as selected a colormap, we are done """
@@ -1256,21 +1269,28 @@ class QDragableColor(QtWidgets.QLabel):
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 from matplotlib.colors import LinearSegmentedColormap
+def add_colormap(name, color1, color2):
+    r1, g1, b1 = color1
+    r2, g2, b2 = color2
+    mpl.colormaps.register(LinearSegmentedColormap(name,
+                                                   {'red': ((0,r1,r1),(1,r2,r2)), 'green': ((0,g1,g1),(1,g2,g2)),
+                                                    'blue': ((0,b1,b1),(1,b2,b2))}))
+    mpl.colormaps.register(LinearSegmentedColormap(name+"_r",
+                                                   {'red': ((0,r2,r2),(1,r1,r1)), 'green': ((0,g2,g2),(1,g1,g1)),
+                                                    'blue': ((0,b2,b2),(1,b1,b1))}))
 try:
-    mpl.colormaps.register(LinearSegmentedColormap('red', {'red': ((0,0,0),(1,1,1)), 'green': ((0,0,0),(1,0,0)), 'blue': ((0.0,  0.0, 0.0), (1,  0, 0))}))
-    mpl.colormaps.register(LinearSegmentedColormap('orange', {'red': ((0,0,0),(1,1,1)), 'green': ((0,0,0),(1,0.5,0.5)), 'blue': ((0.0,  0.0, 0.0), (1,  0, 0))}))
-    mpl.colormaps.register(LinearSegmentedColormap('yellow', {'red': ((0,0,0),(1,1,1)), 'green': ((0,0,0),(1,1,1)), 'blue': ((0.0,  0.0, 0.0), (1,  0, 0))}))
-    mpl.colormaps.register(LinearSegmentedColormap('lime', {'red': ((0,0,0),(1,0.5,0.5)), 'green': ((0,0,0),(1,1,1)), 'blue': ((0.0,  0.0, 0.0), (1,  0, 0))}))
-    mpl.colormaps.register(LinearSegmentedColormap('green', {'red': ((0,0,0),(1,0,0)), 'green': ((0,0,0),(1,1,1)), 'blue': ((0.0,  0.0, 0.0), (1,  0, 0))}))
-    mpl.colormaps.register(LinearSegmentedColormap('mint', {'red': ((0,0,0),(1,0,0)), 'green': ((0,0,0),(1,1,1)), 'blue': ((0.0,  0.0, 0.0), (1,  0.5, 0.5))}))
-    mpl.colormaps.register(LinearSegmentedColormap('cyan', {'red': ((0,0,0),(1,0,0)), 'green': ((0,0,0),(1,1,1)), 'blue': ((0.0,  0.0, 0.0), (1, 1, 1))}))
-    mpl.colormaps.register(LinearSegmentedColormap('navy', {'red': ((0,0,0),(1,0,0)), 'green': ((0,0,0),(1,0.5,0.5)), 'blue': ((0.0,  0.0, 0.0), (1, 1, 1))}))
-    mpl.colormaps.register(LinearSegmentedColormap('blue', {'red': ((0,0,0),(1,0,0)), 'green': ((0,0,0),(1,0,0)), 'blue': ((0.0,  0.0, 0.0), (1,  1, 1))}))
-    mpl.colormaps.register(LinearSegmentedColormap('purple', {'red': ((0,0,0),(1,0.5,0.5)), 'green': ((0,0,0),(1,0,0)), 'blue': ((0.0,  0.0, 0.0), (1,  1, 1))}))
-    mpl.colormaps.register(LinearSegmentedColormap('magenta', {'red': ((0,0,0),(1,1,1)), 'green': ((0,0,0),(1,0,0)), 'blue': ((0.0,  0.0, 0.0), (1,  1, 1))}))
-    mpl.colormaps.register(LinearSegmentedColormap('grape', {'red': ((0,0,0),(1,1,1)), 'green': ((0,0,0),(1,0,0)), 'blue': ((0.0,  0.0, 0.0), (1,  0.5, 0.5))}))
-    #mpl.colormaps.register(LinearSegmentedColormap('redd', {'red': ((0.0,  0.0, 0.0), (1,  1, 1))}))
-    #mpl.colormaps.register(LinearSegmentedColormap('greenn', {'green': ((0.0,  0.0, 0.0), (1,  1, 1))}))
+    add_colormap("red", (0, 0, 0), (1, 0, 0))
+    add_colormap("orange", (0, 0, 0), (1, 0.5, 0))
+    add_colormap("yellow", (0, 0, 0), (1, 1, 0))
+    add_colormap("lime", (0, 0, 0), (0.5, 1, 0))
+    add_colormap("green", (0, 0, 0), (0, 1, 0))
+    add_colormap("mint", (0, 0, 0), (0, 1, 0.5))
+    add_colormap("cyan", (0, 0, 0), (0, 1, 1))
+    add_colormap("navy", (0, 0, 0), (0, 0.5, 1))
+    add_colormap("blue", (0, 0, 0), (0, 0, 1))
+    add_colormap("purple", (0, 0, 0), (0.5, 0, 1))
+    add_colormap("magenta", (0, 0, 0), (1, 0, 1))
+    add_colormap("grape", (0, 0, 0), (1, 0, 0.5))
 except:
     print ("Did not update colormaps since colormaps with identical names already existing. ")
 
