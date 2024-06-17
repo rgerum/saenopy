@@ -280,6 +280,7 @@ def add_colorbar(pil_image,
                  bar_width=150,
                  bar_height=10,
                  tick_height=5,
+                 tick_width=1,
                  tick_count=3,
                  min_v=0,
                  max_v=10,
@@ -293,6 +294,7 @@ def add_colorbar(pil_image,
     bar_width = int(bar_width*scale)
     bar_height = int(bar_height*scale)
     tick_height = int(tick_height*scale)
+    tick_width = int(tick_width*scale)
 
     if offset_x < 0:
         offset_x = pil_image.size[0] + offset_x
@@ -323,17 +325,17 @@ def add_colorbar(pil_image,
     #tick_positions = locator.tick_values(min_v, max_v)
     tick_positions = np.linspace(min_v, max_v, tick_count)
     for i, pos in enumerate(tick_positions):
-        x0 = offset_x + (bar_width - 2) / (tick_count - 1) * i
+        x0 = offset_x + (bar_width - tick_width - 1) / (tick_count - 1) * i
         y0 = offset_y - bar_height - 1
 
-        image.rectangle([x0, y0-5, x0+1, y0])
+        image.rectangle([x0, y0-tick_height, x0+tick_width, y0], fill=color)
 
         text = "%d" % pos
         length_number = image.textlength(text, font=font)
         height_number = image.textbbox((0, 0), text, font=font)[3]
 
         x = x0 - length_number * 0.5 + 1
-        y = y0 - height_number - tick_height - 3
+        y = y0 - height_number - tick_height - int(np.ceil(tick_height/2))
         # draw the text for the number and the unit
         image.text((x, y), text, color, font=font)
     #image.rectangle([pil_image.size[0]-10, 0, pil_image.size[0], 10], fill="w")
