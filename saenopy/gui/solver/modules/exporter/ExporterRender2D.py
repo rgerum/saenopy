@@ -20,8 +20,9 @@ def render_2d(params, result, exporter=None):
         pil_image = pil_image.resize([pil_image.width // 2, pil_image.height // 2])
         aa_scale = 1
 
-    pil_image = render_2d_scalebar(params, result, pil_image, im_scale, aa_scale)
-    if disp_params != None:
+    if params["scalebar"]["hide"] is False:
+        pil_image = render_2d_scalebar(params, result, pil_image, im_scale, aa_scale)
+    if disp_params != None and params["colorbar"]["hide"] is False:
         pil_image = render_2d_colorbar(params, result, pil_image, im_scale, aa_scale, scale_max=disp_params["scale_max"], colormap=disp_params["colormap"])
 
     pil_image = render_2d_time(params, result, pil_image)
@@ -180,15 +181,15 @@ def render_2d_scalebar(params, result, pil_image, im_scale, aa_scale):
 def render_2d_colorbar(params, result, pil_image, im_scale, aa_scale, colormap="viridis", scale_max=1):
     pil_image = add_colorbar(pil_image, scale=params["image"]["scale_overlay"] * params["image"]["scale"],
                              colormap=colormap,#params["colorbar"]["colorbar"],
-                             #bar_width=params["colorbar"]["bar_width"] * aa_scale,
-                             #bar_height=params["colorbar"]["bar_height"] * aa_scale,
+                             bar_width=params["colorbar"]["length"] * aa_scale,
+                             bar_height=params["colorbar"]["width"] * aa_scale,
                              #tick_height=params["colorbar"]["tick_height"] * aa_scale,
                              #tick_count=params["colorbar"]["tick_count"],
                              #min_v=params["scalebar"]["min_v"],
                              max_v=scale_max,#params["colorbar"]["max_v"],
-                             #offset_x=params["colorbar"]["offset_x"] * aa_scale,
-                             #offset_y=params["colorbar"]["offset_y"] * aa_scale,
-                             #fontsize=params["colorbar"]["fontsize"] * aa_scale,
+                             offset_x=params["colorbar"]["xpos"] * aa_scale,
+                             offset_y=-params["colorbar"]["ypos"] * aa_scale,
+                             fontsize=params["colorbar"]["fontsize"] * aa_scale,
                              )
 
     return pil_image

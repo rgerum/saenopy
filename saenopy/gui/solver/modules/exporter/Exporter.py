@@ -310,6 +310,8 @@ class ExportViewer(PipelineModule):
 
                 with QtShortCuts.QGroupBox(None, "scale bar") as (self.box_scalebar, _):
                     with QtShortCuts.QHBoxLayout():
+                        self.input_scalebar_hide = QtShortCuts.QInputBool(None, "hide", False)
+                        self.input_scalebar_hide.valueChanged.connect(self.update_display)
                         self.input_scalebar_um = QtShortCuts.QInputNumber(None, "length", 0, min=0, max=10000, unit="µm")
                         self.input_scalebar_um.valueChanged.connect(self.update_display)
                         self.input_scalebar_width = QtShortCuts.QInputNumber(None, "width", 5, min=0, max=100)
@@ -321,6 +323,22 @@ class ExportViewer(PipelineModule):
                         self.input_scalebar_fontsize = QtShortCuts.QInputNumber(None, "fontsize", 18, min=0, max=100)
                         self.input_scalebar_fontsize.valueChanged.connect(self.update_display)
                         self.input_scalebar_fontsize.addToLayout()
+
+                with QtShortCuts.QGroupBox(None, "color bar") as (self.box_colorbar, _):
+                    with QtShortCuts.QHBoxLayout():
+                        self.input_colorbar_hide = QtShortCuts.QInputBool(None, "hide", False)
+                        self.input_colorbar_hide.valueChanged.connect(self.update_display)
+                        self.input_colorbar_length = QtShortCuts.QInputNumber(None, "length", 150, min=0, max=1000)
+                        self.input_colorbar_length.valueChanged.connect(self.update_display)
+                        self.input_colorbar_width = QtShortCuts.QInputNumber(None, "width", 10, min=0, max=100)
+                        self.input_colorbar_width.valueChanged.connect(self.update_display)
+                        self.input_colorbar_xpos = QtShortCuts.QInputNumber(None, "xpos", 15, min=0, max=100)
+                        self.input_colorbar_xpos.valueChanged.connect(self.update_display)
+                        self.input_colorbar_ypos = QtShortCuts.QInputNumber(None, "ypos", 10, min=0, max=100)
+                        self.input_colorbar_ypos.valueChanged.connect(self.update_display)
+                        self.input_colorbar_fontsize = QtShortCuts.QInputNumber(None, "fontsize", 18, min=0, max=100)
+                        self.input_colorbar_fontsize.valueChanged.connect(self.update_display)
+                        self.input_colorbar_fontsize.addToLayout()
 
                 with QtShortCuts.QGroupBox(None, "2D arrrows") as (self.box_2darrows, _):
                     with QtShortCuts.QHBoxLayout():
@@ -462,11 +480,21 @@ class ExportViewer(PipelineModule):
             },
 
             "scalebar": {
+                "hide": self.input_scalebar_hide,
                 "length": self.input_scalebar_um,
                 "width": self.input_scalebar_width,
                 "xpos": self.input_scalebar_xpos,
                 "ypos": self.input_scalebar_ypos,
                 "fontsize": self.input_scalebar_fontsize,
+            },
+
+            "colorbar": {
+                "hide": self.input_colorbar_hide,
+                "length": self.input_colorbar_length,
+                "width": self.input_colorbar_width,
+                "xpos": self.input_colorbar_xpos,
+                "ypos": self.input_colorbar_ypos,
+                "fontsize": self.input_colorbar_fontsize,
             },
 
             "2D_arrows": {
@@ -532,7 +560,7 @@ class ExportViewer(PipelineModule):
         self.vtk_toolbar.show_image.setVisible(is3D)
 
         self.box_scalebar.setVisible(is2D)
-        self.box_scalebar.setVisible(is2D)
+        self.box_colorbar.setVisible(is2D)
         self.box_2darrows.setVisible(is2D)
 
         self.box_fiberdisplay.setVisible(is3D)
