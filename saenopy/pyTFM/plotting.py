@@ -88,7 +88,7 @@ def plot_continuous_boundary_stresses(
             t_vecs = interp["t_vecs"]
             n_vecs = interp["n_vecs"]
             # plotting line segments
-            c = plt.get_cmap.get_cmap(cmap)(
+            c = plt.get_cmap(cmap)(
                 (t_norm - min_v) / (max_v - min_v)
             )  # normalization and creating a color range
      
