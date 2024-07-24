@@ -55,7 +55,7 @@ class BatchEvaluate(BatchEvaluate):
             with QtShortCuts.QHBoxLayout():
                 self.button_red = QtShortCuts.QPushButton(None, "tractions", lambda x: self.draw.setColor(1),
                                                           icon=qta.icon("fa5s.circle", color="red"))
-                self.button_green = QtShortCuts.QPushButton(None, "cell boundary", lambda x: self.draw.setColor(2),
+                self.button_green = QtShortCuts.QPushButton(None, "cell boundary (optional)", lambda x: self.draw.setColor(2),
                                                             icon=qta.icon("fa5s.circle", color="green"))
                 # self.button_blue = QtShortCuts.QPushButton(None, "blue", lambda x: self.draw.setColor(3), icon=qta.icon("fa5s.circle", color="blue"))
 

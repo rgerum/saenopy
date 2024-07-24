@@ -22,13 +22,13 @@ class CalculateStress(PipelineModule):
 
         with QtShortCuts.QVBoxLayout(self) as layout:
             layout.setContentsMargins(0, 0, 0, 0)
-            with CheckAbleGroup(self, "stress").addToLayout() as self.group:
+            with CheckAbleGroup(self, "colony stress (optional)").addToLayout() as self.group:
                 with QtShortCuts.QVBoxLayout():
                     self.label = QtWidgets.QLabel(
                         "draw a mask with the red color to select an area slightly larger then the colony. Draw a mask with the green color to circle every single cell and mark their boundaries.").addToLayout()
                     self.label.setWordWrap(True)
                     self.input_button = QtShortCuts.QPushButton(None, "calculate stress & line tensions", self.start_process)
-
+            self.group.setValue(False)
         self.setParameterMapping("stress_parameters", {})
 
     def check_available(self, result):
