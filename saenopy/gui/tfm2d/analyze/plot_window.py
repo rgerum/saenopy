@@ -12,7 +12,9 @@ class PlottingWindow(PlottingWindow):
 
     def add_parameters(self):
         self.type = QtShortCuts.QInputChoice(None, "type", "area",
-                                             ["area",
+                                             ["contractility",
+                                              "strain energy",
+                                              "---\narea",
                                               "cell number",
                                               "mean normal stress",
                                               "max normal stress",
@@ -32,10 +34,7 @@ class PlottingWindow(PlottingWindow):
                                               "average cell shear",
                                               "std cell force",
                                               "std cell pressure",
-                                              "std cell shear",
-
-                                              "contractility",
-                                              "strain energy",
+                                              "std cell shear",                                             
                                               ])
         self.type.valueChanged.connect(self.replot)
         self.agg = QtShortCuts.QInputChoice(None, "aggregate", "mean",
@@ -53,7 +52,7 @@ class PlottingWindow(PlottingWindow):
         return res
 
     def get_label(self):
-        if self.type.value() == "area":
+        if self.type.value() == "---\narea":
             mu_name = 'area Cell Area'
             y_label = 'area (m$^2$)'
         elif self.type.value() == "cell number":

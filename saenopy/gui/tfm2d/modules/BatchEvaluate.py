@@ -90,6 +90,11 @@ class BatchEvaluate(BatchEvaluate):
 
         key_units = {
             "filename": "",
+            
+            "contractility": "N",
+            "area Traction Area": "m2",
+            "strain energy": "J",
+            
             "area Cell Area": "m2",
             "cell number": "",
             "center of object": "",
@@ -114,10 +119,6 @@ class BatchEvaluate(BatchEvaluate):
             "std cell force": "",
             "std cell pressure": "",
             "std cell shear": "",
-
-            "contractility": "N",
-            "area Traction Area": "m2",
-            "strain energy": "J",
         }
         data = ""
         data += ",".join(key_units.keys())
@@ -132,7 +133,7 @@ class BatchEvaluate(BatchEvaluate):
             data += ",".join([str(result.res_dict.get(key, "")) for key in key_units.keys()])
             data += "\n"
             print(result.res_dict)
-        with open("data.csv", "w") as f:
+        with open(new_path, "w") as f:
             f.write(data)
         print(data)
 

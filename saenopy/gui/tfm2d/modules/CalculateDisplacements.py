@@ -59,7 +59,7 @@ class DeformationDetector3(PipelineModule):
 
     def process(self, result: Result2D, piv_parameters: dict): # type: ignore
         # result.reference_stack, result.input
-        u, v, mask_val, mask_std = calculate_deformation(result.get_image(1), result.get_image(0), window_size=piv_parameters["window_size"], overlap=piv_parameters["overlap"], std_factor=piv_parameters["std_factor"])
+        u, v, mask_val, mask_std = calculate_deformation(result.get_image(0), result.get_image(1), window_size=piv_parameters["window_size"], overlap=piv_parameters["overlap"], std_factor=piv_parameters["std_factor"])
         result.u = -u
         result.v = v
         result.mask_val = mask_val
@@ -87,7 +87,7 @@ class DeformationDetector3(PipelineModule):
                 result.piv_parameters = piv_parameters
 
                 # calculate the deformation between the two images
-                u, v, mask_val, mask_std = calculate_deformation(result.get_image(1), result.get_image(0),
+                u, v, mask_val, mask_std = calculate_deformation(result.get_image(0), result.get_image(1),
                                                                  window_size=piv_parameters["window_size"],
                                                                  overlap=piv_parameters["overlap"],
                                                                  std_factor=piv_parameters["std_factor"])

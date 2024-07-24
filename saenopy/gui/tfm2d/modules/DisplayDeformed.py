@@ -31,7 +31,7 @@ class DeformationDetector2(PipelineModule):
 
     def tabChanged(self, tab):
         if self.tab is not None and self.tab.parent() == tab:
-            im = self.result.get_image(1)
+            im = self.result.get_image(0)
             self.parent.draw.setImage(im, self.result.shape)
 
     def check_available(self, result):
@@ -40,8 +40,8 @@ class DeformationDetector2(PipelineModule):
     def process(self, result: Result2D, drift_parameters: dict): # type: ignore
         b_save, a_save, [], drift = correct_stage_drift(result.get_image(1, corrected=False), result.get_image(0, corrected=False))
 
-        b_save.save(result.input_corrected)
-        a_save.save(result.reference_stack_corrected)
+        a_save.save(result.input_corrected)
+        b_save.save(result.reference_stack_corrected)
 
     def get_code(self) -> Tuple[str, str]:
         import_code = "from saenopy.pyTFM.correct_stage_drift import correct_stage_drift\n"
@@ -54,8 +54,8 @@ class DeformationDetector2(PipelineModule):
                 b_save, a_save, [], drift = correct_stage_drift(result.get_image(1, corrected=False),
                                                                 result.get_image(0, corrected=False))
 
-                b_save.save(result.input_corrected)
-                a_save.save(result.reference_stack_corrected)
+                a_save.save(result.input_corrected)
+                b_save.save(result.reference_stack_corrected)
 
         data = {}
 

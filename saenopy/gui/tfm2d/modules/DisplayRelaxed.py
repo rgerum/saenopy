@@ -14,5 +14,5 @@ class DeformationDetector(PipelineModule):
 
     def tabChanged(self, tab):
         if self.tab is not None and self.tab.parent() == tab:
-            im = self.result.get_image(0)
+            im = self.result.get_image(1)
             self.parent.draw.setImage(im, self.result.shape)
