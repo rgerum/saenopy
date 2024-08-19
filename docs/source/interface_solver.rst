@@ -98,14 +98,18 @@ specified reference stack (with the relaxed cell) the appropriate option will be
 
     - reference stack
 
-If the measurement is a timeseries, the options are whether to just use the difference 
-between subsequent stacks as the deformations ("next"), or to use the median of all stacks Adding
-as a reference stack ("median"). It is also possible to specify an individual time point
-(e.g. after cell seeding or relaxation) by using the "reference stack" option. 
-
-    - next
-    - median
-    - reference stack
+If the measurement is a time series, it is also possible to set a single time point as the reference state 
+(e.g. after cell seeding or relaxation) using the "reference stack" option. Further options are to calculate the 
+deformations and forces beetween consecutive stacks at each time step ("next"), or to locally accumulate the 
+deformations over time at each voxel and calculate the cumulated forces at each time step ("cumul."). Furthermore, if 
+the matrix is in an undeformed state for most of the time (e.g. moving cells imaged over a long periods of time), 
+the median state over subsequent stacks can be calculated and used as a reference stack ("median"). 
+ 
+	- reference stack
+	- next
+	- median
+	- cumul.
+    
 
 mesh element size
 ~~~~~~~~~~~~~~~~~
