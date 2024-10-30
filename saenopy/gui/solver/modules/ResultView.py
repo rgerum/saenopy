@@ -22,6 +22,7 @@ class ResultView(PipelineModule):
         global result_view
         super().__init__(parent, layout)
         result_view = self
+        self.theme = pv.themes.DarkTheme()
 
         with self.parent.tabs.createTab("View") as self.tab:
             with QtShortCuts.QVBoxLayout() as vlayout:
@@ -44,6 +45,7 @@ class ResultView(PipelineModule):
                 self.frame.setLayout(self.plotter_layout)
 
                 self.plotter = QtInteractor(self.frame, auto_update=False)
+                self.plotter.theme = pv.themes.Theme()
                 self.plotter_layout.addWidget(self.plotter.interactor)
                 #vlayout.addLayout(self.plotter_layout)
                 #return
@@ -117,13 +119,14 @@ class ResultView(PipelineModule):
             self.plotter.close()
 
             self.plotter = QtInteractor(self.frame, shape=shape, border=False, auto_update=False)
+            self.plotter.theme = self.theme
 
             self.plotter.set_background("black")
             # pv.set_plot_theme("document")
             self.plotter_layout.addWidget(self.plotter.interactor)
 
         if self.theme is not None:
-            self.plotter._theme = self.theme
+            self.plotter.theme = self.theme
             self.plotter.set_background(self.theme.background)
 
         plotter = self.plotter

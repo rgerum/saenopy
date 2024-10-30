@@ -335,7 +335,7 @@ def render_3d_bounds(params, result, plotter):
             corners = np.asarray([[xmin, ymin, zmin], [xmax, ymin, zmin], [xmin, ymax, zmin], [xmax, ymax, zmin],
                                   [xmin, ymin, zmax], [xmax, ymin, zmax], [xmin, ymax, zmax], [xmax, ymax, zmax]])
             grid = pv.ExplicitStructuredGrid(np.asarray([2, 2, 2]), corners)
-            plotter.add_mesh(grid, style='wireframe', render_lines_as_tubes=True, line_width=2, show_edges=True,
+            plotter.add_mesh(grid, style='wireframe', render_lines_as_tubes=False, line_width=2, show_edges=True,
                              name="border")
         # or remove the current cube
         else:
@@ -356,7 +356,7 @@ def render_3d_bounds(params, result, plotter):
             corners = np.asarray([[xmin, ymin, zmin], [xmax, ymin, zmin], [xmin, ymax, zmin], [xmax, ymax, zmin],
                                   [xmin, ymin, zmax], [xmax, ymin, zmax], [xmin, ymax, zmax], [xmax, ymax, zmax]])
             grid = pv.ExplicitStructuredGrid(np.asarray([2, 2, 2]), corners)
-            plotter.add_mesh(grid, style='wireframe', render_lines_as_tubes=True, line_width=2,
+            plotter.add_mesh(grid, style='wireframe', render_lines_as_tubes=False, line_width=2,
                              show_edges=True, name="border")
         # or remove the border
         else:

@@ -64,7 +64,6 @@ class Regularizer(PipelineModule):
                 with QtShortCuts.QHBoxLayout() as layout:
                     self.plotter = QtInteractor(self, auto_update=False)  # , theme=pv.themes.DocumentTheme())
                     self.tab.parent().plotter = self.plotter
-                    self.plotter.set_background("black")
                     layout.addWidget(self.plotter.interactor)
 
                     self.z_slider = QTimeSlider("z", self.z_slider_value_changed, "set z position",

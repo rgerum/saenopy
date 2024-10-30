@@ -3,7 +3,7 @@ import numpy as np
 import qtawesome as qta
 from qtpy import QtWidgets
 import pyvista as pv
-from pyvistaqt import QtInteractor
+from pyvistaqt.plotting import BasePlotter
 from saenopy.gui.common import QtShortCuts
 from saenopy.gui.common.resources import resource_icon
 
@@ -19,11 +19,12 @@ class SetValuePseudoWidget:
         self._value = value
 
 
+theme_values = [pv.themes.Theme(), pv.themes.ParaViewTheme(), pv.themes.DarkTheme(), pv.themes.DocumentTheme()]
 vtk_toolbars = []
 class VTK_Toolbar(QtWidgets.QWidget):
-    theme_values = [pv.themes.DefaultTheme(), pv.themes.ParaViewTheme(),
-                                                          pv.themes.DarkTheme(), pv.themes.DocumentTheme()]
-    def __init__(self, plotter, update_display, scalbar_type="deformation", center=False, z_slider=None, channels=None, shared_properties=None):
+    theme_values = theme_values
+
+    def __init__(self, plotter: BasePlotter, update_display, scalbar_type="deformation", center=False, z_slider=None, channels=None, shared_properties=None):
         super().__init__()
         self.plotter = plotter
         self.update_display = update_display
@@ -38,6 +39,8 @@ class VTK_Toolbar(QtWidgets.QWidget):
                                                   values=self.theme_values,
                                                   value_names=["default", "paraview", "dark", "document"],
                                                   tooltip="Set a color theme for the 3D view.")
+            self.plotter.theme = self.theme_values[2]
+            self.plotter.set_background("black")
 
             self.auto_scale = QtShortCuts.QInputBool(None, "", icon=[
                 resource_icon("autoscale0.ico"),

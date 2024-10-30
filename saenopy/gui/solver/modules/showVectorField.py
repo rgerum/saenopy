@@ -222,7 +222,7 @@ def showVectorField(plotter: QtInteractor, obj: Solver, field: np.ndarray, name:
             corners = np.asarray([[xmin, ymin, zmin], [xmax, ymin, zmin], [xmin, ymax, zmin], [xmax, ymax, zmin],
                                    [xmin, ymin, zmax], [xmax, ymin, zmax], [xmin, ymax, zmax], [xmax, ymax, zmax]])
             grid = pv.ExplicitStructuredGrid(np.asarray([2, 2, 2]), corners)
-            plotter.add_mesh(grid, style='wireframe', render_lines_as_tubes=True, line_width=2, show_edges=True, name="border")
+            plotter.add_mesh(grid, style='wireframe', render_lines_as_tubes=False, line_width=2, show_edges=True, name="border")
         elif show_grid == 3 and stack_shape is not None:
             xmin, xmax = -stack_shape[0]/2*scale, stack_shape[0]/2*scale
             ymin, ymax = -stack_shape[1]/2*scale, stack_shape[1]/2*scale
@@ -230,7 +230,7 @@ def showVectorField(plotter: QtInteractor, obj: Solver, field: np.ndarray, name:
             corners = np.asarray([[xmin, ymin, zmin], [xmax, ymin, zmin], [xmin, ymax, zmin], [xmax, ymax, zmin],
                                   [xmin, ymin, zmax], [xmax, ymin, zmax], [xmin, ymax, zmax], [xmax, ymax, zmax]])
             grid = pv.ExplicitStructuredGrid(np.asarray([2, 2, 2]), corners)
-            plotter.add_mesh(grid, style='wireframe', render_lines_as_tubes=True, line_width=2,
+            plotter.add_mesh(grid, style='wireframe', render_lines_as_tubes=False, line_width=2,
                                             show_edges=True, name="border")
         else:
             plotter.remove_actor("border")
@@ -240,7 +240,7 @@ def showVectorField(plotter: QtInteractor, obj: Solver, field: np.ndarray, name:
                 xmax, ymax, zmax = obj_R.max(axis=0)
             else:
                 ((xmin, ymin, zmin), (xmax, ymax, zmax)) = stack_min_max
-            plotter.show_grid(bounds=[xmin, xmax, ymin, ymax, zmin, zmax], color=plotter._theme.font.color, render=False)
+            plotter.show_grid(bounds=[xmin, xmax, ymin, ymax, zmin, zmax], color=plotter.theme.font.color, render=False)
     finally:
         plotter.render = render
         plotter.render()

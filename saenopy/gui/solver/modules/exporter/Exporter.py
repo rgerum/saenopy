@@ -202,8 +202,7 @@ class ExportViewer(PipelineModule):
                         self.input_logosize.valueChanged.connect(self.update_display)
 
                 with QtShortCuts.QHBoxLayout():
-                    self.plotter = pyvista.Plotter(off_screen=True, multi_samples=4, line_smoothing=True)
-                    self.plotter.set_background("black")
+                    self.plotter = pyvista.Plotter(off_screen=True, line_smoothing=True) # multi_samples=4
 
                     self.view1 = QExtendedGraphicsView.QExtendedGraphicsView().addToLayout()
                     self.view1.setMinimumWidth(700)
