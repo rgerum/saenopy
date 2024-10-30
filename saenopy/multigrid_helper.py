@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 import time
 from numba import njit
-from nptyping import NDArray, Shape, Float, Int, Bool
+#from nptyping import NDArray, Shape, Float, Int, Bool
 
 
 def create_box_mesh(x, y=None, z=None, tesselation_mode="6"):

@@ -1,7 +1,7 @@
 from typing import Union
 
 import numpy as np
-from nptyping import NDArray, Shape, Float, Int
+#from nptyping import NDArray, Shape, Float, Int
 from valid8 import ValidationFailure
 
 from saenopy.saveable import Saveable
@@ -9,10 +9,13 @@ from saenopy.saveable import Saveable
 
 class Mesh(Saveable):
     __save_parameters__ = ['nodes', 'tetrahedra']
-    nodes: NDArray[Shape["N_c, 3"], Float] = None  # the 3D positions of the vertices, dimension: N_c x 3
-    tetrahedra: NDArray[Shape["N_t, 4"], Int] = None  # the tetrahedra' 4 corner vertices (defined by index), dimensions: N_T x 4
+    #nodes: NDArray[Shape["N_c, 3"], Float] = None  # the 3D positions of the vertices, dimension: N_c x 3
+    nodes: np.ndarray = None  # the 3D positions of the vertices, dimension: N_c x 3
+    #tetrahedra: NDArray[Shape["N_t, 4"], Int] = None  # the tetrahedra' 4 corner vertices (defined by index), dimensions: N_T x 4
+    tetrahedra: np.ndarray = None  # the tetrahedra' 4 corner vertices (defined by index), dimensions: N_T x 4
 
-    def __init__(self, nodes: NDArray[Shape["N_c, 3"], Float] = None, tetrahedra: NDArray[Shape["N_t, 4"], Int] = None,
+    #def __init__(self, nodes: NDArray[Shape["N_c, 3"], Float] = None, tetrahedra: NDArray[Shape["N_t, 4"], Int] = None,
+    def __init__(self, nodes: np.ndarray = None, tetrahedra: np.ndarray = None,
                  **kwargs):
         super().__init__(**kwargs)
         if nodes is not None:
@@ -20,7 +23,8 @@ class Mesh(Saveable):
         if tetrahedra is not None:
             self.set_tetrahedra(tetrahedra)
 
-    def set_nodes(self, data: NDArray[Shape["N_c, 3"], Float]):
+    #def set_nodes(self, data: NDArray[Shape["N_c, 3"], Float]):
+    def set_nodes(self, data: np.ndarray):
         """
         Provide mesh coordinates.
 
@@ -37,7 +41,8 @@ class Mesh(Saveable):
         # store the loaded node coordinates
         self.nodes = data.astype(np.float64)
 
-    def set_tetrahedra(self, data: NDArray[Shape["N_t, 4"], Int]):
+    #def set_tetrahedra(self, data: NDArray[Shape["N_t, 4"], Int]):
+    def set_tetrahedra(self, data: np.ndarray):
         """
         Provide mesh connectivity. Nodes have to be connected by tetrahedra. Each tetrahedron consts of the indices of
         the 4 vertices which it connects.
@@ -62,7 +67,8 @@ class InvalidShape(ValidationFailure):
     help_msg = '{msg} (shape {target_shape}) found shape ({data_shape})'
 
 
-def check_tetrahedra_scalar_field(self, data: NDArray[Shape["N_t"], Float]):
+#def check_tetrahedra_scalar_field(self, data: NDArray[Shape["N_t"], Float]):
+def check_tetrahedra_scalar_field(self, data: np.ndarray):
     if data is None or self.tetrahedra is None:
         return True
     data = np.asarray(data)
@@ -71,7 +77,8 @@ def check_tetrahedra_scalar_field(self, data: NDArray[Shape["N_t"], Float]):
                            msg="Tetrahedral field needs to be scalar")
 
 
-def check_node_scalar_field(self, data: NDArray[Shape["N_c"], Float]):
+#def check_node_scalar_field(self, data: NDArray[Shape["N_c"], Float]):
+def check_node_scalar_field(self, data: np.ndarray):
     if data is None or self.nodes is None:
         return True
     data = np.asarray(data)
@@ -80,7 +87,8 @@ def check_node_scalar_field(self, data: NDArray[Shape["N_c"], Float]):
                            msg="Node field needs to be scalar")
 
 
-def check_node_vector_field(self, data: NDArray[Shape["N_c"], Float]):
+#def check_node_vector_field(self, data: NDArray[Shape["N_c"], Float]):
+def check_node_vector_field(self, data: np.ndarray):
     if data is None or self.nodes is None:
         return True
     data = np.asarray(data)

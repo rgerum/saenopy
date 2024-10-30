@@ -7,7 +7,7 @@ import scipy.sparse as ssp
 from numba import njit
 from pyfields import field
 from typing import Union
-from nptyping import NDArray, Shape, Float, Int, Bool
+#from nptyping import NDArray, Shape, Float, Int, Bool
 
 from saenopy.build_beams import build_beams
 from saenopy.materials import Material, SemiAffineFiberMaterial
@@ -26,32 +26,46 @@ class SolverMesh(Mesh):
     number_tetrahedra = 0  # the number of tetrahedra
     number_nodes = 0  # the number of vertices
 
-    energy: NDArray[Shape["N_t"], Float] = field(doc="the energy stored in each tetrahedron, dimensions: N_T",
+    #energy: NDArray[Shape["N_t"], Float] = field(doc="the energy stored in each tetrahedron, dimensions: N_T",
+    energy: np.ndarray = field(doc="the energy stored in each tetrahedron, dimensions: N_T",
                                                  validators=check_tetrahedra_scalar_field, default=None)
-    volume: NDArray[Shape["N_t"], Float] = field(doc="the volume of each tetrahedron, dimensions: N_T",
+    #volume: NDArray[Shape["N_t"], Float] = field(doc="the volume of each tetrahedron, dimensions: N_T",
+    volume: np.ndarray = field(doc="the volume of each tetrahedron, dimensions: N_T",
                                                  validators=check_tetrahedra_scalar_field, default=None)
-    movable: NDArray[Shape["N_c"], Bool] = field(doc="a bool if a node is movable", validators=check_node_scalar_field, default=None)
+    #movable: NDArray[Shape["N_c"], Bool] = field(doc="a bool if a node is movable", validators=check_node_scalar_field, default=None)
+    movable: np.ndarray = field(doc="a bool if a node is movable", validators=check_node_scalar_field, default=None)
 
-    Phi: NDArray[Shape["N_t, 4, 3"], Float] = field(doc="the shape tensor of each tetrahedron, dimensions: N_T x 4 x 3", default=None)
+    #Phi: NDArray[Shape["N_t, 4, 3"], Float] = field(doc="the shape tensor of each tetrahedron, dimensions: N_T x 4 x 3", default=None)
+    Phi: np.ndarray = field(doc="the shape tensor of each tetrahedron, dimensions: N_T x 4 x 3", default=None)
     Phi_valid = False
-    displacements: NDArray[Shape["N_c, 3"], Float] = field(doc="the displacements of each node, dimensions: N_c x 3",
+    #displacements: NDArray[Shape["N_c, 3"], Float] = field(doc="the displacements of each node, dimensions: N_c x 3",
+    displacements: np.ndarray = field(doc="the displacements of each node, dimensions: N_c x 3",
                                                            validators=check_node_vector_field, default=None)
-    displacements_fixed: NDArray[Shape["N_c, 3"], Float] = field(validators=check_node_vector_field, default=None)
-    displacements_target: NDArray[Shape["N_c, 3"], Float] = field(validators=check_node_vector_field, default=None)
-    displacements_target_mask: NDArray[Shape["N_c"], Bool] = field(validators=check_node_scalar_field, default=None)
-    regularisation_mask: NDArray[Shape["N_c"], Bool] = field(validators=check_node_scalar_field, default=None)
-    cell_boundary_mask: NDArray[Shape["N_c"], Bool] = field(validators=check_node_scalar_field, default=None)
+    #displacements_fixed: NDArray[Shape["N_c, 3"], Float] = field(validators=check_node_vector_field, default=None)
+    displacements_fixed: np.ndarray = field(validators=check_node_vector_field, default=None)
+    #displacements_target: NDArray[Shape["N_c, 3"], Float] = field(validators=check_node_vector_field, default=None)
+    displacements_target: np.ndarray = field(validators=check_node_vector_field, default=None)
+    #displacements_target_mask: NDArray[Shape["N_c"], Bool] = field(validators=check_node_scalar_field, default=None)
+    displacements_target_mask: np.ndarray = field(validators=check_node_scalar_field, default=None)
+    #regularisation_mask: NDArray[Shape["N_c"], Bool] = field(validators=check_node_scalar_field, default=None)
+    regularisation_mask: np.ndarray = field(validators=check_node_scalar_field, default=None)
+    #cell_boundary_mask: NDArray[Shape["N_c"], Bool] = field(validators=check_node_scalar_field, default=None)
+    cell_boundary_mask: np.ndarray = field(validators=check_node_scalar_field, default=None)
 
-    forces: NDArray[Shape["N_c, 3"], Float] = field(doc="the global forces on each node, dimensions: N_c x 3",
+    #forces: NDArray[Shape["N_c, 3"], Float] = field(doc="the global forces on each node, dimensions: N_c x 3",
+    forces: np.ndarray = field(doc="the global forces on each node, dimensions: N_c x 3",
                                                     validators=check_node_vector_field, default=None)
-    forces_target: NDArray[Shape["N_c, 3"], Float] = field(doc="the external forces on each node, dimensions: N_c x 3",
+    #forces_target: NDArray[Shape["N_c, 3"], Float] = field(doc="the external forces on each node, dimensions: N_c x 3",
+    forces_target: np.ndarray = field(doc="the external forces on each node, dimensions: N_c x 3",
                                                            validators=check_node_vector_field, default=None)
-    stiffness_tensor: NDArray[Shape["N_c, N_c, 3, 3"], Float] = None  # the global stiffness tensor, dimensions: N_c x N_c x 3 x 3
+    #stiffness_tensor: NDArray[Shape["N_c, N_c, 3, 3"], Float] = None  # the global stiffness tensor, dimensions: N_c x N_c x 3 x 3
+    stiffness_tensor: np.ndarray = None  # the global stiffness tensor, dimensions: N_c x N_c x 3 x 3
 
     strain_energy: float = 0  # the global energy
 
     # a list of all vertices are connected via a tetrahedron, stored as pairs: dimensions: N_connections x 2
-    connections: NDArray[Shape["N_con, 2"], Int] = None
+    #connections: NDArray[Shape["N_con, 2"], Int] = None
+    connections: np.ndarray = None
     connections_valid = False
 
 
@@ -59,7 +73,8 @@ class Solver(Saveable):
     __save_parameters__ = ["mesh", "regularisation_results", "regularisation_parameters", "material_model"]
     mesh: SolverMesh
 
-    s: NDArray[Shape["N_b, 3"], Float] = None  # the beams, dimensions N_b x 3
+    #s: NDArray[Shape["N_b, 3"], Float] = None  # the beams, dimensions N_b x 3
+    s: np.ndarray = None  # the beams, dimensions N_b x 3
     N_b = 0  # the number of beams
 
     material_model: SemiAffineFiberMaterial = None  # the function specifying the material model
@@ -82,7 +97,8 @@ class Solver(Saveable):
         self.mesh = SolverMesh()
         super().__init__(**kwargs)
 
-    def set_nodes(self, data: NDArray[Shape["N_c, 3"], Float]):
+    #def set_nodes(self, data: NDArray[Shape["N_c, 3"], Float]):
+    def set_nodes(self, data: np.ndarray):
         """
         Provide mesh coordinates.
 
@@ -104,8 +120,10 @@ class Solver(Saveable):
         self.mesh.forces = np.zeros((self.mesh.number_nodes, 3))
         self.mesh.forces_target = np.zeros((self.mesh.number_nodes, 3))
 
-    def set_boundary_condition(self, displacements: NDArray[Shape["N_c, 3"], Float] = None,
-                               forces: NDArray[Shape["N_c, 3"], Float] = None):
+    #def set_boundary_condition(self, displacements: NDArray[Shape["N_c, 3"], Float] = None,
+     #                          forces: NDArray[Shape["N_c, 3"], Float] = None):
+    def set_boundary_condition(self, displacements: np.ndarray = None,
+                               forces: np.ndarray = None):
         """
         Provide the boundary condition for the mesh, to be used with :py:meth:`~.Solver.solve_nonregularized`.
 
@@ -142,7 +160,8 @@ class Solver(Saveable):
                 print("WARNING: Forces for fixed vertices were specified. These boundary conditions cannot be"
                       "fulfilled", file=sys.stderr)
 
-    def set_initial_displacements(self, displacements: NDArray[Shape["N_c, 3"], Float]):
+    #def set_initial_displacements(self, displacements: NDArray[Shape["N_c, 3"], Float]):
+    def set_initial_displacements(self, displacements: np.ndarray):
         """
         Provide initial displacements of the nodes. For fixed nodes these displacements are ignored.
 
@@ -156,7 +175,8 @@ class Solver(Saveable):
         assert displacements.shape == (self.mesh.number_nodes, 3)
         self.mesh.displacements[self.mesh.movable] = displacements[self.mesh.movable].astype(np.float64)
 
-    def _set_external_forces(self, forces: NDArray[Shape["N_c, 3"], Float]):
+    #def _set_external_forces(self, forces: NDArray[Shape["N_c, 3"], Float]):
+    def _set_external_forces(self, forces: np.ndarray):
         """
         Provide external forces that act on the vertices. The forces can also be set with
         :py:meth:`~.Solver.setNodes` directly with the vertices.
@@ -171,7 +191,8 @@ class Solver(Saveable):
         assert forces.shape == (self.mesh.number_nodes, 3)
         self.mesh.forces_target = forces.astype(np.float64)
 
-    def set_tetrahedra(self, data: NDArray[Shape["N_t, 4"], Int]):
+    #def set_tetrahedra(self, data: NDArray[Shape["N_t, 4"], Int]):
+    def set_tetrahedra(self, data: np.ndarray):
         """
         Provide mesh connectivity. Nodes have to be connected by tetrahedra. Each tetraherdon consts of the indices of
         the 4 vertices which it connects.
@@ -212,7 +233,8 @@ class Solver(Saveable):
         if generate_lookup is True:
             self.material_model_look_up = self.material_model.generate_look_up_table()
 
-    def set_beams(self, beams: Union[int, NDArray[Shape["N_b, 3"], Float]] = 300):
+    #def set_beams(self, beams: Union[int, NDArray[Shape["N_b, 3"], Float]] = 300):
+    def set_beams(self, beams: Union[int, np.ndarray] = 300):
         """
         Sets the beams for the calculation over the whole solid angle.
 
@@ -353,7 +375,8 @@ class Solver(Saveable):
         if self.verbose:
             print("updating forces and stiffness matrix finished %.2fs" % (time.time() - t_start))
 
-    def get_max_tet_stiffness(self) -> NDArray[Shape["N_t"], Float]:
+    #def get_max_tet_stiffness(self) -> NDArray[Shape["N_t"], Float]:
+    def get_max_tet_stiffness(self) -> np.ndarray:
         """
         Calculates the stiffness matrix K_ij, the force F_i and the energy E of each node.
         """
@@ -377,7 +400,8 @@ class Solver(Saveable):
 
         return tetrahedra_stiffness
 
-    def _get_s_bar(self, t: slice) -> NDArray[Shape["N_t, 3, N_b"], Float]:
+    #def _get_s_bar(self, t: slice) -> NDArray[Shape["N_t, 3, N_b"], Float]:
+    def _get_s_bar(self, t: slice) -> np.ndarray:
         # get the displacements of all corners of the tetrahedron (N_Tx3x4)
         # u_tim  (t in [0, N_T], i in {x,y,z}, m in {1,2,3,4})
         # F is the linear map from T (the undeformed tetrahedron) to T' (the deformed tetrahedron)
@@ -574,7 +598,8 @@ class Solver(Saveable):
 
     """ regularization """
 
-    def set_target_displacements(self, displacement: NDArray[Shape["N_c, 3"], Float], reg_mask: NDArray[Shape["N_c"], Bool] = None):
+    #def set_target_displacements(self, displacement: NDArray[Shape["N_c, 3"], Float], reg_mask: NDArray[Shape["N_c"], Bool] = None):
+    def set_target_displacements(self, displacement: np.ndarray, reg_mask: np.ndarray = None):
         """
         Provide the displacements that should be fitted by the regularization.
 
@@ -857,7 +882,8 @@ class Solver(Saveable):
 
         return fmax / contractility
 
-    def get_center(self, mode="force", border=None) -> NDArray[Shape["3"], Float]:
+    #def get_center(self, mode="force", border=None) -> NDArray[Shape["3"], Float]:
+    def get_center(self, mode="force", border=None) -> np.ndarray:
         f = self.mesh.forces
         R = self.mesh.nodes
         U = self.mesh.displacements

@@ -2,7 +2,7 @@ import numpy as np
 from openpiv.pyprocess3D import extended_search_area_piv3D
 from scipy import interpolate
 
-from nptyping import NDArray, Shape, Float
+#from nptyping import NDArray, Shape, Float
 from pyfields import field
 
 from saenopy.mesh import Mesh, check_node_vector_field
@@ -13,7 +13,8 @@ from saenopy.multigrid_helper import create_box_mesh
 class PivMesh(Mesh):
     __save_parameters__ = ["nodes", "tetrahedra", "displacements_measured"]
 
-    displacements_measured: NDArray[Shape["N_c, 3"], Float] = field(doc="the measured displacements of each node, dimensions: N_c x 3",
+    #displacements_measured: NDArray[Shape["N_c, 3"], Float] = field(doc="the measured displacements of each node, dimensions: N_c x 3",
+    displacements_measured: np.ndarray = field(doc="the measured displacements of each node, dimensions: N_c x 3",
                                                                     validators=check_node_vector_field, default=None)
 
 
