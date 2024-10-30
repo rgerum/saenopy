@@ -259,7 +259,7 @@ def add_text(pil_image, text, position, fontsize=18):
     try:
         font = ImageFont.truetype("arial", font_size)  # ImageFont.truetype("tahoma.ttf", font_size)
     except IOError:
-        font = ImageFont.truetype("times", font_size)
+        font = ImageFont.truetype("DejaVuSans.ttf", font_size)
 
     length_number = image.textlength(text, font=font)
     x, y = position
@@ -319,7 +319,7 @@ def add_colorbar(pil_image,
     try:
         font = ImageFont.truetype("arial", font_size)  # ImageFont.truetype("tahoma.ttf", font_size)
     except IOError:
-        font = ImageFont.truetype("times", font_size)
+        font = ImageFont.truetype("DejaVuSans.ttf", font_size)
 
     locator = ticker.MaxNLocator(nbins=tick_count - 1)
     #tick_positions = locator.tick_values(min_v, max_v)
@@ -367,7 +367,7 @@ def add_scalebar(pil_image, scale, image_scale, width, xpos, ypos, fontsize, pix
         try:
             font = ImageFont.truetype("arial", font_size)#ImageFont.truetype("tahoma.ttf", font_size)
         except IOError:
-            font = ImageFont.truetype("times", font_size)
+            font = ImageFont.truetype("DejaVuSans.ttf", font_size)
         # width and height of text elements
         text = "%d" % size_in_um
         length_number = image.textlength(text, font=font)
