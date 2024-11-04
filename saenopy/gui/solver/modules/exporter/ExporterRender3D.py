@@ -276,14 +276,19 @@ def render_3d_image(params, result, plotter, exporter=None):
         img_adjusted = img[:, ::-1]  # mirror the image
         img_adjusted = np.swapaxes(img_adjusted, 1, 0)  # switch axis
 
-        if (len(img_adjusted.shape) == 2 or img_adjusted.shape[
-            2] == 1) and colormap2 is not None and colormap2 != "gray":
+        if colormap2 is not None and colormap2 != "gray":
             if len(img_adjusted.shape) == 3:
-                img_adjusted = img_adjusted[:, :, 0]
+                if img_adjusted.shape[2] == 1:
+                    img_adjusted = img_adjusted[:, :, 0]
+                else:
+                    img_adjusted = np.mean(img_adjusted[:, :, :2], axis=2)
             cmap = plt.get_cmap(colormap2)
             img_adjusted = (cmap(img_adjusted) * 255).astype(np.uint8)[:, :, :3]
         elif len(img_adjusted.shape) == 2 or img_adjusted.shape[2] == 1:
             img_adjusted = np.tile(np.squeeze(img_adjusted)[:, :, None], (1, 1, 3))
+        # remove alpha channel
+        elif len(img_adjusted.shape) == 3 or img_adjusted.shape[2] == 4:
+            img_adjusted = img_adjusted[:, :, :3]
         return img_adjusted
 
     if display_image is not None:
