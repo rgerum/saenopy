@@ -184,9 +184,9 @@ class VTK_Toolbar(QtWidgets.QWidget):
                     print(new_path)
                     self.plotter.screenshot(new_path)
 
-            self.button2 = QtWidgets.QPushButton(qta.icon("mdi.floppy"), "").addToLayout()
-            self.button2.setToolTip("save")
-            self.button2.clicked.connect(save)
+            #self.button2 = QtWidgets.QPushButton(qta.icon("mdi.floppy"), "").addToLayout()
+            #self.button2.setToolTip("save")
+            #self.button2.clicked.connect(save)
 
     def property_changed(self, name, value):
         if name == "show_grid":
