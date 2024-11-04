@@ -170,7 +170,7 @@ class ExportViewer(PipelineModule):
                     QtShortCuts.QPushButton(None, "save parameters", self.save_parameters)
                     QtShortCuts.QPushButton(None, "load parameters", self.load_parameters)
                     QtShortCuts.QPushButton(None, "copy to clipboard parameters", self.copy_parameters)
-                    QtShortCuts.QPushButton(None, "export code", self.generate_code)
+                    QtShortCuts.QPushButton(None, "export image code", self.generate_code)
 
                 with QtShortCuts.QHBoxLayout():
                     self.input_use2D = QtShortCuts.QInputBool(None, "", False, icon=["3D", "2D"], group=True)
