@@ -16,19 +16,19 @@ class AddFilesDialog(AddFilesDialog):
             with QtShortCuts.QHBoxLayout():
                 with QtShortCuts.QVBoxLayout():
                     label1 = QtWidgets.QLabel("cell image").addToLayout()
-                    self.stack_bf_input = QtShortCuts.QInputFilename(None, None, file_type="Image Files (*.tif)",
+                    self.stack_bf_input = QtShortCuts.QInputFilename(None, None, file_type="Image Files (*.tif *.tiff *.jpg *.jpeg *.png)",
                                                                      settings=self.settings,
                                                                      settings_key=f"{self.settings_group}/input0", allow_edit=True,
                                                                      existing=True)
                 with QtShortCuts.QVBoxLayout():
                     label1 = QtWidgets.QLabel("reference").addToLayout()
-                    self.stack_reference_input = QtShortCuts.QInputFilename(None, None, file_type="Image Files (*.tif)",
+                    self.stack_reference_input = QtShortCuts.QInputFilename(None, None, file_type="Image Files (*.tif *.tiff *.jpg *.jpeg *.png)",
                                                                             settings=self.settings,
                                                                             settings_key=f"{self.settings_group}/input1", allow_edit=True,
                                                                             existing=True)
                 with QtShortCuts.QVBoxLayout():
                     label1 = QtWidgets.QLabel("deformed").addToLayout()
-                    self.stack_data_input = QtShortCuts.QInputFilename(None, None, file_type="Image Files (*.tif)",
+                    self.stack_data_input = QtShortCuts.QInputFilename(None, None, file_type="Image Files (*.tif *.tiff *.jpg *.jpeg *.png)",
                                                                        settings=self.settings,
                                                                        settings_key=f"{self.settings_group}/input2", allow_edit=True,
                                                                        existing=True)

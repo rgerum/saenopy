@@ -3,7 +3,9 @@ import glob
 from pathlib import Path
 import os
 import numpy as np
-from tifffile import imread
+import tifffile
+import imageio
+import re
 import matplotlib.pyplot as plt
 import traceback
 
@@ -13,6 +15,24 @@ from .draw import get_mask_using_gui
 
 from saenopy.pyTFM.plotting import plot_continuous_boundary_stresses
 from saenopy.pyTFM.plotting import show_quiver
+
+
+def read_tiff(image_filenames):
+    if re.match(r".*\.tiff?(\[.*\])?$", str(image_filenames)):
+        image_filenames = str(image_filenames)
+        page = 0
+        if image_filenames.endswith("]"):
+            image_filenames, page = re.match(r"(.*)\[(\d*)\]", image_filenames).groups()
+            page = int(page)
+        with tifffile.TiffReader(image_filenames) as tif:
+            page = tif.pages[page]
+            if isinstance(page, list):  # pragma: no cover
+                page = page[0]
+            return page.asarray()
+    im = imageio.v2.imread(image_filenames)
+    if len(im.shape) == 3:
+        im = np.mean(im[:, :, :3], axis=2)
+    return im
 
 
 class Result2D(Saveable):
@@ -91,21 +111,21 @@ class Result2D(Saveable):
             if index == 0:
                 if corrected:
                     try:
-                        im = imread(self.input_corrected)
+                        im = read_tiff(self.input_corrected)
                     except FileNotFoundError:
-                        im = imread(self.input)
+                        im = read_tiff(self.input)
                 else:
-                    im = imread(self.input)
+                    im = read_tiff(self.input)
             elif index == -1:
-                im = imread(self.bf)
+                im = read_tiff(self.bf)
             else:
                 if corrected:
                     try:
-                        im = imread(self.reference_stack_corrected)
+                        im = read_tiff(self.reference_stack_corrected)
                     except FileNotFoundError:
-                        im = imread(self.reference_stack)
+                        im = read_tiff(self.reference_stack)
                 else:
-                    im = imread(self.reference_stack)
+                    im = read_tiff(self.reference_stack)
         except FileNotFoundError as err:
             traceback.print_exception(err)
             h = 255
