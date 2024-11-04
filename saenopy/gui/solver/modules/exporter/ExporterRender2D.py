@@ -179,15 +179,23 @@ def render_2d_scalebar(params, result, pil_image, im_scale, aa_scale):
 
     scale = params["image"]["scale_overlay"] * params["image"]["scale"]
 
+    color = "k"
+    if params["theme"] == "dark":
+        color = "w"
+
     pil_image = add_scalebar(pil_image, scale=1, image_scale=im_scale * aa_scale,
                              width=params["scalebar"]["width"] * aa_scale * scale,
                              xpos=params["scalebar"]["xpos"] * aa_scale * scale,
                              ypos=params["scalebar"]["ypos"] * aa_scale * scale,
                              fontsize=params["scalebar"]["fontsize"] * aa_scale * scale, pixel_width=pixel,
-                             size_in_um=mu, color="w", unit="µm")
+                             size_in_um=mu, color=color, unit="µm")
     return pil_image
 
 def render_2d_colorbar(params, result, pil_image, im_scale, aa_scale, colormap="viridis", scale_max=1):
+    color = "k"
+    if params["theme"] == "dark":
+        color = "w"
+
     pil_image = add_colorbar(pil_image, scale=params["image"]["scale_overlay"] * params["image"]["scale"],
                              colormap=colormap,#params["colorbar"]["colorbar"],
                              bar_width=params["colorbar"]["length"] * aa_scale,
@@ -199,6 +207,7 @@ def render_2d_colorbar(params, result, pil_image, im_scale, aa_scale, colormap="
                              offset_x=params["colorbar"]["xpos"] * aa_scale,
                              offset_y=-params["colorbar"]["ypos"] * aa_scale,
                              fontsize=params["colorbar"]["fontsize"] * aa_scale,
+                             color=color,
                              )
 
     return pil_image
@@ -206,8 +215,11 @@ def render_2d_colorbar(params, result, pil_image, im_scale, aa_scale, colormap="
 
 def render_2d_time(params, result, pil_image):
     data = result.get_data_structure()
+    color = "k"
+    if params["theme"] == "dark":
+        color = "w"
     if result is not None and data["time_delta"] is not None and params["time"]["display"]:
-        pil_image = add_text(pil_image, get_time_text(params, result), position=(10, 10))
+        pil_image = add_text(pil_image, get_time_text(params, result), position=(10, 10), color=color)
     return pil_image
 
 
@@ -262,7 +274,7 @@ def add_quiver(pil_image, R, lengths, angles, max_length, cmap, alpha=1, scale=1
     return pil_image
 
 
-def add_text(pil_image, text, position, fontsize=18):
+def add_text(pil_image, text, position, color="w", fontsize=18):
     image = ImageDraw.ImageDraw(pil_image)
     font_size = int(round(fontsize * 4 / 3))  # the 4/3 appears to be a factor of "converting" screel dpi to image dpi
     try:
@@ -277,7 +289,7 @@ def add_text(pil_image, text, position, fontsize=18):
         x = pil_image.width + x - length_number[0]
     if y < 0:
         y = pil_image.height + y - length_number[1]
-    color = tuple((matplotlib.colors.to_rgba_array("w")[0, :3] * 255).astype("uint8"))
+    color = tuple((matplotlib.colors.to_rgba_array(color)[0, :3] * 255).astype("uint8"))
     if pil_image.mode != "RGB":
         color = int(np.mean(color))
 

@@ -549,7 +549,7 @@ class ExportViewer(PipelineModule):
 
         self.box_camera.setVisible(is3D)
 
-        self.vtk_toolbar.theme.setVisible(is3D)
+        #self.vtk_toolbar.theme.setVisible(is3D)
         self.vtk_toolbar.show_grid.setVisible(is3D)
         self.vtk_toolbar.use_nans.setVisible(is3D)
 
