@@ -793,7 +793,7 @@ def test_analysis(monkeypatch, catch_popup_error, random_path):
     print(files)
 
     from saenopy.gui.solver.analyze.plot_window import PlottingWindow
-    from saenopy.gui.common.AddFilesDialog import AddFilesDialog
+    from saenopy.gui.common.plot_window import AddFilesDialog
     from saenopy.gui.common.plot_window import ExportDialog
     plotting_window: PlottingWindow = solver.plotting_window
 
