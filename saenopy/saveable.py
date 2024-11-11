@@ -45,8 +45,11 @@ class Saveable:
         if file_format == ".h5py" or file_format == ".h5":  # pragma: no cover
             return dict_to_h5(filename, flatten_dict(data))
         elif file_format == ".npz" or file_format == ".saenopy" or file_format == ".saenopy2D" or file_format == ".saenopySpheroid":
-            #np.savez(filename, **data)
-            np.lib.npyio._savez(filename, [], flatten_dict(data), True, allow_pickle=False)
+            np.savez(filename, **data)
+            try: # numpy 2.0
+                np.lib._npyio_impl._savez(filename, [], flatten_dict(data), True, allow_pickle=False)
+            except AttributeError:
+                np.lib.npyio._savez(filename, [], flatten_dict(data), True, allow_pickle=False)
             import shutil
             if file_format == ".saenopy" or file_format == ".saenopy2D" or file_format == ".saenopySpheroid":
                 shutil.move(filename+".npz", filename)
