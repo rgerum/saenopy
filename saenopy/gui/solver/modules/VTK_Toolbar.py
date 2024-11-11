@@ -120,8 +120,13 @@ class VTK_Toolbar(QtWidgets.QWidget):
             if center is True:
                 self.use_center = QtShortCuts.QInputBool(None, "", icon=[
                     resource_icon("center0.ico"),
-                    resource_icon("center1.ico"),
-                ], group=False, tooltip="Display the center of the force field.")
+                    resource_icon("center1_F.ico"),
+                    resource_icon("center1_D.ico"),
+                ], group=False, tooltip=[
+                    "Hide the center of the force or deformation field.",
+                    "Display the center of the force field.",
+                    "Display the center of the deformation field.",
+                ])
                 self.use_center.valueChanged.connect(self.update_display)
 
             layout0.addStretch()

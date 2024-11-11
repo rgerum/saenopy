@@ -213,8 +213,13 @@ class Regularizer(PipelineModule):
             mesh = M.mesh
             self.plotter.interactor.setToolTip(str(self.result.solve_parameters) + f"\nNodes {mesh.nodes.shape[0]}\nTets {mesh.tetrahedra.shape[0]}")
             center = None
-            if self.vtk_toolbar.use_center.value() is True:
+            center_color = "m"
+            if self.vtk_toolbar.use_center.value() == 1:
                 center = M.get_center(mode="Force")
+                center_color = "m"
+            if self.vtk_toolbar.use_center.value() == 2:
+                center = M.get_center(mode="Deformation")
+                center_color = "c"
             display_image = getVectorFieldImage(self)
             if len(self.result.stacks):
                 stack_shape = np.array(self.result.stacks[0].shape[:3]) * np.array(self.result.stacks[0].voxel_size)
@@ -226,7 +231,7 @@ class Regularizer(PipelineModule):
             else:
                 f =  -M.mesh.forces
                 
-            showVectorField(self.plotter, M.mesh, f, "forces", center=center,
+            showVectorField(self.plotter, M.mesh, f, "forces", center=center, center_color=center_color,
                             factor=0.15 * self.vtk_toolbar.arrow_scale.value(),
                             colormap=self.vtk_toolbar.colormap_chooser.value(),
                             colormap2=self.vtk_toolbar.colormap_chooser2.value(),

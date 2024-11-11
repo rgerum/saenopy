@@ -70,7 +70,7 @@ def showVectorField2(self, M, points_name):
                     stack_shape=stack_shape)
 
 
-def showVectorField(plotter: QtInteractor, obj: Solver, field: np.ndarray, name: str, center=None, show_nan=True, stack_shape=None,
+def showVectorField(plotter: QtInteractor, obj: Solver, field: np.ndarray, name: str, center=None, center_color="m", show_nan=True, stack_shape=None,
                     show_all_points=False, factor=.1, scalebar_max=None, display_image=None, show_grid=True,
                     colormap="turbo", colormap2=None, stack_min_max=None, arrow_opacity=1, skip=1, log_scale=False):
     # ensure that the image is either with color channels or no channels
@@ -179,7 +179,7 @@ def showVectorField(plotter: QtInteractor, obj: Solver, field: np.ndarray, name:
 
         # plot center points if desired
         if center is not None:
-            plotter.add_points(np.array([center])*1e6, color='m', point_size=10, render=False, name="center")
+            plotter.add_points(np.array([center])*1e6, color=center_color, point_size=10, render=False, name="center")
         else:
             plotter.remove_actor("center")
 
