@@ -36,6 +36,10 @@ class DeformationDetector(PipelineModule):
                                                                     float=False, name_post='px',
                                                                     settings=self.settings,
                                                                     settings_key="spheroid/deformation/window_size")
+                        self.overlap = QtShortCuts.QInputNumber(layout2, "overlap", 50,
+                                                                    float=False, name_post='%',
+                                                                    settings=self.settings,
+                                                                    settings_key="spheroid/deformation/overlap")
 
                         QHLine().addToLayout()
                         with QtShortCuts.QHBoxLayout(None):
@@ -146,6 +150,7 @@ class DeformationDetector(PipelineModule):
 
         self.setParameterMapping("piv_parameters", {
             "window_size": self.window_size,
+            "overlap": self.overlap,
             "n_min": self.n_min,
             "n_max": self.n_max,
             "thresh_segmentation": self.thresh_segmentation,
@@ -253,6 +258,7 @@ class DeformationDetector(PipelineModule):
                                                continous_segmentation=piv_parameters["continuous_segmentation"],
                                                thres_segmentation=piv_parameters["thresh_segmentation"],
                                                window_size=piv_parameters["window_size"],
+                                               overlap=piv_parameters["overlap"]/100,
                                                #cmap="turbo",
                                                callback=lambda ii, nn: self.progress_signal.emit(ii, result.output),
                                                #                                                  nn)
