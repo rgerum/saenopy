@@ -58,7 +58,7 @@ class BatchEvaluate(BatchEvaluate):
                 self.button_green = QtShortCuts.QPushButton(None, "cell boundary (optional)", lambda x: self.draw.setColor(2),
                                                             icon=qta.icon("fa5s.circle", color="green"))
                 # self.button_blue = QtShortCuts.QPushButton(None, "blue", lambda x: self.draw.setColor(3), icon=qta.icon("fa5s.circle", color="blue"))
-
+            QtWidgets.QLabel("hold 'alt' key for eraser").addToLayout()
         self.modules = [self.sub_bf, self.sub_draw2, self.sub_draw3, self.sub_force, self.sub_force_gen, self.sub_stress]
 
     def add_tabs(self):

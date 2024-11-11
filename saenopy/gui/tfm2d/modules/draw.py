@@ -30,6 +30,7 @@ class GraphicsItemEventFilter(QtWidgets.QGraphicsItem):
 
 class DrawWindow(QtWidgets.QWidget):
     signal_mask_drawn = QtCore.Signal()
+    alt_pressed = False
 
     def __init__(self, parent=None, layout=None):
         super().__init__(parent)
@@ -68,6 +69,7 @@ class DrawWindow(QtWidgets.QWidget):
         self.palette[1, :] = [255, 0, 0, 255]
         self.palette[2, :] = [0, 255, 0, 255]
         self.palette[3, :] = [0, 0, 255, 255]
+        self.palette[4, :] = [255, 255, 255, 255]
 
         self.UpdateDrawCursorDisplay()
 
@@ -138,10 +140,20 @@ class DrawWindow(QtWidgets.QWidget):
         draw_cursor_path = QtGui.QPainterPath()
         draw_cursor_path.addEllipse(-self.cursor_size * 0.5, -self.cursor_size * 0.5, self.cursor_size,
                                     self.cursor_size)
-        pen = QtGui.QPen(QtGui.QColor(*self.palette[self.color, 0:3]))
+        pen = QtGui.QPen(QtGui.QColor(*self.palette[self.color if not self.alt_pressed else 4, 0:3]))
         pen.setCosmetic(True)
         self.DrawCursor.setPen(pen)
         self.DrawCursor.setPath(draw_cursor_path)
+
+    def keyPressEvent(self, a0):
+        if a0.key() == QtCore.Qt.Key_Alt:
+            self.alt_pressed = True
+            self.UpdateDrawCursorDisplay()
+
+    def keyReleaseEvent(self, a0):
+        if a0.key() == QtCore.Qt.Key_Alt:
+            self.alt_pressed = False
+            self.UpdateDrawCursorDisplay()
 
     def sceneEventFilter(self, event: QtCore.QEvent) -> bool:
         if event.type() == QtCore.QEvent.GraphicsSceneMousePress and event.button() == QtCore.Qt.LeftButton:
@@ -156,6 +168,9 @@ class DrawWindow(QtWidgets.QWidget):
             pass
         # Mouse move event to draw the stroke
         if event.type() == QtCore.QEvent.GraphicsSceneMouseMove:
+            if (event.modifiers() == QtCore.Qt.AltModifier) != self.alt_pressed:
+               self.alt_pressed = event.modifiers() == QtCore.Qt.AltModifier
+               self.UpdateDrawCursorDisplay()
             pos = [event.pos().x(), event.pos().y()]
             # draw a line and store the position
             paint = event.modifiers() != QtCore.Qt.AltModifier
@@ -166,6 +181,9 @@ class DrawWindow(QtWidgets.QWidget):
             return True
         # Mouse hover updates the color_under_cursor and displays the brush cursor
         if event.type() == QtCore.QEvent.GraphicsSceneHoverMove:
+            if (event.modifiers() == QtCore.Qt.AltModifier) != self.alt_pressed:
+                self.alt_pressed = event.modifiers() == QtCore.Qt.AltModifier
+                self.UpdateDrawCursorDisplay()
             # move brush cursor
             self.DrawCursor.setPos(event.pos())
         if event.type() == QtCore.QEvent.GraphicsSceneWheel:
@@ -213,6 +231,7 @@ class MinimalGui(QtWidgets.QWidget):
                                                               icon=qta.icon("fa5s.circle", color="red"))
                     self.button_green = QtShortCuts.QPushButton(None, "cell boundary", lambda x: self.draw.setColor(2),
                                                                 icon=qta.icon("fa5s.circle", color="green"))
+                QtWidgets.QLabel("hold 'alt' key for eraser").addToLayout()
 
 app = None
 def get_mask_using_gui(filename):
