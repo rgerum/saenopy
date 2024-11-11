@@ -950,7 +950,10 @@ class Solver(Saveable):
             f[outer_layer] = np.nan
 
         # get center of force field
-        Rcms = self.get_center(mode=center_mode)
+        if isinstance(center_mode, str):
+            Rcms = self.get_center(mode=center_mode)
+        else:
+            Rcms = center_mode
         RR = R - Rcms
 
         #if r_max specified only use forces within this distance to cell for contractility
