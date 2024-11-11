@@ -156,6 +156,8 @@ class BatchEvaluate(QtWidgets.QWidget):
                     params[group][g] = bool(params[group][g])
                 if type(params[group][g]) == np.int64:
                     params[group][g] = int(params[group][g])
+                if type(params[group][g]) == np.int32:
+                    params[group][g] = int(params[group][g])
         text = json.dumps(params, indent=2)
         cb = QtGui.QGuiApplication.clipboard()
         cb.setText(text, mode=cb.Clipboard)
