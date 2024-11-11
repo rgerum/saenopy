@@ -1,5 +1,6 @@
 import typing
 import numpy as np
+from pathlib import PurePath
 
 
 class Saveable:
@@ -26,6 +27,8 @@ class Saveable:
                         value = "__NONE__"
                     my_list.append(value)
                 data[param] = my_list
+            elif isinstance(attribute, PurePath):
+                data[param] = str(attribute)
             elif attribute is None:
                 data[param] = "__NONE__"
             else:
