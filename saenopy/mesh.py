@@ -66,6 +66,12 @@ class Mesh(Saveable):
 class InvalidShape(Exception):
     help_msg = '{msg} (shape {target_shape}) found shape ({data_shape})'
 
+    def __init__(self, data, data_shape, target_shape, msg):
+        self.text = '{msg} (shape {target_shape}) found shape ({data_shape})'.format(msg=msg, target_shape=target_shape, data_shape=data_shape)
+
+    def __str__(self):
+        return self.text
+
 
 #def check_tetrahedra_scalar_field(self, data: NDArray[Shape["N_t"], Float]):
 def check_tetrahedra_scalar_field(self, data: np.ndarray):
