@@ -3,9 +3,11 @@ from pathlib import Path
 import re
 
 from saenopy.gui.common import QtShortCuts
+from saenopy.result_file import Result
 
 
-def start_path_change(parent, result):
+def start_path_change(parent, result: Result):
+
     path_editor = PathEditor(parent, result)
     if not path_editor.exec():
         return

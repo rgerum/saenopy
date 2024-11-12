@@ -481,7 +481,7 @@ class Result(Saveable):
                 stack.paths_relative(self)
             if self.stack_reference is not None:
                 self.stack_reference.paths_relative(self)
-            self.template = str(make_path_relative(self.template, Path(self.output).parent))
+            self.template = str(make_path_relative(Path(self.template).absolute(), Path(self.output).parent))
 
 
         # if demo move parts to simulate empty result
