@@ -5,7 +5,7 @@ import numpy as np
 import scipy.sparse as ssp
 
 from numba import njit
-from pyfields import field
+#from pyfields import field
 from typing import Union
 #from nptyping import NDArray, Shape, Float, Int, Bool
 
@@ -16,6 +16,27 @@ from saenopy.mesh import Mesh, check_tetrahedra_scalar_field, check_node_scalar_
     check_node_vector_field
 from saenopy.saveable import Saveable
 from typing import List
+
+class Field:
+    def __init__(self, validators, default):
+        self.validators = validators
+        self.default = default
+
+    def __set_name__(self, owner, name):
+        self.private_name = '_' + name
+        setattr(owner, self.private_name, self.default)
+
+    def __get__(self, obj, objtype=None):
+        return getattr(obj, self.private_name)
+
+    def __set__(self, obj, value):
+        if self.validators is not None:
+            self.validators(obj, value)
+        setattr(obj, self.private_name, value)
+
+
+def field(doc="", validators=None, default=None):
+    return Field(validators, default)
 
 
 class SolverMesh(Mesh):

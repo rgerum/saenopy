@@ -3,11 +3,14 @@ from openpiv.pyprocess3D import extended_search_area_piv3D
 from scipy import interpolate
 
 #from nptyping import NDArray, Shape, Float
-from pyfields import field
+#from pyfields import field
 
 from saenopy.mesh import Mesh, check_node_vector_field
 from saenopy.stack import Stack
 from saenopy.multigrid_helper import create_box_mesh
+
+def field(doc, validators, default):
+    return default
 
 
 class PivMesh(Mesh):

@@ -2,7 +2,7 @@ from typing import Union
 
 import numpy as np
 #from nptyping import NDArray, Shape, Float, Int
-from valid8 import ValidationFailure
+#from valid8 import ValidationFailure
 
 from saenopy.saveable import Saveable
 
@@ -63,7 +63,7 @@ class Mesh(Saveable):
         self.tetrahedra = data.astype(int)
 
 
-class InvalidShape(ValidationFailure):
+class InvalidShape(Exception):
     help_msg = '{msg} (shape {target_shape}) found shape ({data_shape})'
 
 

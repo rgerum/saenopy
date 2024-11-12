@@ -26,7 +26,6 @@ numba = "^0.60.0"
 appdirs = "^1.4.4"
 qtrangeslider = "^0.1.5"
 h5py = "^3.8.0"
-pyfields = "^1.7.0"
 sphinx = { version = ">=1.6,<7", optional = true }
 sphinx-rtd-theme = { version = "^1.2.2", optional = true }
 nbsphinx = { version = "^0.9.2", optional = true }
