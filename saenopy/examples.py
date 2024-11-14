@@ -80,7 +80,7 @@ def get_examples():
             "solve_parameters": {'alpha': 10**10, 'step_size': 0.33, 'max_iterations': 400, 'rel_conv_crit': 0.009},
             "url": "https://github.com/rgerum/saenopy/releases/download/v0.7.4/1_ClassicSingleCellTFM.zip",
             "url_evaluated": "https://github.com/rgerum/saenopy/releases/download/v0.7.4/1_ClassicSingleCellTFM_evaluated.zip",
-            "url_evaluated_file": ["Pos004_S001_z{z}_ch{c00}.saenopy", "Pos007_S001_z{z}_ch{c00}.saenopy", "Pos008_S001_z{z}_ch{c00}.saenopy"],
+            "url_evaluated_file": ["Pos004_S001_z{z}_ch{c00}_eval.saenopy", "Pos007_S001_z{z}_ch{c00}_eval.saenopy", "Pos008_S001_z{z}_ch{c00}_eval.saenopy"],
         },
         "DynamicalSingleCellTFM": {
             "desc": "Single natural killer cell that migrated through 1.2mg/ml collagen, recorded for 24min.\n1 example (~1.3GB)",
@@ -96,7 +96,7 @@ def get_examples():
             "crop": {"z": (20, -20)},
             "url": "https://github.com/rgerum/saenopy/releases/download/v0.7.4/2_DynamicalSingleCellTFM.zip",
             "url_evaluated": "https://github.com/rgerum/saenopy/releases/download/v0.7.4/2_DynamicalSingleCellTFM_evaluated.zip",
-            "url_evaluated_file": ["Pos002_S001_t{t}_z{z}_ch{c00}.saenopy"],
+            "url_evaluated_file": ["Pos002_S001_t{t}_z{z}_ch{c00}_eval.saenopy"],
         },
         "OrganoidTFM": {
             "desc": "Intestinal organoid in 1.2mg/ml collagen (~20MB)",
@@ -111,7 +111,7 @@ def get_examples():
             "solve_parameters": {'alpha':  10**10, 'step_size': 0.33, 'max_iterations': 1400,  'rel_conv_crit': 1e-7},
             "url": "https://github.com/rgerum/saenopy/releases/download/v0.7.4/4_OrganoidTFM.zip",
             "url_evaluated": "https://github.com/rgerum/saenopy/releases/download/v0.7.4/4_OrganoidTFM_evaluated.zip",
-            "url_evaluated_file": ["Pos007_S001_t50_z{z}_ch00.saenopy"],
+            "url_evaluated_file": ["Pos007_S001_t50_z{z}_ch00_eval.saenopy"],
         },
         "BrightfieldTFM": {
             "desc": "Traction forces around an immune cell in collagen 1.2mg/ml calculated on simple brightfield images (~1GB)",
@@ -127,7 +127,7 @@ def get_examples():
             "solve_parameters": {'alpha': 10**11, 'step_size': 0.33, 'max_iterations': 300, 'rel_conv_crit': 0.01},
             "url": "https://github.com/rgerum/saenopy/releases/download/v0.7.4/6_BrightfieldNK92Data.zip",
             "url_evaluated": "https://github.com/rgerum/saenopy/releases/download/v0.7.4/6_BrightfieldNK92Data_evaluated.zip",
-            "url_evaluated_file": ["2023_02_14_12_0920_stack.saenopy"],
+            "url_evaluated_file": ["2023_02_14_12_0920_stack_eval.saenopy"],
         },
     }
 
@@ -148,7 +148,7 @@ def get_examples_2D():
             "force_parameters": {'young': 49000, 'sigma': 0.49, 'h': 300},
             "url": "https://github.com/rgerum/saenopy/releases/download/v0.7.4/WTKO.zip",
             "url_evaluated": "https://github.com/rgerum/saenopy/releases/download/v0.7.4/WTKO_evaluated.zip",
-            "url_evaluated_file": ["KO/04_bf_before.saenopy2D", "KO/05_bf_before.saenopy2D", "WT/03_bf_before.saenopy2D", "WT/10_bf_before.saenopy2D"],
+            "url_evaluated_file": ["KO/04_bf_before_eval.saenopy2D", "KO/05_bf_before_eval.saenopy2D", "WT/03_bf_before_eval.saenopy2D", "WT/10_bf_before_eval.saenopy2D"],
         },
     }
 
@@ -166,7 +166,7 @@ def get_examples_spheroid():
             "output_path": example_path / 'Jointforces_MCF7-time-lapse/example_output',
             "url": "https://github.com/rgerum/saenopy/releases/download/v0.7.4/Jointforces_MCF7-time-lapse.zip",
             "url_evaluated": "https://github.com/rgerum/saenopy/releases/download/v0.7.4/Jointforces_MCF7-time-lapse_evaluated.zip",
-            "url_evaluated_file": ["20160912-122130_Mic3_rep{t}_pos6_x0_y0_modeBF_zMinProj.saenopySpheroid"],
+            "url_evaluated_file": ["20160912-122130_Mic3_rep{t}_pos6_x0_y0_modeBF_zMinProj_eval.saenopySpheroid"],
         },
             "Human fibroblast spheroids": {
                 "desc": "Human liver fibroblast spheroids (4000 cells) treated with and without inhibition of contractile forces using Rho-kinase inhibitor (added at 0h) for 10h in 1.2mg/ml collagen (~1GB)",
@@ -177,8 +177,8 @@ def get_examples_spheroid():
                 "output_path": example_path / 'Jointforces_FibroblastSpheroids_RockInhibition/example_output',
                 "url": "https://github.com/rgerum/saenopy/releases/download/v0.7.4/Jointforces_FibroblastSpheroids_RockInhibition.zip",
                 "url_evaluated": "https://github.com/rgerum/saenopy/releases/download/v0.7.4/Jointforces_FibroblastSpheroids_RockInhibition_evaluated.zip",
-                "url_evaluated_file": ["Control/20201021-180200_Mic5_rep{t}_pos09_in-focus_modeBF_slice0_z0.saenopySpheroid",
-                                       "RockInhibitor10um/20201021-180200_Mic5_rep{t}_pos32_in-focus_modeBF_slice0_z0.saenopySpheroid"],
+                "url_evaluated_file": ["Control/20201021-180200_Mic5_rep{t}_pos09_in-focus_modeBF_slice0_z0_eval.saenopySpheroid",
+                                       "RockInhibitor10um/20201021-180200_Mic5_rep{t}_pos32_in-focus_modeBF_slice0_z0_eval.saenopySpheroid"],
                 },
             "Mouse organoids": {
                 "desc": "Mouse intestinal organoid responding to mechanosensitive agonist (added after 48h) for 3 days in 1.2mg/ml collagen (~1GB)",
@@ -189,10 +189,10 @@ def get_examples_spheroid():
                 "output_path": example_path / 'Jointforces_MouseOrganoids_MechanoAgonist/example_output',
                 "url": "https://github.com/rgerum/saenopy/releases/download/v0.7.4/Jointforces_MouseOrganoids_MechanoAgonist.zip",
                 "url_evaluated": "https://github.com/rgerum/saenopy/releases/download/v0.7.4/Jointforces_MouseOrganoids_MechanoAgonist_evaluated.zip",
-                "url_evaluated_file": ["Mic5_rep{t}_pos42_in-focus_modeBF_slice0_z0.saenopySpheroid",
-                                       "Mic5_rep{t}_pos43_in-focus_modeBF_slice0_z0.saenopySpheroid",
-                                       "Mic5_rep{t}_pos52_in-focus_modeBF_slice0_z0.saenopySpheroid",
-                                       "Mic5_rep{t}_pos129_in-focus_modeBF_slice0_z0.saenopySpheroid"],
+                "url_evaluated_file": ["Mic5_rep{t}_pos42_in-focus_modeBF_slice0_z0_eval.saenopySpheroid",
+                                       "Mic5_rep{t}_pos43_in-focus_modeBF_slice0_z0_eval.saenopySpheroid",
+                                       "Mic5_rep{t}_pos52_in-focus_modeBF_slice0_z0_eval.saenopySpheroid",
+                                       "Mic5_rep{t}_pos129_in-focus_modeBF_slice0_z0_eval.saenopySpheroid"],
                 }           
         }
        
