@@ -30,11 +30,11 @@ class InfoBox(QtWidgets.QWidget):
                     if name == "3D TFM":
                         self.text = QtWidgets.QLabel("Calculate the forces from a\n3D stack or a series of 3D stacks.").addToLayout()
                     elif name == "2.5D Spheroid":
-                        self.text = QtWidgets.QLabel("Calculate the forces of\nmulticellular aggregates\nfrom a timeseries of 2D images.").addToLayout()
+                        self.text = QtWidgets.QLabel("Calculate the forces of multicellular\naggregates from a timeseries of\n2D images in 3D matrices.").addToLayout()
                     elif name == "2D TFM":
                         self.text = QtWidgets.QLabel("Calculate the forces from\n2D images using PyTFM.").addToLayout()
                     else:
-                        self.text = QtWidgets.QLabel("Measure the orientations\nof matrix fiberes in 2D images as\na proxy for contractility.").addToLayout()
+                        self.text = QtWidgets.QLabel("Measure the orientation\nof matrix fibers in 2D images as\na proxy for cellular force.").addToLayout()
                     self.button1 = QtShortCuts.QPushButton(None, name, func)
 
 
@@ -85,8 +85,8 @@ class MainWindow(QtWidgets.QWidget):
                         layout2.addStretch()
                         InfoBox("2.5D Spheroid", lambda: self.setTab(3)).addToLayout()
                         layout2.addStretch()
-                        InfoBox("Orientation", lambda: self.setTab(4)).addToLayout()
-                        layout2.addStretch()
+                        InfoBox("2.5D Orientation", lambda: self.setTab(4)).addToLayout()
+                        layout2.addStretch() 
                         InfoBox("2D TFM", lambda: self.setTab(5)).addToLayout()
                         layout2.addStretch()
                     layout.addStretch()
@@ -100,7 +100,7 @@ class MainWindow(QtWidgets.QWidget):
                 with self.tabs.createTab("2.5D Spheroid") as self.layout_spheroid:
                     QtShortCuts.currentLayout().setContentsMargins(0, 0, 0, 0)
 
-                with self.tabs.createTab("Orientation") as self.layout_orientation:
+                with self.tabs.createTab("2.5D Orientation") as self.layout_orientation:
                     QtShortCuts.currentLayout().setContentsMargins(0, 0, 0, 0)
 
                 with self.tabs.createTab("2D TFM") as self.layout_pytfm:
