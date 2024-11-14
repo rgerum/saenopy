@@ -271,8 +271,8 @@ def make_path_relative(filename, base):
 
 def make_path_absolute(template, output):
     if not Path(template).is_absolute():
-        return str((Path(output).absolute() / template).resolve())
-    return str(Path(template).absolute().resolve())
+        return str(Path(output).absolute() / template)
+    return str(Path(template).absolute())
 
 
 class Result(Saveable):
