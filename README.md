@@ -11,7 +11,7 @@ SAENOPY: 3D Traction Force Microscopy with Python
 </p>
 
 
-SAENOPY is a free open source 3D traction force microscopy software. Its material model is especially well suited for
+SAENOPY is a free open source 3D traction force microscopy (TFM) software. Its material model is especially well suited for
 tissue-mimicking and typically highly non-linear biopolymer matrices such as collagen, fibrin, or Matrigel. 
 
 It features a python package to use in scripts and an extensive graphical user interface.
