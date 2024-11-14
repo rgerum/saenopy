@@ -1,4 +1,4 @@
-SAENOPY: 3D Traction Force Microscopy (TFM) with Python
+SAENOPY: 3D Traction Force Microscopy with Python
 =======
 
 [![DOC](https://readthedocs.org/projects/saenopy/badge/)](https://saenopy.readthedocs.io)
