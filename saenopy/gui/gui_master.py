@@ -27,14 +27,14 @@ class InfoBox(QtWidgets.QWidget):
         with QtShortCuts.QHBoxLayout(self) as l:
             with QtShortCuts.QGroupBox(l, name):
                 with QtShortCuts.QVBoxLayout() as l2:
-                    if name == "Solver":
+                    if name == "3D TFM":
                         self.text = QtWidgets.QLabel("Calculate the forces from a\n3D stack or a series of 3D stacks.").addToLayout()
-                    elif name == "Spheroid":
+                    elif name == "2.5D Spheroid":
                         self.text = QtWidgets.QLabel("Calculate the forces of\nmulticellular aggregates\nfrom a timeseries of 2D images.").addToLayout()
-                    elif name == "PyTFM":
+                    elif name == "2D TFM":
                         self.text = QtWidgets.QLabel("Calculate the forces from\n2D images using PyTFM.").addToLayout()
                     else:
-                        self.text = QtWidgets.QLabel("Measure the orientations\nof fiberes in 2D images.\n\nAs a proxy for contractility.").addToLayout()
+                        self.text = QtWidgets.QLabel("Measure the orientations\nof matrix fiberes in 2D images as\na proxy for contractility.").addToLayout()
                     self.button1 = QtShortCuts.QPushButton(None, name, func)
 
 
@@ -81,29 +81,29 @@ class MainWindow(QtWidgets.QWidget):
                         layout.addStretch()
                     with QtShortCuts.QHBoxLayout() as layout2:
                         layout2.addStretch()
-                        InfoBox("Solver", lambda: self.setTab(2)).addToLayout()
+                        InfoBox("3D TFM", lambda: self.setTab(2)).addToLayout()
                         layout2.addStretch()
-                        InfoBox("Spheroid", lambda: self.setTab(3)).addToLayout()
+                        InfoBox("2.5D Spheroid", lambda: self.setTab(3)).addToLayout()
                         layout2.addStretch()
                         InfoBox("Orientation", lambda: self.setTab(4)).addToLayout()
                         layout2.addStretch()
-                        InfoBox("PyTFM", lambda: self.setTab(5)).addToLayout()
+                        InfoBox("2D TFM", lambda: self.setTab(5)).addToLayout()
                         layout2.addStretch()
                     layout.addStretch()
                 with self.tabs.createTab("Material Fit") as self.layout_code:
                     QtShortCuts.currentLayout().setContentsMargins(0, 0, 0, 0)
                     self.fitter = MainWindowFit().addToLayout()
 
-                with self.tabs.createTab("Solver") as self.layout_solver:
+                with self.tabs.createTab("3D TFM") as self.layout_solver:
                     QtShortCuts.currentLayout().setContentsMargins(0, 0, 0, 0)
 
-                with self.tabs.createTab("Spheroid") as self.layout_spheroid:
+                with self.tabs.createTab("2.5D Spheroid") as self.layout_spheroid:
                     QtShortCuts.currentLayout().setContentsMargins(0, 0, 0, 0)
 
                 with self.tabs.createTab("Orientation") as self.layout_orientation:
                     QtShortCuts.currentLayout().setContentsMargins(0, 0, 0, 0)
 
-                with self.tabs.createTab("PyTFM") as self.layout_pytfm:
+                with self.tabs.createTab("2D TFM") as self.layout_pytfm:
                     QtShortCuts.currentLayout().setContentsMargins(0, 0, 0, 0)
 
                 with self.tabs.createTab("Code") as self.layout_code:
