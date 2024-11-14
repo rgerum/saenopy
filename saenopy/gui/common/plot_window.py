@@ -389,16 +389,18 @@ class PlottingWindow(QtWidgets.QWidget):
         res = self.getAllCurrentPandasData()
 
         code_data = [res, ["t", "group", mu_name, "filename"]]
-
-        # add a vertical line where the comparison time is
-        if getattr(self, "input_tbar", None) and self.input_tbar.value() is not None:
-            comp_h = self.get_comparison_index() * (res.iloc[1]["t"] - res.iloc[0]["t"])
-            plt.axvline(comp_h, color="k")
-
-        color_dict = {d[0]: d[3] for d in self.data_folders}
         
         # get best fitting time label
         factor, x_label = self.get_time_factor(np.max(res.t))
+        
+        
+        # add a vertical line where the comparison time is
+        if getattr(self, "input_tbar", None) and self.input_tbar.value() is not None:
+            comp_h = self.get_comparison_index() * (res.iloc[1]["t"] - res.iloc[0]["t"])
+            plt.axvline(comp_h/factor, color="k")
+
+        color_dict = {d[0]: d[3] for d in self.data_folders}
+        
         
         def plot(res, mu_name, y_label, color_dict2, x_label, factor):
             # define the colors
@@ -407,11 +409,11 @@ class PlottingWindow(QtWidgets.QWidget):
             # iterate over the groups
             for group_name, data in res.groupby("group", sort=False):
                 # get the mean and sem
-                x = data.groupby("t")[mu_name].agg(["mean", "sem", "count"]) / factor
+                x = data.groupby("t")[mu_name].agg(["mean", "sem", "count"]) 
                 # plot the mean curve
-                p, = plt.plot(x.index, x["mean"], color=color_dict[group_name], lw=2, label=f"{group_name} (n={int(x['count'].mean())})")
+                p, = plt.plot(x.index/factor, x["mean"], color=color_dict[group_name], lw=2, label=f"{group_name} (n={int(x['count'].mean())})")
                 # add a shaded area for the standard error
-                plt.fill_between(x.index, x["mean"] - x["sem"], x["mean"] + x["sem"], facecolor=p.get_color(), lw=0, alpha=0.5)
+                plt.fill_between(x.index/factor, x["mean"] - x["sem"], x["mean"] + x["sem"], facecolor=p.get_color(), lw=0, alpha=0.5)
                 
             # add a grid
             plt.grid(True)
@@ -462,25 +464,27 @@ class PlottingWindow(QtWidgets.QWidget):
         
                        
         # get best fitting time label
-        factor, x_label = self.get_time_factor(np.max(res.t))
+        factor2, x_label2 = self.get_time_factor(np.max(res.t))
+        print (factor2)
         
-        def plot(res, mu_name, y_label, plot_color, factor, x_label):
+        
+        def plot(res, mu_name, y_label, plot_color, factor2, x_label2):
             mu = res[mu_name]
 
             # plot time course of mean values
-            p, = plt.plot(res.t/factor, mu, lw=2, color=plot_color)
+            p, = plt.plot(res.t/factor2, mu, lw=2, color=plot_color)
 
             # add grid
             plt.grid(True)
             # add labels
-            plt.xlabel(x_label)
+            plt.xlabel(x_label2)
             plt.ylabel(y_label)
             plt.tight_layout()
 
             # show the plot
             self.canvas.draw()
 
-        code = execute(plot, code_data[0][code_data[1]], mu_name=mu_name, y_label=y_label, plot_color=self.data_folders[self.list.currentRow()][3], factor=factor, x_label=x_label)
+        code = execute(plot, code_data[0][code_data[1]], mu_name=mu_name, y_label=y_label, plot_color=self.data_folders[self.list.currentRow()][3], factor2=factor2, x_label2=x_label2)
 
         self.export_data = [code, code_data]
 
