@@ -32,44 +32,45 @@ class PlottingWindow(PlottingWindow):
         for i, M in enumerate(res.solvers):
             res.resulting_data.append({
                 "t": i * res.time_delta if res.time_delta else 0,
-                "strain_energy": M.mesh.strain_energy,
-                "contractility (force center)": M.get_contractility(center_mode="force"),
-                "contractility (deformations center)": M.get_contractility(center_mode="deformation"),
-                "contractility (force center t0)": M.get_contractility(center_mode=center_f_t0),
-                "contractility (deformations center t0)": M.get_contractility(center_mode=center_d_t0),
+                "strain_energy_J": M.mesh.strain_energy,
+                "contractility_nN (force center)": M.get_contractility(center_mode="force")*1e9,
+                "contractility_nN (deformations center)": M.get_contractility(center_mode="deformation")*1e9,
+                "contractility_nN (force center t0)": M.get_contractility(center_mode=center_f_t0)*1e9,
+                "contractility_nN (deformations center t0)": M.get_contractility(center_mode=center_d_t0)*1e9,
                 "polarity": M.get_polarity(),
-                "99_percentile_deformation": np.nanpercentile(
-                    np.linalg.norm(M.mesh.displacements_target[M.mesh.regularisation_mask], axis=1), 99),
-                "99_percentile_force": np.nanpercentile(
-                    np.linalg.norm(M.mesh.forces[M.mesh.regularisation_mask], axis=1), 99),
+                "99_percentile_deformation_µm": np.nanpercentile(
+                    np.linalg.norm(M.mesh.displacements_target[M.mesh.regularisation_mask], axis=1), 99)*1e6,
+                "99_percentile_force_nN": np.nanpercentile(
+                    np.linalg.norm(M.mesh.forces[M.mesh.regularisation_mask], axis=1), 99)*1e9,
                 "filename": file,
             })
         res.resulting_data = pd.DataFrame(res.resulting_data)
         return res
-
+               
+        
     def get_label(self):
         if self.type.value() == "strain_energy":
-            mu_name = 'strain_energy'
-            y_label = 'Strain Energy'
+            mu_name = 'strain_energy_J'
+            y_label = 'Strain Energy (J)'
         elif self.type.value() == "contractility (force center)":
-            mu_name = 'contractility (force center)'
-            y_label = 'Contractility'
+            mu_name = 'contractility_nN (force center)'
+            y_label = 'Contractility (nN)'
         elif self.type.value() == "contractility (deformations center)":
-            mu_name = 'contractility (deformations center)'
-            y_label = 'Contractility'
+            mu_name = 'contractility_nN (deformations center)'
+            y_label = 'Contractility (nN)'
         elif self.type.value() == "contractility (force center t0)":
-            mu_name = 'contractility (force center t0)'
-            y_label = 'Contractility'
+            mu_name = 'contractility_nN (force center t0)'
+            y_label = 'Contractility (nN)'
         elif self.type.value() == "contractility (deformations center t0)":
-            mu_name = 'contractility (deformations center t0)'
-            y_label = 'Contractility'
+            mu_name = 'contractility_nN (deformations center t0)'
+            y_label = 'Contractility (nN)'
         elif self.type.value() == "polarity":
             mu_name = 'polarity'
             y_label = 'Polarity'
         elif self.type.value() == "99_percentile_deformation":
-            mu_name = '99_percentile_deformation'
-            y_label = 'Deformation'
+            mu_name = '99_percentile_deformation_µm'
+            y_label = 'Deformation (µm)'
         elif self.type.value() == "99_percentile_force":
-            mu_name = '99_percentile_force'
-            y_label = 'Force'
+            mu_name = '99_percentile_force_nN'
+            y_label = 'Force (nN)'
         return mu_name, y_label
