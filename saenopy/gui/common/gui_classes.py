@@ -61,7 +61,7 @@ else:
 
 class MatplotlibWidget(Canvas):
 
-    def __init__(self, parent=None, width=4, height=3, dpi=100):
+    def __init__(self, parent=None, width=2, height=1, dpi=100):
         from matplotlib import _pylab_helpers
         plt.ioff()
         self.figure = Figure(figsize=(width, height), dpi=dpi)
@@ -297,7 +297,8 @@ class ListWidget(QtWidgets.QListWidget):
     def __init__(self, layout, editable=False, add_item_button=False, color_picker=False, copy_params=False,
                  allow_paste_callback=None, copy_to_callback=None):
         super().__init__()
-        layout.addWidget(self)
+        if layout is not None:
+            layout.addWidget(self)
         self.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
         self.customContextMenuRequested.connect(self.list2_context_menu)
         self.itemChanged.connect(self.list2_checked_changed)

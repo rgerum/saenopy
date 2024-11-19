@@ -95,7 +95,8 @@ class BatchEvaluateBase(QtWidgets.QWidget):
             with QtShortCuts.QSplitter() as lay:
                 with QtShortCuts.QVBoxLayout() as layout:
                     layout.setContentsMargins(0, 0, 0, 0)
-                    self.list = ListWidget(layout, add_item_button="add measurements", copy_params=True, allow_paste_callback=self.allow_paste, copy_to_callback=self.get_copy_to_menu)
+                    self.list = ListWidget(None, add_item_button="add measurements", copy_params=True, allow_paste_callback=self.allow_paste, copy_to_callback=self.get_copy_to_menu)
+                    layout.addWidget(self.list, 2)
                     self.list.addItemClicked.connect(self.add_measurement)
                     self.list.signal_act_copy_clicked.connect(self.copy_params)
                     self.list.signal_act_paste_clicked.connect(self.paste_params)
@@ -104,6 +105,9 @@ class BatchEvaluateBase(QtWidgets.QWidget):
                     self.list.signal_act_paths2_clicked.connect(self.path_open)
                     self.list.signal_act_paths3_clicked.connect(self.path_copy)
                     self.list.itemSelectionChanged.connect(self.listSelected)
+
+                    self.results_pane = QtWidgets.QVBoxLayout()
+                    layout.addLayout(self.results_pane)
 
                     self.progress_label2 = QtWidgets.QLabel().addToLayout()
 
