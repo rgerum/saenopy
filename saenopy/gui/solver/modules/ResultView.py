@@ -134,6 +134,8 @@ class ResultView(PipelineModule):
         render = plotter.render
         plotter.render = lambda *args: None
         try:
+            if self.check_evaluated(self.result):
+                self.M = self.result.solvers[self.t_slider.value()]
             xmin, ymin, zmin = self.M.mesh.nodes.min(axis=0)
             xmax, ymax, zmax = self.M.mesh.nodes.max(axis=0)
             # color bar design properties
