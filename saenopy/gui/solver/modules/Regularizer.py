@@ -23,6 +23,17 @@ from .DeformationDetector import CamPos
 from saenopy.gui.common.code_export import get_code
 
 
+import matplotlib.ticker as ticker
+
+class OmitLast30PercentLocator(ticker.AutoLocator):
+    def __call__(self):
+        ticks = super(OmitLast30PercentLocator, self).__call__()
+        # Safely fetch the axis limits without modifying them
+        lim = self.axis.get_view_interval()
+        cutoff = lim[0] + (lim[1] - lim[0]) * 0.7
+        return [t for t in ticks if t < cutoff]
+
+
 class Regularizer(PipelineModule):
     pipeline_name = "fit forces"
     iteration_finished = QtCore.Signal(object, object, int, int)
@@ -93,6 +104,7 @@ class Regularizer(PipelineModule):
             "prev_t_as_start": self.input_previous_t_as_start,
         })
 
+        self.initialize_plot()
         self.iteration_finished.connect(self.iteration_callback)
         self.iteration_finished.emit(None, np.ones([10, 3]), 0, None)
 
@@ -115,6 +127,30 @@ class Regularizer(PipelineModule):
         except (AttributeError, IndexError, TypeError):
             return False
 
+    def initialize_plot(self):
+        self.canvas.figure.axes[0].cla()
+        self.canvas_text = self.canvas.figure.axes[0].text(0.5, 0.5, "no fit yet", ha="center",
+                                        transform=self.canvas.figure.axes[0].transAxes)
+        self.canvas_plot = self.canvas.figure.axes[0].semilogy([[0,0]], label="total loss")[0]
+        # self.canvas.figure.axes[0].semilogy(relrec[:, 1], ":", label="least squares loss")
+        # self.canvas.figure.axes[0].semilogy(relrec[:, 2], "--", label="regularize loss")
+        # self.canvas.figure.axes[0].legend()
+        self.canvas.figure.axes[0].spines["top"].set_visible(False)
+        self.canvas.figure.axes[0].spines["right"].set_visible(False)
+        self.canvas.figure.axes[0].set_xlim(left=0)
+        ticks = self.canvas.figure.axes[0].get_xticks()
+        self.canvas.figure.axes[0].set_xticks([t for t in ticks if t < self.canvas.figure.axes[0].get_xlim()[1] * 0.7])
+
+        self.canvas.figure.axes[0].text(0, 1, "error  ", ha="right", transform=self.canvas.figure.axes[0].transAxes)
+        self.canvas.figure.axes[0].text(1, 0, "\n\niteration", ha="right", va="center",
+                                        transform=self.canvas.figure.axes[0].transAxes)
+        self.canvas.figure.axes[0].xaxis.set_major_locator(OmitLast30PercentLocator())  # Set default automatic locator
+        try:
+            self.canvas.figure.tight_layout(pad=0)
+        except np.linalg.LinAlgError:
+            pass
+        QtCore.QTimer.singleShot(0, self.canvas.draw)
+
     def iteration_callback(self, result, relrec, i=0, imax=None):
         if imax is not None:
             self.parent.progressbar.setRange(0, imax)
@@ -125,41 +161,24 @@ class Regularizer(PipelineModule):
                     self.parent.tabs.setTabEnabled(i, self.check_evaluated(result))
             if self.canvas is not None:
                 relrec = np.array(relrec).reshape(-1, 3)
-                self.canvas.figure.axes[0].cla()
-                self.canvas.figure.axes[0].semilogy(relrec[:, 0], label="total loss")
-                #self.canvas.figure.axes[0].semilogy(relrec[:, 1], ":", label="least squares loss")
-                #self.canvas.figure.axes[0].semilogy(relrec[:, 2], "--", label="regularize loss")
-                #self.canvas.figure.axes[0].legend()
-                self.canvas.figure.axes[0].spines["top"].set_visible(False)
-                self.canvas.figure.axes[0].spines["right"].set_visible(False)
-                self.canvas.figure.axes[0].set_xlim(left=0)
-                ticks = self.canvas.figure.axes[0].get_xticks()
-                self.canvas.figure.axes[0].set_xticks([t for t in ticks if t < self.canvas.figure.axes[0].get_xlim()[1]*0.7])
+                self.canvas_plot.set_xdata(np.arange(len(relrec[:, 0])))
+                self.canvas_plot.set_ydata(relrec[:, 0])
+                self.canvas_plot.set_visible(True)
+                self.canvas_text.set_visible(False)
+                self.canvas.figure.axes[0].set_xlim(0, len(relrec[:, 0]))
 
-                self.canvas.figure.axes[0].text(0, 1, "error  ", ha="right", transform=self.canvas.figure.axes[0].transAxes)
-                self.canvas.figure.axes[0].text(1, 0, "\n\niteration", ha="right", va="center", transform=self.canvas.figure.axes[0].transAxes)
+                self.canvas.figure.axes[0].relim()  # Recompute limits based on data
+                self.canvas.figure.axes[0].autoscale_view()  # Apply updated limits
                 try:
                     self.canvas.figure.tight_layout(pad=0)
                 except np.linalg.LinAlgError:
                     pass
-                QtCore.QTimer.singleShot(0, self.canvas.draw)  # Use Qt timer to prevent recursive repaints
+                QtCore.QTimer.singleShot(0, self.canvas.draw_idle)  # Use Qt timer to prevent recursive repaints
 
     def plot_empty(self):
-        self.canvas.figure.axes[0].cla()
-        self.canvas.figure.axes[0].text(0.5, 0.5, "no fit yet", ha="center", transform=self.canvas.figure.axes[0].transAxes)
-        self.canvas.figure.axes[0].spines["top"].set_visible(False)
-        self.canvas.figure.axes[0].spines["right"].set_visible(False)
-        ticks = self.canvas.figure.axes[0].get_xticks()
-        self.canvas.figure.axes[0].set_xticks([t for t in ticks if t < self.canvas.figure.axes[0].get_xlim()[1] * 0.7])
-
-        self.canvas.figure.axes[0].text(0, 1, "error  ", ha="right", transform=self.canvas.figure.axes[0].transAxes)
-        self.canvas.figure.axes[0].text(1, 0, "\n\niteration", ha="right", va="center",
-                                        transform=self.canvas.figure.axes[0].transAxes)
-        try:
-            self.canvas.figure.tight_layout(pad=0)
-        except np.linalg.LinAlgError:
-            pass
-        QtCore.QTimer.singleShot(0, self.canvas.draw)
+        self.canvas_plot.set_visible(False)
+        self.canvas_text.set_visible(True)
+        QtCore.QTimer.singleShot(0, self.canvas.draw_idle)
 
     def process(self, result: Result, material_parameters: dict, solve_parameters: dict):
         # demo run
