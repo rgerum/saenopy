@@ -711,13 +711,6 @@ plt.imsave("output.png", im)
             self.input_arrows.setValues(["None"] + list(data["fields"].keys()))
             self.input_arrows.setValue(next(iter(data["fields"].items()))[0])
 
-            #if len(data["channels"]) == 1:
-            #    self.channel_selectB.setVisible(False)
-            #    self.colormap_chooserB.setVisible(False)
-            #else:
-            #    self.channel_selectB.setVisible(True)
-            #    self.colormap_chooserB.setVisible(True)
-
             if data["dimensions"] == 2:
                 self.input_use2D.setValue(True)
                 self.input_use2D.setVisible(False)
@@ -777,7 +770,7 @@ plt.imsave("output.png", im)
         super().setResult(result)
         self.hide_timestamp()
         self.hide_arrow()
-        if not no_update_display:
+        if not no_update_display and self.export_window.isVisible():
             self.update_display()
 
     def get_parameters(self):
@@ -892,8 +885,12 @@ plt.imsave("output.png", im)
                     stack_min_max = None
         return mesh, field, center, name, colormap, factor, scale_max, stack_min_max, skip
 
+    def show_window(self):
+        self.export_window.show()
+        QtCore.QTimer.singleShot(0, self.update_display)
+
     def update_display(self):
-        if self.no_update:
+        if self.no_update or not self.export_window.isVisible():
             return
         #print(self.get_parameters())
         #self.set_parameters(self.get_parameters())
@@ -1054,5 +1051,3 @@ def render_image(params, result):
 
     exporter.update_display()
     return exporter.im
-
-

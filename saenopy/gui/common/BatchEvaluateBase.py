@@ -125,7 +125,7 @@ class BatchEvaluateBase(QtWidgets.QWidget):
                         if getattr(self, "generate_data", None):
                             self.button_excel = QtShortCuts.QPushButton(None, "export data", self.generate_data)
                         if getattr(self, "sub_module_export", None):
-                            self.button_export = QtShortCuts.QPushButton(None, "export images", lambda x: self.sub_module_export.export_window.show())
+                            self.button_export = QtShortCuts.QPushButton(None, "export images", lambda x: self.sub_module_export.show_window())
 
         self.data = []
         self.list.setData(self.data)
