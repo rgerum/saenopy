@@ -139,7 +139,7 @@ class Regularizer(PipelineModule):
                     self.canvas.figure.tight_layout(pad=0)
                 except np.linalg.LinAlgError:
                     pass
-                self.canvas.draw()
+                QtCore.QTimer.singleShot(0, self.canvas.draw)  # Use Qt timer to prevent recursive repaints
 
     def process(self, result: Result, material_parameters: dict, solve_parameters: dict):
         # demo run
