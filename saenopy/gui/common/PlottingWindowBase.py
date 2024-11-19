@@ -54,7 +54,7 @@ class ExportDialog(QtWidgets.QDialog):
                 self.button_addList = QtShortCuts.QPushButton(None, "ok", self.accept)
 
 
-class PlottingWindow(QtWidgets.QWidget):
+class PlottingWindowBase(QtWidgets.QWidget):
     progress_signal = QtCore.Signal(int, int, int, int)
     finished_signal = QtCore.Signal()
     thread = None
@@ -340,17 +340,21 @@ class PlottingWindow(QtWidgets.QWidget):
                 # add the bar with the mean value and the standard error as errorbar
                 if np.isnan(data.sem()):
                     plt.bar(name, data.mean(), color=color_dict[name])
+                    print("B", name, data.mean())
                 else:
                     plt.bar(name, data.mean(), yerr=data.sem(), error_kw=dict(capsize=5), color=color_dict[name])
+                    print("B", name, data.mean(), data.sem())
                 # add the number of averaged points
-                plt.text(name, data.mean() + data.sem(), f"n={data.count()}", ha="center", va="bottom")
+                plt.text(name, float(data.mean() + np.nan_to_num(data.sem())), f"n={data.count()}", ha="center", va="bottom")
+                print("T", name, float(data.mean() + np.nan_to_num(data.sem())))
+                print("T", type(name), type(float(data.mean() + np.nan_to_num(data.sem()))))
 
             # add ticks and labels
             plt.ylabel(y_label)
             # despine the axes
             plt.gca().spines["top"].set_visible(False)
             plt.gca().spines["right"].set_visible(False)
-            plt.tight_layout()
+            #plt.tight_layout()
             # show the plot
             self.canvas.draw()
 

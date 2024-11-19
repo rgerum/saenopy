@@ -41,7 +41,7 @@ class SharedProperties:
                     t.property_changed(name, value)
 
 
-class BatchEvaluate(QtWidgets.QWidget):
+class BatchEvaluateBase(QtWidgets.QWidget):
     settings_key = "saenopy"
     result_changed = QtCore.Signal(object)
     tab_changed = QtCore.Signal(object)

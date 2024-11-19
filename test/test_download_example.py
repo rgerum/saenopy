@@ -32,8 +32,8 @@ def init_app():
     solver: MainWindowSolver = window.solver  # modules.py:MainWindow
 
     # get the Evaluate part
-    from saenopy.gui.solver.modules.BatchEvaluate import BatchEvaluate
-    batch_evaluate: BatchEvaluate = solver.deformations  # modules/BatchEvaluate.py:BatchEvaluate
+    from saenopy.gui.solver.modules.BatchEvaluate import BatchEvaluateBase
+    batch_evaluate: BatchEvaluateBase = solver.deformations  # modules/BatchEvaluateBase.py:BatchEvaluate
 
     return app, window, solver, batch_evaluate
 

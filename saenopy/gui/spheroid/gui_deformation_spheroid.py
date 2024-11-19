@@ -3,8 +3,8 @@ from qtpy import QtCore, QtWidgets, QtGui
 from saenopy.gui.common import QtShortCuts
 import glob
 
-from saenopy.gui.spheroid.analyze.plot_window import PlottingWindow
-from saenopy.gui.spheroid.modules.BatchEvaluate import BatchEvaluate
+from saenopy.gui.spheroid.analyze.PlottingWindow import PlottingWindowBase
+from saenopy.gui.spheroid.modules.BatchEvaluate import BatchEvaluateBase
 
 settings = QtCore.QSettings("Saenopy", "Saenopy")
 
@@ -28,7 +28,7 @@ class MainWindow(QtWidgets.QWidget):
             """ """
             with self.tabs.createTab("Analyse Measurements"):
                 with QtShortCuts.QHBoxLayout() as h_layout:
-                    self.deformations = BatchEvaluate(self)
+                    self.deformations = BatchEvaluateBase(self)
                     h_layout.addWidget(self.deformations)
                     self.description = QtWidgets.QTextEdit()
                     self.description.setReadOnly(True)
@@ -76,7 +76,7 @@ class MainWindow(QtWidgets.QWidget):
             """ """
             with self.tabs.createTab("Data Analysis"):
                 with QtShortCuts.QHBoxLayout() as h_layout:
-                    self.plotting_window = PlottingWindow(self, self.deformations)
+                    self.plotting_window = PlottingWindowBase(self, self.deformations)
                     h_layout.addWidget(self.plotting_window)
 
                     self.description = QtWidgets.QTextEdit()

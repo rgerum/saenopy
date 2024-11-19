@@ -4,14 +4,14 @@ from .AddFilesDialog import AddFilesDialog
 from saenopy.gui.common.AddFilesDialog import do_overwrite
 from .DeformationDetector import DeformationDetector
 from saenopy.gui.solver.modules.exporter.Exporter import ExportViewer
-from saenopy.gui.common.BatchEvaluate import BatchEvaluate
+from saenopy.gui.common.BatchEvaluateBase import BatchEvaluateBase
 from .path_editor import start_path_change
 from saenopy.examples import get_examples_spheroid
 from saenopy.gui.spheroid.modules.result import get_stacks_spheroid
 from .ForceCalculator import ForceCalculator
 
 
-class BatchEvaluate(BatchEvaluate):
+class BatchEvaluate(BatchEvaluateBase):
     settings_key = "Spheroid"
     file_extension = ".saenopySpheroid"
 

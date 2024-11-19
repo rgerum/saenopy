@@ -11,8 +11,8 @@ from pathlib import Path
 
 from saenopy.gui.common import QtShortCuts
 from saenopy.gui.common.resources import resource_icon
-from saenopy.gui.solver.analyze.plot_window import PlottingWindow
-from saenopy.gui.solver.modules.BatchEvaluate import BatchEvaluate
+from saenopy.gui.solver.analyze.PlottingWindow import PlottingWindowBase
+from saenopy.gui.solver.modules.BatchEvaluate import BatchEvaluateBase
 from saenopy.gui.common.gui_classes import ListWidget
 from saenopy.gui.common.gui_classes import CheckAbleGroup, MatplotlibWidget, NavigationToolbar
 from saenopy import macro

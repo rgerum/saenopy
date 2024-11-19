@@ -29,10 +29,10 @@ from .load_measurement_dialog import AddFilesDialog
 from saenopy.gui.common.AddFilesDialog import FileExistsDialog
 from .path_editor import start_path_change
 from saenopy.examples import get_examples
-from saenopy.gui.common.BatchEvaluate import BatchEvaluate
+from saenopy.gui.common.BatchEvaluateBase import BatchEvaluateBase
 
 
-class BatchEvaluate(BatchEvaluate):
+class BatchEvaluate(BatchEvaluateBase):
     settings_key = "Seanopy_deformation"
     file_extension = ".saenopy"
 

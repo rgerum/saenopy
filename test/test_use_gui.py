@@ -15,7 +15,7 @@ from hypothesis import strategies as st
 import os
 from saenopy.gui.gui_master import MainWindow
 from saenopy.gui.solver.gui_solver import MainWindowSolver
-from saenopy.gui.solver.modules.BatchEvaluate import BatchEvaluate
+from saenopy.gui.solver.modules.BatchEvaluate import BatchEvaluateBase
 from saenopy.gui.solver.modules.load_measurement_dialog import AddFilesDialog
 from saenopy.gui.common.AddFilesDialog import FileExistsDialog
 np.random.seed(1234)
@@ -56,8 +56,8 @@ def init_app():
     solver: MainWindowSolver = window.solver  # modules.py:MainWindow
 
     # get the Evaluate part
-    from saenopy.gui.solver.modules.BatchEvaluate import BatchEvaluate
-    batch_evaluate: BatchEvaluate = solver.deformations  # modules/BatchEvaluate.py:BatchEvaluate
+    from saenopy.gui.solver.modules.BatchEvaluate import BatchEvaluateBase
+    batch_evaluate: BatchEvaluateBase = solver.deformations  # modules/BatchEvaluateBase.py:BatchEvaluate
 
     return app, window, solver, batch_evaluate
 
@@ -792,10 +792,10 @@ def test_analysis(monkeypatch, catch_popup_error, random_path):
     files2 = load_example("DynamicalSingleCellTFM", target_folder=None, progress_callback=None, evaluated=True)
     print(files)
 
-    from saenopy.gui.solver.analyze.plot_window import PlottingWindow
-    from saenopy.gui.common.plot_window import AddFilesDialog
-    from saenopy.gui.common.plot_window import ExportDialog
-    plotting_window: PlottingWindow = solver.plotting_window
+    from saenopy.gui.solver.analyze.PlottingWindow import PlottingWindowBase
+    from saenopy.gui.common.PlottingWindowBase import AddFilesDialog
+    from saenopy.gui.common.PlottingWindowBase import ExportDialog
+    plotting_window: PlottingWindowBase = solver.plotting_window
 
     def add_file(file, cancel=False):
         def handle_load_existing(self: AddFilesDialog):

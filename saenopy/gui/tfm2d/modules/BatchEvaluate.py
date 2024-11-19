@@ -20,12 +20,12 @@ from .CalculateStress import CalculateStress
 from .path_editor import start_path_change
 from saenopy.examples import get_examples_2D
 
-from saenopy.gui.common.BatchEvaluate import BatchEvaluate
+from saenopy.gui.common.BatchEvaluateBase import BatchEvaluateBase
 from ...solver.modules.exporter.Exporter import ExportViewer
 from saenopy.gui.common.ModuleScaleBar import ModuleScaleBar
 
 
-class BatchEvaluate(BatchEvaluate):
+class BatchEvaluate(BatchEvaluateBase):
     settings_key = "Seanopy_deformation"
     file_extension = ".saenopy2D"
     result: Result2D = None

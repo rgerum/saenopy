@@ -3,10 +3,10 @@ import pandas as pd
 from saenopy.gui.tfm2d.modules.result import Result2D
 from saenopy.gui.common import QtShortCuts
 
-from saenopy.gui.common.plot_window import PlottingWindow
+from saenopy.gui.common.PlottingWindowBase import PlottingWindowBase
 
 
-class PlottingWindow(PlottingWindow):
+class PlottingWindow(PlottingWindowBase):
     settings_key = "Seanopy_2d"
     file_extension = ".saenopy2D"
 

@@ -4,10 +4,10 @@ import pandas as pd
 from saenopy import Result
 from saenopy.gui.common import QtShortCuts
 
-from saenopy.gui.common.plot_window import PlottingWindow
+from saenopy.gui.common.PlottingWindowBase import PlottingWindowBase
 
 
-class PlottingWindow(PlottingWindow):
+class PlottingWindow(PlottingWindowBase):
     settings_key = "Seanopy_deformation"
     file_extension = ".saenopy"
 

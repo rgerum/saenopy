@@ -4,10 +4,10 @@ import pandas as pd
 from saenopy.gui.spheroid.modules.result import ResultSpheroid
 from saenopy.gui.common import QtShortCuts
 
-from saenopy.gui.common.plot_window import PlottingWindow
+from saenopy.gui.common.PlottingWindowBase import PlottingWindowBase
 
 
-class PlottingWindow(PlottingWindow):
+class PlottingWindow(PlottingWindowBase):
     settings_key = "saenopy_spheroid"
     file_extension = ".saenopySpheroid"
 
