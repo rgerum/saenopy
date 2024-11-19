@@ -3,8 +3,8 @@ from qtpy import QtCore, QtWidgets
 
 from saenopy.gui.common import QtShortCuts
 from saenopy.gui.common.resources import resource_icon
-from saenopy.gui.tfm2d.analyze.PlottingWindow import PlottingWindowBase
-from saenopy.gui.tfm2d.modules.BatchEvaluate import BatchEvaluateBase
+from saenopy.gui.tfm2d.analyze.PlottingWindow import PlottingWindow
+from saenopy.gui.tfm2d.modules.BatchEvaluate import BatchEvaluate
 
 
 class MainWindow2D(QtWidgets.QWidget):
@@ -20,12 +20,12 @@ class MainWindow2D(QtWidgets.QWidget):
         with QtShortCuts.QTabWidget(main_layout) as self.tabs:
             with self.tabs.createTab("Analyse Measurements"):
                 with QtShortCuts.QHBoxLayout():
-                    self.deformations = BatchEvaluateBase(self)
+                    self.deformations = BatchEvaluate(self)
                     QtShortCuts.currentLayout().addWidget(self.deformations)
 
             with self.tabs.createTab("Data Analysis"):
                 with QtShortCuts.QHBoxLayout():
-                    self.plotting_window = PlottingWindowBase(self, self.deformations).addToLayout()
+                    self.plotting_window = PlottingWindow(self, self.deformations).addToLayout()
 
 
 if __name__ == '__main__':  # pragma: no cover
