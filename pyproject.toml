@@ -9,21 +9,21 @@ packages = [{include = "saenopy"}]
 
 
 [tool.poetry.dependencies]
-python = "^3.9,<3.13"
-numpy = ">=1.26.4"
+python = "^3.8,<3.11"
+numpy = ">=1.23.4"
 scipy = ">=1.9.3"
 tqdm = "^4.64.1"
 qimage2ndarray = "^1.9.0"
 natsort = "^8.2.0"
 pyvista = "^0.44.1"
 pyvistaqt = "^0.11.1"
-imagecodecs = "^2024.9.22"
+imagecodecs = "^2022.9.26"
 openpiv = "^0.24.2"
 pyqt5 = "=5.15.9"
 pyqt5-qt5 = "=5.15.2"
 qtawesome = "^1.2.1"
 jointforces = "^1.0.7"
-numba = "^0.60.0"
+numba = "^0.56.4"
 appdirs = "^1.4.4"
 qtrangeslider = "^0.1.5"
 h5py = "^3.8.0"
@@ -32,7 +32,7 @@ sphinx-rtd-theme = { version = "^1.2.2", optional = true }
 nbsphinx = { version = "^0.9.2", optional = true }
 sphinx-gallery = {version = "^0.13.0", optional = true }
 solidspy = "*"
-black = { version="^24.4.0", optional = true }
+#black = { version="^24.4.0", optional = true }
 
 [tool.poetry.extras]
 docs = ["sphinx", "sphinx-rtd-theme", "nbsphinx", "sphinx-gallery"]
