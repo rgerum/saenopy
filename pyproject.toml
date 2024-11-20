@@ -11,7 +11,7 @@ packages = [{include = "saenopy"}]
 [tool.poetry.dependencies]
 python = "^3.9,<3.13"
 numpy = ">=1.26.4"
-scipy = ">=1.9.3"
+scipy = "=1.11.4"
 tqdm = "^4.64.1"
 qimage2ndarray = "^1.9.0"
 natsort = "^8.2.0"
