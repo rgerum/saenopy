@@ -82,24 +82,24 @@ class CodeEditor(QtWidgets.QPlainTextEdit):
         self.setExtraSelections(extraSelections)
 
     def lineNumberAreaPaintEvent(self, event):
-        painter = QtGui.QPainter(self.lineNumberArea)
-        painter.fillRect(event.rect(), lineNumbersBackgroundColor)
-        block = self.firstVisibleBlock()
-        blockNumber = block.blockNumber()
-        top = round(self.blockBoundingGeometry(block).translated(self.contentOffset()).top())
-        bottom = top + round(self.blockBoundingRect(block).height())
-
-        while block.isValid() and top <= event.rect().bottom():
-            if block.isVisible() and bottom >= event.rect().top():
-                number = str(blockNumber + 1)
-                if blockNumber == self.textCursor().blockNumber():
-                    painter.fillRect(QtCore.QRect(0, top, self.lineNumberArea.width()+10, self.fontMetrics().height()), lineColor)
-
-                painter.setPen(QtGui.QColor(lineNumbersTextColor))
-                painter.drawText(0, top, self.lineNumberArea.width()-lineNumbersRightMargin, self.fontMetrics().height(),
-                                 QtCore.Qt.AlignRight, number)
-
-            block = block.next()
-            top = bottom
+        with QtGui.QPainter(self.lineNumberArea) as painter:
+            painter.fillRect(event.rect(), lineNumbersBackgroundColor)
+            block = self.firstVisibleBlock()
+            blockNumber = block.blockNumber()
+            top = round(self.blockBoundingGeometry(block).translated(self.contentOffset()).top())
             bottom = top + round(self.blockBoundingRect(block).height())
-            blockNumber += 1
+
+            while block.isValid() and top <= event.rect().bottom():
+                if block.isVisible() and bottom >= event.rect().top():
+                    number = str(blockNumber + 1)
+                    if blockNumber == self.textCursor().blockNumber():
+                        painter.fillRect(QtCore.QRect(0, top, self.lineNumberArea.width()+10, self.fontMetrics().height()), lineColor)
+
+                    painter.setPen(QtGui.QColor(lineNumbersTextColor))
+                    painter.drawText(0, top, self.lineNumberArea.width()-lineNumbersRightMargin, self.fontMetrics().height(),
+                                     QtCore.Qt.AlignRight, number)
+
+                block = block.next()
+                top = bottom
+                bottom = top + round(self.blockBoundingRect(block).height())
+                blockNumber += 1

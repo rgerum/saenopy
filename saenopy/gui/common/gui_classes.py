@@ -252,14 +252,14 @@ class CheckAbleGroup(QtWidgets.QWidget, QtShortCuts.EnterableLayout):
         self.toggleButton.valueChanged.connect(self.changedActive)
 
     def paintEvent(self, ev: QtGui.QPaintEvent) -> None:
-        p = QtGui.QPainter(self)
-        p.setPen(QtGui.QPen(QtGui.QColor("gray")))
-        #p.setBrush(QtGui.QBrush(QtGui.QColor("gray")))
-        top = 5
-        p.drawRect(0, self.height()-1, self.width(), 0)
-        p.drawRect(0, top, 0, self.height())
-        p.drawRect(0, top, 7, 0)
-        p.drawRect(self.width()-1, top, 0, self.height())
+        with QtGui.QPainter(self) as p:
+            p.setPen(QtGui.QPen(QtGui.QColor("gray")))
+            #p.setBrush(QtGui.QBrush(QtGui.QColor("gray")))
+            top = 5
+            p.drawRect(0, self.height()-1, self.width(), 0)
+            p.drawRect(0, top, 0, self.height())
+            p.drawRect(0, top, 7, 0)
+            p.drawRect(self.width()-1, top, 0, self.height())
         super().paintEvent(ev)
 
     def toggle(self):

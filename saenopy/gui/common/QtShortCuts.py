@@ -1306,10 +1306,10 @@ class SuperQLabel(QtWidgets.QLabel):
 
         opt = QtWidgets.QStyleOption()
         opt.initFrom(self)
-        painter = QtGui.QPainter(self)
+        with QtGui.QPainter(self) as painter:
 
-        self.style().drawPrimitive(QtWidgets.QStyle.PE_Widget, opt, painter, self)
+            self.style().drawPrimitive(QtWidgets.QStyle.PE_Widget, opt, painter, self)
 
-        self.style().drawItemText(painter, self.rect(),
-                                  self.textalignment, self.palette(), True, self.text())
+            self.style().drawItemText(painter, self.rect(),
+                                      self.textalignment, self.palette(), True, self.text())
 

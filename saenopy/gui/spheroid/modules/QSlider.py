@@ -21,15 +21,15 @@ class QSlider(QtWidgets.QSlider):
         super().paintEvent(ev)
 
     def drawRect(self, start, end, color, border):
-        p = QtGui.QPainter(self)
-        p.setPen(QtGui.QPen(QtGui.QColor("transparent")))
-        p.setBrush(QtGui.QBrush(QtGui.QColor(color)))
+        with QtGui.QPainter(self) as p:
+            p.setPen(QtGui.QPen(QtGui.QColor("transparent")))
+            p.setBrush(QtGui.QBrush(QtGui.QColor(color)))
 
-        if (self.min is not None) and (end != "None") and (start != "None"):
-            s = self.width() * (start - self.minimum()) / (self.maximum() - self.minimum() + 1e-5)
-            e = self.width() * (end - self.minimum()) / (self.maximum() - self.minimum() + 1e-5)
-            p.drawRect(int(s), int(self.height() * border),
-                       int(e - s), int(self.height() * (1 - border * 2)))
+            if (self.min is not None) and (end != "None") and (start != "None"):
+                s = self.width() * (start - self.minimum()) / (self.maximum() - self.minimum() + 1e-5)
+                e = self.width() * (end - self.minimum()) / (self.maximum() - self.minimum() + 1e-5)
+                p.drawRect(int(s), int(self.height() * border),
+                           int(e - s), int(self.height() * (1 - border * 2)))
 
     def setEvaluated(self, value):
         self.evaluated = value
