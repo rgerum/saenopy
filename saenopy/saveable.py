@@ -1,7 +1,27 @@
 import typing
 import numpy as np
 from pathlib import PurePath
+from typing import TypedDict
 
+
+def format_value(mytype,value):
+    if value == "__NONE__":
+        value = None
+    if value == None:
+        return None
+    if getattr(mytype,"from_dict", None):  
+        value = mytype.from_dict(value)            
+    elif typing.get_origin(mytype) is list:
+        return [format_value(typing.get_args(mytype)[0], v) for v in value]
+    elif mytype == float:
+        value = float(value)
+    elif mytype == bool:
+        value = bool(value)
+    elif mytype == str: 
+         value = str(value)
+    elif mytype == int:
+        value = int(value)
+    return value
 
 class Saveable:
     __save_parameters__ = []
@@ -55,6 +75,8 @@ class Saveable:
                 shutil.move(filename+".npz", filename)
         else:
             raise ValueError("format not supported")
+    
+      
 
     @classmethod
     def from_dict(cls, data_dict):
@@ -69,17 +91,30 @@ class Saveable:
                 data[name] = data_dict[name][()]
             else:
                 data[name] = data_dict[name]
-            if name in types:
+            if name in types: 
                 if getattr(types[name], "from_dict", None) is not None:
                     if data[name] is not None:
                         data[name] = types[name].from_dict(data[name])
+                elif typing.get_origin(types[name]) is tuple:
+                   if isinstance(data[name], dict):
+                       data[name] = typing.get_args(types[name])[0].from_dict(data[name])
+                   elif data[name] is None:
+                       pass
+                   else:
+                       data[name] = tuple([format_value(typing.get_args(types[name])[0], d) for d in data[name]])
+                      
                 elif typing.get_origin(types[name]) is list:
                     if isinstance(data[name], dict):
                         data[name] = typing.get_args(types[name])[0].from_dict(data[name])
                     elif data[name] is None:
                         pass
                     else:
-                        data[name] = [None if d == "__NONE__" or d is None else typing.get_args(types[name])[0].from_dict(d) for d in data[name]]
+                        data[name] = ([format_value(typing.get_args(types[name])[0], d) for d in data[name]])
+                        
+                elif getattr(types[name], "__annotations__", None) and data[name] is not None:
+                    for key, mytype in types[name].__annotations__.items(): 
+                        data[name][key] = format_value(mytype,data[name][key])
+                    
         if len(save_parameters):
             raise ValueError(f"The following parameters were not found in the save file {save_parameters}")
         return cls(**data)

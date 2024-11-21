@@ -6,7 +6,7 @@ import scipy.sparse as ssp
 
 from numba import njit
 #from pyfields import field
-from typing import Union
+from typing import Union, TypedDict
 #from nptyping import NDArray, Shape, Float, Int, Bool
 
 from saenopy.build_beams import build_beams
@@ -89,7 +89,16 @@ class SolverMesh(Mesh):
     connections: np.ndarray = None
     connections_valid = False
 
-
+class RegularisationParameterDict(TypedDict):
+    step_size: float
+    solver_precision: float
+    max_iterations: int
+    rel_conv_crit: float
+    alpha: float
+    method: str
+   
+    
+    
 class Solver(Saveable):
     __save_parameters__ = ["mesh", "regularisation_results", "regularisation_parameters", "material_model"]
     mesh: SolverMesh
@@ -101,8 +110,8 @@ class Solver(Saveable):
     material_model: SemiAffineFiberMaterial = None  # the function specifying the material model
     material_parameters = None
 
-    regularisation_results: list = None
-    regularisation_parameters: dict = None
+    regularisation_results: List[List[float]] = None
+    regularisation_parameters: RegularisationParameterDict = None 
 
     verbose = False
 

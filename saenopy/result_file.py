@@ -11,7 +11,7 @@ from saenopy.stack import Stack, format_glob
 from saenopy.saveable import Saveable
 from saenopy.solver import Solver
 from saenopy.get_deformations import PivMesh
-
+from typing import TypedDict
 
 def get_channel_placeholder(filename):
     match = re.match(r".*{c:([^}]*)}.*", filename)
@@ -275,6 +275,33 @@ def make_path_absolute(template, output):
     return str(Path(template).absolute())
 
 
+class PivParametersDict(TypedDict):
+    window_size: float
+    element_size: float
+    signal_to_noise: float
+    drift_correction: bool
+
+class MeshParametersDict(TypedDict):
+    reference_stack: str
+    element_size: float
+    mesh_size: List[float]
+    
+class MaterialParametersDict(TypedDict):
+    k: float
+    d_0: float
+    lambda_s: float
+    d_s: float
+
+class SolveParametersDict(TypedDict):
+    alpha: float
+    step_size: float
+    max_iterations: int
+    rel_conv_crit: float
+    prev_t_as_start: bool
+    
+    
+
+
 class Result(Saveable):
     __save_parameters__ = ['stacks', 'stack_reference', 'template',
                            'time_delta', 'piv_parameters', 'mesh_piv',
@@ -282,9 +309,9 @@ class Result(Saveable):
                            'solve_parameters', 'solvers',
                            '___save_name__', '___save_version__']
     ___save_name__ = "Result"
-    ___save_version__ = "1.4"
+    ___save_version__ = "1.5"
     output: str = None
-    state: False
+    state: bool = False
 
     stack_parameters: dict = None
     stacks: List[Stack] = None
@@ -292,12 +319,12 @@ class Result(Saveable):
     template: str = None
     time_delta: float = None
 
-    piv_parameters: dict = None
+    piv_parameters: PivParametersDict = None
     mesh_piv: List[PivMesh] = None
 
-    mesh_parameters: dict = None
-    material_parameters: dict = None
-    solve_parameters: dict = None
+    mesh_parameters: MeshParametersDict = None
+    material_parameters: MaterialParametersDict = None
+    solve_parameters: SolveParametersDict = None
     solvers: List[Solver] = None
 
     @classmethod
@@ -452,6 +479,12 @@ class Result(Saveable):
             apply_delete(data_dict, renames)
 
             data_dict["___save_version__"] = "1.4"
+       
+        if data_dict["___save_version__"] < "1.5":  # pragma: no cover
+             print(f"convert old version {data_dict['___save_version__']} to 1.5")
+             data_dict["solve_parameters"]["prev_t_as_start"] = False 
+             data_dict["___save_version__"] = "1.5"
+             
         return super().from_dict(data_dict)
 
     def __init__(self, output=None, template="", stack=None, time_delta=None, **kwargs):

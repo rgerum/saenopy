@@ -4,11 +4,17 @@ from pathlib import Path
 import natsort
 import numpy as np
 import pandas as pd
-
+from typing import Tuple, List, TypedDict
 import tifffile
 import imageio
 
 from saenopy.saveable import Saveable
+
+class CropDict(TypedDict):
+    x: List[int]
+    y: List[int]
+    z: List[int]
+    
 
 
 class Stack(Saveable):
@@ -18,18 +24,18 @@ class Stack(Saveable):
     parent = None
 
     template: str = None
-    voxel_size: tuple = None
-    crop: dict = None
+    voxel_size: Tuple[float,float,float] = None
+    crop: CropDict = None
 
     _shape = None
 
-    image_filenames: list = None
+    image_filenames: List[List[str]] = None
     leica_file = None
-    channels: list = None
+    channels: List[str] = None
 
     packed_files: list = None
 
-    def __init__(self, template: str, voxel_size: tuple, crop: dict = None, **kwargs):
+    def __init__(self, template: str, voxel_size: tuple, crop: CropDict = None, **kwargs):
         # reconstruct the stack savable
         super().__init__(template=template, voxel_size=voxel_size, crop=crop, **kwargs)
         # if the stack has not been initialized
