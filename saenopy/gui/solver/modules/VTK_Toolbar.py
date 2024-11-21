@@ -101,7 +101,7 @@ class VTK_Toolbar(QtWidgets.QWidget):
             ], group=False, tooltip="Display nodes which do not have values associated as gray dots.")
 
             if self.is_force_plot:
-                self.use_log = QtShortCuts.QInputBool(None, "log", tooltip="Display arrow length and color in logarithmic scale.")
+                self.use_log = QtShortCuts.QInputBool(None, "log", value=True, tooltip="Display arrow length and color in logarithmic scale.")
                 self.use_log.valueChanged.connect(self.update_display)
 
             self.use_nans.valueChanged.connect(self.update_display)
