@@ -11,7 +11,7 @@ from saenopy.stack import Stack, format_glob
 from saenopy.saveable import Saveable
 from saenopy.solver import Solver
 from saenopy.get_deformations import PivMesh
-from typing import TypedDict
+from typing import TypedDict, Tuple
 
 def get_channel_placeholder(filename):
     match = re.match(r".*{c:([^}]*)}.*", filename)
@@ -284,7 +284,7 @@ class PivParametersDict(TypedDict):
 class MeshParametersDict(TypedDict):
     reference_stack: str
     element_size: float
-    mesh_size: Union[List[float], str]
+    mesh_size: Union[Tuple[float, float, float], str]
     
 class MaterialParametersDict(TypedDict):
     k: float

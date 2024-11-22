@@ -26,7 +26,9 @@ def format_value(mytype,value):
     elif typing.get_origin(mytype) is list:
         return [format_value(typing.get_args(mytype)[0], v) for v in value]
     elif typing.get_origin(mytype) is tuple:
-        return tuple([format_value(typing.get_args(mytype)[0], v) for v in value])
+        if len(typing.get_args(mytype)) != len(value):
+            raise ValueError(f"Tuple type definition and object have a different number of elements {typing.get_args(mytype)} and {value}")
+        return tuple([format_value(typing.get_args(mytype)[i], v) for i, v in enumerate(value)])
     elif mytype == float:
         return float(value)
     elif mytype == bool:
