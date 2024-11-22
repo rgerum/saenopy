@@ -8,6 +8,7 @@ import imageio
 import re
 import matplotlib.pyplot as plt
 import traceback
+from typing import List, Tuple, TypedDict, Dict
 
 from saenopy.saveable import Saveable
 from saenopy.result_file import make_path_absolute
@@ -33,6 +34,51 @@ def read_tiff(image_filenames):
     if len(im.shape) == 3:
         im = np.mean(im[:, :, :3], axis=2)
     return im
+
+class PivParametersDict(TypedDict):
+    window_size: int
+    overlap: int
+    std_factor: float
+
+class ForceParametersDict(TypedDict):
+    young: float
+    sigma: float
+    h: float
+
+ResDict = TypedDict('ResDict', {
+ 'contractility': float,
+ 'area Traction Area': float,
+ 'strain energy': float,
+ 'center of object': Tuple[float, float],
+ 'mean normal stress Cell Area': float,
+ 'max normal stress Cell Area': float,
+ 'max shear stress Cell Area':float,
+ 'cv mean normal stress Cell Area':float,
+ 'cv max normal stress Cell Area':float,
+ 'cv max shear stress Cell Area': float,
+ 'cell number': int,
+ 'area Cell Area':float,
+ 'average magnitude line tension':float,
+ 'std magnitude line tension':float,
+ 'average normal line tension':float,
+ 'std normal line tension': float,
+ 'average shear line tension': float,
+ 'std shear line tension':float,
+ 'average cell force':float,
+ 'std cell force': float,
+ 'average cell pressure': float,
+ 'std cell pressure': float,
+ 'average cell shear': float,
+ 'std cell shear': float,
+})
+
+class LtDict(TypedDict):
+    points_new: np.ndarray
+    t_vecs: np.ndarray
+    t_norm: np.ndarray
+    n_vecs: np.ndarray
+    t_normal: np.ndarray
+    t_shear: np.ndarray
 
 
 class Result2D(Saveable):
@@ -63,23 +109,23 @@ class Result2D(Saveable):
     fy: np.ndarray = None
 
     drift_parameters: dict = {}
-    piv_parameters: dict = {}
-    force_parameters: dict = {}
+    piv_parameters: PivParametersDict = {}
+    force_parameters: ForceParametersDict = {}
     force_gen_parameters: dict = {}
     stress_parameters: dict = {}
 
-    shape: tuple = None
+    shape: Tuple[int, int] = None
     mask: np.ndarray = None
 
-    res_dict: dict = None
+    res_dict: ResDict = None
 
     im_displacement: np.ndarray = None
     im_force: np.ndarray = None
     im_tension: np.ndarray = None
 
-    borders_inter_shape: tuple = None
-    borders_edge_lines: list = None
-    lt: dict = None
+    borders_inter_shape: Tuple[int, int] = None
+    borders_edge_lines: List[int] = None
+    lt:  Dict[str, LtDict] = None
     min_v: float = None
     max_v: float = None
 

@@ -15,6 +15,13 @@ def format_value(mytype,value):
     elif getattr(mytype, "__annotations__", None):
         for key, mytype in mytype.__annotations__.items():
             value[key] = format_value(mytype, value[key])
+    elif typing.get_origin(mytype) in {typing.Dict,dict}:
+        type_key = typing.get_args(mytype)[0]
+        type_value = typing.get_args(mytype)[1]
+        new_value = {}
+        for key, v in value.items():
+            new_value[format_value(type_key, key)] = format_value(type_value, v)
+        return new_value
     # if the type is a union, iterate over all possibilities
     elif typing.get_origin(mytype) is Union:
         for subtype in typing.get_args(mytype):
