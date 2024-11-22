@@ -1,27 +1,42 @@
 import typing
 import numpy as np
 from pathlib import PurePath
-from typing import TypedDict
+from typing import Union
 
 
 def format_value(mytype,value):
-    if value == "__NONE__":
+    if isinstance(value, str) and value == "__NONE__":
         value = None
-    if value == None:
+    if value is None:
         return None
     if getattr(mytype,"from_dict", None):  
-        value = mytype.from_dict(value)            
+        return mytype.from_dict(value)
+    # a TypedDict
+    elif getattr(mytype, "__annotations__", None):
+        for key, mytype in mytype.__annotations__.items():
+            value[key] = format_value(mytype, value[key])
+    # if the type is a union, iterate over all possibilities
+    elif typing.get_origin(mytype) is Union:
+        for subtype in typing.get_args(mytype):
+            try:
+                return format_value(subtype,value)
+            except ValueError:
+                continue
+        raise ValueError(f"Element can not be cast to any of the Union types {mytype}: {repr(value)}")
     elif typing.get_origin(mytype) is list:
         return [format_value(typing.get_args(mytype)[0], v) for v in value]
+    elif typing.get_origin(mytype) is tuple:
+        return tuple([format_value(typing.get_args(mytype)[0], v) for v in value])
     elif mytype == float:
-        value = float(value)
+        return float(value)
     elif mytype == bool:
-        value = bool(value)
+        return bool(value)
     elif mytype == str: 
-         value = str(value)
+        return str(value)
     elif mytype == int:
-        value = int(value)
+        return int(value)
     return value
+
 
 class Saveable:
     __save_parameters__ = []
@@ -75,8 +90,6 @@ class Saveable:
                 shutil.move(filename+".npz", filename)
         else:
             raise ValueError("format not supported")
-    
-      
 
     @classmethod
     def from_dict(cls, data_dict):
@@ -91,29 +104,8 @@ class Saveable:
                 data[name] = data_dict[name][()]
             else:
                 data[name] = data_dict[name]
-            if name in types: 
-                if getattr(types[name], "from_dict", None) is not None:
-                    if data[name] is not None:
-                        data[name] = types[name].from_dict(data[name])
-                elif typing.get_origin(types[name]) is tuple:
-                   if isinstance(data[name], dict):
-                       data[name] = typing.get_args(types[name])[0].from_dict(data[name])
-                   elif data[name] is None:
-                       pass
-                   else:
-                       data[name] = tuple([format_value(typing.get_args(types[name])[0], d) for d in data[name]])
-                      
-                elif typing.get_origin(types[name]) is list:
-                    if isinstance(data[name], dict):
-                        data[name] = typing.get_args(types[name])[0].from_dict(data[name])
-                    elif data[name] is None:
-                        pass
-                    else:
-                        data[name] = ([format_value(typing.get_args(types[name])[0], d) for d in data[name]])
-                        
-                elif getattr(types[name], "__annotations__", None) and data[name] is not None:
-                    for key, mytype in types[name].__annotations__.items(): 
-                        data[name][key] = format_value(mytype,data[name][key])
+            if name in types:
+                data[name] = format_value(types[name], data[name])
                     
         if len(save_parameters):
             raise ValueError(f"The following parameters were not found in the save file {save_parameters}")
