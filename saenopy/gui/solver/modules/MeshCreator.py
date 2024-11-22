@@ -217,13 +217,9 @@ class MeshCreator(PipelineModule):
         result.mesh_parameters = mesh_parameters
         # iterate over all stack pairs
         for i in range(len(result.mesh_piv)):
-            self.parent.progress_label.setText(f"{i + 1}/{len(result.mesh_piv)} creating mesh")
-            self.parent.progressbar.setRange(0, 1)
-            self.parent.progressbar.setValue(0)
-            self.parent.progress_label2.setText(f"{Path(result.output).name}")
+            self.parent.signal_process_status_update.emit(f"{i + 1}/{len(result.mesh_piv)} creating mesh", f"{Path(result.output).name}")
             # and create the interpolated solver mesh
             result.solvers[i] = saenopy.interpolate_mesh(result.mesh_piv[i], displacement_list[i], mesh_parameters)
-            self.parent.progressbar.setValue(1)
         # save the meshes
         result.save()
 

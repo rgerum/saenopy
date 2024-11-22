@@ -186,10 +186,7 @@ class Regularizer(PipelineModule):
             return
 
         for i in range(len(result.solvers)):
-            self.parent.progress_label.setText(f"{i + 1}/{len(result.solvers)} fitting forces")
-            self.parent.progressbar.setRange(0, 1)
-            self.parent.progressbar.setValue(0)
-            self.parent.progress_label2.setText(f"{Path(result.output).name}")
+            self.parent.signal_process_status_update.emit(f"{i + 1}/{len(result.solvers)} fitting forces", f"{Path(result.output).name}")
 
             print(f"Current Timstep: {i}")
             M = result.solvers[i]

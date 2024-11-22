@@ -172,10 +172,7 @@ class DeformationDetector(PipelineModule):
             count -= 1
 
         for i in range(count):
-            self.parent.progress_label.setText(f"{i + 1}/{count} finding deformations")
-            self.parent.progressbar.setRange(0, 1)
-            self.parent.progressbar.setValue(0)
-            self.parent.progress_label2.setText(f"{Path(result.output).name}")
+            self.parent.signal_process_status_update.emit(f"{i + 1}/{count} finding deformations", f"{Path(result.output).name}")
             p = ProcessSimple(getDeformation, (i, result, piv_parameters), {}, self.processing_progress, use_thread=self.use_thread)
             p.start()
             return_value = p.join()

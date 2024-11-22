@@ -523,7 +523,7 @@ class ProcessSimple:
 
     def join(self):
         if self.thread:
-            self.thread.join(timeout=10)
+            self.thread.join()
             return self.thread.result
         while True:
             result = self.queue_out.get()

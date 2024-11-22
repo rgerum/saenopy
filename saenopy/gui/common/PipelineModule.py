@@ -1,7 +1,6 @@
 import qtawesome as qta
 from qtpy import QtCore, QtWidgets
 from saenopy import Result
-from saenopy.gui.spheroid.modules.result import ResultSpheroid
 from typing import Tuple, List
 import traceback
 
@@ -166,8 +165,6 @@ class PipelineModule(QtWidgets.QWidget):
 
     def setResult(self, result: Result):
         """ set a new active result object """
-        #if result == self.result:
-        #    return
         self.current_result_plotted = False
         self.result = result
 
@@ -176,10 +173,6 @@ class PipelineModule(QtWidgets.QWidget):
 
         if result is not None and getattr(self, "t_slider", None) is not None:
             data = result.get_data_structure()
-            #if isinstance(result, ResultSpheroid):
-            #    self.t_slider.setRange(0, len(result.images) - 1)
-            #else:
-            #    self.t_slider.setRange(0, len(result.stacks) - 2)
             self.t_slider.setRange(0, data["time_point_count"] - 1)
 
         self.state_changed(result)
@@ -189,7 +182,6 @@ class PipelineModule(QtWidgets.QWidget):
                     self.parent.tabs.setTabEnabled(i, self.check_evaluated(result))
 
         # check if the results instance can be evaluated currently with this module
-        #if self.check_available(result) is False:
         if getattr(self, "input_button", None):
             self.input_button.setEnabled(self.check_available(result))
         if result is None or \
