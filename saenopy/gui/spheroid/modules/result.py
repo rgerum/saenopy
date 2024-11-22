@@ -1,6 +1,6 @@
 import numpy as np
 import io
-from typing import List
+from typing import List, TypedDict, Tuple
 import traceback
 from natsort import natsorted
 import re
@@ -17,6 +17,39 @@ class Mesh2D:
     pass
 
 
+class PivParametersDict(TypedDict):
+    window_size: int
+    overlap: int
+    n_min: int | None
+    n_max: int | None
+    thresh_segmentation: float
+    continuous_segmentation: bool
+
+
+class ForceParametersDict(TypedDict):
+    lookup_table: str | None
+    r_min: float | None
+    r_max: float | None
+
+
+class SegmentationDict(TypedDict):
+    mask: np.ndarray
+    radius: float
+    centroid: Tuple[float, float]
+
+
+class DisplacementsDict(TypedDict):
+    x: np.ndarray
+    y: np.ndarray
+    u: np.ndarray
+    v: np.ndarray
+
+
+class ResDict(TypedDict):
+    pressure_mean: np.ndarray
+    angle_min: np.ndarray
+
+
 class ResultSpheroid(Saveable):
     __save_parameters__ = ['template', 'images', 'output', 'pixel_size', 'time_delta',
                            'thresh_segmentation', 'continuous_segmentation',
@@ -28,10 +61,10 @@ class ResultSpheroid(Saveable):
                             'res_data', 'res_angles',
                            '___save_name__', '___save_version__']
     ___save_name__ = "ResultSpheroid"
-    ___save_version__ = "1.0"
+    ___save_version__ = "1.1"
 
     template: str = None
-    images: list = None
+    images: List[str] = None
     output: str = None
     state : bool = False
 
@@ -44,16 +77,25 @@ class ResultSpheroid(Saveable):
     n_min = None
     n_max = None
 
-    piv_parameters: dict = {}
-    force_parameters: dict = {}
+    piv_parameters: PivParametersDict = {}
+    force_parameters: ForceParametersDict = {}
 
-    segmentations: list = None
-    displacements: list = None
+    segmentations: List[SegmentationDict] = None
+    displacements: List[DisplacementsDict] = None
 
-    res_data: dict = None
+    res_data: ResDict = None
     res_angles: dict = None
 
     shape = None
+
+    @classmethod
+    def from_dict(cls, data_dict):  # pragma: no cover
+        if data_dict["___save_version__"] < "1.1":
+            print(f"convert old version {data_dict['___save_version__']} to 1.1")
+            data_dict["piv_parameters"]["overlap"] = 50
+            data_dict["___save_version__"] = "1.1"
+
+        return super().from_dict(data_dict)
 
     def __init__(self, template, images, output, **kwargs):
         self.template = template
