@@ -466,6 +466,7 @@ class ListWidget(QtWidgets.QListWidget):
 
 
 from multiprocessing import Process, Queue
+import multiprocessing
 
 
 class SignalReturn:
@@ -503,6 +504,7 @@ class ProcessSimple:
     process = None
 
     def __init__(self, target, args=[], kwargs={}, progress_signal=None, use_thread=False):
+        multiprocessing.set_start_method("spawn")
         self.args = args
         self.kwargs = kwargs
         self.progress_signal = progress_signal

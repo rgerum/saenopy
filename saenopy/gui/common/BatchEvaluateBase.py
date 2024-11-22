@@ -9,16 +9,11 @@ import glob
 import threading
 from pathlib import Path
 import matplotlib as mpl
-
 import traceback
 
-from saenopy import get_stacks
 from saenopy import Result
 from saenopy.gui.common import QtShortCuts
 from saenopy.gui.common.gui_classes import ListWidget
-from saenopy.gui.common.stack_selector_tif import add_last_voxel_size, add_last_time_delta
-
-from saenopy.gui.common.AddFilesDialog import FileExistsDialog
 from saenopy.gui.spheroid.modules.result import ResultSpheroid
 from saenopy.gui.tfm2d.modules.result import Result2D
 
