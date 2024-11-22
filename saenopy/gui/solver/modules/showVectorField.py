@@ -111,8 +111,10 @@ def showVectorField(plotter: QtInteractor, obj: Solver, field: np.ndarray, name:
             if name == "forces":
                   # scale forces to pN
                   if log_scale:
-                      point_cloud.point_data[name + "_mag2"] = np.log10(1e12*point_cloud.point_data[name + "_mag"].copy())
-                      point_cloud.point_data[name + "_mag2"] *= (point_cloud.point_data[name + "_mag2"] > point_cloud.point_data[name + "_mag2"]*0.1)
+                      # lgo10 can generate divide by zero errors here, but we are fine with receiving nan here
+                      with np.errstate(divide='ignore', invalid='ignore'):
+                          point_cloud.point_data[name + "_mag2"] = np.log10(1e12*point_cloud.point_data[name + "_mag"].copy())
+                          point_cloud.point_data[name + "_mag2"] *= (point_cloud.point_data[name + "_mag2"] > point_cloud.point_data[name + "_mag2"]*0.1)
                   else:
                       point_cloud.point_data[name + "_mag2"] = 1e12 * point_cloud.point_data[name + "_mag"].copy()
             # hide nans
