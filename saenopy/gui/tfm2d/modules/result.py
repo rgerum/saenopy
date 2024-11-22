@@ -157,21 +157,21 @@ class Result2D(Saveable):
             if index == 0:
                 if corrected:
                     try:
-                        im = read_tiff(self.input_corrected)
-                    except FileNotFoundError:
-                        im = read_tiff(self.input)
+                        im = read_tiff(self.get_absolute_path_corrected())
+                    except (FileNotFoundError, AttributeError):
+                        im = read_tiff(self.get_absolute_path())
                 else:
-                    im = read_tiff(self.input)
+                    im = read_tiff(self.get_absolute_path())
             elif index == -1:
-                im = read_tiff(self.bf)
+                im = read_tiff(self.get_absolute_path_bf())
             else:
                 if corrected:
                     try:
-                        im = read_tiff(self.reference_stack_corrected)
-                    except FileNotFoundError:
-                        im = read_tiff(self.reference_stack)
+                        im = read_tiff(self.get_absolute_path_reference_corrected())
+                    except (FileNotFoundError, AttributeError):
+                        im = read_tiff(self.get_absolute_path_reference())
                 else:
-                    im = read_tiff(self.reference_stack)
+                    im = read_tiff(self.get_absolute_path_reference())
         except FileNotFoundError as err:
             traceback.print_exception(err)
             h = 255
@@ -219,10 +219,16 @@ class Result2D(Saveable):
         return self.mask
 
     def get_absolute_path(self):
+        return make_path_absolute(self.input, Path(self.output).parent)
+
+    def get_absolute_path_corrected(self):
         return make_path_absolute(self.input_corrected, Path(self.output).parent)
 
     def get_absolute_path_reference(self):
         return make_path_absolute(self.reference_stack, Path(self.output).parent)
+
+    def get_absolute_path_reference_corrected(self):
+        return make_path_absolute(self.reference_stack_corrected, Path(self.output).parent)
 
     def get_absolute_path_bf(self):
         return make_path_absolute(self.bf, Path(self.output).parent)
