@@ -159,7 +159,7 @@ class Regularizer(PipelineModule):
                 self.canvas_plot.set_ydata(relrec[:, 0])
                 self.canvas_plot.set_visible(True)
                 self.canvas_text.set_visible(False)
-                self.canvas.figure.axes[0].set_xlim(0, len(relrec[:, 0]))
+                self.canvas.figure.axes[0].set_xlim(0, len(relrec[:, 0])+0.1)
 
                 self.canvas.figure.axes[0].relim()  # Recompute limits based on data
                 self.canvas.figure.axes[0].autoscale_view()  # Apply updated limits
