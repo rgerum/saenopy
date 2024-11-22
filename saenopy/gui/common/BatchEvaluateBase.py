@@ -47,6 +47,8 @@ class BatchEvaluateBase(QtWidgets.QWidget):
     tab_changed = QtCore.Signal(object)
     set_current_result = QtCore.Signal(object)
 
+    signal_process_status_update = QtCore.Signal(str, str)
+
     file_extension = None
 
     result_params = []
@@ -147,6 +149,14 @@ class BatchEvaluateBase(QtWidgets.QWidget):
 
         # load paths
         self.load_from_path([arg for arg in sys.argv if arg.endswith(self.file_extension)])
+
+        self.signal_process_status_update.connect(self.statusUpdate)
+
+    def statusUpdate(self, text1, text2):
+        self.progress_label.setText(text1)
+        self.progressbar.setRange(0, 1)
+        self.progressbar.setValue(0)
+        self.progress_label2.setText(text2)
 
     def copy_params(self):
         result = self.list.data[self.list.currentRow()][2]
