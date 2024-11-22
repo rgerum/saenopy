@@ -131,15 +131,9 @@ class Regularizer(PipelineModule):
         self.canvas.figure.axes[0].cla()
         self.canvas_text = self.canvas.figure.axes[0].text(0.5, 0.5, "no fit yet", ha="center",
                                         transform=self.canvas.figure.axes[0].transAxes)
-        self.canvas_plot = self.canvas.figure.axes[0].semilogy([[0,0]], label="total loss")[0]
-        # self.canvas.figure.axes[0].semilogy(relrec[:, 1], ":", label="least squares loss")
-        # self.canvas.figure.axes[0].semilogy(relrec[:, 2], "--", label="regularize loss")
-        # self.canvas.figure.axes[0].legend()
+        self.canvas_plot = self.canvas.figure.axes[0].semilogy([[0,1]], label="total loss")[0]
         self.canvas.figure.axes[0].spines["top"].set_visible(False)
         self.canvas.figure.axes[0].spines["right"].set_visible(False)
-        self.canvas.figure.axes[0].set_xlim(left=0)
-        ticks = self.canvas.figure.axes[0].get_xticks()
-        self.canvas.figure.axes[0].set_xticks([t for t in ticks if t < self.canvas.figure.axes[0].get_xlim()[1] * 0.7])
 
         self.canvas.figure.axes[0].text(0, 1, "error  ", ha="right", transform=self.canvas.figure.axes[0].transAxes)
         self.canvas.figure.axes[0].text(1, 0, "\n\niteration", ha="right", va="center",
