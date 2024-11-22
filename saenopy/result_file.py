@@ -4,7 +4,7 @@ from pathlib import Path
 from pathlib import PurePath, PureWindowsPath
 import os
 import natsort
-from typing import List
+from typing import List, Union
 import tifffile
 from PIL import Image
 from saenopy.stack import Stack, format_glob
@@ -284,7 +284,7 @@ class PivParametersDict(TypedDict):
 class MeshParametersDict(TypedDict):
     reference_stack: str
     element_size: float
-    mesh_size: List[float]
+    mesh_size: Union[List[float], str]
     
 class MaterialParametersDict(TypedDict):
     k: float
