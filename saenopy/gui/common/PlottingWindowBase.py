@@ -336,18 +336,14 @@ class PlottingWindowBase(QtWidgets.QWidget):
             color_dict = color_dict2
 
             # iterate over the groups
-            for name, data in res.groupby("group", sort=False)[mu_name]:
+            for index, (name, data) in enumerate(res.groupby("group", sort=False)[mu_name]):
                 # add the bar with the mean value and the standard error as errorbar
                 if np.isnan(data.sem()):
                     plt.bar(name, data.mean(), color=color_dict[name])
-                    print("B", name, data.mean())
                 else:
                     plt.bar(name, data.mean(), yerr=data.sem(), error_kw=dict(capsize=5), color=color_dict[name])
-                    print("B", name, data.mean(), data.sem())
                 # add the number of averaged points
-                plt.text(name, float(data.mean() + np.nan_to_num(data.sem())), f"n={data.count()}", ha="center", va="bottom")
-                print("T", name, float(data.mean() + np.nan_to_num(data.sem())))
-                print("T", type(name), type(float(data.mean() + np.nan_to_num(data.sem()))))
+                plt.text(index, float(data.mean() + np.nan_to_num(data.sem())), f"n={data.count()}", ha="center", va="bottom")
 
             # add ticks and labels
             plt.ylabel(y_label)
