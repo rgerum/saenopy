@@ -13,8 +13,10 @@ def format_value(mytype,value):
         return mytype.from_dict(value)
     # a TypedDict
     elif getattr(mytype, "__annotations__", None):
-        for key, mytype in mytype.__annotations__.items():
-            value[key] = format_value(mytype, value[key])
+        for key, value_type in mytype.__annotations__.items():
+            if key not in value and key in mytype.__optional_keys__:
+                continue
+            value[key] = format_value(value_type, value[key])
     elif typing.get_origin(mytype) in {typing.Dict,dict}:
         type_key = typing.get_args(mytype)[0]
         type_value = typing.get_args(mytype)[1]
@@ -114,6 +116,8 @@ class Saveable:
             else:
                 data[name] = data_dict[name]
             if name in types:
+                if name == "crop":
+                    print(data[name])
                 data[name] = format_value(types[name], data[name])
                     
         if len(save_parameters):
