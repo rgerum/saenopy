@@ -220,6 +220,7 @@ def main():  # pragma: no cover
 if __name__ == '__main__':  # pragma: no cover
     # On Windows calling this function is necessary.
     multiprocessing.freeze_support()
+    multiprocessing.set_start_method("spawn")
 
     if len(sys.argv) >= 3 and sys.argv[1] == "run" and sys.argv[2].endswith(".py"):
         source = open(sys.argv[2]).read()

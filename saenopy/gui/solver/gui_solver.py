@@ -29,6 +29,8 @@ class MainWindowSolver(QtWidgets.QWidget):
 
 
 if __name__ == '__main__':  # pragma: no cover
+    import multiprocessing
+    multiprocessing.set_start_method("spawn")
     app = QtWidgets.QApplication(sys.argv)
     if sys.platform.startswith('win'):
         import ctypes
