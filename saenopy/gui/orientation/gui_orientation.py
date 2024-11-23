@@ -441,7 +441,7 @@ class BatchEvaluate(QtWidgets.QWidget):
                 self.segmention_thres_indi.setValue(attr["segmention_thres"])
                 self.seg_gaus1_indi.setValue(attr["seg_gaus1"])
                 self.seg_gaus2_indi.setValue(attr["seg_gaus2"])
-                print("->", [v is None for v in attr.values()])
+                #print("->", [v is None for v in attr.values()])
                 if np.all([v is None for v in attr.values()]):
                     self.individual_data.setValue(False)
                 else:

@@ -202,13 +202,13 @@ def get_examples_orientation():
     image_path = Path(resource_path("thumbnails"))
     return {
         "CellFibers": {
-            "desc": "Test data for the orientation model.",
+            "desc": "Evaluate matrix fiber allignment around cells in collagen.",
             "img": image_path / "CellFibers.png",
             "pixel_size": 0.201,
-            "input_cell": example_path / 'CellFibers/Cell_*/C004.tif',
-            "input_fiber": example_path / 'CellFibers/Cell_*/C003.tif',
-            "output_path": example_path / 'CellFibers/example_output',
-            "url": "https://github.com/rgerum/saenopy/releases/download/v0.7.4/CellFibers.zip",
+            "input_cell": example_path / 'Orientation_CellsCollagen/data/Cell_*/C004.tif',
+            "input_fiber": example_path / 'Orientation_CellsCollagen/data/Cell_*/C003.tif',
+            "output_path": example_path / 'Orientation_CellsCollagen/eval',
+            "url": "https://github.com/rgerum/saenopy/releases/download/v0.7.4/Orientation_CellsCollagen.zip",
             #"url_evaluated": "https://github.com/rgerum/saenopy/releases/download/v0.7.4/MCF7-time-lapse_evaluated.zip",
             #"url_evaluated_file": ["KO/04_bf_before.saenopy2D", "KO/05_bf_before.saenopy2D", "WT/03_bf_before.saenopy2D", "WT/10_bf_before.saenopy2D"],
         },
