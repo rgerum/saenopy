@@ -320,8 +320,7 @@ class BatchEvaluate(QtWidgets.QWidget):
                     output_sub = os.path.join(output_folder, rf"Sigma{str(sigma*parent.scale.value()).zfill(3)}")  # subpath to store results
                     fiber_list, cell_list, out_list = generate_lists(fiber, cell,
                                                                      output_main=output_sub)
-
-
+       
   
                     StuctureAnalysisMain(fiber_list=fiber_list,
                                          cell_list=cell_list,
@@ -553,7 +552,7 @@ class BatchEvaluate(QtWidgets.QWidget):
 
     def run_thread(self):
         try:
-            print("compute displacements")
+            print("compute orientations")
             n = len([1 for d in self.data if d[1]])
             counter = 0
             self.progress_signal.emit(0, n, 0, 1)
