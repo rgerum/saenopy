@@ -10,11 +10,12 @@ import imageio
 
 from saenopy.saveable import Saveable
 
-class CropDict(TypedDict):
-    x: List[int]
-    y: List[int]
-    z: List[int]
-    
+class CropDict(TypedDict, total=False):
+    x: Tuple[int | None, int | None]
+    y: Tuple[int | None, int | None]
+    z: Tuple[int | None, int | None]
+    t: Tuple[int | None, int | None]
+
 
 
 class Stack(Saveable):
