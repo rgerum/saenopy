@@ -1,6 +1,6 @@
 import numpy as np
 import io
-from typing import List, TypedDict, Tuple
+from typing import List, TypedDict, Tuple, Union
 import traceback
 from natsort import natsorted
 import re
@@ -17,20 +17,21 @@ class Mesh2D:
     pass
 
 
+
 class PivParametersDict(TypedDict):
     window_size: int
     overlap: int
-    n_min: int | None
-    n_max: int | None
+    n_min: Union[int, None]
+    n_max: Union[int, None]
     thresh_segmentation: float
     continuous_segmentation: bool
 
 
 class ForceParametersDict(TypedDict):
-    lookup_table: str | None
-    r_min: float | None
-    r_max: float | None
-
+    lookup_table: Union[str, None]
+    r_min: Union[float, None]
+    r_max: Union[float, None]
+    
 
 class SegmentationDict(TypedDict):
     mask: np.ndarray

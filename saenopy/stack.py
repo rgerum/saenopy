@@ -4,17 +4,19 @@ from pathlib import Path
 import natsort
 import numpy as np
 import pandas as pd
-from typing import Tuple, List, TypedDict
+from typing import Tuple, List, TypedDict, Union
 import tifffile
 import imageio
 
 from saenopy.saveable import Saveable
 
 class CropDict(TypedDict, total=False):
-    x: Tuple[int | None, int | None]
-    y: Tuple[int | None, int | None]
-    z: Tuple[int | None, int | None]
-    t: Tuple[int | None, int | None]
+    x: Tuple[Union[int, None], Union[int, None]]
+    y: Tuple[Union[int, None], Union[int, None]]
+    z: Tuple[Union[int, None], Union[int, None]]
+    t: Tuple[Union[int, None], Union[int, None]]
+
+
 
 
 
