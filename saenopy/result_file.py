@@ -482,7 +482,8 @@ class Result(Saveable):
        
         if data_dict["___save_version__"] < "1.5":  # pragma: no cover
              print(f"convert old version {data_dict['___save_version__']} to 1.5")
-             data_dict["solve_parameters"]["prev_t_as_start"] = False 
+             if data_dict["solve_parameters"] is not None:
+                 data_dict["solve_parameters"]["prev_t_as_start"] = False
              data_dict["___save_version__"] = "1.5"
              
         return super().from_dict(data_dict)
