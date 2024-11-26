@@ -1,24 +1,8 @@
-import sys
-
 # Setting the Qt bindings for QtPy
 import os
 
-import pandas as pd
-import qtawesome as qta
 from qtpy import QtCore, QtWidgets, QtGui
-import numpy as np
-from saenopy.gui.common import QtShortCuts, QExtendedGraphicsView
-from saenopy.gui.common.gui_classes import Spoiler, CheckAbleGroup, QHLine, QVLine, MatplotlibWidget, NavigationToolbar, execute, kill_thread, ListWidget
-import imageio
-from qimage2ndarray import array2qimage
-import matplotlib.pyplot as plt
-import glob
-import imageio
-import threading
-import glob
-import re
-from pathlib import Path
-import saenopy
+from saenopy.gui.common import QtShortCuts
 from saenopy.examples import get_examples_orientation
 from saenopy.gui.common.AddFilesDialog import AddFilesDialog
 
