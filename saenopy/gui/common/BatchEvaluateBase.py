@@ -66,7 +66,8 @@ class BatchEvaluateBase(QtWidgets.QWidget):
                 if cam_pos is not None and getattr(tab, "plotter", None):
                     tab.plotter.camera_position = cam_pos
                 if old_tab is not None:
-                    tab.t_slider.setValue(old_tab.t_slider.value())
+                    if getattr(tab, "t_slider", None) is not None and getattr(old_tab, "t_slider", None) is not None:
+                        tab.t_slider.setValue(old_tab.t_slider.value())
                 old_tab = tab
                 self.tab_changed.emit(tab)
 

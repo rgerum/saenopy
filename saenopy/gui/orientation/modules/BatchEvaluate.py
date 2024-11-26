@@ -7,6 +7,8 @@ import traceback
 from saenopy.examples import get_examples_orientation
 from .AddFilesDialog import AddFilesDialog
 from saenopy.gui.common.AddFilesDialog import FileExistsDialog
+from .TabCellOutline import TabCellOutline
+from .TabOrientationField import TabOrientationField
 from .result import ResultOrientation, get_orientation_files
 from .Detection import DeformationDetector
 from .Segmentation import SegmentationDetector
@@ -27,6 +29,9 @@ class BatchEvaluate(BatchEvaluateBase):
         self.sub_module_segmentation = SegmentationDetector(self, layout0)
         self.sub_module_deformation = DeformationDetector(self, layout0)
         self.modules = [self.sub_module_segmentation, self.sub_module_deformation]
+
+        self.tab1 = TabCellOutline(self)
+        self.tab2 = TabOrientationField(self)
 
     def add_measurement(self):
         last_decision = None
