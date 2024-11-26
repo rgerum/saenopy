@@ -1,46 +1,18 @@
-import sys
 import os
-import time
-import qtawesome as qta
 from qtpy import QtCore, QtWidgets, QtGui
-import numpy as np
-import pyvista as pv
-from typing import List, Tuple
-from pyvistaqt import QtInteractor
-
-import imageio
-from qimage2ndarray import array2qimage
-import matplotlib.pyplot as plt
-import glob
-import imageio
-import threading
-import inspect
-
-import natsort
-
+from typing import Tuple
 from pathlib import Path
-import re
-import pandas as pd
-import matplotlib as mpl
 
 import saenopy
 import saenopy.multigrid_helper
-from saenopy.multigrid_helper import get_scaled_mesh, get_nodes_with_one_face
 import saenopy.get_deformations
 import saenopy.materials
-from saenopy.stack import Stack, format_glob
-from saenopy.saveable import Saveable
 from saenopy import Result
-from saenopy.gui.common import QtShortCuts, QExtendedGraphicsView
-from saenopy.gui.common.gui_classes import Spoiler, CheckAbleGroup, QHLine, QVLine, MatplotlibWidget, NavigationToolbar, execute, kill_thread, ListWidget, QProcess, ProcessSimple
-from saenopy.gui.common.stack_selector import StackSelector
+from saenopy.gui.common import QtShortCuts
+from saenopy.gui.common.gui_classes import CheckAbleGroup
 
 
 from saenopy.gui.common.PipelineModule import PipelineModule
-from saenopy.gui.common.QTimeSlider import QTimeSlider
-from .VTK_Toolbar import VTK_Toolbar
-from .showVectorField import showVectorField, showVectorField2
-from .DeformationDetector import CamPos
 from saenopy.gui.common.code_export import get_code
 
 class MeshSizeWidget(QtWidgets.QWidget):
@@ -117,59 +89,18 @@ class MeshCreator(PipelineModule):
                     self.input_button = QtWidgets.QPushButton("interpolate mesh").addToLayout()
                     self.input_button.clicked.connect(self.start_process)
 
-        with self.parent.tabs.createTab("Target Deformations") as self.tab:
-            with QtShortCuts.QVBoxLayout() as layout:
-                self.label_tab = QtWidgets.QLabel("The deformations from the piv algorithm interpolated on the new mesh for regularisation.").addToLayout()
-
-                with QtShortCuts.QHBoxLayout() as layout:
-                    self.plotter = QtInteractor(self, auto_update=False)  # , theme=pv.themes.DocumentTheme())
-                    self.tab.parent().plotter = self.plotter
-                    layout.addWidget(self.plotter.interactor)
-
-                    self.z_slider = QTimeSlider("z", self.z_slider_value_changed, "set z position",
-                                                QtCore.Qt.Vertical).addToLayout()
-                    self.z_slider.t_slider.valueChanged.connect(
-                        lambda value: parent.shared_properties.change_property("z_slider", value, self))
-                    parent.shared_properties.add_property("z_slider", self)\
-
-                self.vtk_toolbar = VTK_Toolbar(self.plotter, self.update_display, shared_properties=self.parent.shared_properties).addToLayout()
-
-
-                self.t_slider = QTimeSlider(connected=self.update_display).addToLayout()
-                self.tab.parent().t_slider = self.t_slider
-
         self.setParameterMapping("mesh_parameters", {
             "reference_stack": self.input_reference,
             "element_size": self.input_element_size,
             "mesh_size": self.input_mesh_size,
         })
 
-    def z_slider_value_changed(self):
-        self.update_display()
-
     def check_available(self, result: Result):
         return result is not None and result.mesh_piv is not None and len(result.mesh_piv) and result.mesh_piv[0] is not None
-
-    def check_evaluated(self, result: Result) -> bool:
-        return result is not None and result.solvers is not None and len(result.solvers) and result.solvers[0] is not None
-
-    def property_changed(self, name, value):
-        if name == "z_slider":
-            self.z_slider.setValue(value)
 
     def setResult(self, result: Result):
         super().setResult(result)
         if result and result.stacks and result.stacks[0]:
-            self.z_slider.setRange(0, result.stacks[0].shape[2] - 1)
-            self.z_slider.setValue(self.result.stacks[0].shape[2] // 2)
-
-            if result.stacks[0].channels:
-                self.vtk_toolbar.channel_select.setValues(np.arange(len(result.stacks[0].channels)), result.stacks[0].channels)
-                self.vtk_toolbar.channel_select.setVisible(True)
-            else:
-                self.vtk_toolbar.channel_select.setValue(0)
-                self.vtk_toolbar.channel_select.setVisible(False)
-
             if result.stack_reference is None:
                 self.input_reference.setValues(["next", "median", "cumul."])
                 self.input_reference.setEnabled(True)
@@ -186,19 +117,6 @@ class MeshCreator(PipelineModule):
             self.input_reference.setEnabled(True)
         else:
             self.input_reference.setEnabled(False)
-        if self.check_evaluated(self.result):
-            cam_pos = None
-            if self.plotter.camera_position is not None and CamPos.cam_pos_initialized is True:
-                cam_pos = self.plotter.camera_position
-            CamPos.cam_pos_initialized = True
-            M = self.result.solvers[self.t_slider.value()]
-            mesh = M.mesh
-            self.plotter.interactor.setToolTip(str(self.result.mesh_parameters) + f"\nNodes {mesh.nodes.shape[0]}\nTets {mesh.tetrahedra.shape[0]}")
-            showVectorField2(self, mesh, "displacements_target")
-            if cam_pos is not None:
-                self.plotter.camera_position = cam_pos
-        else:
-            self.plotter.interactor.setToolTip("")
 
     def process(self, result: Result, mesh_parameters: dict):
         # demo run

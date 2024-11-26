@@ -5,7 +5,7 @@ import numpy as np
 from qimage2ndarray import array2qimage
 from saenopy.gui.common import QtShortCuts, QExtendedGraphicsView
 from saenopy.gui.common.QTimeSlider import QTimeSlider
-from saenopy.gui.solver.modules.StackDisplay import ModuleScaleBar
+from saenopy.gui.solver.modules.TabStackDisplay import ModuleScaleBar
 
 
 def crop(im, z, t, cropped):

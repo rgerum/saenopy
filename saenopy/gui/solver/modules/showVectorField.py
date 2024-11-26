@@ -1,5 +1,3 @@
-import imageio
-import numpy as np
 import pyvista as pv
 from pyvistaqt import QtInteractor
 import numpy as np

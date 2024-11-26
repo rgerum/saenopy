@@ -29,6 +29,9 @@ class TabModule(QtWidgets.QWidget):
         else:
             self.current_tab_selected = False
 
+    def check_evaluated(self, result):
+        return True
+
     def resultChanged(self, result: Result):
         """ called when the contents of result changed. Only update view if it is the currently displayed one. """
         if result is self.result:

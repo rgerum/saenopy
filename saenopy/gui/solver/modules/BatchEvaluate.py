@@ -1,29 +1,25 @@
-import json
-import sys
 import os
 
-import qtawesome as qta
 from qtpy import QtCore, QtWidgets, QtGui
-import numpy as np
-import glob
-import threading
-from pathlib import Path
-import matplotlib as mpl
 
 import traceback
 
 from saenopy import get_stacks
-from saenopy import Result
 from saenopy.gui.common import QtShortCuts
-from saenopy.gui.common.gui_classes import ListWidget
 from saenopy.gui.common.stack_selector_tif import add_last_voxel_size, add_last_time_delta
 
+from .Initializer import Initializer
 from .DeformationDetector import DeformationDetector
-from .FittedMesh import FittedMesh
 from .MeshCreator import MeshCreator
 from .Regularizer import Regularizer
-from .ResultView import ResultView
-from .StackDisplay import StackDisplay
+
+from .TabStackDisplay import TabStackDisplay
+from .TabPiv import TabPiv
+from .TabTargetDeformations import TabTargetDeformations
+from .TabFittedDeformations import TabFittedDeformations
+from .TabForces import TabForces
+from .TabResultView import TabResultView
+
 from saenopy.gui.solver.modules.exporter.Exporter import ExportViewer
 from .load_measurement_dialog import AddFilesDialog
 from saenopy.gui.common.AddFilesDialog import FileExistsDialog
@@ -40,15 +36,20 @@ class BatchEvaluate(BatchEvaluateBase):
 
     def add_modules(self):
         layout0 = QtShortCuts.currentLayout()
-        self.sub_module_stacks = StackDisplay(self, layout0)
+        self.tab1 = TabStackDisplay(self)
+        self.tab2 = TabPiv(self)
+        self.tab3 = TabTargetDeformations(self)
+        self.tab4 = TabFittedDeformations(self)
+        self.tab5 = TabForces(self)
+        self.tab6 = TabResultView(self)
+
+        self.sub_module_initializer = Initializer(self, layout0)
         self.sub_module_deformation = DeformationDetector(self, layout0)
         self.sub_module_mesh = MeshCreator(self, layout0)
-        self.sub_module_fitted_mesh = FittedMesh(self, layout0)
         self.sub_module_regularize = Regularizer(self, layout0)
-        self.sub_module_view = ResultView(self, layout0)
         # self.sub_module_fiber = FiberViewer(self, layout0)
         self.sub_module_export = ExportViewer(self, layout0)
-        self.modules = [self.sub_module_stacks, self.sub_module_deformation, self.sub_module_mesh, self.sub_module_regularize]
+        self.modules = [self.sub_module_initializer, self.sub_module_deformation, self.sub_module_mesh, self.sub_module_regularize]
 
     def path_editor(self):
         result = self.list.data[self.list.currentRow()][2]

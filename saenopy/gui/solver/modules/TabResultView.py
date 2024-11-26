@@ -10,17 +10,17 @@ from saenopy.gui.common import QtShortCuts
 from saenopy import Result, Solver
 from saenopy.materials import SemiAffineFiberMaterial
 
-from saenopy.gui.common.PipelineModule import PipelineModule
+from saenopy.gui.common.TabModule import TabModule
 from saenopy.gui.common.QTimeSlider import QTimeSlider
 
 
 result_view = None
-class ResultView(PipelineModule):
+class TabResultView(TabModule):
     M: Solver = None
 
-    def __init__(self, parent: "BatchEvaluate", layout):
+    def __init__(self, parent: "BatchEvaluate"):
         global result_view
-        super().__init__(parent, layout)
+        super().__init__(parent)
         result_view = self
         self.theme = pv.themes.DarkTheme()
 
@@ -223,4 +223,3 @@ class ResultView(PipelineModule):
         if new_path:
             imageio.imsave(new_path, self.plotter.image)
             print("saved", new_path)
-
