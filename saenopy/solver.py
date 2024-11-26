@@ -1079,6 +1079,7 @@ def subtract_reference_state(mesh_piv, mode):
     U = [M.displacements_measured for M in mesh_piv]
     # correct for the different modes
     if len(U) > 2: 
+        xpos2 = U
         if mode == "cumul.":
             xpos2 = np.cumsum(U, axis=0)
         elif mode == "median":
