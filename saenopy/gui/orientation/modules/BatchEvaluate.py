@@ -9,6 +9,7 @@ from .AddFilesDialog import AddFilesDialog
 from saenopy.gui.common.AddFilesDialog import FileExistsDialog
 from .result import ResultOrientation, get_orientation_files
 from .Detection import DeformationDetector
+from .Segmentation import SegmentationDetector
 from saenopy.gui.common.BatchEvaluateBase import BatchEvaluateBase
 
 settings = QtCore.QSettings("FabryLab", "CompactionAnalyzer")
@@ -23,8 +24,9 @@ class BatchEvaluate(BatchEvaluateBase):
 
     def add_modules(self):
         layout0 = QtShortCuts.currentLayout()
+        self.sub_module_segmentation = SegmentationDetector(self, layout0)
         self.sub_module_deformation = DeformationDetector(self, layout0)
-        self.modules = [self.sub_module_deformation]
+        self.modules = [self.sub_module_segmentation, self.sub_module_deformation]
 
     def add_measurement(self):
         last_decision = None

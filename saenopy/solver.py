@@ -1061,11 +1061,14 @@ def load_solver(filename: str) -> Solver:
 def load(filename: str) -> Result:
     from saenopy.gui.spheroid.modules.result import ResultSpheroid
     from saenopy.gui.tfm2d.modules.result import Result2D
-    
+    from saenopy.gui.orientation.modules.result import ResultOrientation
+
     if str(filename).endswith(".saenopySpheroid"):
         return ResultSpheroid.load(filename)
     if str(filename).endswith(".saenopy2D"):
         return Result2D.load(filename)
+    if str(filename).endswith(".saenopyOrientation"):
+        return ResultOrientation.load(filename)
     
     return Result.load(filename)
 

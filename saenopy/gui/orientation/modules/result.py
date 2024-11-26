@@ -1,6 +1,6 @@
 import numpy as np
 import io
-from typing import List, TypedDict, Tuple
+from typing import List, TypedDict, Tuple, Union
 import traceback
 from natsort import natsorted
 import re
@@ -16,9 +16,36 @@ from saenopy.saveable import Saveable
 from saenopy.result_file import make_path_absolute, make_path_relative
 
 
+class SegmentationParametersDict(TypedDict):
+    thresh: float
+    gauss1: float
+    gauss2: float
+    invert: bool
+
+
+class OrientationParametersDict(TypedDict):
+    sigma_tensor: float
+    sigma_tensor_type: str
+    edge: int
+    max_dist: Union[float, None]
+    ignore_cell_outline: bool
+    sigma_first_blur: float
+    angle_sections: int
+    shell_width: float
+    shell_width_type: str
+
+
+class Segmentation(TypedDict):
+    mask: np.ndarray
+    radius: float
+    centroid: Tuple[float, float]
+
 
 class ResultOrientation(Saveable):
     __save_parameters__ = ['image_cell', 'image_fiber', 'pixel_size', 'output',
+                           'segmentation_parameters', 'orientation_parameters',
+                           'segmentation', 'orientation_map',
+                           'shape',
                            '___save_name__', '___save_version__']
     ___save_name__ = "ResultOrientation"
     ___save_version__ = "1.0"
@@ -28,7 +55,12 @@ class ResultOrientation(Saveable):
     output: str = None
     pixel_size: float = None
 
-    piv_parameters: dict = {}
+    segmentation_parameters: SegmentationParametersDict = None
+    orientation_parameters: OrientationParametersDict = None
+
+    segmentation: Segmentation = None
+
+    orientation_map: np.ndarray = None
 
     state: bool = False
 

@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import jointforces as jf
 from pathlib import Path
 
-from saenopy.gui.orientation.modules.result import ResultOrientation
+from saenopy.gui.orientation.modules.result import ResultOrientation, OrientationParametersDict
 from qtpy import QtCore, QtWidgets, QtGui
 from qimage2ndarray import array2qimage
 from saenopy.gui.common import QtShortCuts, QExtendedGraphicsView
@@ -17,6 +17,44 @@ from saenopy.gui.common.code_export import get_code
 from saenopy.gui.common.ModuleScaleBar import ModuleScaleBar
 from saenopy.gui.common.ModuleColorBar import ModuleColorBar
 
+def im_process(im, cmap, vmin=None, vmax=None, alpha=1, add_to=None):
+    if vmin is not None and vmax is not None:
+        im -= vmin
+        im /= (vmax-vmin)
+        im = np.clip(im, 0, 1)*255
+    im = plt.get_cmap(cmap)(im)
+    if add_to is not None:
+        im = add_to * (1-alpha) + im * alpha
+    else:
+        im *= alpha
+    return im
+
+def plot_fancy_overlay(fiber, cell, field,label="field",dpi=300,cmap_cell="Greys_r",cmap_fiber="Greys_r",
+                       cmap_angle="viridis", alpha_ori =0.8,  alpha_cell = 0.4, alpha_fiber = 0.4,   # example cmaps: viridis/inferno/coolwarm
+                       omin=-1, omax=1, scale=None):
+
+    im = np.ones([field.shape[0], field.shape[1], 4])
+    im = im_process(field, cmap=cmap_angle, vmin=omin, vmax=omax, alpha=alpha_ori)
+    im = im_process(fiber, cmap=cmap_fiber, alpha=alpha_fiber, add_to=im)
+    if cell is not None:
+        im = im_process(cell, cmap=cmap_cell, alpha=alpha_cell, add_to=im)
+    return im
+
+    fig =plt.figure()
+    plt.imshow(field,cmap=cmap_angle,vmin=omin,vmax=omax,alpha=alpha_ori);cbar =plt.colorbar()
+    plt.imshow(fiber, cmap=cmap_fiber,alpha=alpha_fiber)
+    if cell is not None:
+        plt.imshow(cell, cmap=cmap_cell,alpha=alpha_cell)
+    plt.axis('off');
+    cbar.set_label(label,fontsize=12)
+    if scale is not None:
+        pass
+        #scalebar = ScaleBar(scale, "um", length_fraction=0.1, location="lower right", box_alpha=0 ,
+        #            color="k")
+        #plt.gca().add_artist(scalebar)
+    plt.tight_layout()
+    #plt.savefig(path_png, dpi=dpi, bbox_inches='tight', pad_inches=0)
+    return fig
 
 class DeformationDetector(PipelineModule):
     pipeline_name = "find deformations"
@@ -29,12 +67,8 @@ class DeformationDetector(PipelineModule):
 
         with QtShortCuts.QVBoxLayout(self) as layout:
             layout.setContentsMargins(0, 0, 0, 0)
-            with CheckAbleGroup(self, "find oriengations").addToLayout() as self.group:
+            with CheckAbleGroup(self, "find orientations").addToLayout() as self.group:
                 with QtShortCuts.QVBoxLayout() as layout:
-                    with QtShortCuts.QHBoxLayout():
-                        self.scale = QtShortCuts.QInputString(None, "scale", "1.0", type=float, settings=self.settings,
-                                                              settings_key="orientation/scale")
-                        QtWidgets.QLabel("um/px").addToLayout()
                     with QtShortCuts.QHBoxLayout():
                         self.sigma_tensor = QtShortCuts.QInputString(None, "sigma_tensor", "7.0", type=float,
                                                                      settings=self.settings,
@@ -47,6 +81,7 @@ class DeformationDetector(PipelineModule):
                         self.sigma_tensor_button.setDisabled(True)
                     with QtShortCuts.QHBoxLayout():
                         self.edge = QtShortCuts.QInputString(None, "edge", "40", type=int, settings=self.settings,
+                                                             allow_none=False,
                                                              settings_key="orientation/edge",
                                                              tooltip="How many pixels to cut at the edge of the image.")
                         QtWidgets.QLabel("px").addToLayout()
@@ -56,6 +91,9 @@ class DeformationDetector(PipelineModule):
                                                                  tooltip="Optional: specify the maximal distance around the cell center",
                                                                  none_value=None)
                         QtWidgets.QLabel("px").addToLayout()
+
+                    self.ignore_cell = QtShortCuts.QInputBool(None, "ignore_cell_outline", False, settings=self.settings,
+                                                                 settings_key="orientation/ignore_cell_outline",)
 
                     with QtShortCuts.QHBoxLayout():
                         self.sigma_first_blur = QtShortCuts.QInputString(None, "sigma_first_blur", "0.5",
@@ -75,36 +113,6 @@ class DeformationDetector(PipelineModule):
                         self.shell_width_type = QtShortCuts.QInputChoice(None, "", "um", ["um", "pixel"],
                                                                          settings=self.settings,
                                                                          settings_key="orientation/shell_width_type")
-
-                    with QtShortCuts.QGroupBox(None, "Segmentation Parameters"):
-                        self.segmention_thres = QtShortCuts.QInputString(None, "segmention_thresh", "1.0",
-                                                                         type=float,
-                                                                         settings=self.settings,
-                                                                         settings_key="orientation/segmention_thres")
-                        #self.segmention_thres.valueChanged.connect(self.listSelected)
-                        with QtShortCuts.QHBoxLayout():
-                            self.seg_gaus1 = QtShortCuts.QInputString(None, "seg_gauss1", "0.5", type=float,
-                                                                      settings=self.settings,
-                                                                      settings_key="orientation/seg_gaus1")
-                            #self.seg_gaus1.valueChanged.connect(self.listSelected)
-                            self.seg_gaus2 = QtShortCuts.QInputString(None, "seg_gauss2", "100", type=float,
-                                                                      settings=self.settings,
-                                                                      settings_key="orientation/seg_gaus2")
-                            #self.seg_gaus2.valueChanged.connect(self.listSelected)
-
-                        with CheckAbleGroup(self, "individual segmentation").addToLayout() as self.individual_data:
-                            with QtShortCuts.QVBoxLayout() as layout2:
-                                self.segmention_thres_indi = QtShortCuts.QInputString(None, "segmention_thresh",
-                                                                                      None, type=float,
-                                                                                      allow_none=True)
-                                #self.segmention_thres_indi.valueChanged.connect(self.listSelected)
-                                with QtShortCuts.QHBoxLayout():
-                                    self.seg_gaus1_indi = QtShortCuts.QInputString(None, "seg_gauss1", None,
-                                                                                   type=float, allow_none=True)
-                                    #self.seg_gaus1_indi.valueChanged.connect(self.listSelected)
-                                    self.seg_gaus2_indi = QtShortCuts.QInputString(None, "seg_gauss2", None,
-                                                                                   type=float, allow_none=True)
-                                    #self.seg_gaus2_indi.valueChanged.connect(self.listSelected)
 
                     self.input_button = QtShortCuts.QPushButton(None, "detect deformations", self.start_process)
 
@@ -186,21 +194,19 @@ class DeformationDetector(PipelineModule):
                 self.t_slider = QTimeSlider(connected=self.update_display).addToLayout()
                 self.tab.parent().t_slider = self.t_slider
 
-        self.setParameterMapping("piv_parameters", {
+        self.setParameterMapping("orientation_parameters", {
             "sigma_tensor": self.sigma_tensor,
             "sigma_tensor_type": self.sigma_tensor_type,
             "edge": self.edge,
             "max_dist": self.max_dist,
+            "ignore_cell_outline": self.ignore_cell,
             "sigma_first_blur": self.sigma_first_blur,
             "angle_sections": self.angle_sections,
             "shell_width": self.shell_width,
             "shell_width_type": self.shell_width_type,
-            "segmention_thres": self.segmention_thres,
-            "seg_gaus1": self.seg_gaus1,
-            "seg_gaus2": self.seg_gaus2,
         })
 
-        self.progress_signal.connect(self.progress_callback)
+        #self.progress_signal.connect(self.progress_callback)
 
     def scale_max_changed(self):
         self.scale_max.setDisabled(self.auto_scale.value())
@@ -233,7 +239,21 @@ class DeformationDetector(PipelineModule):
         #if self.current_tab_selected is False:
         #    return
 
-        im = self.result.get_image(0)
+        im_fiber = self.result.get_image(1)
+        im_cell = self.result.get_image(0)
+
+        print("orientation_map", self.result.orientation_map)
+        if self.result.orientation_map is not None:
+            print("plot oriengation")
+            edge = self.result.orientation_parameters["edge"]
+            im = plot_fancy_overlay(im_fiber[edge:-edge, edge:-edge], im_cell[edge:-edge, edge:-edge], self.result.orientation_map, omin=-1, omax=1)
+            print(im.shape, im.dtype)
+            im = (im*255).astype(np.uint8)
+            print(im[:10,:10])
+        else:
+            print("plot fibers")
+            im = im_fiber
+
         print(im.dtype, im.max())
         self.pixmap.setPixmap(QtGui.QPixmap(array2qimage(im)))
         self.label.setExtend(im.shape[1], im.shape[0])
@@ -300,12 +320,13 @@ class DeformationDetector(PipelineModule):
                     path.lineTo(cc[1], im.shape[0] - cc[0])
             self.contour.setPath(path)
 
-    def process(self, result: ResultOrientation, piv_parameters: dict):
-        sigma_tensor = piv_parameters["sigma_tensor"]
-        if piv_parameters["sigma_tensor_type"] == "um":
+    def process(self, result: ResultOrientation, orientation_parameters: OrientationParametersDict):
+        segmentation_parameters = result.segmentation_parameters
+        sigma_tensor = orientation_parameters["sigma_tensor"]
+        if orientation_parameters["sigma_tensor_type"] == "um":
             sigma_tensor /= result.pixel_size
-        shell_width = piv_parameters["shell_width"]
-        if piv_parameters["shell_width_type"] == "um":
+        shell_width = orientation_parameters["shell_width"]
+        if orientation_parameters["shell_width_type"] == "um":
             shell_width /= result.pixel_size
 
         from CompactionAnalyzer.CompactionFunctions import StuctureAnalysisMain
@@ -314,15 +335,20 @@ class DeformationDetector(PipelineModule):
                              out_list=[result.output[:-len(".saenopyOrientation")]],
                              scale=result.pixel_size,
                              sigma_tensor=sigma_tensor,
-                             edge=piv_parameters["edge"],
-                             max_dist=piv_parameters["max_dist"],
-                             segmention_thres=piv_parameters["segmention_thres"],
-                             seg_gaus1=piv_parameters["seg_gaus1"],
-                             seg_gaus2=piv_parameters["seg_gaus2"],
-                             sigma_first_blur=piv_parameters["sigma_first_blur"],
-                             angle_sections=piv_parameters["angle_sections"],
+                             edge=orientation_parameters["edge"],
+                             max_dist=orientation_parameters["max_dist"],
+                             ignore_cell_outline=orientation_parameters["ignore_cell_outline"],
+                             segmention_thres=segmentation_parameters["thresh"],
+                             seg_gaus1=segmentation_parameters["gauss1"],
+                             seg_gaus2=segmentation_parameters["gauss2"],
+                             seg_invert=segmentation_parameters["invert"],
+                             sigma_first_blur=orientation_parameters["sigma_first_blur"],
+                             angle_sections=orientation_parameters["angle_sections"],
                              shell_width=shell_width,
+                             SaveNumpy=True,
                              )
+
+        result.orientation_map = np.load(Path(result.output).parent / Path(result.output).stem / "NumpyArrays" / "OrientationMap.npy")
 
         result.save()
 
