@@ -1077,14 +1077,15 @@ def load_results(filename: str) -> List[Result]:
 
 def subtract_reference_state(mesh_piv, mode):
     U = [M.displacements_measured for M in mesh_piv]
-    # correct for the median position
-    if len(U) > 2:
-        xpos2 = np.cumsum(U, axis=0)
+    # correct for the different modes
+    if len(U) > 2: 
         if mode == "cumul.":
-            xpos2 = xpos2
+            xpos2 = np.cumsum(U, axis=0)
         elif mode == "median":
+            xpos2 = np.cumsum(U, axis=0)
             xpos2 -= np.nanmedian(xpos2, axis=0)
         elif mode == "last":
+            xpos2 = np.cumsum(U, axis=0)
             xpos2 -= xpos2[-1]
         elif mode == "next":
             xpos2 = U
