@@ -119,7 +119,6 @@ def render_2d_arrows(params, result, pil_image, im_scale, aa_scale, display_imag
             field = field[:, :2] * params_arrows["arrow_scale"]
             field[:, 1] = -field[:, 1]
         else:  # "microns" + 3D
-            R = R[:, :2][:, ::-1] * scale + offset
             R = R[:, :2][:, ::-1] * scale + offset[::-1]
             field = field[:, :2][:, ::-1] * scale * params_arrows["arrow_scale"]
 
