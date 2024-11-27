@@ -75,16 +75,17 @@ def render_2d_image(params, result, exporter):
 
 def render_2d_arrows(params, result, pil_image, im_scale, aa_scale, display_image, return_scale=False):
     def project_data(R, field, skip=1):
-        length = np.linalg.norm(field, axis=1)
+        length2 = np.linalg.norm(field[:, :2], axis=1)
+        length3 = np.linalg.norm(field[:, :3], axis=1)
         angle = np.arctan2(field[:, 1], field[:, 0])
-        data = pd.DataFrame(np.hstack((R, length[:, None], angle[:, None])),
-                            columns=["x", "y", "length", "angle"])
-        data = data.sort_values(by="length", ascending=False)
+        data = pd.DataFrame(np.hstack((R, length2[:, None], length3[:, None], angle[:, None])),
+                            columns=["x", "y", "length2", "length3", "angle"])
+        data = data.sort_values(by="length2", ascending=False)
         d2 = data.groupby(["x", "y"]).first()
         # optional slice
         if skip > 1:
             d2 = d2.loc[(slice(None, None, skip), slice(None, None, skip)), :]
-        return np.array([i for i in d2.index]), d2[["length", "angle"]]
+        return np.array([i for i in d2.index]), d2[["length2", "angle", "length3"]]
 
     mesh, field, params_arrows, name = get_mesh_arrows(params, result)
 
@@ -113,6 +114,11 @@ def render_2d_arrows(params, result, pil_image, im_scale, aa_scale, display_imag
         R = mesh.nodes.copy()
         is3D = R.shape[1] == 3
         field = field.copy()
+        max_length = np.nanpercentile(np.linalg.norm(field, axis=1), 99.9)
+
+        field_to_pixel_factor = 1
+        scale_max_to_pixel_factor = 1
+
         if getattr(mesh, "units", None) == "pixels":
             R = R[:, :2]
             R[:, 1] = display_image[0].shape[0] - R[:, 1]
@@ -120,24 +126,26 @@ def render_2d_arrows(params, result, pil_image, im_scale, aa_scale, display_imag
             field[:, 1] = -field[:, 1]
         else:  # "microns" + 3D
             R = R[:, :2][:, ::-1] * scale + offset[::-1]
-            field = field[:, :2][:, ::-1] * scale * params_arrows["arrow_scale"]
+            field = field[:, :][:, [1, 0, 2]]
+            field_to_pixel_factor = scale * params_arrows["arrow_scale"]
+
+            if name == "forces":
+                max_length *= 1e12
+                scale_max_to_pixel_factor = 1e12
+                field_to_pixel_factor *= 1e6
+            else:
+                max_length *= 1e6
+                scale_max_to_pixel_factor = 1e6
 
             norm_stack_size = np.abs(np.max(R) - np.min(R))
             scalebar_max = params["deformation_arrows"]["scale_max"]
             if params["deformation_arrows"]["autoscale"]:
-                factor = 0.1 * norm_stack_size / np.nanmax(field)  # np.nanpercentile(point_cloud[name + "_mag2"], 99.9)
+                field_to_pixel_factor *= 0.1 * norm_stack_size / np.nanmax(field*scale_max_to_pixel_factor)  # np.nanpercentile(point_cloud[name + "_mag2"], 99.9)
             else:
-                factor = 0.1 * norm_stack_size / scalebar_max
-
-
-            if name == "forces":
-                factor *= 1e4
+                field_to_pixel_factor *= 0.1 * norm_stack_size / scalebar_max
 
         if scale_max is None:
-            max_length = np.nanmax(np.linalg.norm(field, axis=1))# * params_arrows["arrow_scale"]
-            scale_max = max_length / params_arrows["arrow_scale"]
-        else:
-            max_length = scale_max * params_arrows["arrow_scale"]
+            scale_max = max_length
 
         if is3D:
             z_center = (params["stack"]["z"] - result.stacks[0].shape[2] / 2) * display_image[1][2] * 1e-6
@@ -155,10 +163,17 @@ def render_2d_arrows(params, result, pil_image, im_scale, aa_scale, display_imag
             field = pd.DataFrame(np.hstack((length[:, None], angle[:, None])), columns=["length", "angle"])
         # safety check if all arrows where filtered out
         if R.shape[0] != 0:
-            pil_image = add_quiver(pil_image, R, field.length, field.angle, max_length=max_length, cmap=colormap,
-                                   alpha=alpha,
+            # get the colormap
+            cmap = plt.get_cmap(colormap)
+            # calculate the colors of the arrows
+            colors = cmap(field.length3 * scale_max_to_pixel_factor / scale_max)
+            # set the transparency
+            colors[:, 3] = alpha
+            # make colors uint8
+            colors = (colors * 255).astype(np.uint8)
+
+            pil_image = add_quiver(pil_image, R, field.length3 * field_to_pixel_factor, field.angle, colors,
                                    scale=im_scale * aa_scale,
-                                   factor=factor,
                                    width=params["2D_arrows"]["width"],
                                    headlength=params["2D_arrows"]["headlength"],
                                    headheight=params["2D_arrows"]["headheight"])
@@ -424,18 +439,9 @@ def getarrow(length, angle, scale=1, width=2, headlength=5, headheight=5, offset
     return arrows
 
 
-def add_quiver(pil_image, R, lengths, angles, max_length, cmap, alpha=1, scale=1, width=2, headlength=5, headheight=5, factor=1):
-    # get the colormap
-    cmap = plt.get_cmap(cmap)
-    # calculate the colors of the arrows
-    colors = cmap(lengths / max_length)
-    # set the transparency
-    colors[:, 3] = alpha
-    # make colors uint8
-    colors = (colors*255).astype(np.uint8)
-
+def add_quiver(pil_image, R, lengths, angles, colors, scale=1, width=2, headlength=5, headheight=5):
     # get the arrows
-    arrows = getarrow(lengths*factor, angles, scale=scale, width=width, headlength=headlength, headheight=headheight, offset=R*scale)
+    arrows = getarrow(lengths, angles, scale=scale, width=width, headlength=headlength, headheight=headheight, offset=R*scale)
 
     # draw the arrows
     image = ImageDraw.ImageDraw(pil_image, "RGBA")
