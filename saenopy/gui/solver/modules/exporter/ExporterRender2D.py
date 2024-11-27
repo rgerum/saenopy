@@ -23,7 +23,7 @@ def render_2d(params, result, exporter=None):
     if params["scalebar"]["hide"] is False:
         pil_image = render_2d_scalebar(params, result, pil_image, im_scale, aa_scale)
     if disp_params != None and params["colorbar"]["hide"] is False:
-        pil_image = render_2d_colorbar(params, result, pil_image, im_scale, aa_scale, scale_max=disp_params["scale_max"], colormap=disp_params["colormap"])
+        pil_image = render_2d_colorbar(params, result, pil_image, im_scale, aa_scale, scale_max=disp_params["scale_max"], colormap=disp_params["colormap"], unit=disp_params["scalebar_unit"])
 
     pil_image = render_2d_time(params, result, pil_image)
 
@@ -118,6 +118,7 @@ def render_2d_arrows(params, result, pil_image, im_scale, aa_scale, display_imag
 
         field_to_pixel_factor = 1
         scale_max_to_pixel_factor = 1
+        scalebar_unit = "px"
 
         if getattr(mesh, "units", None) == "pixels":
             R = R[:, :2]
@@ -130,10 +131,12 @@ def render_2d_arrows(params, result, pil_image, im_scale, aa_scale, display_imag
             field_to_pixel_factor = scale * params_arrows["arrow_scale"]
 
             if name == "forces":
+                scalebar_unit = "pN"
                 max_length *= 1e12
                 scale_max_to_pixel_factor = 1e12
                 field_to_pixel_factor *= 1e6
             else:
+                scalebar_unit = "µm"
                 max_length *= 1e6
                 scale_max_to_pixel_factor = 1e6
 
@@ -178,7 +181,7 @@ def render_2d_arrows(params, result, pil_image, im_scale, aa_scale, display_imag
                                    headlength=params["2D_arrows"]["headlength"],
                                    headheight=params["2D_arrows"]["headheight"])
     if return_scale:
-        return pil_image, {"scale_max": scale_max, "colormap": colormap}
+        return pil_image, {"scale_max": scale_max, "colormap": colormap, "scalebar_unit": scalebar_unit}
     return pil_image
 
 
@@ -217,7 +220,7 @@ def render_2d_scalebar(params, result, pil_image, im_scale, aa_scale):
                              size_in_um=mu, color=color, unit="µm")
     return pil_image
 
-def render_2d_colorbar(params, result, pil_image, im_scale, aa_scale, colormap="viridis", scale_max=1):
+def render_2d_colorbar(params, result, pil_image, im_scale, aa_scale, colormap="viridis", scale_max=1, unit="µm"):
     color = "k"
     if params["theme"] == "dark":
         color = "w"
@@ -234,6 +237,7 @@ def render_2d_colorbar(params, result, pil_image, im_scale, aa_scale, colormap="
                              offset_y=-params["colorbar"]["ypos"] * aa_scale,
                              fontsize=params["colorbar"]["fontsize"] * aa_scale,
                              color=color,
+                             unit=unit
                              )
 
     return pil_image
@@ -299,7 +303,7 @@ def add_colorbar(pil_image,
                  max_v=10,
                  offset_x=15,
                  offset_y=-10,
-                 scale=1, fontsize=16, color="w"):
+                 scale=1, fontsize=16, color="w", unit="m"):
     cmap = plt.get_cmap(colormap)
     offset_x = int(offset_x * scale)
     offset_y = int(offset_y * scale)
@@ -337,13 +341,31 @@ def add_colorbar(pil_image,
     locator = ticker.MaxNLocator(nbins=tick_count - 1)
     #tick_positions = locator.tick_values(min_v, max_v)
     tick_positions = np.linspace(min_v, max_v, tick_count)
+
+    max_value = tick_positions[-1]
+    factor = 1
+    power = 0
+    if max_value:
+        power = int(np.floor(np.log10(max_value)/3)*3)
+        factor = 10**power
+    base_factor = 0
+    factor_prefix = {6: "M", 3: "k", -3: "m", -6: "µ", -9: "n", -12: "p"}
+    if unit.startswith("p"):
+        unit = unit[1:]
+        base_power = -12
+        unit = factor_prefix[power+base_power]+unit
+    if unit.startswith("µ") or unit.startswith("u"):
+        unit = unit[1:]
+        base_power = -6
+        unit = factor_prefix[power + base_power]+unit
+
     for i, pos in enumerate(tick_positions):
         x0 = offset_x + (bar_width - tick_width - 1) / (tick_count - 1) * i
         y0 = offset_y - bar_height - 1
 
         image.rectangle([x0, y0-tick_height, x0+tick_width, y0], fill=color)
 
-        text = "%d" % pos
+        text = "%d" % (pos/factor)
         length_number = image.textlength(text, font=font)
         height_number = image.textbbox((0, 0), text, font=font)[3]
 
@@ -351,6 +373,11 @@ def add_colorbar(pil_image,
         y = y0 - height_number - tick_height - int(np.ceil(tick_height/2))
         # draw the text for the number and the unit
         image.text((x, y), text, color, font=font)
+    if unit:
+        height_number = image.textbbox((0, 0), unit, font=font)[3]
+        x0 = offset_x + bar_width + 10
+        y0 = offset_y - bar_height  / 2 - height_number /2
+        image.text((x0, y0), unit, color, font=font)
     #image.rectangle([pil_image.size[0]-10, 0, pil_image.size[0], 10], fill="w")
     return pil_image
 
