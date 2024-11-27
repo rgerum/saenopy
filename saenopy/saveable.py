@@ -14,8 +14,12 @@ def format_value(mytype,value):
     # a TypedDict
     elif getattr(mytype, "__annotations__", None):
         for key, value_type in mytype.__annotations__.items():
-            if key not in value and key in mytype.__optional_keys__:
-                continue
+            if getattr(mytype, "__optional_keys__", None) is None:
+                if key not in value:
+                    continue
+            else:
+                if key not in value and key in mytype.__optional_keys__:
+                    continue
             value[key] = format_value(value_type, value[key])
     elif typing.get_origin(mytype) in {typing.Dict,dict}:
         type_key = typing.get_args(mytype)[0]
