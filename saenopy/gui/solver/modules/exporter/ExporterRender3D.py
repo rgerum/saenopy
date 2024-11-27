@@ -196,7 +196,7 @@ def render_3d_arrows(params, result, plotter):
                         point_cloud.point_data[name + "_mag2"] > point_cloud.point_data[name + "_mag2"] * 0.1)
             else:
                 point_cloud.point_data[name + "_mag2"] = 1e12*point_cloud.point_data[name + "_mag"].copy()
-            factor = 0.15 * params_arrows["arrow_scale"]
+            factor = 0.10 * params_arrows["arrow_scale"]
         # hide nans
         point_cloud.point_data[name + "_mag2"][nan_values] = 0
 
