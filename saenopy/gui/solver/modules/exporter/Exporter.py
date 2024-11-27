@@ -256,8 +256,8 @@ class ExportViewer(PipelineModule):
                     self.input_arrows = QtShortCuts.QInputChoice(None, "arrows", "piv", values=["None", "piv", "target deformations", "fitted deformations", "fitted forces"])
                     self.input_arrows.valueChanged.connect(self.update_display)
                     self.input_arrows.valueChanged.connect(self.hide_arrow)
-                    self.input_average_range = QtShortCuts.QInputNumber(None, "averaging z thickness", min=0, max=0,
-                                                                        step=10)
+                    self.input_average_range = QtShortCuts.QInputNumber(None, "averaging z thickness +/-", min=0, max=0,
+                                                                        step=10, unit="µm")
                     self.input_average_range.valueChanged.connect(self.update_display)
                     QtShortCuts.currentLayout().addStretch()
 

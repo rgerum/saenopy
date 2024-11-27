@@ -132,7 +132,7 @@ def render_2d_arrows(params, result, pil_image, im_scale, aa_scale, display_imag
             max_length = scale_max * params_arrows["arrow_scale"]
 
         if is3D:
-            z_center = (params["averaging_size"] - result.stacks[0].shape[2] / 2) * display_image[1][2] * 1e-6
+            z_center = (params["stack"]["z"] - result.stacks[0].shape[2] / 2) * display_image[1][2] * 1e-6
             z_min = z_center - params["averaging_size"] * 1e-6
             z_max = z_center + params["averaging_size"] * 1e-6
 
@@ -145,12 +145,14 @@ def render_2d_arrows(params, result, pil_image, im_scale, aa_scale, display_imag
             length = np.linalg.norm(field, axis=1)
             angle = np.arctan2(field[:, 1], field[:, 0])
             field = pd.DataFrame(np.hstack((length[:, None], angle[:, None])), columns=["length", "angle"])
-        pil_image = add_quiver(pil_image, R, field.length, field.angle, max_length=max_length, cmap=colormap,
-                               alpha=alpha,
-                               scale=im_scale * aa_scale,
-                               width=params["2D_arrows"]["width"],
-                               headlength=params["2D_arrows"]["headlength"],
-                               headheight=params["2D_arrows"]["headheight"])
+        # safety check if all arrows where filtered out
+        if R.shape[0] != 0:
+            pil_image = add_quiver(pil_image, R, field.length, field.angle, max_length=max_length, cmap=colormap,
+                                   alpha=alpha,
+                                   scale=im_scale * aa_scale,
+                                   width=params["2D_arrows"]["width"],
+                                   headlength=params["2D_arrows"]["headlength"],
+                                   headheight=params["2D_arrows"]["headheight"])
     if return_scale:
         return pil_image, {"scale_max": scale_max, "colormap": colormap}
     return pil_image
