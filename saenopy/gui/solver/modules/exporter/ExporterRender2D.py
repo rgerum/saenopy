@@ -122,8 +122,16 @@ def render_2d_arrows(params, result, pil_image, im_scale, aa_scale, display_imag
             R = R[:, :2][:, ::-1] * scale + offset[::-1]
             field = field[:, :2][:, ::-1] * scale * params_arrows["arrow_scale"]
 
+            norm_stack_size = np.abs(np.max(R) - np.min(R))
+            scalebar_max = params["deformation_arrows"]["scale_max"]
+            if params["deformation_arrows"]["autoscale"]:
+                factor = 0.1 * norm_stack_size / np.nanmax(field)  # np.nanpercentile(point_cloud[name + "_mag2"], 99.9)
+            else:
+                factor = 0.1 * norm_stack_size / scalebar_max
+
+
             if name == "forces":
-                field *= 1e4
+                factor *= 1e4
 
         if scale_max is None:
             max_length = np.nanmax(np.linalg.norm(field, axis=1))# * params_arrows["arrow_scale"]
@@ -150,6 +158,7 @@ def render_2d_arrows(params, result, pil_image, im_scale, aa_scale, display_imag
             pil_image = add_quiver(pil_image, R, field.length, field.angle, max_length=max_length, cmap=colormap,
                                    alpha=alpha,
                                    scale=im_scale * aa_scale,
+                                   factor=factor,
                                    width=params["2D_arrows"]["width"],
                                    headlength=params["2D_arrows"]["headlength"],
                                    headheight=params["2D_arrows"]["headheight"])
@@ -239,40 +248,6 @@ def render_2d_logo(params, result, pil_image, aa_scale):
 
         pil_image = pil_image.convert("RGBA")
         pil_image.alpha_composite(im_logo, dest=(pil_image.width - im_logo.width - padding, padding))
-    return pil_image
-
-
-def add_quiver(pil_image, R, lengths, angles, max_length, cmap, alpha=1, scale=1):
-    cmap = plt.get_cmap(cmap)
-    image = ImageDraw.ImageDraw(pil_image, "RGBA")
-    def getarrow(length, width=2, headlength=5, headheight=5):
-        length *= scale
-        width *= scale
-        headlength *= scale
-        headheight *= scale
-        if length < headlength:
-            headheight = headheight*length/headlength
-            headlength = length
-            return [(length - headlength, headheight / 2),
-                    (length, 0),
-                    (length - headlength, -headheight / 2)]
-        return [(0, width/2), (length-headlength, width/2), (length-headlength, headheight/2), (length, 0),
-                (length-headlength, -headheight/2), (length-headlength, -width/2), (0, -width/2)]
-
-    def get_offset(arrow, pos, angle):
-        arrow = np.array(arrow)
-        rot = [[np.cos(np.deg2rad(angle)), np.sin(np.deg2rad(angle))], [-np.sin(np.deg2rad(angle)), np.cos(np.deg2rad(angle))]]
-        arrow = arrow @ rot
-        r = np.array(arrow) + np.array(pos)*scale
-        return [tuple(i) for i in r]
-
-    #max_length = np.nanmax(lengths)
-    for i in range(len(R)):
-        angle = angles.iloc[i]
-        length = lengths.iloc[i]
-        color = tuple((np.asarray(cmap(length/max_length))*255).astype(np.uint8))
-        color = (color[0], color[1], color[2], int(alpha*255))
-        image.polygon(get_offset(getarrow(length), R[i], np.rad2deg(angle)), fill=color, outline=color)
     return pil_image
 
 
@@ -449,18 +424,18 @@ def getarrow(length, angle, scale=1, width=2, headlength=5, headheight=5, offset
     return arrows
 
 
-def add_quiver(pil_image, R, lengths, angles, max_length, cmap, alpha=1, scale=1, width=2, headlength=5, headheight=5):
+def add_quiver(pil_image, R, lengths, angles, max_length, cmap, alpha=1, scale=1, width=2, headlength=5, headheight=5, factor=1):
     # get the colormap
     cmap = plt.get_cmap(cmap)
     # calculate the colors of the arrows
     colors = cmap(lengths / max_length)
-    # set the transparancy
+    # set the transparency
     colors[:, 3] = alpha
     # make colors uint8
     colors = (colors*255).astype(np.uint8)
 
     # get the arrows
-    arrows = getarrow(lengths, angles, scale=scale, width=width, headlength=headlength, headheight=headheight, offset=R*scale)
+    arrows = getarrow(lengths*factor, angles, scale=scale, width=width, headlength=headlength, headheight=headheight, offset=R*scale)
 
     # draw the arrows
     image = ImageDraw.ImageDraw(pil_image, "RGBA")
