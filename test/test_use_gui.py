@@ -154,8 +154,8 @@ def test_run_example(monkeypatch, random_path, catch_popup_error, use_time, use_
     batch_evaluate.sub_module_deformation.use_thread = True
 
     # uncheck the other items
-    batch_evaluate.list.item(1).setCheckState(False)
-    batch_evaluate.list.item(2).setCheckState(False)
+    batch_evaluate.list.item(1).setCheckState(QtCore.Qt.Checked)
+    batch_evaluate.list.item(2).setCheckState(QtCore.Qt.Checked)
 
     # add them to the gui and select them
     batch_evaluate.list.setCurrentRow(0)
@@ -203,25 +203,25 @@ def test_run_example(monkeypatch, random_path, catch_popup_error, use_time, use_
         batch_evaluate.tabs.setCurrentIndex(i)
 
     """ functions of stack_display """
-    batch_evaluate.sub_module_stacks.button_display_single.setValue(True, send_signal=True)
-    batch_evaluate.sub_module_stacks.button_display_single.setValue(False, send_signal=True)
+    batch_evaluate.tab1.button_display_single.setValue(True, send_signal=True)
+    batch_evaluate.tab1.button_display_single.setValue(False, send_signal=True)
     if use_channels:
-        batch_evaluate.sub_module_stacks.channel_select.setValue(1, send_signal=True)
+        batch_evaluate.tab1.channel_select.setValue(1, send_signal=True)
 
-    batch_evaluate.sub_module_stacks.button_z_proj.setValue(1)
-    batch_evaluate.sub_module_stacks.button_z_proj.setValue(2)
-    batch_evaluate.sub_module_stacks.button_z_proj.setValue(3)
+    batch_evaluate.tab1.button_z_proj.setValue(1)
+    batch_evaluate.tab1.button_z_proj.setValue(2)
+    batch_evaluate.tab1.button_z_proj.setValue(3)
 
-    batch_evaluate.sub_module_stacks.contrast_enhance.setValue(1)
-    batch_evaluate.sub_module_stacks.button.clicked.emit()
+    batch_evaluate.tab1.contrast_enhance.setValue(1)
+    batch_evaluate.tab1.button.clicked.emit()
 
     monkeypatch.setattr(QtWidgets.QFileDialog, "getSaveFileName", lambda *args: "export.tif")
-    batch_evaluate.sub_module_stacks.button2.clicked.emit()
+    batch_evaluate.tab1.button2.clicked.emit()
 
     if use_time:
-        batch_evaluate.sub_module_stacks.t_slider.setValue(1)
+        batch_evaluate.tab1.t_slider.setValue(1)
 
-    batch_evaluate.sub_module_stacks.z_slider.setValue(1)
+    batch_evaluate.tab1.z_slider.setValue(1)
 
     """ functions of mesh_creator """
     batch_evaluate.sub_module_mesh.input_mesh_size.setValue((100, 100, 100))
