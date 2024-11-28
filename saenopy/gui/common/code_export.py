@@ -2,7 +2,10 @@ import inspect
 
 
 def export_as_string(func):
-    func._source_code = inspect.getsource(func)
+    try:
+        func._source_code = inspect.getsource(func)
+    except OSError:  # this error occurs in PyInstaller executable and is fixed by inlining the source code there
+        pass
     return func
 
 
