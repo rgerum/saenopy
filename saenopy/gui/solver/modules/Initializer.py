@@ -7,7 +7,7 @@ import saenopy.get_deformations
 import saenopy.materials
 
 from saenopy.gui.common.PipelineModule import PipelineModule
-from saenopy.gui.common.code_export import get_code
+from saenopy.gui.common.code_export import get_code, export_as_string
 
 
 class Initializer(PipelineModule):
@@ -17,6 +17,7 @@ class Initializer(PipelineModule):
 
         if self.result.time_delta is None:
             if self.result.stack_reference is not None:
+                @export_as_string
                 def code(filename, reference_stack1, output1, voxel_size1, result_file, crop1):  # pragma: no cover
                     # load the relaxed and the contracted stack
                     # {z} is the placeholder for the z stack
@@ -45,6 +46,7 @@ class Initializer(PipelineModule):
                 )
         else:
             if self.result.stack_reference is not None:
+                @export_as_string
                 def code(filename, reference_stack1, output1, voxel_size1, time_delta1, result_file, crop1):  # pragma: no cover
                     # load the relaxed and the contracted stack
                     # {z} is the placeholder for the z stack
@@ -74,6 +76,7 @@ class Initializer(PipelineModule):
                     time_delta1=self.result.time_delta,
                 )
             else:
+                @export_as_string
                 def code(filename, output1, voxel_size1, time_delta1, result_file, crop1):  # pragma: no cover
                     # load the relaxed and the contracted stack
                     # {z} is the placeholder for the z stack

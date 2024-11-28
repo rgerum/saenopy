@@ -15,7 +15,7 @@ from saenopy.gui.common.gui_classes import CheckAbleGroup, ProcessSimple
 import saenopy.get_deformations
 
 from saenopy.gui.common.PipelineModule import PipelineModule
-from saenopy.gui.common.code_export import get_code
+from saenopy.gui.common.code_export import get_code, export_as_string
 
 
 class CamPos:
@@ -103,6 +103,8 @@ class DeformationDetector(PipelineModule):
         import_code = ""
 
         results = []
+
+        @export_as_string
         def code(my_piv_params):  # pragma: no cover
             # define the parameters for the piv deformation detection
             piv_parameters = my_piv_params

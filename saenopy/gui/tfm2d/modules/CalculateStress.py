@@ -3,7 +3,7 @@ from saenopy.gui.common import QtShortCuts
 from typing import List, Tuple
 
 from saenopy.gui.common.gui_classes import CheckAbleGroup
-from saenopy.gui.common.code_export import get_code
+from saenopy.gui.common.code_export import get_code, export_as_string
 
 from .PipelineModule import PipelineModule
 from .result import Result2D
@@ -58,6 +58,7 @@ class CalculateStress(PipelineModule):
         ])+"\n"
 
         results: List[Result2D] = []
+        @export_as_string
         def code():  # pragma: no cover
             # iterate over all the results objects
             for result in results:

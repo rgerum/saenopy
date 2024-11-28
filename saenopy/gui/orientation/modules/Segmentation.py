@@ -13,7 +13,7 @@ from saenopy.gui.common.gui_classes import QHLine, CheckAbleGroup
 from saenopy.gui.common.PipelineModule import PipelineModule
 from saenopy.gui.common.QTimeSlider import QTimeSlider
 from saenopy.gui.common.resources import resource_icon
-from saenopy.gui.common.code_export import get_code
+from saenopy.gui.common.code_export import get_code, export_as_string
 from saenopy.gui.common.ModuleScaleBar import ModuleScaleBar
 from saenopy.gui.common.ModuleColorBar import ModuleColorBar
 
@@ -94,6 +94,7 @@ class SegmentationDetector(PipelineModule):
     def get_code(self) -> Tuple[str, str]:
         import_code = "from saenopy.gui.spheroid.modules.result import get_stacks_spheroid\nimport jointforces as jf\n"
 
+        @export_as_string
         def code(filename, output1, pixel_size1, result_file, piv_parameters1):  # pragma: no cover
             # load the relaxed and the contracted stack
             # {t} is the placeholder for the time points

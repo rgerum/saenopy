@@ -4,7 +4,7 @@ from saenopy.gui.common import QtShortCuts
 from typing import Tuple
 
 from saenopy.gui.common.gui_classes import CheckAbleGroup
-from saenopy.gui.common.code_export import get_code
+from saenopy.gui.common.code_export import get_code, export_as_string
 from .PipelineModule import PipelineModule
 from .result import Result2D
 
@@ -77,6 +77,7 @@ class DeformationDetector3(PipelineModule):
         import_code = "from saenopy.pyTFM.calculate_deformation import calculate_deformation\n"
 
         results = []
+        @export_as_string
         def code(my_piv_params):  # pragma: no cover
             # define the parameters for the piv deformation detection
             piv_parameters = my_piv_params

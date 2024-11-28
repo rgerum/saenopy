@@ -14,8 +14,7 @@ from saenopy.gui.common import QtShortCuts
 from saenopy.gui.common.gui_classes import CheckAbleGroup, MatplotlibWidget
 
 from saenopy.gui.common.PipelineModule import PipelineModule
-from saenopy.gui.common.code_export import get_code
-
+from saenopy.gui.common.code_export import get_code, export_as_string
 
 import matplotlib.ticker as ticker
 
@@ -189,6 +188,8 @@ class Regularizer(PipelineModule):
     def get_code(self) -> Tuple[str, str]:
         import_code = "import saenopy\n"
         results: Result = None
+
+        @export_as_string
         def code(my_reg_params1, my_reg_params2):  # pragma: no cover
             # define the parameters to generate the solver mesh and interpolate the piv mesh onto it
             material_parameters = my_reg_params1

@@ -7,7 +7,7 @@ from saenopy.gui.common import QtShortCuts
 
 from saenopy.gui.common.gui_classes import CheckAbleGroup
 from saenopy.gui.common.PipelineModule import PipelineModule
-from saenopy.gui.common.code_export import get_code
+from saenopy.gui.common.code_export import get_code, export_as_string
 
 
 class ForceCalculator(PipelineModule):
@@ -80,6 +80,7 @@ class ForceCalculator(PipelineModule):
         import_code = ""
 
         results = []
+        @export_as_string
         def code(force_parameters1):  # pragma: no cover
             for result in results:
                 result.force_parameters = force_parameters1

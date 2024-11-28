@@ -4,7 +4,7 @@ from typing import Tuple
 
 from saenopy.gui.common import QtShortCuts
 from saenopy.gui.common.gui_classes import CheckAbleGroup
-from saenopy.gui.common.code_export import get_code
+from saenopy.gui.common.code_export import get_code, export_as_string
 
 from .PipelineModule import PipelineModule
 from .result import Result2D
@@ -72,6 +72,7 @@ class Force(PipelineModule):
         import_code = "from saenopy.pyTFM.calculate_forces import calculate_forces\n"
 
         results = []
+        @export_as_string
         def code(my_force_parameters):  # pragma: no cover
             # define the parameters for the piv deformation detection
             force_parameters = my_force_parameters

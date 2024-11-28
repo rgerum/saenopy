@@ -1,7 +1,7 @@
 from pathlib import Path
 from typing import Tuple
 
-from saenopy.gui.common.code_export import get_code
+from saenopy.gui.common.code_export import get_code, export_as_string
 from saenopy.gui.tfm2d.modules.result import get_stacks2D
 
 from .PipelineModule import PipelineModule
@@ -26,7 +26,7 @@ class DisplayCellImage(PipelineModule):
     def get_code(self) -> Tuple[str, str]:
         import_code = "from saenopy.gui.tfm2d.modules.result import Result2D, get_stacks2D\n"
 
-
+        @export_as_string
         def code(output1, bf1, filename1, reference_stack1, pixel_size1, result_file, crop1):  # pragma: no cover
             # load the cell image, the relaxed and the contracted images
             # use * to load multiple experiments for batch processing

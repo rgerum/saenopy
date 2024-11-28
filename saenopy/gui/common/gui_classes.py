@@ -98,8 +98,9 @@ class MatplotlibWidget(Canvas):
 
 def execute(func, *args, **kwargs):
     func(*args, **kwargs)
-    import inspect
-    code_lines = inspect.getsource(func).split("\n")[1:]
+    #import inspect
+    #code_lines = inspect.getsource(func).split("\n")[1:]
+    code_lines = func._source_code.split("\n")[2:]
     indent = len(code_lines[0]) - len(code_lines[0].lstrip())
     code = "\n".join(line[indent:] for line in code_lines)
     for key, value in kwargs.items():

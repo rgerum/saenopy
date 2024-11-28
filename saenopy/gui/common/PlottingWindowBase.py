@@ -331,6 +331,7 @@ class PlottingWindowBase(QtWidgets.QWidget):
 
         color_dict = {d[0]: d[3] for d in self.data_folders}
 
+        @export_as_string
         def plot(res, mu_name, y_label, color_dict2):
             # define the colors
             color_dict = color_dict2
@@ -400,8 +401,8 @@ class PlottingWindowBase(QtWidgets.QWidget):
             plt.axvline(comp_h/factor, color="k")
 
         color_dict = {d[0]: d[3] for d in self.data_folders}
-        
-        
+
+        @export_as_string
         def plot(res, mu_name, y_label, color_dict2, x_label, factor):
             # define the colors
             color_dict = color_dict2
@@ -466,8 +467,8 @@ class PlottingWindowBase(QtWidgets.QWidget):
         # get best fitting time label
         factor2, x_label2 = self.get_time_factor(np.max(res.t))
         print (factor2)
-        
-        
+
+        @export_as_string
         def plot(res, mu_name, y_label, plot_color, factor2, x_label2):
             mu = res[mu_name]
 

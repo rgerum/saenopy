@@ -13,7 +13,8 @@ from saenopy.gui.common.gui_classes import CheckAbleGroup
 
 
 from saenopy.gui.common.PipelineModule import PipelineModule
-from saenopy.gui.common.code_export import get_code
+from saenopy.gui.common.code_export import get_code, export_as_string
+
 
 class MeshSizeWidget(QtWidgets.QWidget):
     valueChanged = QtCore.Signal(object)
@@ -144,6 +145,7 @@ class MeshCreator(PipelineModule):
     def get_code(self) -> Tuple[str, str]:
         import_code = ""
         results = None
+        @export_as_string
         def code(my_mesh_params):  # pragma: no cover
             # define the parameters to generate the solver mesh and interpolate the piv mesh onto it
             mesh_parameters = my_mesh_params
