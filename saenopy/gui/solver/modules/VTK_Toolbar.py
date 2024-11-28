@@ -69,7 +69,7 @@ class VTK_Toolbar(QtWidgets.QWidget):
             self.window_scale = QtWidgets.QWidget()
             self.window_scale.setWindowTitle("Saenopy - Arrow Scale")
             with QtShortCuts.QVBoxLayout(self.window_scale):
-                self.arrow_scale = QtShortCuts.QInputNumber(None, "arrow scale", 1, 0.1, 10, use_slider=True, log_slider=True)
+                self.arrow_scale = QtShortCuts.QInputNumber(None, "arrow scale", 1, 0.01, 40, use_slider=True, log_slider=True)  ## Extend Slider Max here
                 self.arrow_scale.valueChanged.connect(self.update_display)
                 addition = ""
                 if self.is_force_plot:
