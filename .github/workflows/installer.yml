@@ -33,6 +33,7 @@ jobs:
       shell: bash
       run: |
         poetry install --with dev
+        poetry run python saenopy/add_source.py
 
     - name: build exe with pyinstaller
       shell: bash
@@ -79,6 +80,7 @@ jobs:
         shell: bash
         run: |
           poetry install --with dev
+          poetry run python saenopy/add_source.py
 
       - name: build exe with pyinstaller
         shell: bash
