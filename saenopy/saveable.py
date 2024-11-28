@@ -120,8 +120,6 @@ class Saveable:
             else:
                 data[name] = data_dict[name]
             if name in types:
-                if name == "crop":
-                    print(data[name])
                 data[name] = format_value(types[name], data[name])
                     
         if len(save_parameters):
