@@ -16,6 +16,7 @@ from saenopy.gui.common import QtShortCuts
 from saenopy.gui.common.gui_classes import ListWidget
 from saenopy.gui.spheroid.modules.result import ResultSpheroid
 from saenopy.gui.tfm2d.modules.result import Result2D
+from saenopy.gui.orientation.modules.result import ResultOrientation
 
 
 class SharedProperties:
@@ -331,6 +332,8 @@ class BatchEvaluateBase(QtWidgets.QWidget):
                         pass
                     elif self.file_extension == ".saenopy2D":
                         self.add_data(Result2D.load(p))
+                    elif self.file_extension == ".saenopyOrientation":
+                        self.add_data(ResultOrientation.load(p))
                     else:
                         self.add_data(Result.load(p))
                 except Exception as err:
