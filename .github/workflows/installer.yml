@@ -98,3 +98,45 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAG: v1.0.6
+
+  build-mac:
+    runs-on: macos-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up python
+      id: setup-python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.12'
+
+    - name: Install Poetry
+      uses: snok/install-poetry@v1
+      with:
+        virtualenvs-create: true
+        virtualenvs-in-project: true
+        installer-parallel: true
+
+    - name: Install dependencies
+      shell: bash
+      run: |
+        poetry install --with dev
+        poetry run python saenopy/add_source.py
+
+    - name: Build executable with PyInstaller
+      shell: bash
+      run: |
+        poetry run pyinstaller --clean -y --dist output/saenopy_run --onefile --splash "saenopy/img/logo_splash.png" --add-data "saenopy/img:saenopy/img" saenopy/gui/gui_master.py
+        mv output/saenopy_run/gui_master output/saenopy_run/saenopy
+
+    - uses: actions/upload-artifact@v4
+      with:
+        name: saenopy_mac
+        path: output/saenopy_run
+
+    - name: Upload GitHub release assets
+      run: gh release upload $TAG output/saenopy_run/saenopy --clobber
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        TAG: v1.0.6
