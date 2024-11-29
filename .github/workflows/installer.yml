@@ -128,9 +128,11 @@ jobs:
       shell: bash
       run: |
         poetry run pyinstaller --clean -y --dist output/saenopy_run --windowed --add-data "saenopy/img:saenopy/img" saenopy/gui/gui_master.py
-        mv output/saenopy_run/gui_master.app output/saenopy_run/saenopy_mac.app  
-        zip -r output/saenopy_run/saenopy_mac.app.zip output/saenopy_run/saenopy_mac.app
-
+        mv output/saenopy_run/gui_master.app output/saenopy_run/saenopy_mac.app     
+        cd output/saenopy_run
+        zip -r saenopy_mac.app.zip saenopy_mac.app
+        cd ../../
+        
     - uses: actions/upload-artifact@v4
       with:
         name: saenopy_mac
