@@ -29,6 +29,10 @@ https://github.com/rgerum/saenopy/releases/download/v1.0.6/saenopy.exe
 Linux
 https://github.com/rgerum/saenopy/releases/download/v1.0.6/saenopy
 
+MacOS
+https://github.com/rgerum/saenopy/releases/download/v1.0.6/saenopy_mac
+
+
 ### Using Python
 
 If you are experienced with python or even want to use our Python API, you need to install saenopy as a python package.
