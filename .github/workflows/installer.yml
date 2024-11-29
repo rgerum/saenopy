@@ -129,14 +129,15 @@ jobs:
       run: |
         poetry run pyinstaller --clean -y --dist output/saenopy_run --windowed --add-data "saenopy/img:saenopy/img" saenopy/gui/gui_master.py
         mv output/saenopy_run/gui_master.app output/saenopy_run/saenopy_mac.app  
- 
+        zip -r output/saenopy_run/saenopy_mac.app.zip output/saenopy_run/saenopy_mac.app
+
     - uses: actions/upload-artifact@v4
       with:
         name: saenopy_mac
         path: output/saenopy_run
 
     - name: Upload GitHub release assets
-      run: gh release upload $TAG output/saenopy_run/saenopy_mac.app --clobber
+      run: gh release upload $TAG output/saenopy_run/saenopy_mac.app.zip --clobber
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         TAG: v1.0.6
