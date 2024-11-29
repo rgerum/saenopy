@@ -47,6 +47,9 @@ https://github.com/rgerum/saenopy/releases/download/v1.0.6/saenopy.exe
 Linux
 https://github.com/rgerum/saenopy/releases/download/v1.0.6/saenopy
 
+MacOS
+https://github.com/rgerum/saenopy/releases/download/v1.0.6/saenopy_mac
+
 Using Python
 ~~~~~~~~~~~~
 
