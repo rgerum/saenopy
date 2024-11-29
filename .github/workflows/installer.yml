@@ -127,8 +127,8 @@ jobs:
     - name: Build executable with PyInstaller
       shell: bash
       run: |
-        poetry run pyinstaller --clean -y --dist output/saenopy_run --onefile --add-data "saenopy/img:saenopy/img" saenopy/gui/gui_master.py
-        mv output/saenopy_run/gui_master output/saenopy_run/saenopy_mac
+        poetry run pyinstaller --clean -y --windowed output/saenopy_run --add-data "saenopy/img:saenopy/img" saenopy/gui/gui_master.py
+        mv output/saenopy_run/gui_master output/saenopy_run/saenopy_mac.app
 
     - uses: actions/upload-artifact@v4
       with:
@@ -136,7 +136,7 @@ jobs:
         path: output/saenopy_run
 
     - name: Upload GitHub release assets
-      run: gh release upload $TAG output/saenopy_run/saenopy_mac --clobber
+      run: gh release upload $TAG output/saenopy_run/saenopy_mac.app --clobber
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         TAG: v1.0.6
