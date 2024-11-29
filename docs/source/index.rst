@@ -39,7 +39,7 @@ Installation
 
 Standalone
 ~~~~~~~~~~
-You can download saenopy as a standalone application for windows or for linux:
+You can download saenopy as a standalone application:
 
 Windows
 https://github.com/rgerum/saenopy/releases/download/v1.0.6/saenopy.exe
