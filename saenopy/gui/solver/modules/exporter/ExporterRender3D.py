@@ -107,7 +107,7 @@ def render_3d_fibers(params, result, plotter, exporter):
 
     if stack_data is not None:
         dataset = stack_data["data"]
-        mesh = pyvista.UniformGrid(dimensions=dataset.shape, spacing=stack_data["resolution"],
+        mesh = pyvista.ImageData(dimensions=dataset.shape, spacing=stack_data["resolution"],
                                    origin=stack_data["center"])
         mesh['values'] = dataset.ravel(order='F')
         mesh.active_scalars_name = 'values'
