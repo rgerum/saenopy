@@ -171,11 +171,11 @@ class BatchEvaluateBase(QtWidgets.QWidget):
                     params[group][g] = int(params[group][g])
         text = json.dumps(params, indent=2)
         cb = QtGui.QGuiApplication.clipboard()
-        cb.setText(text, mode=cb.Clipboard)
+        cb.setText(text)
 
     def allow_paste(self):
         cb = QtGui.QGuiApplication.clipboard()
-        text = cb.text(mode=cb.Clipboard)
+        text = cb.text()
         try:
             data = json.loads(text)
             if all([name in data for name in self.result_params]):
@@ -186,7 +186,7 @@ class BatchEvaluateBase(QtWidgets.QWidget):
 
     def paste_params(self):
         cb = QtGui.QGuiApplication.clipboard()
-        text = cb.text(mode=cb.Clipboard)
+        text = cb.text()
         try:
             data = json.loads(text)
         except ValueError:
@@ -200,7 +200,7 @@ class BatchEvaluateBase(QtWidgets.QWidget):
 
     def paste_params2(self):
         cb = QtGui.QGuiApplication.clipboard()
-        text = cb.text(mode=cb.Clipboard)
+        text = cb.text()
         try:
             data = json.loads(text)
         except ValueError:
@@ -224,7 +224,7 @@ class BatchEvaluateBase(QtWidgets.QWidget):
     def path_copy(self):
         result = self.list.data[self.list.currentRow()][2]
         cb = QtGui.QGuiApplication.clipboard()
-        cb.setText(str(result.output), mode=cb.Clipboard)
+        cb.setText(str(result.output))
 
     def progress(self, tup):
         n, total = tup
