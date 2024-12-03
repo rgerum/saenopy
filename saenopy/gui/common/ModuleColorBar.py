@@ -11,7 +11,7 @@ class ModuleColorBar(QtWidgets.QGroupBox):
     tick_count = 3
 
     def __init__(self, parent, view):
-        QtWidgets.QWidget.__init__(self)
+        QtWidgets.QGroupBox.__init__(self)
         self.parent = parent
 
         self.font = QtGui.QFont()

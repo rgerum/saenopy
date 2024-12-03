@@ -6,7 +6,7 @@ class ModuleScaleBar(QtWidgets.QGroupBox):
     pixtomu = None
 
     def __init__(self, parent, view):
-        QtWidgets.QWidget.__init__(self)
+        QtWidgets.QGroupBox.__init__(self)
         self.parent = parent
 
         self.font = QtGui.QFont()
