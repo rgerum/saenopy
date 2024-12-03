@@ -25,7 +25,7 @@ jointforces = "^1.0.7"
 compactionAnalyzer = "^1.0.3"
 numba = "^0.60.0"
 appdirs = "^1.4.4"
-qtrangeslider = "^0.1.5"
+superqt = "^0.6.7"
 h5py = "^3.8.0"
 sphinx = { version = ">=1.6,<7", optional = true }
 sphinx-rtd-theme = { version = "^1.2.2", optional = true }

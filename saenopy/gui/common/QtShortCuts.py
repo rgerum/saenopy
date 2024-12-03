@@ -143,8 +143,8 @@ class QRangeSlider(QInput):
         self.input_min.valueChanged.connect(self._inputBoxChange)
         self.layout().addWidget(self.input_min)
 
-        from qtrangeslider import QRangeSlider
-        self.slider = QRangeSlider(QtCore.Qt.Horizontal).addToLayout()
+        from superqt import QDoubleRangeSlider
+        self.slider = QDoubleRangeSlider(QtCore.Qt.Horizontal).addToLayout()
         self.slider.valueChanged.connect(self._valueChangedEvent)
         self.layout().addWidget(self.slider)
 
