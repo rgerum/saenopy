@@ -1,6 +1,7 @@
 import glob
 import json
 import os
+import sys
 
 import matplotlib as mpl
 import numpy as np
@@ -84,6 +85,7 @@ class PlottingWindowBase(QtWidgets.QWidget):
                 try:
                     self.add_files([filename])
                 except Exception as e:
+                    print(e, file=sys.stderr)
                     QtWidgets.QMessageBox.critical(self, "Error", f"Measurement could not be added to Analysis.\n"
                                                                   f"Is it evaluated completely?")
                     return
@@ -246,7 +248,6 @@ class PlottingWindowBase(QtWidgets.QWidget):
                     data = res.get_data_structure()
                     if data["time_delta"] is not None:
                         time_values = True
-        print("time_values", time_values)
         if time_values is False:
             self.barplot()
         if getattr(self, "agg", None) is not None:
@@ -289,10 +290,8 @@ class PlottingWindowBase(QtWidgets.QWidget):
     def getAllCurrentPandasData(self):
         results = []
         for name, checked, files, color in self.data_folders:
-            print(name, checked, files)
             if checked != 0:
                 for name2, checked2, res, color in files:
-                    print("name2", name2, checked2)
                     if checked2 != 0:
                         res.resulting_data["group"] = name
                         results.append(res.resulting_data)
