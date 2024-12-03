@@ -79,13 +79,13 @@ def render_2d_arrows(params, result, pil_image, im_scale, aa_scale, display_imag
         length3 = np.linalg.norm(field[:, :3], axis=1)
         angle = np.arctan2(field[:, 1], field[:, 0])
         data = pd.DataFrame(np.hstack((R, length2[:, None], length3[:, None], angle[:, None])),
-                            columns=["x", "y", "length2", "length3", "angle"])
+                            columns=["x", "y", "length2", "length", "angle"])
         data = data.sort_values(by="length2", ascending=False)
         d2 = data.groupby(["x", "y"]).first()
         # optional slice
         if skip > 1:
             d2 = d2.loc[(slice(None, None, skip), slice(None, None, skip)), :]
-        return np.array([i for i in d2.index]), d2[["length2", "angle", "length3"]]
+        return np.array([i for i in d2.index]), d2[["length2", "angle", "length"]]
 
     mesh, field, params_arrows, name = get_mesh_arrows(params, result)
 
@@ -109,8 +109,7 @@ def render_2d_arrows(params, result, pil_image, im_scale, aa_scale, display_imag
     if field is not None:
         # rescale and offset
         scale = 1e6 / display_image[1][0]
-        offset = np.array(display_image[0].shape[0:2]) / 2
-
+        offset = np.array(display_image[0].shape[0:2]) / 2    
         R = mesh.nodes.copy()
         is3D = R.shape[1] == 3
         field = field.copy()
@@ -123,7 +122,8 @@ def render_2d_arrows(params, result, pil_image, im_scale, aa_scale, display_imag
         if getattr(mesh, "units", None) == "pixels":
             R = R[:, :2]
             R[:, 1] = display_image[0].shape[0] - R[:, 1]
-            field = field[:, :2] * params_arrows["arrow_scale"]
+            field = field[:, :2] 
+            field_to_pixel_factor = params_arrows["arrow_scale"]
             field[:, 1] = -field[:, 1]
         else:  # "microns" + 3D
             R = R[:, :2][:, ::-1] * scale + offset[::-1]
@@ -169,13 +169,13 @@ def render_2d_arrows(params, result, pil_image, im_scale, aa_scale, display_imag
             # get the colormap
             cmap = plt.get_cmap(colormap)
             # calculate the colors of the arrows
-            colors = cmap(field.length3 * scale_max_to_pixel_factor / scale_max)
+            colors = cmap(field.length * scale_max_to_pixel_factor / scale_max)
             # set the transparency
             colors[:, 3] = alpha
             # make colors uint8
             colors = (colors * 255).astype(np.uint8)
 
-            pil_image = add_quiver(pil_image, R, field.length3 * field_to_pixel_factor, field.angle, colors,
+            pil_image = add_quiver(pil_image, R, field.length * field_to_pixel_factor, field.angle, colors,
                                    scale=im_scale * aa_scale,
                                    width=params["2D_arrows"]["width"],
                                    headlength=params["2D_arrows"]["headlength"],
