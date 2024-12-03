@@ -715,13 +715,13 @@ class QGroupBox(QtWidgets.QGroupBox):
         if layout is None and currentLayout() is not None:
             layout = currentLayout()
         layout.addWidget(self)
-        self.layout = QVBoxLayout(self)
+        self.layout_self = QVBoxLayout(self)
 
     def __enter__(self):
-        return self, self.layout.__enter__()
+        return self, self.layout_self.__enter__()
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        self.layout.__exit__(exc_type, exc_val, exc_tb)
+        self.layout_self.__exit__(exc_type, exc_val, exc_tb)
 
 class QTabWidget(QtWidgets.QTabWidget):
 
@@ -776,8 +776,8 @@ class QTabBarWidget(QtWidgets.QTabBar):
 class EnterableLayout:
     def __enter__(self):
         self.old_layout = currentLayout()
-        setCurrentLayout(self.layout)
-        return self.layout
+        setCurrentLayout(self.layout_self)
+        return self.layout_self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         setCurrentLayout(self.old_layout)
@@ -792,7 +792,7 @@ class QVBoxLayout(QtWidgets.QVBoxLayout, EnterableLayout):
         else:
             super().__init__()
             parent.addLayout(self)
-        self.layout = self
+        self.layout_self = self
         if no_margins is True:
             self.setContentsMargins(0, 0, 0, 0)
 
@@ -806,7 +806,7 @@ class QHBoxLayout(QtWidgets.QHBoxLayout, EnterableLayout):
         else:
             super().__init__()
             parent.addLayout(self)
-        self.layout = self
+        self.layout_self = self
         if no_margins is True:
             self.setContentsMargins(0, 0, 0, 0)
 
@@ -840,7 +840,7 @@ class QSplitter(QtWidgets.QSplitter, EnterableLayout):
         super().__init__(*args)
         if currentLayout() is not None:
             currentLayout().addWidget(self)
-        self.layout = self
+        self.layout_self = self
         self.widgets = []
 
     def addLayout(self, layout):
@@ -1092,8 +1092,8 @@ class ColorMapChoose(QtWidgets.QDialog):
         """ initialize the dialog with all the colormap of matplotlib """
         QtWidgets.QDialog.__init__(self, parent)
         main_layout = QtWidgets.QVBoxLayout(self)
-        self.layout = QtWidgets.QHBoxLayout()
-        main_layout.addLayout(self.layout)
+        self.layout_self = QtWidgets.QHBoxLayout()
+        main_layout.addLayout(self.layout_self)
         button_layout = QtWidgets.QHBoxLayout()
         main_layout.addLayout(button_layout)
 
@@ -1146,7 +1146,7 @@ class ColorMapChoose(QtWidgets.QDialog):
                 self.buttons.append(button)
                 layout.addWidget(button)
             layout.addStretch()
-            self.layout.addLayout(layout)
+            self.layout_self.addLayout(layout)
 
     def set_invert(self):
         for button in self.buttons:

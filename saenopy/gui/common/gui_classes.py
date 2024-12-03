@@ -246,7 +246,7 @@ class CheckAbleGroup(QtWidgets.QWidget, QtShortCuts.EnterableLayout):
                     self.label2.setStyleSheet("QPushButton { border: none; background: none; }")
                     self.label2.clicked.connect(lambda x: QtGui.QDesktopServices.openUrl(QtCore.QUrl(url)))
             self.child_widget = QtWidgets.QWidget().addToLayout()
-        self.layout = self
+        self.layout_self = self
         self.value = self.toggleButton.value
         #self.setValue = self.toggleButton.setValue
         self.valueChanged = self.toggleButton.valueChanged
