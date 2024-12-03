@@ -11,6 +11,7 @@ from qtpy import QtWidgets, QtCore, QtGui
 import qtawesome as qta
 
 from saenopy.gui.common import QtShortCuts
+from saenopy.gui.common.code_export import export_as_string
 from saenopy.gui.common.gui_classes import ListWidget, MatplotlibWidget, execute
 
 
