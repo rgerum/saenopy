@@ -892,21 +892,18 @@ plt.imsave("output.png", im)
     def update_display(self):
         if self.no_update or not self.export_window.isVisible():
             return
-        #print(self.get_parameters())
-        #self.set_parameters(self.get_parameters())
-        #if self.current_tab_selected is False:
-        #    self.current_result_plotted = False
-        #    return
 
         if self.check_evaluated(self.result):
-            if self.input_use2D.value():
-                im = render_2d(self.get_parameters(), self.result, self)
-                self.pixmap1.setPixmap(QtGui.QPixmap(array2qimage(im)))
-                self.view1.setExtend(im.shape[1], im.shape[0])
-                self.view1.fitInView()
-                self.im = im
-                return
+            self.update_display_draw()
 
+    def update_display_draw(self):
+        if self.input_use2D.value():
+            im = render_2d(self.get_parameters(), self.result, self)
+            self.pixmap1.setPixmap(QtGui.QPixmap(array2qimage(im)))
+            self.view1.setExtend(im.shape[1], im.shape[0])
+            self.view1.fitInView()
+            self.im = im
+        else:
             self.render_view(True)
 
     def render_view(self, double_render=False):
@@ -1049,5 +1046,5 @@ def render_image(params, result):
     exporter.setResult(result, no_update_display=True)
     exporter.set_parameters(params)
 
-    exporter.update_display()
+    exporter.update_display_draw()
     return exporter.im
