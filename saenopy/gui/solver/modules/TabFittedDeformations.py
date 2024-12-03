@@ -21,7 +21,7 @@ class TabFittedDeformations(TabModule):
                 self.label_tab = QtWidgets.QLabel("The fitted mesh deformations.").addToLayout()
 
                 with QtShortCuts.QHBoxLayout() as layout:
-                    self.plotter = QtInteractor(self, auto_update=False)  # , theme=pv.themes.DocumentTheme())
+                    self.plotter = QtInteractor(None, auto_update=False)  # , theme=pv.themes.DocumentTheme())
                     self.tab.parent().plotter = self.plotter
                     self.plotter.set_background("black")
                     layout.addWidget(self.plotter.interactor)

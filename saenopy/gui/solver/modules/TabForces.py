@@ -35,7 +35,7 @@ class TabForces(TabModule):
                 self.label_tab = QtWidgets.QLabel("The fitted regularized forces.").addToLayout()
 
                 with QtShortCuts.QHBoxLayout() as layout:
-                    self.plotter = QtInteractor(self, auto_update=False)  # , theme=pv.themes.DocumentTheme())
+                    self.plotter = QtInteractor(None, auto_update=False)  # , theme=pv.themes.DocumentTheme())
                     self.tab.parent().plotter = self.plotter
                     layout.addWidget(self.plotter.interactor)
 
