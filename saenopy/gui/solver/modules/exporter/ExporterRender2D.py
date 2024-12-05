@@ -333,10 +333,13 @@ def add_colorbar(pil_image,
 
     font_size = int(
         round(fontsize * scale * 4 / 3))  # the 4/3 appears to be a factor of "converting" screel dpi to image dpi
-    try:
-        font = ImageFont.truetype("arial", font_size)  # ImageFont.truetype("tahoma.ttf", font_size)
-    except IOError:
-        font = ImageFont.truetype("DejaVuSans.ttf", font_size)
+    if font_size == 0:
+        font = None
+    else:
+        try:
+            font = ImageFont.truetype("arial", font_size)  # ImageFont.truetype("tahoma.ttf", font_size)
+        except IOError:
+            font = ImageFont.truetype("DejaVuSans.ttf", font_size)
 
     locator = ticker.MaxNLocator(nbins=tick_count - 1)
     #tick_positions = locator.tick_values(min_v, max_v)
@@ -372,12 +375,14 @@ def add_colorbar(pil_image,
         x = x0 - length_number * 0.5 + 1
         y = y0 - height_number - tick_height - int(np.ceil(tick_height/2))
         # draw the text for the number and the unit
-        image.text((x, y), text, color, font=font)
+        if font is not None:
+            image.text((x, y), text, color, font=font)
     if unit:
         height_number = image.textbbox((0, 0), unit, font=font)[3]
         x0 = offset_x + bar_width + 10
         y0 = offset_y - bar_height  / 2 - height_number /2
-        image.text((x0, y0), unit, color, font=font)
+        if font is not None:
+            image.text((x0, y0), unit, color, font=font)
     #image.rectangle([pil_image.size[0]-10, 0, pil_image.size[0], 10], fill="w")
     return pil_image
 
@@ -404,6 +409,8 @@ def add_scalebar(pil_image, scale, image_scale, width, xpos, ypos, fontsize, pix
                          pil_image.size[1] - pixel_offset_y], color)
     if True:
         # get the font
+        if font_size == 0:
+            return pil_image
         try:
             font = ImageFont.truetype("arial", font_size)#ImageFont.truetype("tahoma.ttf", font_size)
         except IOError:
