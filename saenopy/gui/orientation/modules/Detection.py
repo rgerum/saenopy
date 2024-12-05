@@ -99,7 +99,7 @@ class DeformationDetector(PipelineModule):
             shell_width /= result.pixel_size
 
         from CompactionAnalyzer.CompactionFunctions import StuctureAnalysisMain
-        StuctureAnalysisMain(fiber_list=[result.image_fiber],
+        angle_no_reference, orientation_dev, ori, min_evex, excel_total, excel_angles, excel_distance = StuctureAnalysisMain(fiber_list=[result.image_fiber],
                              cell_list=[result.image_cell],
                              out_list=[result.output[:-len(".saenopyOrientation")]],
                              scale=result.pixel_size,
@@ -115,9 +115,13 @@ class DeformationDetector(PipelineModule):
                              angle_sections=orientation_parameters["angle_sections"],
                              shell_width=shell_width,
                              SaveNumpy=True,
+                             mode_saenopy=True,
                              )
 
-        result.orientation_map = np.load(Path(result.output).parent / Path(result.output).stem / "NumpyArrays" / "OrientationMap.npy")
+        result.orientation_map = orientation_dev#np.load(Path(result.output).parent / Path(result.output).stem / "NumpyArrays" / "OrientationMap.npy")
+        result.coherence_map = ori
+        result.angle_to_x_map = angle_no_reference
+        result.orientation_vectors = min_evex
 
         result.save()
 

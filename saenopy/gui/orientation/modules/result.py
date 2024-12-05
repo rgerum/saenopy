@@ -44,7 +44,11 @@ class Segmentation(TypedDict):
 class ResultOrientation(Saveable):
     __save_parameters__ = ['image_cell', 'image_fiber', 'pixel_size', 'output',
                            'segmentation_parameters', 'orientation_parameters',
-                           'segmentation', 'orientation_map',
+                           'segmentation',
+                           'orientation_map',
+                           'coherence_map',
+                           'angle_to_x_map',
+                           'orientation_vectors',
                            'shape',
                            '___save_name__', '___save_version__']
     ___save_name__ = "ResultOrientation"
@@ -61,6 +65,9 @@ class ResultOrientation(Saveable):
     segmentation: Segmentation = None
 
     orientation_map: np.ndarray = None
+    coherence_map: np.ndarray = None
+    angle_to_x_map: np.ndarray = None
+    orientation_vectors: np.ndarray = None
 
     state: bool = False
 
@@ -120,20 +127,29 @@ class ResultOrientation(Saveable):
             "voxel_size": [self.pixel_size, self.pixel_size, 1],
             "time_delta": None,
             "channels": ["cells", "fibers"],
-            "fields": {
-                "deformation": {
-                    "type": "vector",
-                    "measure": "deformation",
-                    "unit": "pixel",
-                    "name": "displacements_measured",
+            "maps": {
+                "orientation_cell_center": {
+                    "measure": "orientation",
+                    "unit": "",
+                    "name": "orientation_cell_center",
+                    "colormap": "coolwarm",
+                    "lim": [-1, 1],
                 },
-                "forces": {
-                    "type": "vector",
-                    "measure": "force",
-                    "unit": "pixel",
-                    "name": "force",
-                }
-            }
+                "orientation_x_axis": {
+                    "measure": "angle",
+                    "unit": "",
+                    "name": "orientation_x_axis",
+                    "colormap": "gist_rainbow",
+                    "lim": [-90, 90],
+                },
+                "coherence": {
+                    "measure": "normalized_strength",
+                    "unit": "",
+                    "name": "orientation_x_axis",
+                    "colormap": "turbo",
+                    "lim": [0, 1],
+                },
+            },
         }
 
     def get_image_data(self, time_point, channel="default", use_reference=False):
@@ -141,9 +157,20 @@ class ResultOrientation(Saveable):
             im = self.get_image(0)
         else:
             im = self.get_image(1)
+        edge = self.orientation_parameters["edge"]
+        im = im[edge:-edge, edge:-edge]
         if len(im.shape) == 2:
             return im[:, :, None, None]
         return im[:, :, :, None]
+
+    def get_map_data(self, name):
+        if name == "orientation_cell_center":
+            return self.orientation_map
+        if name == "orientation_x_axis":
+            return self.angle_to_x_map
+        if name == "coherence":
+            return self.coherence_map
+
 
     def get_field_data(self, name, time_point):
         class Mesh2D:
