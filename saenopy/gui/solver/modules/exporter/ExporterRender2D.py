@@ -48,17 +48,23 @@ def render_2d_image(params, result, exporter):
     im = np.squeeze(display_image[0])
 
     def adjust_img(im, colormap2):
+        if len(im.shape) == 3 and (colormap2 is None or colormap2 == "gray"):
+            if im.dtype == np.uint8:
+                im = im.astype(np.float32) / 255
+            return im
         if len(im.shape) == 3:
             if im.shape[2] == 1:
                 im = im[:, :, 0]
             else:
                 im = np.mean(im[:, :, :3], axis=2)
+        if colormap2 is None:
+            return im
         cmap = plt.get_cmap(colormap2)
         im = cmap(im)
         return im
 
     colormap2 = params["stack"]["colormap"]
-    if colormap2 is not None and colormap2 != "gray":
+    if True: #colormap2 is not None and colormap2 != "gray":
         im = adjust_img(im, colormap2)
 
         if display_imageB is not None:
