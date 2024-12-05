@@ -6,25 +6,26 @@ from qimage2ndarray import array2qimage
 from saenopy.gui.common import QtShortCuts, QExtendedGraphicsView
 from saenopy.gui.common.QTimeSlider import QTimeSlider
 from saenopy.gui.solver.modules.TabStackDisplay import ModuleScaleBar
+from saenopy.stack import CropDict
 
 
-def crop(im, z, t, cropped):
+def crop(im: np.ndarray, z: int, t: int, cropped: CropDict):
     if "x" not in cropped:
         cropped["x"] = (None, None)
-    minx = cropped["x"][0] or 0
-    maxx = cropped["x"][1] or im.shape[1]
+    minx = int(cropped["x"][0] or 0)
+    maxx = int(cropped["x"][1] or im.shape[1])
     if "y" not in cropped:
         cropped["y"] = (None, None)
-    miny = cropped["y"][0] or 0
-    maxy = cropped["y"][1] or im.shape[0]
+    miny = int(cropped["y"][0] or 0)
+    maxy = int(cropped["y"][1] or im.shape[0])
     if "z" not in cropped:
         cropped["z"] = (None, None)
-    minz = cropped["z"][0] or 0
-    maxz = cropped["z"][1] or z+1
+    minz = int(cropped["z"][0] or 0)
+    maxz = int(cropped["z"][1] or z+1)
     if "t" not in cropped:
         cropped["t"] = (None, None)
-    mint = cropped["t"][0] or 0
-    maxt = cropped["t"][1] or t+1
+    mint = int(cropped["t"][0] or 0)
+    maxt = int(cropped["t"][1] or t+1)
     if len(im.shape) == 2:
         im = im[:, :, None]
     if im.shape[2] == 1:
