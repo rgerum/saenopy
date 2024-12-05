@@ -13,21 +13,23 @@ from .result import ResultOrientation, get_orientation_files
 from .Detection import DeformationDetector
 from .Segmentation import SegmentationDetector
 from saenopy.gui.common.BatchEvaluateBase import BatchEvaluateBase
+from saenopy.gui.solver.modules.exporter.Exporter import ExportViewer
 
 settings = QtCore.QSettings("FabryLab", "CompactionAnalyzer")
 
 
 class BatchEvaluate(BatchEvaluateBase):
-    settings_key = "Seanopy_deformation"
-    file_extension = ".saenopyDeformation"
+    settings_key = "saenopy_deformation"
+    file_extension = ".saenopyOrientation"
     result: ResultOrientation = None
 
-    result_params = ["piv_parameters", "force_parameters"]
+    result_params = ["segmentation_parameters", "orientation_parameters"]
 
     def add_modules(self):
         layout0 = QtShortCuts.currentLayout()
         self.sub_module_segmentation = SegmentationDetector(self, layout0)
         self.sub_module_deformation = DeformationDetector(self, layout0)
+        self.sub_module_export = ExportViewer(self, layout0)
         self.modules = [self.sub_module_segmentation, self.sub_module_deformation]
 
         self.tab1 = TabCellOutline(self)
