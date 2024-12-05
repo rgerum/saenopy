@@ -66,10 +66,12 @@ def render_2d_image(params, result, exporter):
     colormap2 = params["stack"]["colormap"]
     if True: #colormap2 is not None and colormap2 != "gray":
         im = adjust_img(im, colormap2)
+        im = im * params["stack"].get("alpha", 1)
 
         if display_imageB is not None:
-            print("add second", params["stack"]["channel_B"], params["stack"]["colormap_B"])
-            im += adjust_img(display_imageB[0], params["stack"]["colormap_B"])
+            im2 = adjust_img(display_imageB[0], params["stack"]["colormap_B"])
+            im2 = im2 * params["stack"].get("alpha_B", 1)
+            im += im2
             im = np.clip(im, 0, 1)
         im = (im * 255).astype(np.uint8)[:, :, :3]
 

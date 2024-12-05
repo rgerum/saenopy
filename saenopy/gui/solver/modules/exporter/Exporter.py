@@ -299,12 +299,17 @@ class ExportViewer(PipelineModule):
                         self.vtk_toolbar.contrast_enhance.addToLayout()
                         self.vtk_toolbar.colormap_chooser2.addToLayout()
 
+                        self.stack_alpha = QtShortCuts.QInputNumber(None, "alpha", 1, 0, 1, use_slider=True)
+                        self.stack_alpha.valueChanged.connect(self.update_display)
+
                         QtShortCuts.QVLine().addToLayout()
                         self.channel_selectB = QtShortCuts.QInputChoice(None, "", "", [""], ["       "],
                                                                        tooltip="From which channel to display the stack image.")
                         self.channel_selectB.valueChanged.connect(self.update_display)
                         self.colormap_chooserB = QtShortCuts.QDragableColor("gray").addToLayout()
                         self.colormap_chooserB.valueChanged.connect(self.update_display)
+                        self.stack_alphaB = QtShortCuts.QInputNumber(None, "alpha", 1, 0, 1, use_slider=True)
+                        self.stack_alphaB.valueChanged.connect(self.update_display)
                         QtShortCuts.currentLayout().addStretch()
 
                 with QtShortCuts.QGroupBox(None, "scale bar") as (self.box_scalebar, _):
@@ -474,8 +479,10 @@ class ExportViewer(PipelineModule):
                 "colormap": self.vtk_toolbar.colormap_chooser2,
                 "z": self.z_slider,
                 "use_reference_stack": self.input_reference_stack,
+                "alpha": self.stack_alpha,
                 "channel_B": self.channel_selectB,
                 "colormap_B": self.colormap_chooserB,
+                "alpha_B": self.stack_alphaB,
             },
 
             "scalebar": {
