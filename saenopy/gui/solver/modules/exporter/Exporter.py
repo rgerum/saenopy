@@ -289,6 +289,21 @@ class ExportViewer(PipelineModule):
                         self.vtk_toolbar2.colormap_chooser.addToLayout()
                         self.vtk_toolbar2.arrow_scale.addToLayout()
 
+                """ maps """
+                with QtShortCuts.QHBoxLayout() as layout:
+                    self.input_maps = QtShortCuts.QInputChoice(None, "maps", "None", values=["None"])
+                    self.input_maps.valueChanged.connect(self.update_display)
+                    QtShortCuts.currentLayout().addStretch()
+
+                with QtShortCuts.QHBoxLayout() as layout:
+                    with QtShortCuts.QGroupBox(None, "map properties") as (self.box_map_properties, _):
+                        self.colormap_maps = QtShortCuts.QDragableColor("turbo").addToLayout()
+                        self.colormap_maps.valueChanged.connect(self.update_display)
+
+                        self.maps_scale = QtShortCuts.QInputNumber(None, "map scale", 0.5, 0, 1, use_slider=True)
+                        self.maps_scale.valueChanged.connect(self.update_display)
+                """ """
+
                 with QtShortCuts.QGroupBox(None, "stack image"):
                     with QtShortCuts.QHBoxLayout():
                         self.vtk_toolbar.show_image.addToLayout()
@@ -469,6 +484,10 @@ class ExportViewer(PipelineModule):
                 "arrow_opacity": self.input_arrow_opacity2,
                 "skip": self.input_arrow_skip2,
             },
+
+            "maps": self.input_maps,
+            "maps_cmap": self.colormap_maps,
+            "maps_alpha": self.maps_scale,
 
             "stack": {
                 "image": self.vtk_toolbar.show_image,
@@ -715,11 +734,15 @@ plt.imsave("output.png", im)
         self.result = result
         if result:
             data = result.get_data_structure()
-            self.input_arrows.setValues(["None"] + list(data["fields"].keys()))
-            self.input_arrows.setValue(next(iter(data["fields"].items()))[0])
             if "fields" in data:
                 self.input_arrows.setValues(["None"] + list(data["fields"].keys()))
                 self.input_arrows.setValue(next(iter(data["fields"].items()))[0])
+
+            if "maps" in data:
+                self.input_maps.setValues(["None"] + list(data["maps"].keys()))
+                self.input_maps.setValue(next(iter(data["maps"].items()))[0])
+            for widget in [self.input_maps, self.box_map_properties]:
+                widget.setVisible("maps" in data)
 
             if data["dimensions"] == 2:
                 self.input_use2D.setValue(True)

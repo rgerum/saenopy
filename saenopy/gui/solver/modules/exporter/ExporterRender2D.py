@@ -20,6 +20,9 @@ def render_2d(params, result, exporter=None):
         pil_image = pil_image.resize([pil_image.width // 2, pil_image.height // 2])
         aa_scale = 1
 
+    if params["maps"] != "None":
+        pil_image, disp_params = render_map(params, result, pil_image, im_scale, aa_scale, display_image, return_scale=True)
+
     if params["scalebar"]["hide"] is False:
         pil_image = render_2d_scalebar(params, result, pil_image, im_scale, aa_scale)
     if disp_params != None and params["colorbar"]["hide"] is False:
@@ -79,6 +82,43 @@ def render_2d_image(params, result, exporter):
     pil_image = pil_image.resize([int(pil_image.width * im_scale * aa_scale), int(pil_image.height * im_scale * aa_scale)])
 
     return pil_image, display_image, im_scale, aa_scale
+
+
+def render_map(params, result, pil_image, im_scale, aa_scale, display_image, return_scale=False):
+    data = result.get_data_structure()
+
+    if "maps" not in data:
+        if return_scale:
+            return pil_image, None
+        return pil_image
+
+    map_name = params["maps"]
+    map_im = result.get_map_data(params["maps"])
+    cmap = data["maps"][map_name]["colormap"]
+    vmin, vmax = data["maps"][map_name]["lim"]
+    #cmap = params["maps_cmap"]
+    alpha = params["maps_alpha"]
+    if alpha is None:
+        alpha = 0.5
+
+    nan_mask = np.isnan(map_im)[:, :, None]
+
+    pil_image = pil_image.convert("RGBA")
+
+    map_im = map_im - vmin
+    map_im = map_im / (vmax-vmin)
+    map_im = plt.get_cmap(cmap)(map_im)
+
+    map_im = (map_im*255).astype(np.uint8)
+    map_im = np.where(nan_mask, np.asarray(pil_image), map_im)
+
+    map_im = Image.fromarray(map_im, mode="RGBA")
+
+    # Composite the overlay on top of the base image
+    pil_image = Image.blend(pil_image, map_im, alpha).convert("RGB")
+    if return_scale:
+        return pil_image, {"scale_min": vmin, "scale_max": vmax, "colormap": cmap, "scalebar_unit": None}
+    return pil_image
 
 
 def render_2d_arrows(params, result, pil_image, im_scale, aa_scale, display_image, return_scale=False):
