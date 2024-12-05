@@ -355,19 +355,20 @@ def add_colorbar(pil_image,
     max_value = tick_positions[-1]
     factor = 1
     power = 0
-    if max_value:
-        power = int(np.floor(np.log10(max_value)/3)*3)
-        factor = 10**power
-    base_factor = 0
-    factor_prefix = {6: "M", 3: "k", -3: "m", -6: "µ", -9: "n", -12: "p"}
-    if unit.startswith("p"):
-        unit = unit[1:]
-        base_power = -12
-        unit = factor_prefix[power+base_power]+unit
-    if unit.startswith("µ") or unit.startswith("u"):
-        unit = unit[1:]
-        base_power = -6
-        unit = factor_prefix[power + base_power]+unit
+    if unit is not None:
+        if max_value:
+            power = int(np.floor(np.log10(max_value)/3)*3)
+            factor = 10**power
+        base_factor = 0
+        factor_prefix = {6: "M", 3: "k", -3: "m", -6: "µ", -9: "n", -12: "p"}
+        if unit.startswith("p"):
+            unit = unit[1:]
+            base_power = -12
+            unit = factor_prefix[power+base_power]+unit
+        if unit.startswith("µ") or unit.startswith("u"):
+            unit = unit[1:]
+            base_power = -6
+            unit = factor_prefix[power + base_power]+unit
 
     for i, pos in enumerate(tick_positions):
         x0 = offset_x + (bar_width - tick_width - 1) / (tick_count - 1) * i
