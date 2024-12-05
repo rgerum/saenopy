@@ -23,7 +23,7 @@ def render_2d(params, result, exporter=None):
     if params["scalebar"]["hide"] is False:
         pil_image = render_2d_scalebar(params, result, pil_image, im_scale, aa_scale)
     if disp_params != None and params["colorbar"]["hide"] is False:
-        pil_image = render_2d_colorbar(params, result, pil_image, im_scale, aa_scale, scale_max=disp_params["scale_max"], colormap=disp_params["colormap"], unit=disp_params["scalebar_unit"])
+        pil_image = render_2d_colorbar(params, result, pil_image, im_scale, aa_scale, scale_min=disp_params.get("scale_min", 0), scale_max=disp_params["scale_max"], colormap=disp_params["colormap"], unit=disp_params["scalebar_unit"])
 
     pil_image = render_2d_time(params, result, pil_image)
 
@@ -226,7 +226,7 @@ def render_2d_scalebar(params, result, pil_image, im_scale, aa_scale):
                              size_in_um=mu, color=color, unit="µm")
     return pil_image
 
-def render_2d_colorbar(params, result, pil_image, im_scale, aa_scale, colormap="viridis", scale_max=1, unit="µm"):
+def render_2d_colorbar(params, result, pil_image, im_scale, aa_scale, colormap="viridis", scale_min=0, scale_max=1, unit="µm"):
     color = "k"
     if params["theme"] == "dark":
         color = "w"
@@ -238,6 +238,7 @@ def render_2d_colorbar(params, result, pil_image, im_scale, aa_scale, colormap="
                              #tick_height=params["colorbar"]["tick_height"] * aa_scale,
                              #tick_count=params["colorbar"]["tick_count"],
                              #min_v=params["scalebar"]["min_v"],
+                             min_v=scale_min,
                              max_v=scale_max,#params["colorbar"]["max_v"],
                              offset_x=params["colorbar"]["xpos"] * aa_scale,
                              offset_y=-params["colorbar"]["ypos"] * aa_scale,
