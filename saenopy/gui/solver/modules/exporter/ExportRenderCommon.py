@@ -7,6 +7,8 @@ class Mesh2D:
 
 def get_mesh_arrows(params, result):
     data = result.get_data_structure()
+    if "fields" not in data or len(data["fields"]) == 0:
+        return None, None, None, ""
     if params["arrows"] not in data["fields"]:
         return None, None, {}, ""
     mesh, field = result.get_field_data(params["arrows"], params["time"]["t"])

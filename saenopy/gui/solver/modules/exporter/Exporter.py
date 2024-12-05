@@ -717,6 +717,9 @@ plt.imsave("output.png", im)
             data = result.get_data_structure()
             self.input_arrows.setValues(["None"] + list(data["fields"].keys()))
             self.input_arrows.setValue(next(iter(data["fields"].items()))[0])
+            if "fields" in data:
+                self.input_arrows.setValues(["None"] + list(data["fields"].keys()))
+                self.input_arrows.setValue(next(iter(data["fields"].items()))[0])
 
             if data["dimensions"] == 2:
                 self.input_use2D.setValue(True)
