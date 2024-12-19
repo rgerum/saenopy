@@ -208,6 +208,7 @@ class ExportViewer(PipelineModule):
                     self.view1.setMinimumWidth(700)
                     self.pixmap1 = QtWidgets.QGraphicsPixmapItem(self.view1.origin)
                     self.view1.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
+                    self.pixmap1.sceneEventOrig = self.pixmap1.sceneEvent
                     self.pixmap1.sceneEvent = self.sceneEventFilter
 
                     #self.widget_settings = QtWidgets.QWidget().addToLayout()
@@ -595,7 +596,7 @@ class ExportViewer(PipelineModule):
         self.rotate_steps.setEnabled(is3D)
 
         if is2D:
-            self.pixmap1.sceneEvent = None
+            self.pixmap1.sceneEvent = self.pixmap1.sceneEventOrig
         else:
             self.pixmap1.sceneEvent = self.sceneEventFilter
 
