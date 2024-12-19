@@ -57,7 +57,7 @@ class QInput(QtWidgets.QWidget):
 
     """
     # the signal when the user has changed the value
-    valueChanged = QtCore.Signal(int)
+    valueChanged = QtCore.Signal(object)
 
     no_signal = False
 
