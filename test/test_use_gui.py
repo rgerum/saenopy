@@ -410,7 +410,7 @@ def test_copy_paste_params(monkeypatch, random_path, catch_popup_error):
     batch_evaluate.copy_params()
 
     cb = QtGui.QGuiApplication.clipboard()
-    cb.setText("test", mode=cb.Clipboard)
+    cb.setText("test")
 
     # assert that we can past the params
     assert not batch_evaluate.allow_paste()
@@ -420,7 +420,7 @@ def test_copy_paste_params(monkeypatch, random_path, catch_popup_error):
     assert not batch_evaluate.paste_params()
 
     cb = QtGui.QGuiApplication.clipboard()
-    cb.setText('{"a": 5}', mode=cb.Clipboard)
+    cb.setText('{"a": 5}')
 
     # assert that we can past the params
     assert not batch_evaluate.allow_paste()
