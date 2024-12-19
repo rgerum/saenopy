@@ -639,7 +639,7 @@ class ExportViewer(PipelineModule):
         self.z_slider.setEnabled(isActive)
 
     def save_parameters(self):
-        new_path = QtWidgets.QFileDialog.getSaveFileName(None, "Save Parameters", os.getcwd(), "JSON File (*.json)")
+        new_path = QtWidgets.QFileDialog.getSaveFileName(None, "Save Parameters", os.getcwd(), "JSON File (*.json)")[0]
         if new_path:
             if not new_path.endswith(".json"):
                 new_path += ".json"
@@ -647,7 +647,7 @@ class ExportViewer(PipelineModule):
                 json.dump(self.get_parameters(), fp, indent=2)
 
     def load_parameters(self):
-        new_path = QtWidgets.QFileDialog.getOpenFileName(None, "Load Parameters", os.getcwd(), "JSON File (*.json)")
+        new_path = QtWidgets.QFileDialog.getOpenFileName(None, "Load Parameters", os.getcwd(), "JSON File (*.json)")[0]
         if new_path:
             try:
                 with open(new_path, "r") as fp:

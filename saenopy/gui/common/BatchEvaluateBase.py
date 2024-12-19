@@ -238,7 +238,7 @@ class BatchEvaluateBase(QtWidgets.QWidget):
                 return
         except IndexError:
             return
-        new_path = QtWidgets.QFileDialog.getSaveFileName(None, "Save Session as Script", os.getcwd(), "Python File (*.py)")
+        new_path = QtWidgets.QFileDialog.getSaveFileName(None, "Save Session as Script", os.getcwd(), "Python File (*.py)")[0]
         if new_path:
             # ensure filename ends in .py
             if not new_path.endswith(".py"):

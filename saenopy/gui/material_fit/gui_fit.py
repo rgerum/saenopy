@@ -298,7 +298,7 @@ class MainWindowFit(QtWidgets.QWidget):
         self.canvas.draw()
 
     def add_measurement(self):
-        new_path = QtWidgets.QFileDialog.getOpenFileName(None, "Load Measurement", os.getcwd(), "Text File (*.txt);; CSV File (*.csv)")
+        new_path = QtWidgets.QFileDialog.getOpenFileName(None, "Load Measurement", os.getcwd(), "Text File (*.txt);; CSV File (*.csv)")[0]
         if new_path:
             self.add_file(new_path)
 

@@ -49,7 +49,7 @@ class StackSelector(QtWidgets.QWidget):
         layout.addWidget(self)
 
     def export(self):
-        new_path = QtWidgets.QFileDialog.getSaveFileName(None, "Save Images", os.getcwd())
+        new_path = QtWidgets.QFileDialog.getSaveFileName(None, "Save Images", os.getcwd())[0]
         # if we got one, set it
         if new_path:
             if isinstance(new_path, tuple):

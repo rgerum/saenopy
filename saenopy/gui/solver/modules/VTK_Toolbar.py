@@ -183,7 +183,7 @@ class VTK_Toolbar(QtWidgets.QWidget):
             self.button.clicked.connect(lambda x: self.plotter.isometric_view())
 
             def save():
-                new_path = QtWidgets.QFileDialog.getSaveFileName(None, "Save Images", os.getcwd())
+                new_path = QtWidgets.QFileDialog.getSaveFileName(None, "Save Images", os.getcwd())[0]
                 # if we got one, set it
                 if new_path:
                     print(new_path)

@@ -461,7 +461,6 @@ class QInputBool(QInput):
 
 
 class QInputChoice(QInput):
-    valueChanged = QtCore.Signal(str)
 
     def __init__(self, layout=None, name=None, value=None, values=None, value_names=None, reference_by_index=False, **kwargs):
         # initialize the super widget
@@ -612,15 +611,15 @@ class QInputFilename(QInput):
         # open an new files
         if not self.existing:
             if "PYCHARM_HOSTED" in os.environ:
-                filename = QtWidgets.QFileDialog.getSaveFileName(None, self.dialog_title, self.last_folder, self.file_type, options=QtWidgets.QFileDialog.DontUseNativeDialog)
+                filename = QtWidgets.QFileDialog.getSaveFileName(None, self.dialog_title, self.last_folder, self.file_type, options=QtWidgets.QFileDialog.DontUseNativeDialog)[0]
             else:
-                filename = QtWidgets.QFileDialog.getSaveFileName(None, self.dialog_title, self.last_folder, self.file_type)
+                filename = QtWidgets.QFileDialog.getSaveFileName(None, self.dialog_title, self.last_folder, self.file_type)[0]
         # or choose an existing file
         else:
             if "PYCHARM_HOSTED" in os.environ:
-                filename = QtWidgets.QFileDialog.getOpenFileName(None, self.dialog_title, self.last_folder, self.file_type, options=QtWidgets.QFileDialog.DontUseNativeDialog)
+                filename = QtWidgets.QFileDialog.getOpenFileName(None, self.dialog_title, self.last_folder, self.file_type, options=QtWidgets.QFileDialog.DontUseNativeDialog)[0]
             else:
-                filename = QtWidgets.QFileDialog.getOpenFileName(None, self.dialog_title, self.last_folder, self.file_type)
+                filename = QtWidgets.QFileDialog.getOpenFileName(None, self.dialog_title, self.last_folder, self.file_type)[0]
 
         # get the string
         if isinstance(filename, tuple):  # Qt5
@@ -916,7 +915,7 @@ def AddQSaveFileChoose(layout, text, value=None, dialog_title="Choose File", fil
     lineEdit.setEnabled(False)
 
     def OpenDialog():
-        srcpath = QtWidgets.QFileDialog.getSaveFileName(None, dialog_title, os.getcwd(), file_type)
+        srcpath = QtWidgets.QFileDialog.getSaveFileName(None, dialog_title, os.getcwd(), file_type)[0]
         if isinstance(srcpath, tuple):
             srcpath = srcpath[0]
         else:
@@ -949,7 +948,7 @@ def AddQOpenFileChoose(layout, text, value=None, dialog_title="Choose File", fil
     lineEdit.setEnabled(False)
 
     def OpenDialog():
-        srcpath = QtWidgets.QFileDialog.getOpenFileName(None, dialog_title, os.getcwd(), file_type)
+        srcpath = QtWidgets.QFileDialog.getOpenFileName(None, dialog_title, os.getcwd(), file_type)[0]
         if isinstance(srcpath, tuple):
             srcpath = srcpath[0]
         else:

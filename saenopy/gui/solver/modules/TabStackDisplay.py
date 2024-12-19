@@ -149,7 +149,7 @@ class TabStackDisplay(TabModule):
     def export(self):
         if self.result is None:
             return
-        new_path = QtWidgets.QFileDialog.getSaveFileName(None, "Save Images", os.getcwd())
+        new_path = QtWidgets.QFileDialog.getSaveFileName(None, "Save Images", os.getcwd())[0]
         # if we got one, set it
         if new_path:
             new_path = new_path.strip(".gif").strip("_relaxed.tif").strip("_deformed.tif")

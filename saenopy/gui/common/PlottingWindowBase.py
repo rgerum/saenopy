@@ -164,7 +164,7 @@ class PlottingWindowBase(QtWidgets.QWidget):
 
     def save(self, filename=None):
         if filename is None:
-            filename = QtWidgets.QFileDialog.getSaveFileName(None, "Save Session", os.getcwd(), "JSON File (*.json)")
+            filename = QtWidgets.QFileDialog.getSaveFileName(None, "Save Session", os.getcwd(), "JSON File (*.json)")[0]
         if filename:
             if not filename.endswith(".json"):
                 filename += ".json"
@@ -179,7 +179,7 @@ class PlottingWindowBase(QtWidgets.QWidget):
 
     def load(self, filename=None):
         if filename is None:
-            filename = QtWidgets.QFileDialog.getOpenFileName(None, "Load Session", os.getcwd(), "JSON File (*.json)")
+            filename = QtWidgets.QFileDialog.getOpenFileName(None, "Load Session", os.getcwd(), "JSON File (*.json)")[0]
         if filename:
             with open(filename, "r") as fp:
                 list_new = json.load(fp)

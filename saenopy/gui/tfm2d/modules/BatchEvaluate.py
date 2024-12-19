@@ -81,7 +81,7 @@ class BatchEvaluate(BatchEvaluateBase):
 
     def generate_data(self):
         new_path = QtWidgets.QFileDialog.getSaveFileName(None, "Save Data CSV", os.getcwd(),
-                                                         "Comma Separated File (*.csv)")
+                                                         "Comma Separated File (*.csv)")[0]
         if not new_path:
             return None
         # ensure filename ends in .py

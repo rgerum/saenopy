@@ -218,7 +218,7 @@ class TabResultView(TabModule):
             plotter.render()
 
     def saveScreenshot(self):
-        new_path = QtWidgets.QFileDialog.getSaveFileName(self, "Save Image", os.getcwd(), "Image Files (*.jpg, *.png)")
+        new_path = QtWidgets.QFileDialog.getSaveFileName(self, "Save Image", os.getcwd(), "Image Files (*.jpg, *.png)")[0]
         # if we got one, set it
         if new_path:
             imageio.imsave(new_path, self.plotter.image)

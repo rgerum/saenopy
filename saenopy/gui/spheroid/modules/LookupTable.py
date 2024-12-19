@@ -287,7 +287,7 @@ class SelectLookup(QtWidgets.QDialog):
 
     def loadExisting(self):
         last_folder = settings.value("batch", "batch/lookuptable_path")
-        filename = QtWidgets.QFileDialog.getOpenFileName(None, "Open Lookup Table", last_folder, "Numpy Lookup Table (*.npy);; Pickle Lookup Table (*.pkl)")
+        filename = QtWidgets.QFileDialog.getOpenFileName(None, "Open Lookup Table", last_folder, "Numpy Lookup Table (*.npy);; Pickle Lookup Table (*.pkl)")[0]
         filename = filename[0] if isinstance(filename, tuple) else str(filename) if filename is not None else None
 
         if filename == "":
