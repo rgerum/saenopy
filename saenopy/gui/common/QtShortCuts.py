@@ -23,6 +23,7 @@ import colorsys
 import os
 
 import matplotlib as mpl
+from typing import Tuple
 import numpy as np
 from qtpy import QtCore, QtGui, QtWidgets
 
@@ -133,6 +134,7 @@ class QInput(QtWidgets.QWidget):
         pass
 
 class QRangeSlider(QInput):
+    valueChanged = QtCore.Signal(tuple)
     editingFinished = QtCore.Signal()
 
     def __init__(self, layout, name, min, max, **kwargs):
@@ -168,7 +170,7 @@ class QRangeSlider(QInput):
         self.setValue(value)
         self._emitSignal()
 
-    def _doSetValue(self, value):
+    def _doSetValue(self, value: Tuple[float, float]):
         self.slider.setValue(value)
         self.input_min.setValue(value[0])
         self.input_max.setValue(value[1])
@@ -188,6 +190,7 @@ class QRangeSlider(QInput):
 
 cast_float = float
 class QInputNumber(QInput):
+    valueChanged = QtCore.Signal(float)
     slider_dragged = False
 
     def __init__(self, layout=None, name=None, value=0, min=None, max=None, use_slider=False, float=True, decimals=2,
@@ -289,6 +292,7 @@ class QInputNumber(QInput):
 
 
 class QInputString(QInput):
+    valueChanged = QtCore.Signal(str)
     error = None
 
     def __init__(self, layout=None, name=None, value="", allow_none=True, none_value="None", type=str, unit=None, name_post=None, validator=None, **kwargs):
@@ -362,6 +366,7 @@ class QInputString(QInput):
 
 
 class QInputBool(QInput):
+    valueChanged = QtCore.Signal(int)
     button = None
     my_value = None
     icon = None
@@ -456,6 +461,7 @@ class QInputBool(QInput):
 
 
 class QInputChoice(QInput):
+    valueChanged = QtCore.Signal(str)
 
     def __init__(self, layout=None, name=None, value=None, values=None, value_names=None, reference_by_index=False, **kwargs):
         # initialize the super widget
@@ -524,6 +530,7 @@ class QInputChoice(QInput):
 
 
 class QInputColor(QInput):
+    valueChanged = QtCore.Signal(str)
 
     def __init__(self, layout=None, name=None, value=None, **kwargs):
         # initialize the super widget
@@ -570,6 +577,7 @@ class QInputColor(QInput):
 
 
 class QInputFilename(QInput):
+    valueChanged = QtCore.Signal(str)
     last_folder = None
 
     def __init__(self, layout=None, name=None, value=None, dialog_title="Choose File", file_type="All", filename_checker=None, existing=False, allow_edit=False, **kwargs):
@@ -641,6 +649,7 @@ class QInputFilename(QInput):
 
 
 class QInputFolder(QInput):
+    valueChanged = QtCore.Signal(str)
     last_folder = None
 
     def __init__(self, layout=None, name=None, value=None, dialog_title="Choose Folder", filename_checker=None, allow_edit=False, **kwargs):
