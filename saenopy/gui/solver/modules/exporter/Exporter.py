@@ -659,7 +659,7 @@ class ExportViewer(PipelineModule):
     def copy_parameters(self):
         text = repr(self.get_parameters())
         cb = QtGui.QGuiApplication.clipboard()
-        cb.setText(text, mode=cb.Clipboard)
+        cb.setText(text)
 
     def generate_code(self):
         if self.result is None:
@@ -737,6 +737,10 @@ plt.imsave("output.png", im)
             if "fields" in data:
                 self.input_arrows.setValues(["None"] + list(data["fields"].keys()))
                 self.input_arrows.setValue(next(iter(data["fields"].items()))[0])
+            else:
+                pass
+                #for widget in [self.input_arrows, self.]
+                #self.input_arrows.setVisible(False)
 
             if "maps" in data:
                 self.input_maps.setValues(["None"] + list(data["maps"].keys()))
