@@ -441,6 +441,7 @@ class ExportViewer(PipelineModule):
                 QtShortCuts.currentLayout().addStretch()
 
         self.parameter_map = {
+            "use2D": self.input_use2D,
             "image": {
                 "width": self.input_width,
                 "height": self.input_height,
@@ -665,7 +666,7 @@ class ExportViewer(PipelineModule):
     def generate_code(self):
         if self.result is None:
             return
-        new_path = QtWidgets.QFileDialog.getSaveFileName(None, "Save Session as Script", os.getcwd(), "Python File (*.py)")
+        new_path = QtWidgets.QFileDialog.getSaveFileName(None, "Save Session as Script", os.getcwd(), "Python File (*.py)")[0]
         if new_path:
             # ensure filename ends in .py
             if not new_path.endswith(".py"):
