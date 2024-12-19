@@ -9,13 +9,13 @@ from saenopy.gui.common.ModuleColorBar import ModuleColorBar
 from saenopy.gui.solver.modules.exporter.ExporterRender2D import render_2d
 
 
-class TabOrientationField(TabModule):
+class TabAngle(TabModule):
     result: ResultOrientation = None
 
     def __init__(self, parent: "BatchEvaluate"):
         super().__init__(parent)
 
-        with self.parent.tabs.createTab("Orientation (cell center)") as self.tab:
+        with self.parent.tabs.createTab("Angle (x-axis)") as self.tab:
             with QtShortCuts.QVBoxLayout() as layout:
                 #self.label_tab = QtWidgets.QLabel(
                 #    "The deformations from the piv algorithm at every window where the crosscorrelation was evaluated.").addToLayout()
@@ -63,8 +63,8 @@ class TabOrientationField(TabModule):
             "time": {
                 "t": 0
             },
-            "maps": "orientation_cell_center",
-            "maps_cmap": "coolwarm",
+            "maps": "orientation_x_axis",
+            "maps_cmap": "gist_rainbow",
             "maps_alpha": 0.5,
 
             "colorbar": {
@@ -79,4 +79,4 @@ class TabOrientationField(TabModule):
         self.pixmap.setPixmap(QtGui.QPixmap(array2qimage(im)))
         self.label.setExtend(im.shape[1], im.shape[0])
         self.scale1.setScale([self.result.pixel_size])
-        self.color1.setScale(-1, 1, "coolwarm")
+        self.color1.setScale(-90, 90, "gist_rainbow")

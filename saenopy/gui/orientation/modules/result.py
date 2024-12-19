@@ -155,10 +155,13 @@ class ResultOrientation(Saveable):
     def get_image_data(self, time_point, channel="default", use_reference=False):
         if channel == "cells":
             im = self.get_image(0)
-        else:
+        elif channel == "fibers":
             im = self.get_image(1)
-        edge = self.orientation_parameters["edge"]
-        im = im[edge:-edge, edge:-edge]
+        else:
+            raise ValueError("unknown channel")
+        if self.orientation_parameters is not None:
+            edge = self.orientation_parameters["edge"]
+            im = im[edge:-edge, edge:-edge]
         if len(im.shape) == 2:
             return im[:, :, None, None]
         return im[:, :, :, None]
