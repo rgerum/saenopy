@@ -81,7 +81,7 @@ class AllParameters(QtWidgets.QWidget):
             for obj in group:
                 self.layouts[i].removeWidget(obj)
         for i in range(4):
-            if len(self.spacers):
+            if len(self.spacers) and self.spacers[i]:
                 self.layouts[i].removeWidget(self.spacers[i])
         self.param_inputs = [[], [], [], []]
 
