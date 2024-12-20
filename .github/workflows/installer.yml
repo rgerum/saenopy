@@ -38,7 +38,7 @@ jobs:
     - name: build exe with pyinstaller
       shell: bash
       run: |
-          poetry run pyinstaller --clean -y --dist output/saenopy_run --onefile --icon "saenopy/img/Icon.ico" --splash "saenopy/img/logo_splash.png" --add-data "saenopy/img:saenopy/img"  saenopy/gui/gui_master.py 
+          poetry run pyinstaller --hidden-import=scipy.io --clean -y --dist output/saenopy_run --onefile --icon "saenopy/img/Icon.ico" --splash "saenopy/img/logo_splash.png" --add-data "saenopy/img:saenopy/img"  saenopy/gui/gui_master.py 
           mv output/saenopy_run/gui_master output/saenopy_run/saenopy
           chmod +x output/saenopy_run/saenopy
 
