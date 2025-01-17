@@ -4,7 +4,7 @@ from pathlib import PurePath
 from typing import Union
 
 
-def format_value(mytype,value):
+def format_value(mytype, value, key_name_for_debug=""):
     if isinstance(value, str) and value == "__NONE__":
         value = None
     if value is None:
@@ -20,7 +20,10 @@ def format_value(mytype,value):
             else:
                 if key not in value and key in mytype.__optional_keys__:
                     continue
-            value[key] = format_value(value_type, value[key])
+            try:
+                value[key] = format_value(value_type, value[key])
+            except KeyError:
+                raise KeyError(f"Key '{key}' not found in '{key_name_for_debug}'. Value is {value}")
     elif typing.get_origin(mytype) in {typing.Dict,dict}:
         type_key = typing.get_args(mytype)[0]
         type_value = typing.get_args(mytype)[1]
@@ -120,7 +123,7 @@ class Saveable:
             else:
                 data[name] = data_dict[name]
             if name in types:
-                data[name] = format_value(types[name], data[name])
+                data[name] = format_value(types[name], data[name], name)
                     
         if len(save_parameters):
             raise ValueError(f"The following parameters were not found in the save file {save_parameters}")

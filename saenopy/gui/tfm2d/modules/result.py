@@ -80,6 +80,9 @@ class LtDict(TypedDict):
     t_normal: np.ndarray
     t_shear: np.ndarray
 
+class EmptyDict(TypedDict):
+    pass
+
 
 class Result2D(Saveable):
     __save_parameters__ = ['bf', 'input', 'reference_stack', 'output', 'pixel_size', 'u', 'v', 'mask_val', 'mask_std',
@@ -117,7 +120,7 @@ class Result2D(Saveable):
     shape: Tuple[int, int] = None
     mask: np.ndarray = None
 
-    res_dict: ResDict = None
+    res_dict: ResDict | EmptyDict = None
 
     im_displacement: np.ndarray = None
     im_force: np.ndarray = None
