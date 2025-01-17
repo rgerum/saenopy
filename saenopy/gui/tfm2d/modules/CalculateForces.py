@@ -19,9 +19,6 @@ class Force(PipelineModule):
         super().__init__(parent, layout)
         self.parent = parent
 
-        with self.parent.tabs.createTab("Forces") as self.tab:
-            pass
-
         with QtShortCuts.QVBoxLayout(self) as layout:
             layout.setContentsMargins(0, 0, 0, 0)
             with CheckAbleGroup(self, "calculate forces").addToLayout() as self.group:
@@ -47,15 +44,6 @@ class Force(PipelineModule):
 
     def check_available(self, result):
         return result.u is not None
-
-    def check_evaluated(self, result: Result2D) -> bool:
-        return result.tx is not None
-
-    def tabChanged(self, tab):
-        if self.tab is not None and self.tab.parent() == tab:
-            if self.check_evaluated(self.result):
-                im = self.result.get_force_field()
-                self.parent.draw.setImage(im*255)
 
     def process(self, result: Result2D, force_parameters: dict):  # type: ignore
         tx, ty = calculate_forces(result.u, result.v, pixel_size=result.pixel_size, shape=result.shape,

@@ -16,9 +16,6 @@ class ForceGeneration(PipelineModule):
     def __init__(self, parent=None, layout=None):
         super().__init__(parent, layout)
         self.parent = parent
-        #layout.addWidget(self)
-        #with self.parent.tabs.createTab("Forces") as self.tab:
-        #    pass
 
         with QtShortCuts.QVBoxLayout(self) as layout:
             layout.setContentsMargins(0, 0, 0, 0)
@@ -32,12 +29,6 @@ class ForceGeneration(PipelineModule):
 
     def check_available(self, result):
         return result.tx is not None
-
-    def check_evaluated(self, result: Result2D) -> bool:
-        return result.tx is not None
-
-    def tabChanged(self, tab):
-        pass
 
     def process(self, result: Result2D, force_gen_parameters: dict): # type: ignore
 

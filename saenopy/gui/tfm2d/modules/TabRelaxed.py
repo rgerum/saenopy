@@ -1,16 +1,11 @@
-from .PipelineModule import PipelineModule
+from saenopy.gui.common.TabModule import TabModule
 
+class TabRelaxed(TabModule):
 
-class DeformationDetector(PipelineModule):
-
-    def __init__(self, parent=None, layout=None):
-        super().__init__(parent, layout)
-        self.parent = parent
+    def __init__(self, parent=None):
+        super().__init__(parent)
         with self.parent.tabs.createTab("Referenece") as self.tab:
             pass
-
-    def check_evaluated(self, result):
-        return True
 
     def tabChanged(self, tab):
         if self.tab is not None and self.tab.parent() == tab:

@@ -15,8 +15,6 @@ class DeformationDetector2(PipelineModule):
     def __init__(self, parent=None, layout=None):
         super().__init__(parent, layout)
         self.parent = parent
-        with self.parent.tabs.createTab("Deformed") as self.tab:
-            pass
 
         with QtShortCuts.QVBoxLayout(self) as layout:
             layout.setContentsMargins(0, 0, 0, 0)
@@ -25,14 +23,6 @@ class DeformationDetector2(PipelineModule):
                     self.input_button = QtShortCuts.QPushButton(None, "calculate drift correction", self.start_process)
 
         self.setParameterMapping("drift_parameters", {})
-
-    def check_evaluated(self, result):
-        return True
-
-    def tabChanged(self, tab):
-        if self.tab is not None and self.tab.parent() == tab:
-            im = self.result.get_image(0)
-            self.parent.draw.setImage(im, self.result.shape)
 
     def check_available(self, result):
         return True

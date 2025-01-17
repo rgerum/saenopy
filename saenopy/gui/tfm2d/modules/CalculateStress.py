@@ -16,9 +16,6 @@ class CalculateStress(PipelineModule):
     def __init__(self, parent=None, layout=None):
         super().__init__(parent, layout)
         self.parent = parent
-        #layout.addWidget(self)
-        with self.parent.tabs.createTab("Line Tension") as self.tab:
-            pass
 
         with QtShortCuts.QVBoxLayout(self) as layout:
             layout.setContentsMargins(0, 0, 0, 0)
@@ -33,16 +30,6 @@ class CalculateStress(PipelineModule):
 
     def check_available(self, result):
         return result.tx is not None
-
-    def check_evaluated(self, result: Result2D) -> bool:
-        return result.lt is not None
-
-    def tabChanged(self, tab):
-        if self.tab is not None and self.tab.parent() == tab:
-            if self.check_evaluated(self.result):
-                im = self.result.get_line_tensions()
-                self.parent.draw.setImage(im*255)
-
 
     def process(self, result: Result2D, stress_parameters: dict): # type: ignore
         res_dict, attributes = calculate_stress(result.mask, result.pixel_size, result.shape,

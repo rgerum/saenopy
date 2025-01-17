@@ -6,12 +6,17 @@ import traceback
 
 from saenopy.gui.tfm2d.modules.result import get_stacks2D, Result2D
 from saenopy.gui.common import QtShortCuts
+from .TabDeformations import TabDeformation
+from .TabForces import TabForces
+from .TabStress import TabStress
+from .TabCellImage import TabCellImage
+from .TabDeformed import TabDeformed
+from .TabRelaxed import TabRelaxed
 
 from .load_measurement_dialog import AddFilesDialog
 from saenopy.gui.common.AddFilesDialog import FileExistsDialog
 from .draw import DrawWindow
 from .DisplayCellImage import DisplayCellImage
-from .DisplayRelaxed import DeformationDetector
 from .DisplayDeformed import DeformationDetector2
 from .CalculateDisplacements import DeformationDetector3
 from .CalculateForces import Force
@@ -36,8 +41,8 @@ class BatchEvaluate(BatchEvaluateBase):
         layout0 = QtShortCuts.currentLayout()
         layout0.parent().setMaximumWidth(420)
         layout0.setContentsMargins(0, 0, 0, 0)
+
         self.sub_bf = DisplayCellImage(self, layout0)
-        self.sub_draw = DeformationDetector(self, layout0)
         self.sub_draw2 = DeformationDetector2(self, layout0)
         self.sub_draw3 = DeformationDetector3(self, layout0)
         self.sub_force = Force(self, layout0)
@@ -65,16 +70,20 @@ class BatchEvaluate(BatchEvaluateBase):
         with QtShortCuts.QVBoxLayout() as layout:
             with QtShortCuts.QTabBarWidget(layout) as self.tabs:
                 self.tabs.setMinimumWidth(500)
-                old_tab = None
-                cam_pos = None
 
                 def tab_changed(x):
-                    nonlocal old_tab, cam_pos
                     tab = self.tabs.currentWidget()
                     self.tab_changed.emit(tab)
 
                 self.tabs.currentChanged.connect(tab_changed)
-                pass
+
+            self.tab1 = TabCellImage(self)
+            self.tab2 = TabRelaxed(self)
+            self.tab3 = TabDeformed(self)
+            self.tab4 = TabDeformation(self)
+            self.tab5 = TabForces(self)
+            self.tab6 = TabStress(self)
+
             self.draw = DrawWindow(self, QtShortCuts.currentLayout())
             self.draw.signal_mask_drawn.connect(self.on_mask_drawn)
             self.scale1 = ModuleScaleBar(self, self.draw.view1)

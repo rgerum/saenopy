@@ -29,7 +29,7 @@ class DeformationDetector(PipelineModule):
                         self.sigma_tensor = QtShortCuts.QInputString(None, "sigma_tensor", "7.0", type=float,
                                                                      settings=self.settings,
                                                                      settings_key="orientation/sigma_tensor")
-                        self.sigma_tensor_type = QtShortCuts.QInputChoice(None, "", "um", ["um", "pixel"],
+                        self.sigma_tensor_type = QtShortCuts.QInputChoice(None, "", "µm", ["µm", "pixel"],
                                                                           settings=self.settings,
                                                                           settings_key="orientation/sigma_tensor_unit")
                         self.sigma_tensor_button = QtShortCuts.QPushButton(None, "detect",
@@ -66,7 +66,7 @@ class DeformationDetector(PipelineModule):
                         self.shell_width = QtShortCuts.QInputString(None, "shell_width", "5", type=float,
                                                                     settings=self.settings,
                                                                     settings_key="orientation/shell_width")
-                        self.shell_width_type = QtShortCuts.QInputChoice(None, "", "um", ["um", "pixel"],
+                        self.shell_width_type = QtShortCuts.QInputChoice(None, "", "µm", ["µm", "pixel"],
                                                                          settings=self.settings,
                                                                          settings_key="orientation/shell_width_type")
 
@@ -92,10 +92,10 @@ class DeformationDetector(PipelineModule):
     def process(self, result: ResultOrientation, orientation_parameters: OrientationParametersDict):
         segmentation_parameters = result.segmentation_parameters
         sigma_tensor = orientation_parameters["sigma_tensor"]
-        if orientation_parameters["sigma_tensor_type"] == "um":
+        if orientation_parameters["sigma_tensor_type"] == "µm":
             sigma_tensor /= result.pixel_size
         shell_width = orientation_parameters["shell_width"]
-        if orientation_parameters["shell_width_type"] == "um":
+        if orientation_parameters["shell_width_type"] == "µm":
             shell_width /= result.pixel_size
 
         from CompactionAnalyzer.CompactionFunctions import StuctureAnalysisMain
@@ -114,8 +114,8 @@ class DeformationDetector(PipelineModule):
                              sigma_first_blur=orientation_parameters["sigma_first_blur"],
                              angle_sections=orientation_parameters["angle_sections"],
                              shell_width=shell_width,
-                             SaveNumpy=True,
-                             SaveExcel=True,
+                             SaveNumpy=False,
+                             SaveExcel=False,
                              mode_saenopy=True,
                              plotting=True,
                              )
@@ -179,7 +179,7 @@ class DeformationDetector(PipelineModule):
                 with QtShortCuts.QVBoxLayout(self) as layout:
                     self.output_folder = QtShortCuts.QInputFolder(None, "output folder", settings=settings,
                                                                   settings_key="orientation/sigma_tensor_range_output")
-                    self.label_scale = QtWidgets.QLabel(f"Scale is {parent.scale.value()} px/um").addToLayout(layout)
+                    self.label_scale = QtWidgets.QLabel(f"Scale is {parent.scale.value()} px/µm").addToLayout(layout)
                     with QtShortCuts.QHBoxLayout() as layout2:
                         self.sigma_tensor_min = QtShortCuts.QInputString(None, "min", "1.0", type=float,
                                                                          settings=settings,
@@ -190,7 +190,7 @@ class DeformationDetector(PipelineModule):
                         self.sigma_tensor_step = QtShortCuts.QInputString(None, "step", "1", type=float,
                                                                           settings=settings,
                                                                           settings_key="orientation/sigma_tensor_step")
-                        self.sigma_tensor_type = QtShortCuts.QInputChoice(None, "", "um", ["um", "pixel"],
+                        self.sigma_tensor_type = QtShortCuts.QInputChoice(None, "", "µm", ["µm", "pixel"],
                                                                           settings=settings,
                                                                           settings_key="orientation/sigma_tensor_unit")
 
@@ -215,12 +215,12 @@ class DeformationDetector(PipelineModule):
                 sigma_tensor_min = self.sigma_tensor_min.value()
                 sigma_tensor_max = self.sigma_tensor_max.value()
                 sigma_tensor_step = self.sigma_tensor_step.value()
-                if self.sigma_tensor_type.value() == "um":
+                if self.sigma_tensor_type.value() == "µm":
                     sigma_tensor_min /= parent.scale.value()
                     sigma_tensor_max /= parent.scale.value()
                     sigma_tensor_step /= parent.scale.value()
                 shell_width = parent.shell_width.value()
-                if parent.shell_width_type.value() == "um":
+                if parent.shell_width_type.value() == "µm":
                     shell_width /= parent.scale.value()
 
                 sigma_list = np.arange(sigma_tensor_min, sigma_tensor_max + sigma_tensor_step, sigma_tensor_step)

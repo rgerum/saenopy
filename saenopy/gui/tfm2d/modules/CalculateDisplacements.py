@@ -18,8 +18,6 @@ class DeformationDetector3(PipelineModule):
         super().__init__(parent, layout)
         self.parent = parent
         #layout.addWidget(self)
-        with self.parent.tabs.createTab("Deformations") as self.tab:
-            pass
 
         with QtShortCuts.QVBoxLayout(self) as layout:
             layout.setContentsMargins(0, 0, 0, 0)
@@ -46,16 +44,6 @@ class DeformationDetector3(PipelineModule):
 
     def check_available(self, result):
         return True
-
-    def check_evaluated(self, result: Result2D) -> bool:
-        return result.u is not None
-
-    def tabChanged(self, tab):
-        if self.tab is not None and self.tab.parent() == tab:
-            if self.check_evaluated(self.result):
-                im = self.result.get_deformation_field()
-                self.parent.draw.setImage(im*255)
-
 
     def process(self, result: Result2D, piv_parameters: dict): # type: ignore
         # result.reference_stack, result.input
