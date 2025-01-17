@@ -117,7 +117,7 @@ class DeformationDetector(PipelineModule):
                              SaveNumpy=False,
                              SaveExcel=False,
                              mode_saenopy=True,
-                             plotting=True,
+                             plotting=False,
                              )
 
         result.orientation_map = orientation_dev#np.load(Path(result.output).parent / Path(result.output).stem / "NumpyArrays" / "OrientationMap.npy")
