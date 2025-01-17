@@ -40,6 +40,46 @@ class Segmentation(TypedDict):
     radius: float
     centroid: Tuple[float, float]
 
+class GlobalResult(TypedDict):
+    pass
+
+GlobalResult = TypedDict("GlobalResult", {
+    'Mean Coherency': float,
+    'Mean Coherency (weighted by intensity)': float,
+    'Mean Angle': float,
+    'Mean Angle (weighted by coherency)': float,
+    'Mean Angle (weighted by intensity and coherency)': float,
+    'Orientation': float,
+    'Orientation (weighted by coherency)': float,
+    'Orientation (weighted by intensity and coherency)': float,
+})
+
+class DistanceResult(TypedDict):
+    pass
+
+DistanceResult = TypedDict('DistanceResult', {
+    'Shell_mid (px)': float,
+    'Shell_mid (µm)': float,
+    'Intensity (accumulated)': float,
+    'Intensity (individual)': float,
+    'Intensity Norm (individual)': float,
+    'Intensity Norm (accumulated)': float,
+    'Angle (accumulated)': float,
+    'Angle (individual)': float,
+    'Angle (individual-weightInt)': float,
+    'Orientation (accumulated)': float,
+    'Orientation (individual)': float,
+    'Orientation (individual-weightInt)': float,
+    'Intensity disttocenter (accumulated)': float,
+    'Intensity disttocenter (individual)': float,
+    'Intensity Norm disttocenter (individual)': float,
+    'Intensity Norm disttocenter (accumulated)': float,
+    'Angle disttocenter (accumulated)': float,
+    'Angle disttocenter (individual)': float,
+    'Orientation disttocenter (accumulated)': float,
+    'Orientation disttocenter (individual)': float,
+})
+
 
 class ResultOrientation(Saveable):
     __save_parameters__ = ['image_cell', 'image_fiber', 'pixel_size', 'output',
@@ -50,6 +90,8 @@ class ResultOrientation(Saveable):
                            'angle_to_x_map',
                            'orientation_vectors',
                            'shape',
+                           "results_total",
+                           "results_distance",
                            '___save_name__', '___save_version__']
     ___save_name__ = "ResultOrientation"
     ___save_version__ = "1.0"
@@ -68,6 +110,9 @@ class ResultOrientation(Saveable):
     coherence_map: np.ndarray = None
     angle_to_x_map: np.ndarray = None
     orientation_vectors: np.ndarray = None
+
+    results_total: List[GlobalResult] = None
+    results_distance: List[DistanceResult] = None
 
     state: bool = False
 
@@ -173,40 +218,6 @@ class ResultOrientation(Saveable):
             return self.angle_to_x_map
         if name == "coherence":
             return self.coherence_map
-
-
-    def get_field_data(self, name, time_point):
-        class Mesh2D:
-            pass
-
-        return None, None
-
-        vx = None
-        vy = None
-        vf = 1
-
-        if name == "deformation":
-            vx = self.u
-            vy = self.v
-            vf = 10
-        if name == "forces":
-            print("do force")
-            vx = self.tx
-            vy = self.ty
-            vf = 0.1
-
-        if vx is not None:
-            mesh = Mesh2D()
-            mesh.units = "pixels"
-            f = self.shape[0] / vx.shape[0]
-            x, y = np.meshgrid(np.arange(vx.shape[1]), np.arange(vx.shape[0]))
-            x = x * f
-            y = y * f
-            y = self.shape[0] - y
-            mesh.nodes = np.array([x.ravel(), y.ravel()]).T
-            mesh.displacements_measured = np.array([vx.ravel(), -vy.ravel()]).T * vf
-            return mesh, mesh.displacements_measured
-        return None, None
 
 
 def get_orientation_files(output_path, fiber_list_string, cell_list_string, pixel_size,

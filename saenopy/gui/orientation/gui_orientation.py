@@ -79,8 +79,8 @@ class MainWindow(QtWidgets.QWidget):
                     h_layout.setContentsMargins(0, 0, 0, 0)
 
                     #self.deformations = Force(h_layout, self)
-                    self.deformations = PlottingWindow(self)
-                    h_layout.addWidget(self.deformations)
+                    self.plotting_window = PlottingWindow(self, self.deformations)
+                    h_layout.addWidget(self.plotting_window)
 
                     self.description = QtWidgets.QTextEdit()
                     self.description.setReadOnly(True)

@@ -115,13 +115,18 @@ class DeformationDetector(PipelineModule):
                              angle_sections=orientation_parameters["angle_sections"],
                              shell_width=shell_width,
                              SaveNumpy=True,
+                             SaveExcel=True,
                              mode_saenopy=True,
+                             plotting=True,
                              )
 
         result.orientation_map = orientation_dev#np.load(Path(result.output).parent / Path(result.output).stem / "NumpyArrays" / "OrientationMap.npy")
         result.coherence_map = ori
         result.angle_to_x_map = angle_no_reference
         result.orientation_vectors = min_evex
+        #return angle_no_reference, orientation_dev, ori, min_evec, excel_total, excel_angles, excel_distance
+        result.results_total = excel_total.to_dict(orient="records")
+        result.results_distance = excel_distance.to_dict(orient="records")
 
         result.save()
 

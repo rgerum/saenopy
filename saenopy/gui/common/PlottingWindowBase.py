@@ -60,6 +60,7 @@ class PlottingWindowBase(QtWidgets.QWidget):
     progress_signal = QtCore.Signal(int, int, int, int)
     finished_signal = QtCore.Signal()
     thread = None
+    time_key = "t"
 
     settings_key = "Seanopy_deformation"
     file_extension = ".saenopy"
@@ -85,6 +86,8 @@ class PlottingWindowBase(QtWidgets.QWidget):
                 try:
                     self.add_files([filename])
                 except Exception as e:
+                    import traceback
+                    traceback.print_exception(e)
                     print(e, file=sys.stderr)
                     QtWidgets.QMessageBox.critical(self, "Error", f"Measurement could not be added to Analysis.\n"
                                                                   f"Is it evaluated completely?")
@@ -301,6 +304,7 @@ class PlottingWindowBase(QtWidgets.QWidget):
         return res
 
     def replot(self):
+        self.check_results_with_time()
         if self.current_plot_func is not None:
             self.current_plot_func()
 
@@ -389,7 +393,7 @@ class PlottingWindowBase(QtWidgets.QWidget):
         plt.cla()
         res = self.getAllCurrentPandasData()
 
-        code_data = [res, ["t", "group", mu_name, "filename"]]
+        code_data = [res, [self.time_key, "group", mu_name, "filename"]]
         
         # get best fitting time label
         factor, x_label = self.get_time_factor(np.max(res.t))
@@ -397,7 +401,7 @@ class PlottingWindowBase(QtWidgets.QWidget):
         
         # add a vertical line where the comparison time is
         if getattr(self, "input_tbar", None) and self.input_tbar.value() is not None:
-            comp_h = self.get_comparison_index() * (res.iloc[1]["t"] - res.iloc[0]["t"])
+            comp_h = self.get_comparison_index() * (res.iloc[1][self.time_key] - res.iloc[0][self.time_key])
             plt.axvline(comp_h/factor, color="k")
 
         color_dict = {d[0]: d[3] for d in self.data_folders}
@@ -410,7 +414,7 @@ class PlottingWindowBase(QtWidgets.QWidget):
             # iterate over the groups
             for group_name, data in res.groupby("group", sort=False):
                 # get the mean and sem
-                x = data.groupby("t")[mu_name].agg(["mean", "sem", "count"]) 
+                x = data.groupby(self.time_key)[mu_name].agg(["mean", "sem", "count"])
                 # plot the mean curve
                 p, = plt.plot(x.index/factor, x["mean"], color=color_dict[group_name], lw=2, label=f"{group_name} (n={int(x['count'].mean())})")
                 # add a shaded area for the standard error
@@ -457,7 +461,7 @@ class PlottingWindowBase(QtWidgets.QWidget):
             return
 
         #plt.figure(figsize=(6, 3))
-        code_data = [res, ["t", mu_name]]
+        code_data = [res, [self.time_key, mu_name]]
 
 
         self.canvas.setActive()
@@ -494,7 +498,11 @@ class PlottingWindowBase(QtWidgets.QWidget):
         if not dialog.exec():
             return
 
-        with open(str(dialog.inputText.value()), "wb") as fp:
+        filename = str(dialog.inputText.value())
+        if not filename.endswith(".py"):
+            filename += ".py"
+
+        with open(filename, "wb") as fp:
             code = ""
             code += "import matplotlib.pyplot as plt\n"
             code += "import numpy as np\n"

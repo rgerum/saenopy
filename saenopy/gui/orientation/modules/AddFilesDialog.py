@@ -9,6 +9,7 @@ from saenopy.gui.common.AddFilesDialog import AddFilesDialog
 
 class AddFilesDialog(AddFilesDialog):
     settings_group = "open_orientation"
+    file_extension = ".saenopyOrientation"
 
     examples_list = get_examples_orientation()
 

@@ -63,7 +63,6 @@ class TabCellOutline(TabModule):
         #    return
 
         im = self.result.get_image(0)
-        print(im.dtype, im.max())
         self.pixmap.setPixmap(QtGui.QPixmap(array2qimage(im)))
         self.label.setExtend(im.shape[1], im.shape[0])
 

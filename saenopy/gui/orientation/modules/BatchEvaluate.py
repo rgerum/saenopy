@@ -21,7 +21,7 @@ settings = QtCore.QSettings("FabryLab", "CompactionAnalyzer")
 
 
 class BatchEvaluate(BatchEvaluateBase):
-    settings_key = "saenopy_deformation"
+    settings_key = "saenopy_orientation"
     file_extension = ".saenopyOrientation"
     result: ResultOrientation = None
 
