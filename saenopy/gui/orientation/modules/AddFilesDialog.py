@@ -30,6 +30,13 @@ class AddFilesDialog(AddFilesDialog):
                                                             allow_edit=True)
                 self.outputText = QtShortCuts.QInputFolder(None, "output", settings=self.settings,
                                                            settings_key=f"{self.settings_group}/output_folder", allow_edit=True)
+                
+                self.pixel_size = QtShortCuts.QInputString(None, "pixel size", 1.29, settings=self.settings,
+                                                           settings_key=f"{self.settings_group}/pixel_size", unit="µm",
+                                                           allow_none=False, type=float)
+                
+                
+                
 
                 def changed():
                     from CompactionAnalyzer.CompactionFunctions import generate_lists
