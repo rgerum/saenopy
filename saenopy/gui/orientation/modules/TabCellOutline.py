@@ -24,7 +24,7 @@ class TabCellOutline(TabModule):
 
     def __init__(self, parent: "BatchEvaluate"):
         super().__init__(parent)
-
+      #  self.update_display()
         with self.parent.tabs.createTab("Segmentation Deformations") as self.tab:
             with QtShortCuts.QVBoxLayout() as layout:
                 #self.label_tab = QtWidgets.QLabel(
@@ -58,8 +58,8 @@ class TabCellOutline(TabModule):
         self.update_display()
 
     def update_display(self, *, plotter=None):
-        if self.result is None:
-            return
+        # if self.result is None:
+        #     return
         #if self.current_tab_selected is False:
         #    return
 
@@ -85,5 +85,4 @@ class TabCellOutline(TabModule):
             path = QtGui.QPainterPath()
             self.contour.setPath(path)
             self.center.setVisible(False)
-
         return None
