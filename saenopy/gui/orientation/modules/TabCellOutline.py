@@ -55,6 +55,7 @@ class TabCellOutline(TabModule):
 
     def setResult(self, result: ResultOrientation):
         super().setResult(result)
+        self.update_display()
 
     def update_display(self, *, plotter=None):
         if self.result is None:
