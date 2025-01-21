@@ -255,11 +255,11 @@ class Result2D(Saveable):
                     "unit": "pixel",
                     "name": "displacements_measured",
                 },
-                "forces": {
+                "stress": {
                     "type": "vector",
                     "measure": "force",
-                    "unit": "pixel",
-                    "name": "force",
+                    "unit": "Pa",
+                    "name": "stress",
                 }
             }
         }
@@ -285,10 +285,10 @@ class Result2D(Saveable):
         vf = 1
 
         if name == "deformation":
-            vx = self.u
-            vy = self.v
-            vf = 10
-        if name == "forces":
+            vx = self.u*self.pixel_size
+            vy = self.v*self.pixel_size
+            vf = 10/self.pixel_size
+        if name == "stress":
             print("do force")
             vx = self.tx
             vy = self.ty
@@ -296,6 +296,10 @@ class Result2D(Saveable):
 
         if vx is not None:
             mesh = Mesh2D()
+            if name == "stress":
+                mesh.scalebar_unit = "Pa"
+            else:
+                mesh.scalebar_unit = "µm"
             mesh.units = "pixels"
             f = self.shape[0] / vx.shape[0]
             x, y = np.meshgrid(np.arange(vx.shape[1]), np.arange(vx.shape[0]))
@@ -303,7 +307,8 @@ class Result2D(Saveable):
             y = y * f
             y = self.shape[0] - y
             mesh.nodes = np.array([x.ravel(), y.ravel()]).T
-            mesh.displacements_measured = np.array([vx.ravel(), -vy.ravel()]).T * vf
+            mesh.displacements_measured = np.array([vx.ravel(), -vy.ravel()]).T
+            mesh.display_scale = vf
             return mesh, mesh.displacements_measured
         return None, None
 

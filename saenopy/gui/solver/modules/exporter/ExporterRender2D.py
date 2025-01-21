@@ -165,13 +165,13 @@ def render_2d_arrows(params, result, pil_image, im_scale, aa_scale, display_imag
 
         field_to_pixel_factor = 1
         scale_max_to_pixel_factor = 1
-        scalebar_unit = "px"
+        scalebar_unit = getattr(mesh, "scalebar_unit", "px")
 
         if getattr(mesh, "units", None) == "pixels":
             R = R[:, :2]
             R[:, 1] = display_image[0].shape[0] - R[:, 1]
             field = field[:, :2] 
-            field_to_pixel_factor = params_arrows["arrow_scale"]
+            field_to_pixel_factor = params_arrows["arrow_scale"] * getattr(mesh, "display_scale", 1)
             field[:, 1] = -field[:, 1]
         else:  # "microns" + 3D
             R = R[:, :2][:, ::-1] * scale + offset[::-1]
