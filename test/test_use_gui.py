@@ -198,7 +198,7 @@ def test_run_example(monkeypatch, random_path, catch_popup_error, use_time, use_
     # assert sf4(M.U[M.reg_mask][0]) == sf4([-2.01259036e-38, -1.96865342e-38, -4.92921492e-38])
     # 91.64216076e-38 -3.15079497e-39  3.19069614e-39
 
-    monkeypatch.setattr(QtWidgets.QFileDialog, "getSaveFileName", lambda *args: "tmp")
+    monkeypatch.setattr(QtWidgets.QFileDialog, "getSaveFileName", lambda *args: ("tmp",))
     batch_evaluate.generate_code()
 
     # open all the tabs
@@ -218,7 +218,7 @@ def test_run_example(monkeypatch, random_path, catch_popup_error, use_time, use_
     batch_evaluate.tab1.contrast_enhance.setValue(1)
     batch_evaluate.tab1.button.clicked.emit()
 
-    monkeypatch.setattr(QtWidgets.QFileDialog, "getSaveFileName", lambda *args: "export.tif")
+    monkeypatch.setattr(QtWidgets.QFileDialog, "getSaveFileName", lambda *args: ("export.tif",))
     batch_evaluate.tab1.button2.clicked.emit()
 
     if use_time:
@@ -733,14 +733,14 @@ def test_code(monkeypatch, catch_popup_error, random_path):
     from saenopy.gui.code.gui_code import MainWindowCode
     coder: MainWindowCode = window.coder
 
-    monkeypatch.setattr(QtWidgets.QFileDialog, "getOpenFileName", lambda *args: "test_code.py")
+    monkeypatch.setattr(QtWidgets.QFileDialog, "getOpenFileName", lambda *args: ("test_code.py",))
     coder.load()
 
     #coder.run()
     event = QtGui.QKeyEvent(QtCore.QEvent.KeyPress, QtCore.Qt.Key_F5, QtCore.Qt.NoModifier)
     coder.keyPressEvent(event)
 
-    monkeypatch.setattr(QtWidgets.QFileDialog, "getOpenFileName", lambda *args: "test_code2.py")
+    monkeypatch.setattr(QtWidgets.QFileDialog, "getOpenFileName", lambda *args: ("test_code2.py",))
     coder.load()
     coder.tabs.setCurrentIndex(1)
 
@@ -826,10 +826,10 @@ def test_analysis(monkeypatch, catch_popup_error, random_path):
     monkeypatch.setattr(AddFilesDialog, "exec", add_file(str(files[2])))
     plotting_window.addFiles()
 
-    monkeypatch.setattr(QtWidgets.QFileDialog, "getSaveFileName", lambda *args: "save")
+    monkeypatch.setattr(QtWidgets.QFileDialog, "getSaveFileName", lambda *args: ("save",))
     plotting_window.save()
 
-    monkeypatch.setattr(QtWidgets.QFileDialog, "getOpenFileName", lambda *args: "save.json")
+    monkeypatch.setattr(QtWidgets.QFileDialog, "getOpenFileName", lambda *args: ("save.json",))
     plotting_window.load()
 
     properties = ["strain_energy", "contractility", "polarity", "99_percentile_deformation", "99_percentile_force"]
