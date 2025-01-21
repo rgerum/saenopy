@@ -292,7 +292,7 @@ class QInputNumber(QInput):
 
 
 class QInputString(QInput):
-    valueChanged = QtCore.Signal(str)
+    valueChanged = QtCore.Signal(object)
     error = None
 
     def __init__(self, layout=None, name=None, value="", allow_none=True, none_value="None", type=str, unit=None, name_post=None, validator=None, **kwargs):
