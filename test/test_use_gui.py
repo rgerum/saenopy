@@ -41,7 +41,10 @@ sys._excepthook = sys.excepthook
 # Set the exception hook to our wrapping function
 sys.excepthook = lambda *args: sys._excepthook(*args)
 
-app = QtWidgets.QApplication(sys.argv)
+if not QtWidgets.QApplication.instance():
+    app = QtWidgets.QApplication(sys.argv)
+else:
+    app = QtWidgets.QApplication.instance()
 font = QtGui.QFont("Arial", 10)
 app.setFont(font)
 
