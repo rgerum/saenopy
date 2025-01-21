@@ -12,12 +12,12 @@ class TabForces(TabModule):
         with self.parent.tabs.createTab("Forces") as self.tab:
             pass
 
-    def check_evaluated(self, result: Result2D) -> bool:
+    def checkTabEnabled(self, result: Result2D) -> bool:
         return result.tx is not None
 
     def tabChanged(self, tab):
         if self.tab is not None and self.tab.parent() == tab:
-            if self.check_evaluated(self.result):
+            if self.checkTabEnabled(self.result):
                 im = render_2d({
                     "stack": {
                         "channel": "cells",

@@ -49,10 +49,6 @@ class TabCellOutline(TabModule):
                     brush = QtGui.QBrush(QtGui.QColor(255, 0, 0))
                     self.center.setBrush(brush)
 
-    def check_evaluated(self, result: ResultOrientation) -> bool:
-        # whether the tab should be enabled to this Result object
-        return True
-
     def setResult(self, result: ResultOrientation):
         super().setResult(result)
         self.update_display()

@@ -52,14 +52,14 @@ class TabResultView(TabModule):
                 self.t_slider = QTimeSlider(connected=self.update_display).addToLayout()
                 self.tab.parent().t_slider = self.t_slider
 
-    def check_evaluated(self, result: Result) -> bool:
+    def checkTabEnabled(self, result: Result) -> bool:
         try:
             return getattr(self.result.solvers[0], "regularisation_results", None) is not None
         except (AttributeError, IndexError, TypeError):
             return False
 
     def update_display(self):
-        if self.check_evaluated(self.result):
+        if self.checkTabEnabled(self.result):
             self.M = self.result.solvers[self.t_slider.value()]
             mesh = self.M.mesh
             R = mesh.nodes
@@ -134,7 +134,7 @@ class TabResultView(TabModule):
         render = plotter.render
         plotter.render = lambda *args: None
         try:
-            if self.check_evaluated(self.result):
+            if self.checkTabEnabled(self.result):
                 self.M = self.result.solvers[self.t_slider.value()]
             xmin, ymin, zmin = self.M.mesh.nodes.min(axis=0)
             xmax, ymax, zmax = self.M.mesh.nodes.max(axis=0)

@@ -11,11 +11,11 @@ class TabStress(TabModule):
         with self.parent.tabs.createTab("Line Tension") as self.tab:
             pass
 
-    def check_evaluated(self, result: Result2D) -> bool:
+    def checkTabEnabled(self, result: Result2D) -> bool:
         return result.lt is not None
 
     def tabChanged(self, tab):
         if self.tab is not None and self.tab.parent() == tab:
-            if self.check_evaluated(self.result):
+            if self.checkTabEnabled(self.result):
                 im = self.result.get_line_tensions()
                 self.parent.draw.setImage(im*255)

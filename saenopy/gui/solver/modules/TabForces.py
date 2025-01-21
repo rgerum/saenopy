@@ -54,7 +54,7 @@ class TabForces(TabModule):
     def z_slider_value_changed(self):
         self.update_display()
 
-    def check_evaluated(self, result: Result) -> bool:
+    def checkTabEnabled(self, result: Result) -> bool:
         try:
             if self.result is not None and self.result.solvers is not None:
                 relrec = getattr(self.result.solvers[self.t_slider.value()], "relrec", None)
@@ -87,7 +87,7 @@ class TabForces(TabModule):
             self.current_result_plotted = False
             return
 
-        if self.check_evaluated(self.result):
+        if self.checkTabEnabled(self.result):
             cam_pos = None
             if self.plotter.camera_position is not None and CamPos.cam_pos_initialized is True:
                 cam_pos = self.plotter.camera_position

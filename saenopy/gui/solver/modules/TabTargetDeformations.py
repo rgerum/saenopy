@@ -40,7 +40,7 @@ class TabTargetDeformations(TabModule):
     def z_slider_value_changed(self):
         self.update_display()
 
-    def check_evaluated(self, result: Result) -> bool:
+    def checkTabEnabled(self, result: Result) -> bool:
         return result is not None and result.solvers is not None and len(result.solvers) and result.solvers[
             0] is not None
 
@@ -67,7 +67,7 @@ class TabTargetDeformations(TabModule):
             self.current_result_plotted = False
             return
 
-        if self.check_evaluated(self.result):
+        if self.checkTabEnabled(self.result):
             cam_pos = None
             if self.plotter.camera_position is not None and CamPos.cam_pos_initialized is True:
                 cam_pos = self.plotter.camera_position

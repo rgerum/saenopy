@@ -1,8 +1,5 @@
-import qtawesome as qta
 from qtpy import QtCore, QtWidgets
 from saenopy import Result
-from typing import Tuple, List
-import traceback
 
 
 class TabModule(QtWidgets.QWidget):
@@ -29,16 +26,13 @@ class TabModule(QtWidgets.QWidget):
         else:
             self.current_tab_selected = False
 
-    def check_evaluated(self, result):
-        return True
-
     def resultChanged(self, result: Result):
         """ called when the contents of result changed. Only update view if it is the currently displayed one. """
         if result is self.result:
             if self.tab is not None:
                 for i in range(self.parent.tabs.count()):
                     if self.parent.tabs.widget(i) == self.tab.parent():
-                       self.parent.tabs.setTabEnabled(i, self.check_evaluated(result))
+                       self.parent.tabs.setTabEnabled(i, self.checkTabEnabled(result))
             if self.current_tab_selected is True:
                 self.update_display()
 
@@ -54,7 +48,7 @@ class TabModule(QtWidgets.QWidget):
         if self.tab is not None:
             for i in range(self.parent.tabs.count()):
                 if self.parent.tabs.widget(i) == self.tab.parent():
-                    self.parent.tabs.setTabEnabled(i, self.check_evaluated(result))
+                    self.parent.tabs.setTabEnabled(i, self.checkTabEnabled(result))
 
         if self.current_tab_selected is True:
             self.update_display()

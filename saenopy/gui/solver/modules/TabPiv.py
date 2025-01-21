@@ -44,7 +44,7 @@ class TabPiv(TabModule):
     def z_slider_value_changed(self):
         self.update_display()
 
-    def check_evaluated(self, result: Result) -> bool:
+    def checkTabEnabled(self, result: Result) -> bool:
         try:
             return self.result.mesh_piv[0] is not None
         except (AttributeError, IndexError):

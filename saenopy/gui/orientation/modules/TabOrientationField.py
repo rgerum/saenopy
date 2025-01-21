@@ -32,7 +32,7 @@ class TabOrientationField(TabModule):
                     pen.setWidth(2)
                     self.contour.setPen(pen)
 
-    def check_evaluated(self, result: ResultOrientation) -> bool:
+    def checkTabEnabled(self, result: ResultOrientation) -> bool:
         # whether the tab should be enabled for this Result object
         return self.result.orientation_map is not None
 

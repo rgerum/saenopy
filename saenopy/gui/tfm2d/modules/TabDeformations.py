@@ -12,12 +12,12 @@ class TabDeformation(TabModule):
         with self.parent.tabs.createTab("Deformations") as self.tab:
             pass
 
-    def check_evaluated(self, result: Result2D) -> bool:
+    def checkTabEnabled(self, result: Result2D) -> bool:
         return result.u is not None
 
     def tabChanged(self, tab):
         if self.tab is not None and self.tab.parent() == tab:
-            if self.check_evaluated(self.result):
+            if self.checkTabEnabled(self.result):
 
                 if self.result is None:
                     return
