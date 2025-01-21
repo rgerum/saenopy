@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+from copy import deepcopy
 from PIL import Image, ImageDraw, ImageFont
 import matplotlib
 import matplotlib.pyplot as plt
@@ -8,8 +9,21 @@ from saenopy.gui.common.resources import resource_path
 from saenopy.gui.solver.modules.showVectorField import getVectorFieldImage
 from saenopy.gui.solver.modules.exporter.ExportRenderCommon import get_time_text, getVectorFieldImage, get_mesh_arrows
 
+default_data = {'use2D': True, 'image': {'logo_size': 0, 'scale': 1.0, 'antialiase': True, 'scale_overlay': 1.0}, 'camera': {'elevation': 35.0, 'azimuth': 45.0, 'distance': 0, 'offset_x': 0, 'offset_y': 0, 'roll': 0}, 'theme': 'dark', 'show_grid': True, 'use_nans': False, 'arrows': 'deformation', 'averaging_size': 1.0, 'deformation_arrows': {'autoscale': True, 'scale_max': 10.0, 'colormap': 'turbo', 'arrow_scale': 1.0, 'arrow_opacity': 1.0, 'skip': 1}, 'force_arrows': {'autoscale': True, 'scale_max': 1000.0, 'use_center': False, 'use_log': True, 'colormap': 'turbo', 'arrow_scale': 1.0, 'arrow_opacity': 1.0, 'skip': 1}, 'maps': 'None', 'maps_cmap': 'turbo', 'maps_alpha': 0.5, 'stack': {'image': True, 'channel': 'cells', 'z_proj': False, 'use_contrast_enhance': True, 'contrast_enhance': None, 'colormap': 'gray', 'z': 0, 'use_reference_stack': False, 'alpha': 1.0, 'channel_B': '', 'colormap_B': 'gray', 'alpha_B': 1.0}, 'scalebar': {'hide': False, 'length': 0.0, 'width': 5.0, 'xpos': 15.0, 'ypos': 10.0, 'fontsize': 18.0}, 'colorbar': {'hide': False, 'length': 150.0, 'width': 10.0, 'xpos': 15.0, 'ypos': 10.0, 'fontsize': 18.0}, '2D_arrows': {'width': 2.0, 'headlength': 5.0, 'headheight': 5.0}, 'crop': {'x': (913, 1113), 'y': (893, 1093), 'z': (0, 1)}, 'channel0': {'show': False, 'skip': 1, 'sigma_sato': 2, 'sigma_gauss': 0, 'percentiles': (0, 1), 'range': (0, 1), 'alpha': (0.1, 0.5, 1), 'cmap': 'pink'}, 'channel1': {'show': False, 'skip': 1, 'sigma_sato': 0, 'sigma_gauss': 7, 'percentiles': (0, 1), 'range': (0, 1), 'alpha': (0.1, 0.5, 1), 'cmap': 'Greens', 'channel': 1}, 'channel_thresh': 1.0, 'time': {'t': 0, 'format': '%d:%H:%M', 'start': 0.0, 'display': True, 'fontsize': 18}}
+
+def update_dict(new_dict, old_dict, key):
+    if isinstance(old_dict[key], dict):
+        for key2 in old_dict[key].keys():
+            update_dict(new_dict[key], old_dict[key], key2)
+    else:
+        new_dict[key] = old_dict[key]
 
 def render_2d(params, result, exporter=None):
+    default_copy = deepcopy(default_data)
+    for key in params.keys():
+        update_dict(default_copy, params, key)
+    params = default_copy
+
     pil_image, display_image, im_scale, aa_scale = render_2d_image(params, result, exporter)
     if pil_image is None:
         return np.zeros((10, 10))
@@ -20,7 +34,7 @@ def render_2d(params, result, exporter=None):
         pil_image = pil_image.resize([pil_image.width // 2, pil_image.height // 2])
         aa_scale = 1
 
-    if params["maps"] != "None":
+    if params.get("maps", "None") != "None":
         pil_image, disp_params = render_map(params, result, pil_image, im_scale, aa_scale, display_image, return_scale=True)
 
     if params["scalebar"]["hide"] is False:
@@ -39,7 +53,7 @@ def render_2d_image(params, result, exporter):
     display_image = getVectorFieldImage(result, params, use_fixed_contrast_if_available=True, use_2D=True, exporter=exporter)
     if display_image is None:
         return None, None, 1, 1
-    if params["stack"]["channel_B"] != "":
+    if params["stack"].get("channel_B", "") != "":
         params["stack"]["channel"] = params["stack"]["channel_B"]
         display_imageB = getVectorFieldImage(result, params, use_fixed_contrast_if_available=True, exporter=exporter)
     else:

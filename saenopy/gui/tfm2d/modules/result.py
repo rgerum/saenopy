@@ -188,18 +188,6 @@ class Result2D(Saveable):
             self.shape = im.shape
         return im
 
-    def get_deformation_field(self):
-        if self.im_displacement is None:
-            fig1, ax = show_quiver(self.u, self.v, cbar_str="deformations\n[pixels]")
-            self.im_displacement = fig_to_numpy(fig1, self.shape)
-        return self.im_displacement
-
-    def get_force_field(self):
-        if self.im_force is None:
-            fig1, ax = show_quiver(self.tx, self.ty, cbar_str="tractions\n[Pa]")
-            self.im_force = fig_to_numpy(fig1, self.shape)
-        return self.im_force
-
     def get_line_tensions(self):
         if self.im_tension is None:
             fig3, ax = plot_continuous_boundary_stresses([self.borders_inter_shape, self.borders_edge_lines, self.lt, self.min_v, self.max_v],
@@ -289,7 +277,6 @@ class Result2D(Saveable):
             vy = self.v*self.pixel_size
             vf = 10/self.pixel_size
         if name == "stress":
-            print("do force")
             vx = self.tx
             vy = self.ty
             vf = 0.1

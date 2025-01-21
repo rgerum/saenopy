@@ -1,20 +1,11 @@
-from qtpy import QtWidgets
-from saenopy.gui.common import QtShortCuts
-from typing import List, Tuple
-
-from saenopy.gui.common.gui_classes import CheckAbleGroup
-from saenopy.gui.common.code_export import get_code, export_as_string
-
-from .PipelineModule import PipelineModule
+from saenopy.gui.common.TabModule import TabModule
 from .result import Result2D
 
-from saenopy.pyTFM.calculate_stress import calculate_stress
-
-from saenopy.gui.common.TabModule import TabModule
 
 class TabStress(TabModule):
+    result: Result2D
 
-    def __init__(self, parent=None):
+    def __init__(self, parent: "BatchEvaluate"):
         super().__init__(parent)
 
         with self.parent.tabs.createTab("Line Tension") as self.tab:

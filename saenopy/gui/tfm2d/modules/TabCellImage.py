@@ -1,16 +1,11 @@
 from saenopy.gui.common.TabModule import TabModule
-import os
+from .result import Result2D
 
-from qtpy import QtCore, QtWidgets, QtGui
-
-import traceback
-
-from saenopy import get_stacks
-from saenopy.gui.common import QtShortCuts
 
 class TabCellImage(TabModule):
+    result: Result2D
 
-    def __init__(self, parent=None):
+    def __init__(self, parent: "BatchEvaluate"):
         super().__init__(parent)
         with self.parent.tabs.createTab("Cell Image") as self.tab:
             pass

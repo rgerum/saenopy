@@ -1,8 +1,10 @@
 from .result import Result2D
 from saenopy.gui.common.TabModule import TabModule
+from saenopy.gui.solver.modules.exporter.ExporterRender2D import render_2d
 
 
 class TabDeformation(TabModule):
+    result: Result2D
 
     def __init__(self, parent: "BatchEvaluate"):
         super().__init__(parent)
@@ -16,5 +18,22 @@ class TabDeformation(TabModule):
     def tabChanged(self, tab):
         if self.tab is not None and self.tab.parent() == tab:
             if self.check_evaluated(self.result):
-                im = self.result.get_deformation_field()
-                self.parent.draw.setImage(im*255)
+
+                if self.result is None:
+                    return
+                im = render_2d({
+                    "stack": {
+                        "channel": "cells",
+                    },
+                    "arrows": "deformation",
+
+                    "colorbar": {
+                        "hide": True,
+                    },
+
+                    "scalebar": {
+                        "hide": True,
+                    },
+                }, self.result)
+
+                self.parent.draw.setImage(im)

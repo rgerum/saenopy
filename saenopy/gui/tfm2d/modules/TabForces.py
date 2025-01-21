@@ -1,10 +1,12 @@
 from .result import Result2D
 from saenopy.gui.common.TabModule import TabModule
+from saenopy.gui.solver.modules.exporter.ExporterRender2D import render_2d
 
 
 class TabForces(TabModule):
+    result: Result2D
 
-    def __init__(self, parent=None):
+    def __init__(self, parent: "BatchEvaluate"):
         super().__init__(parent)
 
         with self.parent.tabs.createTab("Forces") as self.tab:
@@ -16,5 +18,19 @@ class TabForces(TabModule):
     def tabChanged(self, tab):
         if self.tab is not None and self.tab.parent() == tab:
             if self.check_evaluated(self.result):
-                im = self.result.get_force_field()
-                self.parent.draw.setImage(im*255)
+                im = render_2d({
+                    "stack": {
+                        "channel": "cells",
+                    },
+                    "arrows": "stress",
+
+                    "colorbar": {
+                        "hide": True,
+                    },
+
+                    "scalebar": {
+                        "hide": True,
+                    },
+                }, self.result)
+
+                self.parent.draw.setImage(im)

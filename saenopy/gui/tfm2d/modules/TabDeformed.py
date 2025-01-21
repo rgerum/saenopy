@@ -1,9 +1,11 @@
 from saenopy.gui.common.TabModule import TabModule
+from .result import Result2D
 
 
 class TabDeformed(TabModule):
+    result: Result2D
 
-    def __init__(self, parent=None):
+    def __init__(self, parent: "BatchEvaluate"):
         super().__init__(parent)
 
         with self.parent.tabs.createTab("Deformed") as self.tab:
