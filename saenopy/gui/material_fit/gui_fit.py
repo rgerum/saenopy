@@ -258,6 +258,10 @@ class MainWindowFit(QtWidgets.QWidget):
         parts = []
         colors = []
         for d in self.data:
+            if isinstance(d[2]["col1"], float):
+                d[2]["col1"] = int(d[2]["col1"])
+            if isinstance(d[2]["col2"], float):
+                d[2]["col2"] = int(d[2]["col2"])
             if d[1] and d[2]["type"] != "none":
                 colors.append(d[3])
                 params = d[2]["params"]

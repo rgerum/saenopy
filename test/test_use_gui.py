@@ -674,7 +674,7 @@ def test_fit(monkeypatch, catch_popup_error, random_path):
          [1.10e+00, 2.02e-01]])
     np.savetxt("stretch.txt", stretch)
 
-    monkeypatch.setattr(QtWidgets.QFileDialog, "getOpenFileName", lambda *args: "stretch.txt")
+    monkeypatch.setattr(QtWidgets.QFileDialog, "getOpenFileName", lambda *args: ("stretch.txt",))
     window.add_measurement()
 
     window.list.setCurrentRow(2)
