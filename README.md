@@ -52,10 +52,8 @@ To get started you can have a look at our collection of [example datasets](https
 ## Preprint
 If you want to cite saenopy you can reference our preprint.
 
-*Dynamic traction force measurements of migrating immune cells in 3D biopolymer matrices*
-
+*Dynamic traction force measurements of migrating immune cells in 3D biopolymer matrices*\n
 David Böhringer, Mar Cóndor, Lars Bischof, Tina Czerwinski, Niklas Gampl, Phuong Anh Ngo, Andreas Bauer, 
-Caroline Voskens, Rocío López-Posadas, Kristian Franze, Silvia Budday, Christoph Mark, Ben Fabry, Richard Gerum
-
+Caroline Voskens, Rocío López-Posadas, Kristian Franze, Silvia Budday, Christoph Mark, Ben Fabry, Richard Gerum\n
 **Nat. Phys. 20, 1816–1823 (2024)**; doi: [https://doi.org/10.1101/2022.11.16.516758](https://doi.org/10.1038/s41567-024-02632-8)
 
