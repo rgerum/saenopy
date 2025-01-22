@@ -105,10 +105,10 @@ Citing Saenopy
 If you use Saenopy for academic research, you are highly encouraged (though not
 required) to cite our article:
 
-* *Dynamic traction force measurements of migrating immune cells in 3D biopolymer matrices*  
-  David Böhringer, Mar Cóndor, Lars Bischof, Tina Czerwinski, Niklas Gampl, Phuong Anh Ngo, Andreas Bauer, 
-  Caroline Voskens, Rocío López-Posadas, Kristian Franze, Silvia Budday, Christoph Mark, Ben Fabry, Richard Gerum  
-  **Nat. Phys. 20, 1816–1823 (2024)**; doi: https://doi.org/10.1038/s41567-024-02632-8
+* Böhringer D., Cóndor M., Bischof L., Czerwinski T., Gampl N., Ngo P.A., Bauer A., 
+  Voskens C., López-Posadas R., Franze K., Budday S., Mark C., Fabry B., Gerum R. 2024)
+  `"Dynamic traction force measurements of migrating immune cells in 3D biopolymer matrices" <https://doi.org/10.1038/s41567-024-02632-8>`_.
+  Nat. Phys., 20, 1816–1823 (2024). doi.org/10.1038/s41567-024-02632-8
   
 You can also refer to the previous publications on the predecessor of saenopy:
 
