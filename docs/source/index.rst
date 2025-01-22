@@ -74,7 +74,7 @@ Spheroid
 
 https://github.com/christophmark/jointforces
 
-*  Mark C., Grundy T., Strissel P., Böhringer D., Grummel N., Gerum R., Steinwachs J., Hack C., Beckmann M., Eckstein M., Strick R., O'Neill G., Fabry B. (2020)
+*  Mark C., Grundy T., Strissel P., Böhringer D., Grummel N., Gerum R., Steinwachs J., Hack C., Beckmann M., Eckstein M., Strick R., O'Neill G., Fabry B. (2020).
    `"Collective forces of tumor spheroids in three-dimensional biopolymer networks" <https://doi.org/10.7554/eLife.51912>`_.
    In eLife 9:e51912. doi.org/10.7554/eLife.51912
 
@@ -85,7 +85,7 @@ Use fiber alignment as a proxy for force if the material properties are not avai
 
 https://github.com/davidbhr/CompactionAnalyzer
 
-* Böhringer D., Bauer A., Moravec I., Bischof L., Kah D., Mark C., Grundy T.J., Görlach E., O’Neill G.M., Budday S. and Strissel P.L., 2023.
+* Böhringer D., Bauer A., Moravec I., Bischof L., Kah D., Mark C., Grundy T.J., Görlach E., O’Neill G.M., Budday S. and Strissel P.L., (2023).
   `"Fiber alignment in 3D collagen networks as a biophysical marker for cell contractility" <https://doi.org/10.1016/j.matbio.2023.11.004>`_.
   Matrix Biology, 124, pp.39-48. doi.org/10.1016/j.matbio.2023.11.004
 
@@ -106,17 +106,17 @@ If you use Saenopy for academic research, you are highly encouraged (though not
 required) to cite our article:
 
 * Böhringer D., Cóndor M., Bischof L., Czerwinski T., Gampl N., Ngo P.A., Bauer A., 
-  Voskens C., López-Posadas R., Franze K., Budday S., Mark C., Fabry B., Gerum R. 2024)
+  Voskens C., López-Posadas R., Franze K., Budday S., Mark C., Fabry B., Gerum R. (2024).
   `"Dynamic traction force measurements of migrating immune cells in 3D biopolymer matrices" <https://doi.org/10.1038/s41567-024-02632-8>`_.
   Nat. Phys., 20, 1816–1823 (2024). doi.org/10.1038/s41567-024-02632-8
   
 You can also refer to the previous publications on the predecessor of saenopy:
 
-* Steinwachs J., Metzner C., Skodzek K., Lang N., Thievessen I., Mark C., Munster S., Aifantis K. E., Fabry B. (2016)
+* Steinwachs J., Metzner C., Skodzek K., Lang N., Thievessen I., Mark C., Munster S., Aifantis K. E., Fabry B. (2016).
   `"Three-dimensional force microscopy of cells in biopolymer networks" <http://dx.doi.org/10.1038/nmeth.3685>`_.
   In Nat Methods, volume 13, 2016. doi.org/10.1038/nmeth.3685
 
-* Condor M., Steinwachs J., Mark C., Garcia-Aznar J. M., Fabry B. (2017)
+* Condor M., Steinwachs J., Mark C., Garcia-Aznar J. M., Fabry B. (2017).
   `"Traction Force Microscopy in 3-Dimensional Extracellular Matrix Networks" <http://dx.doi.org/10.1002/cpcb.24>`_
   In Curr Protoc Cell Biol, volume 75, doi.org/10.1002/cpcb.24
 
