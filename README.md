@@ -50,7 +50,7 @@ Or by executing the script “gui_master.py” in your python interpreter.
 To get started you can have a look at our collection of [example datasets](https://saenopy.readthedocs.io/en/latest/auto_examples/index.html).
 
 ## Preprint
-If you want to cite saenopy you can reference our preprint.
+If you want to cite saenopy you can reference our article:
 
 *Dynamic traction force measurements of migrating immune cells in 3D biopolymer matrices*  
 David Böhringer, Mar Cóndor, Lars Bischof, Tina Czerwinski, Niklas Gampl, Phuong Anh Ngo, Andreas Bauer, 
