@@ -48,7 +48,7 @@ Linux
 https://github.com/rgerum/saenopy/releases/download/v1.0.6/saenopy
 
 MacOS
-https://github.com/rgerum/saenopy/releases/download/v1.0.6/saenopy_mac.app.zip
+https://github.com/rgerum/saenopy/releases/download/v1.0.6/saenopy_mac.app.zip (In development..)
 
 Using Python
 ~~~~~~~~~~~~
@@ -103,13 +103,13 @@ Citing Saenopy
 --------------
 
 If you use Saenopy for academic research, you are highly encouraged (though not
-required) to cite our preprint:
+required) to cite our article:
 
-* *Dynamic traction force measurements of migrating immune cells in 3D matrices*
-  David Böhringer, Mar Cóndor, Lars Bischof, Tina Czerwinski, Andreas Bauer, Caroline Voskens, Silvia Budday,
-  Christoph Mark, Ben Fabry, Richard Gerum
-  **bioRxiv 2022.11.16.516758**; doi: https://doi.org/10.1101/2022.11.16.516758
-
+* *Dynamic traction force measurements of migrating immune cells in 3D biopolymer matrices*  
+  David Böhringer, Mar Cóndor, Lars Bischof, Tina Czerwinski, Niklas Gampl, Phuong Anh Ngo, Andreas Bauer, 
+  Caroline Voskens, Rocío López-Posadas, Kristian Franze, Silvia Budday, Christoph Mark, Ben Fabry, Richard Gerum  
+  **Nat. Phys. 20, 1816–1823 (2024)**; doi: https://doi.org/10.1038/s41567-024-02632-8
+  
 You can also refer to the previous publications on the predecessor of saenopy:
 
 * Steinwachs J., Metzner C., Skodzek K., Lang N., Thievessen I., Mark C., Munster S., Aifantis K. E., Fabry B. (2016)
