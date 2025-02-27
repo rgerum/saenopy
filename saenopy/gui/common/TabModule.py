@@ -56,3 +56,6 @@ class TabModule(QtWidgets.QWidget):
     def update_display(self):
         pass
 
+    def checkTabEnabled(self, result):
+        return True
+
