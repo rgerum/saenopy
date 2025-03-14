@@ -30,7 +30,7 @@ class DeformationDetector3(PipelineModule):
                         self.input_overlap = QtShortCuts.QInputNumber(None, "overlap", 60, step=1, float=False,
                                                                           value_changed=self.valueChanged, unit="px",
                                                                           tooltip="the overlap of windows")
-                        self.input_std = QtShortCuts.QInputNumber(None, "std_factor", 15, step=1, float=True,
+                        self.input_std = QtShortCuts.QInputNumber(None, "std_factor", 15, step=1, float=False,
                                                                       value_changed=self.valueChanged, unit="px",
                                                                       tooltip="additional filter for extreme values in deformation field")
                     self.label = QtWidgets.QLabel().addToLayout()
@@ -46,8 +46,7 @@ class DeformationDetector3(PipelineModule):
         return True
 
     def process(self, result: Result2D, piv_parameters: dict): # type: ignore
-        # result.reference_stack, result.input
-        u, v, mask_val, mask_std = calculate_deformation(result.get_image(0), result.get_image(1), window_size=piv_parameters["window_size"], overlap=piv_parameters["overlap"], std_factor=piv_parameters["std_factor"])
+        u, v, mask_val, mask_std = calculate_deformation(result.get_image(0), result.get_image(1), window_size=int(piv_parameters["window_size"]), overlap=int(piv_parameters["overlap"]), std_factor=int(piv_parameters["std_factor"]))
         result.u = -u
         result.v = v
         result.mask_val = mask_val

@@ -38,7 +38,7 @@ def read_tiff(image_filenames):
 class PivParametersDict(TypedDict):
     window_size: int
     overlap: int
-    std_factor: float
+    std_factor: int
 
 class ForceParametersDict(TypedDict):
     young: float
