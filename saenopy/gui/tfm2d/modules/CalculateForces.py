@@ -53,8 +53,8 @@ class Force(PipelineModule):
         result.ty = ty
         result.im_force = None
         result.save()
-        show_quiver(tx, ty, cbar_str="tractions\n[Pa]")
-        plt.savefig("force.png")
+        # show_quiver(tx, ty, cbar_str="tractions\n[Pa]")
+        # plt.savefig("force.png")
 
     def get_code(self) -> Tuple[str, str]:
         import_code = "from saenopy.pyTFM.calculate_forces import calculate_forces\n"

@@ -54,12 +54,12 @@ class DeformationDetector3(PipelineModule):
         result.mask_std = mask_std
         result.im_displacement = None
         result.save()
-        print(u)
-        print(v)
-        print(mask_std)
-        print(mask_val)
-        fig1, ax = show_quiver(u, v, cbar_str="deformations\n[pixels]")
-        plt.savefig("deformation.png")
+        # print(u)
+        # print(v)
+        # print(mask_std)
+        # print(mask_val)
+        # fig1, ax = show_quiver(u, v, cbar_str="deformations\n[pixels]")
+        # plt.savefig("deformation.png")
 
     def get_code(self) -> Tuple[str, str]:
         import_code = "from saenopy.pyTFM.calculate_deformation import calculate_deformation\n"
