@@ -74,10 +74,10 @@ class Saveable:
                 my_list = []
                 for attr in attribute:
                     value = attr
-                    if getattr(attribute[0], "to_dict", None):
-                        value = getattr(attr, "to_dict")()
                     if attr is None:
                         value = "__NONE__"
+                    elif getattr(attribute[0], "to_dict", None):
+                        value = getattr(attr, "to_dict")()         
                     my_list.append(value)
                 data[param] = my_list
             elif isinstance(attribute, PurePath):

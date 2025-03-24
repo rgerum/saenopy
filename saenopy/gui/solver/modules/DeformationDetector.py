@@ -131,8 +131,8 @@ class DeformationDetector(PipelineModule):
                                                                                piv_parameters["element_size"],
                                                                                piv_parameters["signal_to_noise"],
                                                                                piv_parameters["drift_correction"])
-                # save the displacements
-                result.save()
+                    # save the displacements
+                    result.save()
 
         data = {
             "my_piv_params": self.result.piv_parameters_tmp
@@ -173,6 +173,7 @@ def getDeformation(progress, i, result, params):
                                                          params["element_size"],
                                                          params["signal_to_noise"],
                                                          params["drift_correction"])
+        result.save()
     except Exception as err:
         return err
     finally:
