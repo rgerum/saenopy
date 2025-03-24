@@ -92,7 +92,7 @@ def get_examples():
             "piv_parameters": {'window_size': 12.0, 'element_size': 4.0, 'signal_to_noise': 1.3, 'drift_correction': True},
             "mesh_parameters": {'reference_stack': 'median', 'element_size': 4.0, 'mesh_size': 'piv'},
             "material_parameters": {'k': 1449.0, 'd_0': 0.0022, 'lambda_s': 0.032, 'd_s': 0.055},
-            "solve_parameters": {'alpha': 10**10, 'step_size': 0.33, 'max_iterations': 100},
+            "solve_parameters": {'alpha': 10**10, 'step_size': 0.33, 'max_iterations': 100, 'rel_conv_crit': 0.01},
             "crop": {"z": (20, -20)},
             "url": "https://github.com/rgerum/saenopy/releases/download/v0.7.4/2_DynamicalSingleCellTFM.zip",
             "url_evaluated": "https://github.com/rgerum/saenopy/releases/download/v0.7.4/2_DynamicalSingleCellTFM_evaluated.zip",

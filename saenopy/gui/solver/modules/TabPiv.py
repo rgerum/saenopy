@@ -84,9 +84,14 @@ class TabPiv(TabModule):
         if self.result is None:
             mesh = None
         else:
-            mesh = self.result.mesh_piv[self.t_slider.value()]
+            try:
+                mesh = self.result.mesh_piv[self.t_slider.value()]
+            except IndexError:
+                mesh = None
 
         if mesh is None:
+            plotter.clear()
+            plotter.render()
             plotter.show()
             return
 

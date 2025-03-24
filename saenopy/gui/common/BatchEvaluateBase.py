@@ -290,6 +290,9 @@ class BatchEvaluateBase(QtWidgets.QWidget):
         if self.current_task_id < len(self.tasks):
             self.run_next()
 
+    def has_scheduled_tasks(self):
+        return self.current_task_id < len(self.tasks)
+
     def dragEnterEvent(self, event: QtGui.QDragEnterEvent):
         # accept url lists (files by drag and drop)
         for url in event.mimeData().urls():

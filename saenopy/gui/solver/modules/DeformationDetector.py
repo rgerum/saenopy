@@ -1,6 +1,7 @@
 import os
 import time
 from qtpy import QtWidgets, QtCore
+import qtawesome as qta
 import numpy as np
 import tqdm
 from typing import Tuple
@@ -25,6 +26,12 @@ class CamPos:
 class DeformationDetector(PipelineModule):
     pipeline_name = "find deformations"
     use_thread = False
+    signal_process_status_update = QtCore.Signal(int, int)
+
+    current_p = None
+    cancel_p = False
+
+    pipeline_allow_cancel = True
 
     def __init__(self, parent: "BatchEvaluate", layout):
         super().__init__(parent, layout)
@@ -48,6 +55,7 @@ class DeformationDetector(PipelineModule):
                                                                             tooltip="remove the mean displacement to correct for a global drift")
                     self.label = QtWidgets.QLabel().addToLayout()
                     self.input_button = QtShortCuts.QPushButton(None, "detect deformations", self.start_process)
+                    self.input_button_reset = QtShortCuts.QPushButton(None, "", self.reset, icon=qta.icon("fa5s.undo"))
 
         self.setParameterMapping("piv_parameters", {
             "window_size": self.input_win,
@@ -56,8 +64,40 @@ class DeformationDetector(PipelineModule):
             "drift_correction": self.input_driftcorrection,
         })
 
+        self.signal_process_status_update.connect(self.update_button)
+
+    def cancel_process(self):
+        self.cancel_p = True
+        self.current_p.process.join(1)
+        self.current_p.terminate()
+
+    def reset(self):
+        if self.result is not None:
+            if self.parent.has_scheduled_tasks():
+                raise ValueError("Tasks are still scheduled")
+            self.result.reset_piv()
+            self.parent.result_changed.emit(self.result)
+
+    def update_button(self, i, i2):
+        #self.input_button.setText(f"pause detection ({i}/{i2} done)")
+        return
+
     def check_available(self, result: Result) -> bool:
         return result is not None and result.stacks is not None and len(result.stacks)
+
+    def check_status(self, result: Result) -> Tuple[str, int, int]:
+        available = result is not None and result.stacks is not None and len(result.stacks)
+        if not available:
+            return "not-available", 0, 0
+        max_count = len(result.mesh_piv)
+        count = 0
+        for piv in result.mesh_piv:
+            if piv is None:
+                break
+            count += 1
+        if count < max_count:
+            return "progress", count, max_count
+        return "finished", max_count, max_count
 
     def valueChanged(self):
         if self.check_available(self.result):
@@ -81,17 +121,26 @@ class DeformationDetector(PipelineModule):
             return
 
         if not isinstance(result.mesh_piv, list):
-            result.mesh_piv = [None] * (len(result.stacks) - 1)
+            result.reset_piv()
 
         count = len(result.stacks)
         if result.stack_reference is None:
             count -= 1
+        self.signal_process_status_update.emit(0, count)
+
+        result.piv_parameters = piv_parameters
 
         for i in range(count):
+            if result.mesh_piv[i] is not None:
+                continue
             self.parent.signal_process_status_update.emit(f"{i + 1}/{count} finding deformations", f"{Path(result.output).name}")
+            self.signal_process_status_update.emit(i+1, count)
             p = ProcessSimple(getDeformation, (i, result, piv_parameters), {}, self.processing_progress, use_thread=self.use_thread)
             p.start()
+            self.current_p = p
             return_value = p.join()
+            if return_value == "Terminated":
+                return "Terminated"
             if isinstance(return_value, Exception):
                 raise return_value
             else:

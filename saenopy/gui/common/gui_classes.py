@@ -467,6 +467,7 @@ class ListWidget(QtWidgets.QListWidget):
 
 
 from multiprocessing import Process, Queue
+from multiprocessing.queues import Empty
 import multiprocessing
 
 
@@ -504,6 +505,8 @@ class ProcessSimple:
     thread = None
     process = None
 
+    terminated = False
+
     def __init__(self, target, args=[], kwargs={}, progress_signal=None, use_thread=False):
         self.args = args
         self.kwargs = kwargs
@@ -527,15 +530,23 @@ class ProcessSimple:
         if self.thread:
             self.thread.join()
             return self.thread.result
-        while True:
-            result = self.queue_out.get()
-            if isinstance(result, SignalReturn):
+        result = "Terminated"
+        while not self.terminated:
+            try:
+                res = self.queue_out.get(timeout=1)
+            except Empty:
+                continue
+            if isinstance(res, SignalReturn):
                 result = self.queue_out.get()
                 break
             elif self.progress_signal is not None:
-                self.progress_signal.emit(result)
+                self.progress_signal.emit(res)
         self.process.join()
         return result
+
+    def terminate(self):
+        self.terminated = True
+        self.process.terminate()
 
 
 # Step 1: Create a worker class

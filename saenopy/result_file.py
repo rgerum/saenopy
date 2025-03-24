@@ -488,6 +488,25 @@ class Result(Saveable):
              
         return super().from_dict(data_dict)
 
+    def reset_piv(self):
+        if self.stack_reference is not None:
+            self.mesh_piv = [None] * (len(self.stacks))
+        else:
+            self.mesh_piv = [None] * (len(self.stacks) - 1)
+        self.set_result_state("piv_parameters", "")
+        self.reset_solver()
+
+    def reset_solver(self):
+        self.solvers = [None] * (len(self.mesh_piv))
+        self.set_result_state("mesh_parameters", "")
+        self.set_result_state("solve_parameters", "")
+
+    def get_result_state(self, params_name):
+        return getattr(self, params_name + "_state", "")
+
+    def set_result_state(self, params_name, state):
+        setattr(self, params_name + "_state", state)
+
     def __init__(self, output=None, template="", stack=None, time_delta=None, **kwargs):
         if output is not None:
             self.output = str(Path(output).absolute())
@@ -501,10 +520,7 @@ class Result(Saveable):
         self.time_delta = time_delta
         self.template = template
 
-        if "stack_reference" in kwargs:
-            self.mesh_piv = [None] * (len(self.stacks))
-        else:
-            self.mesh_piv = [None] * (len(self.stacks) - 1)
+        self.reset_piv()
         self.solvers = [None] * (len(self.mesh_piv))
 
         super().__init__(**kwargs)

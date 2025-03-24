@@ -60,6 +60,16 @@ class ParameterMapping:
                 widget.setValue(params_tmp[name])
 
 
+from enum import Enum
+
+class StateEnum(str, Enum):
+    idle = ""
+    scheduled = "scheduled"
+    running = "running"
+    finished = "finished"
+    failed = "failed"
+
+
 class PipelineModule(QtWidgets.QWidget):
     processing_finished = QtCore.Signal()
     processing_progress = QtCore.Signal(tuple)
@@ -70,6 +80,8 @@ class PipelineModule(QtWidgets.QWidget):
 
     parameter_mappings: List[ParameterMapping] = None
     params_name: None
+
+    pipeline_allow_cancel = False
 
     def __init__(self, parent: "BatchEvaluate", layout):
         super().__init__()
@@ -131,35 +143,61 @@ class PipelineModule(QtWidgets.QWidget):
 
     def state_changed(self, result: Result):
         if result is self.result and getattr(self, "group", None) is not None:
-            state = getattr(result, self.params_name + "_state", "")
-            if state == "scheduled":
+            state = self.get_result_state(result)
+            if state == StateEnum.scheduled:
                 self.group.label.setIcon(qta.icon("fa5s.hourglass-start", options=[dict(color="gray")]))
                 self.group.label.setToolTip("scheduled")
-            elif state == "running":
+                if self.pipeline_allow_cancel:
+                    my_state, count, max = self.check_status(result)
+                    self.input_button.setText(f"cancel {count}/{max}")
+                self.input_button.setEnabled(False)
+
+            elif state == StateEnum.running:
                 self.group.label.setIcon(qta.icon("fa5s.hourglass-half", options=[dict(color="orange")]))
                 self.group.label.setToolTip("running")
-            elif state == "finished":
+                if self.pipeline_allow_cancel:
+                    my_state, count, max = self.check_status(result)
+                    self.input_button.setText(f"cancel {count}/{max}")
+                    self.input_button.setEnabled(True)
+                else:
+                    self.input_button.setEnabled(False)
+
+            elif state == StateEnum.finished:
                 self.group.label.setIcon(qta.icon("fa5s.hourglass-end", options=[dict(color="green")]))
                 self.group.label.setToolTip("finished")
-            elif state == "failed":
+                self.input_button.setText(f"finished")
+                self.input_button.setEnabled(False)
+
+            elif state == StateEnum.failed:
                 self.group.label.setIcon(qta.icon("fa5s.times", options=[dict(color="red")]))
                 self.group.label.setToolTip("failed")
+                self.input_button.setEnabled(False)
             else:
                 self.group.label.setIcon(qta.icon("fa5.circle", options=[dict(color="gray")]))
                 self.group.label.setToolTip("")
 
-            if state == "scheduled" or state == "running":
+                if self.pipeline_allow_cancel is True and self.check_available(result):
+                    my_state, count, max = self.check_status(result)
+                    if my_state == "progress":
+                        if count == 0:
+                            self.input_button.setText(f"detect deformation")
+                        else:
+                            self.input_button.setText(f"continue {count}/{max}")
+                        self.input_button.setEnabled(True)
+                    else:
+                        self.input_button.setText(f"done")
+                        self.input_button.setEnabled(False)
+                else:
+                    self.input_button.setEnabled(self.check_available(result))
+
+            if state == StateEnum.scheduled or state == StateEnum.running:
                 # if not disable all the widgets
                 for mapping in self.parameter_mappings:
                     mapping.setDisabled(True)
-                if getattr(self, "input_button", None):
-                    self.input_button.setEnabled(False)
             else:
                 # if not disable all the widgets
                 for mapping in self.parameter_mappings:
                     mapping.setDisabled(False)
-                if getattr(self, "input_button", None):
-                    self.input_button.setEnabled(self.check_available(result))
             #if getattr(self, "input_button", None):
             #    self.input_button.setEnabled(self.check_available(result))
 
@@ -181,17 +219,12 @@ class PipelineModule(QtWidgets.QWidget):
                 if self.parent.tabs.widget(i) == self.tab.parent():
                     self.parent.tabs.setTabEnabled(i, self.check_evaluated(result))
 
-        # check if the results instance can be evaluated currently with this module
-        if getattr(self, "input_button", None):
-            self.input_button.setEnabled(self.check_available(result))
         if result is None or \
-                (self.params_name and (getattr(result, self.params_name + "_state", "") == "scheduled"
-                                       or getattr(result, self.params_name + "_state", "") == "running")):
+                (self.params_name and (self.get_result_state(result) == "scheduled"
+                                       or self.get_result_state(result) == "running")):
             # if not disable all the widgets
             for mapping in self.parameter_mappings:
                 mapping.setDisabled(True)
-            if getattr(self, "input_button", None):
-                self.input_button.setEnabled(False)
         else:
             # if not disable all the widgets
             for mapping in self.parameter_mappings:
@@ -206,40 +239,60 @@ class PipelineModule(QtWidgets.QWidget):
     def valueChanged(self):
         pass
 
+    def get_result_state(self, result) -> StateEnum:
+        return getattr(result, self.params_name + "_state", "")
+
+    def set_result_state(self, result: Result, state: StateEnum):
+        setattr(result, self.params_name + "_state", state)
+
     def start_process(self, x=None, result=None):
         if result is None:
             result = self.result
         if result is None:
             return
-        if getattr(result, self.params_name + "_state", "") == "scheduled" or \
-            getattr(result, self.params_name + "_state", "") == "running":
+
+        state = self.get_result_state(result)
+
+        if state == StateEnum.scheduled:
+            return
+
+        if self.pipeline_allow_cancel is True:
+            if state == StateEnum.running:
+                return self.cancel_process()
+
+        if state == StateEnum.running:
             return
 
         params = {}
         for mapping in self.parameter_mappings:
             mapping.ensure_tmp_params_initialized(result)
             params[mapping.params_name] = getattr(result, mapping.params_name + "_tmp")
-        setattr(result, self.params_name + "_state", "scheduled")
+        self.set_result_state(result, StateEnum.scheduled)
         self.processing_state_changed.emit(result)
         return self.parent.addTask(self.process_thread, result, params, "xx")
 
     def process_thread(self, result: Result, params: dict):
         #params = getattr(result, self.params_name + "_tmp")
         self.parent.progressbar.setRange(0, 0)
-        setattr(result, self.params_name + "_state", "running")
+        self.set_result_state(result, StateEnum.running)
         self.processing_state_changed.emit(result)
         try:
-            self.process(result, **params)
+            res = self.process(result, **params)
+            if res == "Terminated":
+                self.set_result_state(result, StateEnum.idle)
+                self.parent.result_changed.emit(result)
+                self.processing_finished.emit()
+                return
             # store the parameters that have been used for evaluation
             for mapping in self.parameter_mappings:
                 setattr(result, mapping.params_name, params[mapping.params_name].copy())
             result.save()
-            setattr(result, self.params_name + "_state", "finished")
+            self.set_result_state(result, StateEnum.finished)
             self.parent.result_changed.emit(result)
             self.processing_finished.emit()
         except Exception as err:
             traceback.print_exc()
-            setattr(result, self.params_name + "_state", "failed")
+            self.set_result_state(result, StateEnum.failed)
             self.processing_state_changed.emit(result)
             self.processing_error.emit(str(err))
 
