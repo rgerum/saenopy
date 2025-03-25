@@ -503,7 +503,8 @@ class Result(Saveable):
 
     def reset_regularisation_results(self):
         for solver in self.solvers:
-            solver.regularisation_results = None
+            if solver is not None:
+                solver.regularisation_results = None
 
     def get_result_state(self, params_name):
         return getattr(self, params_name + "_state", "")

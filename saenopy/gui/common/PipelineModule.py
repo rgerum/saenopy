@@ -68,6 +68,7 @@ class StateEnum(str, Enum):
     running = "running"
     finished = "finished"
     failed = "failed"
+    cancelling = "cancelling"
 
 
 class PipelineModule(QtWidgets.QWidget):
@@ -164,6 +165,15 @@ class PipelineModule(QtWidgets.QWidget):
                     my_state, count, max = self.check_status(result)
                     self.input_button.setText(f"cancel")
                     self.input_button.setEnabled(True)
+                else:
+                    self.input_button.setEnabled(False)
+
+            elif state == StateEnum.cancelling:
+                self.group.label.setIcon(qta.icon("fa5s.hourglass-half", options=[dict(color="red")]))
+                self.group.label.setToolTip("cancelling")
+                if self.pipeline_allow_cancel:
+                    self.input_button.setText(f"cancelling...")
+                    self.input_button.setEnabled(False)
                 else:
                     self.input_button.setEnabled(False)
 
@@ -282,15 +292,15 @@ class PipelineModule(QtWidgets.QWidget):
         self.set_result_state(result, StateEnum.running)
         self.processing_state_changed.emit(result)
         try:
+            # store the parameters that have been used for evaluation
+            for mapping in self.parameter_mappings:
+                setattr(result, mapping.params_name, params[mapping.params_name].copy())
             res = self.process(result, **params)
             if res == "Terminated":
                 self.set_result_state(result, StateEnum.idle)
                 self.parent.result_changed.emit(result)
                 self.processing_finished.emit()
                 return
-            # store the parameters that have been used for evaluation
-            for mapping in self.parameter_mappings:
-                setattr(result, mapping.params_name, params[mapping.params_name].copy())
             result.save()
             self.set_result_state(result, StateEnum.finished)
             self.parent.result_changed.emit(result)

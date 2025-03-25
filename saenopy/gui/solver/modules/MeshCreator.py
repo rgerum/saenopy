@@ -13,7 +13,7 @@ from saenopy.gui.common import QtShortCuts
 from saenopy.gui.common.gui_classes import CheckAbleGroup
 
 
-from saenopy.gui.common.PipelineModule import PipelineModule
+from saenopy.gui.common.PipelineModule import PipelineModule, StateEnum
 from saenopy.gui.common.code_export import get_code, export_as_string
 
 
@@ -99,7 +99,7 @@ class MeshCreator(PipelineModule):
                         self.input_button_text = QtWidgets.QLabel().addToLayout()
                         self.input_button_text.setSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
 
-                        self.input_button_reset = QtShortCuts.QPushButton(None, "", self.reset, icon=qta.icon("fa5s.undo"),
+                        self.input_button_reset = QtShortCuts.QPushButton(None, "", self.reset, icon=qta.icon("fa5s.trash-alt"),
                                                                           tooltip="reset")
                         self.input_button_reset.setSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
 
@@ -110,6 +110,9 @@ class MeshCreator(PipelineModule):
         })
 
     def cancel_process(self):
+        self.set_result_state(self.result, StateEnum.cancelling)
+        self.parent.result_changed.emit(self.result)
+
         self.cancel_p.cancel = True
 
     def reset(self):
@@ -146,6 +149,7 @@ class MeshCreator(PipelineModule):
         if result and result.stacks and result.stacks[0]:
             if result.stack_reference is None:
                 self.input_reference.setValues(["next", "median", "cumul."])
+                self.input_reference.setValue(result.mesh_parameters["reference_stack"])
                 self.input_reference.setEnabled(True)
             else:
                 self.input_reference.setValues(["reference stack"])

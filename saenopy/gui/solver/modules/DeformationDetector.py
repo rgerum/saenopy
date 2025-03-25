@@ -15,7 +15,7 @@ from saenopy.gui.common import QtShortCuts
 from saenopy.gui.common.gui_classes import CheckAbleGroup, ProcessSimple
 import saenopy.get_deformations
 
-from saenopy.gui.common.PipelineModule import PipelineModule
+from saenopy.gui.common.PipelineModule import PipelineModule, StateEnum
 from saenopy.gui.common.code_export import get_code, export_as_string
 
 
@@ -60,7 +60,7 @@ class DeformationDetector(PipelineModule):
                         self.input_button_text = QtWidgets.QLabel().addToLayout()
                         self.input_button_text.setSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
 
-                        self.input_button_reset = QtShortCuts.QPushButton(None, "", self.reset, icon=qta.icon("fa5s.undo"), tooltip="reset")
+                        self.input_button_reset = QtShortCuts.QPushButton(None, "", self.reset, icon=qta.icon("fa5s.trash-alt"), tooltip="reset")
                         self.input_button_reset.setSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
 
         self.setParameterMapping("piv_parameters", {
@@ -73,6 +73,9 @@ class DeformationDetector(PipelineModule):
         self.signal_process_status_update.connect(self.update_button)
 
     def cancel_process(self):
+        self.set_result_state(self.result, StateEnum.cancelling)
+        self.parent.result_changed.emit(self.result)
+
         self.cancel_p = True
         self.current_p.process.join(1)
         self.current_p.terminate()

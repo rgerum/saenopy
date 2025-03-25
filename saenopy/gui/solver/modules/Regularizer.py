@@ -14,7 +14,7 @@ import saenopy.materials
 from saenopy.gui.common import QtShortCuts
 from saenopy.gui.common.gui_classes import CheckAbleGroup, MatplotlibWidget
 
-from saenopy.gui.common.PipelineModule import PipelineModule
+from saenopy.gui.common.PipelineModule import PipelineModule, StateEnum
 from saenopy.gui.common.code_export import get_code, export_as_string
 
 import matplotlib.ticker as ticker
@@ -70,7 +70,7 @@ class Regularizer(PipelineModule):
                         self.input_button_text = QtWidgets.QLabel().addToLayout()
                         self.input_button_text.setSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
 
-                        self.input_button_reset = QtShortCuts.QPushButton(None, "", self.reset, icon=qta.icon("fa5s.undo"),
+                        self.input_button_reset = QtShortCuts.QPushButton(None, "", self.reset, icon=qta.icon("fa5s.trash-alt"),
                                                                           tooltip="reset")
                         self.input_button_reset.setSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
 
@@ -99,6 +99,9 @@ class Regularizer(PipelineModule):
         self.iteration_finished.emit(None, np.ones([10, 3]), 0, None)
 
     def cancel_process(self):
+        self.set_result_state(self.result, StateEnum.cancelling)
+        self.parent.result_changed.emit(self.result)
+
         self.cancel_p.cancel = True
 
     def reset(self):
@@ -178,6 +181,7 @@ class Regularizer(PipelineModule):
         QtCore.QTimer.singleShot(0, self.canvas.draw_idle)
 
     def process(self, result: Result, material_parameters: dict, solve_parameters: dict):
+        self.cancel_p = CancelSignal()
         # demo run
         if os.environ.get("DEMO") == "true":
             imax = 100
@@ -213,7 +217,6 @@ class Regularizer(PipelineModule):
                                material_parameters["d_s"] if material_parameters["d_s"] != "None" else None,
                                ))
 
-            self.cancel_p = CancelSignal()
             M.solve_regularized(step_size=solve_parameters["step_size"], max_iterations=solve_parameters["max_iterations"],
                                 alpha=solve_parameters["alpha"], rel_conv_crit=solve_parameters["rel_conv_crit"],
                                 callback=callback, verbose=True, cancel_signal=self.cancel_p)
@@ -234,10 +237,10 @@ class Regularizer(PipelineModule):
         self.update_plot()
 
     def update_plot(self):
-        if self.check_evaluated(self.result):
-            relrec = getattr(self.result.solvers[self.t_slider.value()], "relrec", None)
-            if relrec is None:
-                relrec = self.result.solvers[self.t_slider.value()].regularisation_results
+        relrec = getattr(self.result.solvers[self.parent.t_slider.value()], "relrec", None)
+        if relrec is None:
+            relrec = getattr(self.result.solvers[self.parent.t_slider.value()], "regularisation_results", None)
+        if relrec is not None:
             self.iteration_callback(self.result, relrec)
         else:
             self.plot_empty()
