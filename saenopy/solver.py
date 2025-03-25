@@ -744,7 +744,7 @@ class Solver(Saveable):
 
     def solve_regularized(self, step_size: float = 0.33, solver_precision: float = 1e-18, max_iterations: int = 300,
                           i_min: int = 12, rel_conv_crit: float = 0.01, alpha: float = 1e10, method: str = "huber",
-                          relrecname: str = None, verbose: bool = False, callback: callable = None):
+                          relrecname: str = None, verbose: bool = False, callback: callable = None, cancel_signal= None):
         """
         Fit the provided displacements. Displacements can be provided with
         :py:meth:`~.Solver.setTargetDisplacements`.
@@ -848,6 +848,10 @@ class Solver(Saveable):
                 # if the iterations converge, stop the iteration
                 if Lstd / Lmean < rel_conv_crit:
                     break
+
+            if cancel_signal is not None and getattr(cancel_signal, "cancel", False):
+                self.regularisation_results = relrec
+                return relrec
 
         self.regularisation_results = relrec
         return relrec

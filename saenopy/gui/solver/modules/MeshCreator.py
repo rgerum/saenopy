@@ -1,5 +1,6 @@
 import os
 from qtpy import QtCore, QtWidgets, QtGui
+import qtawesome as qta
 from typing import Tuple
 from pathlib import Path
 
@@ -64,10 +65,15 @@ class MeshSizeWidget(QtWidgets.QWidget):
         self.input_mesh_size_y.setDisabled(self.input_mesh_size_same.value())
         self.input_mesh_size_z.setDisabled(self.input_mesh_size_same.value())
 
+class CancelSignal:
+    cancel = False
 
 class MeshCreator(PipelineModule):
     mesh_size = [200, 200, 200]
     pipeline_name = "interpolate mesh"
+
+    pipeline_allow_cancel = True
+    pipeline_button_name = "interpolate mesh"
 
     def __init__(self, parent: "BatchEvaluate", layout):
         super().__init__(parent, layout)
@@ -87,14 +93,31 @@ class MeshCreator(PipelineModule):
 
                     self.input_mesh_size = MeshSizeWidget().addToLayout()
 
-                    self.input_button = QtWidgets.QPushButton("interpolate mesh").addToLayout()
-                    self.input_button.clicked.connect(self.start_process)
+                    with QtShortCuts.QHBoxLayout():
+                        self.input_button = QtWidgets.QPushButton("interpolate mesh").addToLayout()
+                        self.input_button.clicked.connect(self.start_process)
+                        self.input_button_text = QtWidgets.QLabel().addToLayout()
+                        self.input_button_text.setSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
+
+                        self.input_button_reset = QtShortCuts.QPushButton(None, "", self.reset, icon=qta.icon("fa5s.undo"),
+                                                                          tooltip="reset")
+                        self.input_button_reset.setSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
 
         self.setParameterMapping("mesh_parameters", {
             "reference_stack": self.input_reference,
             "element_size": self.input_element_size,
             "mesh_size": self.input_mesh_size,
         })
+
+    def cancel_process(self):
+        self.cancel_p.cancel = True
+
+    def reset(self):
+        if self.result is not None:
+            if self.parent.has_scheduled_tasks():
+                raise ValueError("Tasks are still scheduled")
+            self.result.reset_solver()
+            self.parent.result_changed.emit(self.result)
 
     def check_available(self, result: Result):
         valid = result is not None and result.mesh_piv is not None and len(result.mesh_piv) and result.mesh_piv[0] is not None
@@ -104,6 +127,19 @@ class MeshCreator(PipelineModule):
             if piv is None:
                 return False
         return True
+
+    def check_status(self, result: Result) -> Tuple[str, int, int]:
+        if result is None or result.solvers is None:
+            return "not-available", 0, 0
+        max_count = len(result.solvers)
+        count = 0
+        for solver in result.solvers:
+            if solver is None:
+                break
+            count += 1
+        if count < max_count:
+            return "progress", count, max_count
+        return "finished", max_count, max_count
 
     def setResult(self, result: Result):
         super().setResult(result)
@@ -140,13 +176,22 @@ class MeshCreator(PipelineModule):
         
         # set the parameters
         result.mesh_parameters = mesh_parameters
+        self.cancel_p = CancelSignal()
         # iterate over all stack pairs
         for i in range(len(result.mesh_piv)):
-            self.parent.signal_process_status_update.emit(f"{i + 1}/{len(result.mesh_piv)} creating mesh", f"{Path(result.output).name}")
+            self.parent.signal_process_status_update.emit(f"{i}/{len(result.mesh_piv)} creating mesh", f"{Path(result.output).name}")
             # and create the interpolated solver mesh
             result.solvers[i] = saenopy.interpolate_mesh(result.mesh_piv[i], displacement_list[i], mesh_parameters)
+            if self.cancel_p.cancel is True:
+                return "Terminated"
+            self.parent.result_changed.emit(result)
+        self.parent.signal_process_status_update.emit(f"{i + 1}/{len(result.mesh_piv)} creating mesh",
+                                                      f"{Path(result.output).name}")
+
         # save the meshes
-        result.save()
+        #print("save")
+        #result.save()
+        #print("save done")
 
     def get_code(self) -> Tuple[str, str]:
         import_code = ""

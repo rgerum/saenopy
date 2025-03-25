@@ -185,7 +185,7 @@ class PipelineModule(QtWidgets.QWidget):
                     my_state, count, max = self.check_status(result)
                     if my_state == "progress":
                         if count == 0:
-                            self.input_button.setText(f"detect deformation")
+                            self.input_button.setText(self.pipeline_button_name)
                         else:
                             self.input_button.setText(f"continue")
                         self.input_button.setEnabled(True)

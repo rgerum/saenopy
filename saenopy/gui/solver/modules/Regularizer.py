@@ -1,6 +1,7 @@
 import os
 import time
 from qtpy import QtCore, QtWidgets
+import qtawesome as qta
 import numpy as np
 from typing import Tuple
 from pathlib import Path
@@ -27,9 +28,16 @@ class OmitLast30PercentLocator(ticker.AutoLocator):
         return [t for t in ticks if t < cutoff]
 
 
+class CancelSignal:
+    cancel = False
+
+
 class Regularizer(PipelineModule):
     pipeline_name = "fit forces"
     iteration_finished = QtCore.Signal(object, object, int, int)
+
+    pipeline_allow_cancel = True
+    pipeline_button_name = "calculate forces"
 
     def __init__(self, parent: "BatchEvaluate", layout):
         super().__init__(parent, layout)
@@ -56,7 +64,16 @@ class Regularizer(PipelineModule):
                             self.input_imax = QtShortCuts.QInputNumber(None, "max iterations", 100, float=False, tooltip="the maximum number of iterations after which to abort the iteration algorithm")
                             self.input_conv_crit = QtShortCuts.QInputString(None, "rel. conv. crit.", 0.01, type=float, tooltip="the convergence criterion of the iteration algorithm")
 
-                    self.input_button = QtShortCuts.QPushButton(None, "calculate forces", self.start_process, tooltip="run the force calculation")
+                    with QtShortCuts.QHBoxLayout():
+                        self.input_button = QtShortCuts.QPushButton(None, "calculate forces", self.start_process,
+                                                                    tooltip="run the force calculation")
+                        self.input_button_text = QtWidgets.QLabel().addToLayout()
+                        self.input_button_text.setSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
+
+                        self.input_button_reset = QtShortCuts.QPushButton(None, "", self.reset, icon=qta.icon("fa5s.undo"),
+                                                                          tooltip="reset")
+                        self.input_button_reset.setSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
+
 
                     self.canvas = MatplotlibWidget(self)
                     self.parent.results_pane.addWidget(QtWidgets.QLabel("convergence of force fit"))
@@ -81,11 +98,37 @@ class Regularizer(PipelineModule):
         self.iteration_finished.connect(self.iteration_callback)
         self.iteration_finished.emit(None, np.ones([10, 3]), 0, None)
 
+    def cancel_process(self):
+        self.cancel_p.cancel = True
+
+    def reset(self):
+        if self.result is not None:
+            if self.parent.has_scheduled_tasks():
+                raise ValueError("Tasks are still scheduled")
+            self.result.reset_regularisation_results()
+            self.parent.result_changed.emit(self.result)
+
     def check_available(self, result: Result):
-        try:
-            return self.result.solvers[0] is not None
-        except (AttributeError, IndexError, TypeError):
+        if result is None or result.solvers is None:
             return False
+        for solver in result.solvers:
+            if solver is None:
+                return False
+        return True
+
+    def check_status(self, result: Result) -> Tuple[str, int, int]:
+        if result is None or result.solvers is None:
+            return "not-available", 0, 0
+        max_count = len(result.solvers)
+        count = 0
+        for solver in result.solvers:
+            relrec = getattr(solver, "regularisation_results", None)
+            if relrec is None:
+                break
+            count += 1
+        if count < max_count:
+            return "progress", count, max_count
+        return "finished", max_count, max_count
 
     def initialize_plot(self):
         self.canvas.figure.axes[0].cla()
@@ -146,7 +189,13 @@ class Regularizer(PipelineModule):
             return
 
         for i in range(len(result.solvers)):
-            self.parent.signal_process_status_update.emit(f"{i + 1}/{len(result.solvers)} fitting forces", f"{Path(result.output).name}")
+            # if the current is evaluated
+            if getattr(result.solvers[i], "regularisation_results", None) is not None:
+                # and the next one is evaluated
+                if i < len(result.solvers) - 1 and getattr(result.solvers[i+1], "regularisation_results", None) is not None:
+                    # then skip
+                    continue
+            self.parent.signal_process_status_update.emit(f"{i}/{len(result.solvers)} fitting forces", f"{Path(result.output).name}")
 
             print(f"Current Timstep: {i}")
             M = result.solvers[i]
@@ -164,13 +213,21 @@ class Regularizer(PipelineModule):
                                material_parameters["d_s"] if material_parameters["d_s"] != "None" else None,
                                ))
 
+            self.cancel_p = CancelSignal()
             M.solve_regularized(step_size=solve_parameters["step_size"], max_iterations=solve_parameters["max_iterations"],
                                 alpha=solve_parameters["alpha"], rel_conv_crit=solve_parameters["rel_conv_crit"],
-                                callback=callback, verbose=True)
+                                callback=callback, verbose=True, cancel_signal=self.cancel_p)
 
             # clear the cache of the solver
             result.clear_cache(i)
             result.save()
+            self.parent.result_changed.emit(result)
+
+            if self.cancel_p.cancel is True:
+                return "Terminated"
+
+        self.parent.signal_process_status_update.emit(f"{i+1}/{len(result.solvers)} fitting forces",
+                                                      f"{Path(result.output).name}")
 
     def setResult(self, result: Result):
         super().setResult(result)

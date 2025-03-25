@@ -501,6 +501,10 @@ class Result(Saveable):
         self.set_result_state("mesh_parameters", "")
         self.set_result_state("solve_parameters", "")
 
+    def reset_regularisation_results(self):
+        for solver in self.solvers:
+            solver.regularisation_results = None
+
     def get_result_state(self, params_name):
         return getattr(self, params_name + "_state", "")
 

@@ -32,6 +32,7 @@ class DeformationDetector(PipelineModule):
     cancel_p = False
 
     pipeline_allow_cancel = True
+    pipeline_button_name = "detect deformations"
 
     def __init__(self, parent: "BatchEvaluate", layout):
         super().__init__(parent, layout)
