@@ -206,6 +206,9 @@ class Regularizer(PipelineModule):
 
             if i > 0 and solve_parameters["prev_t_as_start"]:
                 M.mesh.displacements[:] = result.solvers[i-1].mesh.displacements.copy()
+            if len(result.solvers) == 1 and solve_parameters["prev_t_as_start"]:
+                M.mesh.displacements[:] = M.mesh.displacements_target.copy()
+                M.mesh.displacements[np.isnan(M.mesh.displacements[:])] = 0
 
             def callback(M, relrec, i, imax):
                 self.iteration_finished.emit(result, relrec, i, imax)
