@@ -97,7 +97,13 @@ class MeshCreator(PipelineModule):
         })
 
     def check_available(self, result: Result):
-        return result is not None and result.mesh_piv is not None and len(result.mesh_piv) and result.mesh_piv[0] is not None
+        valid = result is not None and result.mesh_piv is not None and len(result.mesh_piv) and result.mesh_piv[0] is not None
+        if not valid:
+            return False
+        for piv in result.mesh_piv:
+            if piv is None:
+                return False
+        return True
 
     def setResult(self, result: Result):
         super().setResult(result)

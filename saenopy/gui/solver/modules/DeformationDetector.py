@@ -54,8 +54,13 @@ class DeformationDetector(PipelineModule):
                         self.input_driftcorrection = QtShortCuts.QInputBool(None, "drift correction", True,
                                                                             tooltip="remove the mean displacement to correct for a global drift")
                     self.label = QtWidgets.QLabel().addToLayout()
-                    self.input_button = QtShortCuts.QPushButton(None, "detect deformations", self.start_process)
-                    self.input_button_reset = QtShortCuts.QPushButton(None, "", self.reset, icon=qta.icon("fa5s.undo"))
+                    with QtShortCuts.QHBoxLayout():
+                        self.input_button = QtShortCuts.QPushButton(None, "detect deformations", self.start_process)
+                        self.input_button_text = QtWidgets.QLabel().addToLayout()
+                        self.input_button_text.setSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
+
+                        self.input_button_reset = QtShortCuts.QPushButton(None, "", self.reset, icon=qta.icon("fa5s.undo"), tooltip="reset")
+                        self.input_button_reset.setSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
 
         self.setParameterMapping("piv_parameters", {
             "window_size": self.input_win,
@@ -133,8 +138,7 @@ class DeformationDetector(PipelineModule):
         for i in range(count):
             if result.mesh_piv[i] is not None:
                 continue
-            self.parent.signal_process_status_update.emit(f"{i + 1}/{count} finding deformations", f"{Path(result.output).name}")
-            self.signal_process_status_update.emit(i+1, count)
+            self.parent.signal_process_status_update.emit(f"{i}/{count} finding deformations", f"{Path(result.output).name}")
             p = ProcessSimple(getDeformation, (i, result, piv_parameters), {}, self.processing_progress, use_thread=self.use_thread)
             p.start()
             self.current_p = p
@@ -145,6 +149,10 @@ class DeformationDetector(PipelineModule):
                 raise return_value
             else:
                 result.mesh_piv[i] = return_value
+                result.save()
+                self.parent.result_changed.emit(result)
+        self.parent.signal_process_status_update.emit(f"{count}/{count} finding deformations",
+                                                      f"{Path(result.output).name}")
 
         result.solvers = None
 
@@ -222,7 +230,6 @@ def getDeformation(progress, i, result, params):
                                                          params["element_size"],
                                                          params["signal_to_noise"],
                                                          params["drift_correction"])
-        result.save()
     except Exception as err:
         return err
     finally:

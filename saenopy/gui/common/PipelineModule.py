@@ -144,12 +144,17 @@ class PipelineModule(QtWidgets.QWidget):
     def state_changed(self, result: Result):
         if result is self.result and getattr(self, "group", None) is not None:
             state = self.get_result_state(result)
+
+            if self.pipeline_allow_cancel:
+                my_state, count, max = self.check_status(result)
+                self.input_button_text.setText(f"{count}/{max}")
+
             if state == StateEnum.scheduled:
                 self.group.label.setIcon(qta.icon("fa5s.hourglass-start", options=[dict(color="gray")]))
                 self.group.label.setToolTip("scheduled")
                 if self.pipeline_allow_cancel:
                     my_state, count, max = self.check_status(result)
-                    self.input_button.setText(f"cancel {count}/{max}")
+                    self.input_button.setText(f"cancel")
                 self.input_button.setEnabled(False)
 
             elif state == StateEnum.running:
@@ -157,7 +162,7 @@ class PipelineModule(QtWidgets.QWidget):
                 self.group.label.setToolTip("running")
                 if self.pipeline_allow_cancel:
                     my_state, count, max = self.check_status(result)
-                    self.input_button.setText(f"cancel {count}/{max}")
+                    self.input_button.setText(f"cancel")
                     self.input_button.setEnabled(True)
                 else:
                     self.input_button.setEnabled(False)
@@ -182,7 +187,7 @@ class PipelineModule(QtWidgets.QWidget):
                         if count == 0:
                             self.input_button.setText(f"detect deformation")
                         else:
-                            self.input_button.setText(f"continue {count}/{max}")
+                            self.input_button.setText(f"continue")
                         self.input_button.setEnabled(True)
                     else:
                         self.input_button.setText(f"done")
