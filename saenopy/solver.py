@@ -735,7 +735,7 @@ class Solver(Saveable):
         if self.verbose:
             print("|u-uf|^2 =", uuf2)
             print("|w*f|^2  =", ff, "\t\t|u|^2 =", u2)
-            print("L = |u-uf|^2 + lambda*|w*f|^2 = ", L)
+            print("L = |u-uf|^2 + alpha*|w*f|^2 = ", L)
 
         relrec.append((L, uuf2, ff))
 
