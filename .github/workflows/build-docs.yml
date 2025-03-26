@@ -18,6 +18,11 @@ jobs:
         with:
           python-version: '3.x'  # Specify the Python version you need
 
+      - name: Install Pandoc
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y pandoc
+
       - name: Install Poetry
         run: |
           curl -sSL https://install.python-poetry.org | python3 -
