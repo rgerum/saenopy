@@ -502,9 +502,14 @@ class Result(Saveable):
         self.set_result_state("solve_parameters", "")
 
     def reset_regularisation_results(self):
-        for solver in self.solvers:
+        for i, solver in enumerate(self.solvers):
             if solver is not None:
-                solver.regularisation_results = None
+                M = Solver()
+                M.set_nodes(solver.mesh.nodes)
+                M.set_tetrahedra(solver.mesh.tetrahedra)
+                M.set_target_displacements(solver.mesh.displacements_target, solver.mesh.displacements_target_mask)
+
+                self.solvers[i] = M
 
     def get_result_state(self, params_name):
         return getattr(self, params_name + "_state", "")
