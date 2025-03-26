@@ -42,8 +42,8 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Automatically provided by GitHub Actions
         run: |
-          # Clone the saenopy_website repository
-          git clone https://github.com/rgerum/saenopy_website.git
+          # Clone the saenopy_website repository using the GITHUB_TOKEN for authentication
+          git clone https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/rgerum/saenopy_website.git
           cd saenopy_website
           
           # Remove the existing public folder and copy the new docs
