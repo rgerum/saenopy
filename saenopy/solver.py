@@ -815,7 +815,7 @@ class Solver(Saveable):
         if self.verbose:
             print("check before relax !")
         # start the iteration
-        for i in range(max_iterations):
+        for i in range(int(max_iterations)):
             # compute the weight matrix
             if method != "normal":
                 self._update_local_regularization_weigth(method)
