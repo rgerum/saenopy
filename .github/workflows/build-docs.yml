@@ -1,0 +1,54 @@
+name: Build and Deploy Docs
+
+on:
+  push:
+    branches:
+      - master  # Change this to your default branch if it's different
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout the repository
+        uses: actions/checkout@v2
+
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.x'  # Specify the Python version you need
+
+      - name: Install Poetry
+        run: |
+          curl -sSL https://install.python-poetry.org | python3 -
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+
+      - name: Install dependencies
+        run: |
+          cd docs
+          poetry install -E docs
+
+      - name: Build the documentation
+        run: |
+          cd docs
+          poetry run make html
+
+      - name: Deploy to saenopy_website
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Automatically provided by GitHub Actions
+        run: |
+          # Clone the saenopy_website repository
+          git clone https://github.com/yourusername/saenopy_website.git
+          cd saenopy_website
+          
+          # Remove the existing public folder and copy the new docs
+          rm -rf public/docs
+          mkdir -p public/docs
+          cp -r ../docs/_build/html/* public/docs/
+          
+          # Commit and push the changes
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add public/docs
+          git commit -m "Update documentation"
+          git push origin main  # Change this to the appropriate branch if needed
