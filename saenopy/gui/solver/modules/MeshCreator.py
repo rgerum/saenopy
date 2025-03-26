@@ -120,6 +120,7 @@ class MeshCreator(PipelineModule):
             if self.parent.has_scheduled_tasks():
                 raise ValueError("Tasks are still scheduled")
             self.result.reset_solver()
+            self.set_result_state(self.result, StateEnum.idle)
             self.parent.result_changed.emit(self.result)
 
     def check_available(self, result: Result):

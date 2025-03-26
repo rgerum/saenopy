@@ -85,6 +85,7 @@ class DeformationDetector(PipelineModule):
             if self.parent.has_scheduled_tasks():
                 raise ValueError("Tasks are still scheduled")
             self.result.reset_piv()
+            self.set_result_state(self.result, StateEnum.idle)
             self.parent.result_changed.emit(self.result)
 
     def update_button(self, i, i2):
