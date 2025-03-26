@@ -49,7 +49,7 @@ jobs:
           # Remove the existing public folder and copy the new docs
           rm -rf public/docs
           mkdir -p public/docs
-          cp -r ../docs/_build/html/* public/docs/
+          cp -r ../docs/build/html/* public/docs/
           
           # Commit and push the changes
           git config --local user.email "action@github.com"
