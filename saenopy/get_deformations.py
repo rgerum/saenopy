@@ -300,15 +300,17 @@ def _get_displacements_from_stacks_old(stack_deformed, stack_relaxed, voxel_size
                                                     nfftx=None, nffty=None)
 
   
-    # filter deformations
-    uf, vf, wf, mask = sig2noise_filtering(u, v, sig2noise, w=w, threshold=signal_to_noise)
-    uf, vf, wf = replace_outliers(uf, vf, wf, max_iter=1, tol=100, kernel_size=2, method='disk')
+    # filter deformations by sig2noise ratio and replace them with nans
+    sig2noise_filtering(u, v, sig2noise, w=w, threshold=signal_to_noise)
+    # currently notused - was used to fill up nans 
+    # uf, vf, wf = replace_outliers(uf, vf, wf, max_iter=1, tol=100, kernel_size=2, method='disk')
     
-    # correcting stage drift between the field of views
+    # orrecting stage drift between the field of views based on all vaild entries
+    mask_valids = (~np.isnan(u)) & (~np.isnan(v)) & (~np.isnan(w))
     if drift_correction:
-        u -= np.nanmean(u)
-        v -= np.nanmean(v)
-        w -= np.nanmean(w)
+        u[mask_valids] -= np.nanmean(u[mask_valids])
+        v[mask_valids] -= np.nanmean(v[mask_valids])
+        w[mask_valids] -= np.nanmean(w[mask_valids])
 
     # get coordinates (by multiplication with the ratio of image dimension and deformation grid)
     y, x, z = np.indices(u.shape)
