@@ -4,6 +4,7 @@ from pathlib import Path
 from pathlib import PurePath, PureWindowsPath
 import os
 import natsort
+import numpy as np
 from typing import List, Union
 import tifffile
 from PIL import Image
@@ -309,7 +310,7 @@ class Result(Saveable):
                            'solve_parameters', 'solvers',
                            '___save_name__', '___save_version__']
     ___save_name__ = "Result"
-    ___save_version__ = "1.5"
+    ___save_version__ = "1.6"
     output: str = None
     state: bool = False
 
@@ -485,6 +486,17 @@ class Result(Saveable):
              if data_dict["solve_parameters"] is not None:
                  data_dict["solve_parameters"]["prev_t_as_start"] = False
              data_dict["___save_version__"] = "1.5"
+
+        if data_dict["___save_version__"] < "1.6":  # pragma: no cover
+             print(f"convert old version {data_dict['___save_version__']} to 1.6")
+             if data_dict["solvers"] is not None:
+                 for solver in data_dict["solvers"]:
+                     solver["regularisation_results"] = np.array(solver["regularisation_results"])
+             for stack in data_dict["stacks"]:
+                 stack["image_filenames"] = np.array(stack["image_filenames"])
+             if data_dict.get("stack_reference", None):
+                 data_dict["stack_reference"]["image_filenames"] = np.array(data_dict["stack_reference"]["image_filenames"])
+             data_dict["___save_version__"] = "1.6"
              
         return super().from_dict(data_dict)
 

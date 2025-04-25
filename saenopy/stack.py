@@ -32,7 +32,7 @@ class Stack(Saveable):
 
     _shape = None
 
-    image_filenames: List[List[str]] = None
+    image_filenames: np.ndarray = None  # List[List[str]]
     leica_file = None
     channels: List[str] = None
 
@@ -83,7 +83,7 @@ class Stack(Saveable):
 
         def process(image):
             if isinstance(image, list):
-                return [process(i) for i in image]
+                return np.asarray([process(i) for i in image])
             return normalize_path(image, Path(self.parent.output).parent)
 
         self.template = process(self.template)
@@ -102,7 +102,7 @@ class Stack(Saveable):
 
         def process(image):
             if isinstance(image, list):
-                return [process(i) for i in image]
+                return np.asarray([process(i) for i in image])
             return normalize_path(image, Path(self.parent.output).parent)
 
         self.template = process(self.template)
@@ -112,7 +112,7 @@ class Stack(Saveable):
             self.leica_filename = process(self.leica_filename)
 
     def pack_files(self):
-        images = np.array(self.image_filenames)[:, :]
+        images = np.asarray(self.image_filenames)[:, :]
         images = np.asarray(load_image_files_to_nparray(images, self.crop, self.parent)).T
 
         self.packed_files = images
@@ -136,7 +136,7 @@ class Stack(Saveable):
                 im = im[:, slice(*self.crop["x"])]
             if self.crop is not None and "y" in self.crop:
                 im = im[slice(*self.crop["y"])]
-            self._shape = tuple(list(im.shape[:2]) + list(np.array(self.image_filenames).shape))
+            self._shape = tuple(list(im.shape[:2]) + list(np.asarray(self.image_filenames).shape))
         return self._shape
 
     def get_image(self, z, channel):
@@ -165,7 +165,7 @@ class Stack(Saveable):
                 images = images[:, :, :, 0]
             return images[index[0], index[1], index[2]]
         if self.packed_files is None:
-            images = np.array(self.image_filenames)[index[3], index[4]]
+            images = np.asarray(self.image_filenames)[index[3], index[4]]
             images = np.asarray(load_image_files_to_nparray(images, self.crop, self.parent)).T
         else:
             images = self.packed_files[:, :, :, index[4], index[3]]

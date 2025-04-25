@@ -110,7 +110,7 @@ class Solver(Saveable):
     material_model: SemiAffineFiberMaterial = None  # the function specifying the material model
     material_parameters = None
 
-    regularisation_results: List[Tuple[float, float, float]] = None
+    regularisation_results: np.ndarray = None
     regularisation_parameters: RegularisationParameterDict = None 
 
     verbose = False
@@ -853,7 +853,7 @@ class Solver(Saveable):
                 self.regularisation_results = relrec
                 return relrec
 
-        self.regularisation_results = relrec
+        self.regularisation_results = np.asarray(relrec)
         return relrec
 
     def _solve_regularization_cg(self, step_size: float = 0.33, solver_precision: float = 1e-18):
