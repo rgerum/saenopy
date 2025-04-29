@@ -131,6 +131,7 @@ class PlottingWindowBase(QtWidgets.QWidget):
                     self.list.setStyleSheet("QListWidget{border: none}")
                     self.list.itemSelectionChanged.connect(self.listSelected)
                     self.list.itemChanged.connect(self.replot)
+                    self.list.rows_moved_event.connect(self.replot)
                     self.list.itemChanged.connect(self.update_group_name)
                     self.list.addItemClicked.connect(self.addGroup)
 

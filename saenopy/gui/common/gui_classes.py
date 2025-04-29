@@ -294,6 +294,8 @@ class ListWidget(QtWidgets.QListWidget):
     signal_act_paths2_clicked = QtCore.Signal()
     signal_act_paths3_clicked = QtCore.Signal()
 
+    rows_moved_event = QtCore.Signal()
+
     data = []
     def __init__(self, layout, editable=False, add_item_button=False, color_picker=False, copy_params=False,
                  allow_paste_callback=None, copy_to_callback=None):
@@ -351,6 +353,7 @@ class ListWidget(QtWidgets.QListWidget):
         if row > start:
             row -= 1
         self.data.insert(row, self.data.pop(start))
+        self.rows_moved_event.emit()
 
     def item_clicked(self, item):
         if item == self.add_item:
