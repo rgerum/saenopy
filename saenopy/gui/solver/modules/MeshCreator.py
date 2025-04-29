@@ -147,7 +147,7 @@ class MeshCreator(PipelineModule):
 
     def setResult(self, result: Result):
         super().setResult(result)
-        if result and result.stacks and result.stacks[0]:
+        if result and result.stacks and result.stacks[0] and result.mesh_parameters:
             if result.stack_reference is None:
                 self.input_reference.setValues(["next", "median", "cumul."])
                 self.input_reference.setValue(result.mesh_parameters["reference_stack"])

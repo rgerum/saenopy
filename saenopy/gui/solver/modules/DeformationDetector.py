@@ -130,7 +130,7 @@ class DeformationDetector(PipelineModule):
             result.mesh_piv = result.mesh_piv_demo
             return
 
-        if not isinstance(result.mesh_piv, list):
+        if not isinstance(result.mesh_piv, list) or len(result.mesh_piv) == 0:
             result.reset_piv()
 
         count = len(result.stacks)

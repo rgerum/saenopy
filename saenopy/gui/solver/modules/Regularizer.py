@@ -193,6 +193,7 @@ class Regularizer(PipelineModule):
             result.solvers[0].regularisation_results = result.solver_relrec_demo
             return
 
+        i = 0
         for i in range(len(result.solvers)):
             # if the current is evaluated
             if getattr(result.solvers[i], "regularisation_results", None) is not None:
@@ -241,6 +242,8 @@ class Regularizer(PipelineModule):
         self.update_plot()
 
     def update_plot(self):
+        if len(self.result.solvers) == 0:
+            return
         relrec = getattr(self.result.solvers[self.parent.t_slider.value()], "relrec", None)
         if relrec is None:
             relrec = getattr(self.result.solvers[self.parent.t_slider.value()], "regularisation_results", None)

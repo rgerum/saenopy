@@ -200,8 +200,12 @@ class PipelineModule(QtWidgets.QWidget):
                             self.input_button.setText(f"continue")
                         self.input_button.setEnabled(True)
                     else:
-                        self.input_button.setText(f"done")
-                        self.input_button.setEnabled(False)
+                        if count == 0:
+                            self.input_button.setText(self.pipeline_button_name)
+                            self.input_button.setEnabled(True)
+                        else:
+                            self.input_button.setText(f"done")
+                            self.input_button.setEnabled(False)
                 else:
                     self.input_button.setEnabled(self.check_available(result))
 
