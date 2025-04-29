@@ -446,7 +446,7 @@ class ListWidget(QtWidgets.QListWidget):
         for i in range(len(data)):
             item = self.item(i)
             data[i][0] = item.text()
-            data[i][1] = item.checkState()
+            data[i][1] = item.checkState() == QtCore.Qt.Checked
         self.itemChanged.emit()
 
     def addData(self, d, checked, extra=None, color=None):
