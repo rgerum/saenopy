@@ -74,14 +74,20 @@ class PlottingWindowBase(QtWidgets.QWidget):
     def get_label(self):
         return "", ""
 
-    def get_copy_to_menu(self, filename):
-        menu2 = QtWidgets.QMenu("Copy to Analysis")
+    def get_copy_to_menu_item(self):
+        result = self.list2.data[self.list2.currentRow()][2]
+        return self.get_copy_to_menu(result.output, delete=True)
+
+    def get_copy_to_menu(self, filename, delete=False):
+        menu2 = QtWidgets.QMenu("Copy to Analysis" if delete is False else "Move to Group")
         menu2.setIcon(qta.icon("mdi.clipboard-arrow-right-outline"))
         self.copy_to_actions = []
         for index, folder in enumerate(self.data_folders):
             name, checked, files, color = folder
             act = QtWidgets.QAction(qta.icon("fa5s.circle", options=[dict(color=color)]), name, self)
             def clicked(*, index=index):
+                if delete is True:
+                    self.list2.delete_item()
                 self.list.setCurrentRow(index)
                 try:
                     self.add_files([filename])
@@ -137,7 +143,7 @@ class PlottingWindowBase(QtWidgets.QWidget):
 
                 with QtShortCuts.QGroupBox(layout, "Group") as (self.box_group, layout2):
                     layout2.setContentsMargins(0, 3, 0, 1)
-                    self.list2 = ListWidget(layout2, add_item_button="add files")
+                    self.list2 = ListWidget(layout2, add_item_button="add files", copy_to_callback=self.get_copy_to_menu_item)
                     self.list2.setStyleSheet("QListWidget{border: none}")
                     self.list2.itemSelectionChanged.connect(self.run2)
                     self.list2.itemChanged.connect(self.replot)

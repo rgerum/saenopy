@@ -296,6 +296,8 @@ class ListWidget(QtWidgets.QListWidget):
 
     rows_moved_event = QtCore.Signal()
 
+    copy_to_callback = None
+
     data = []
     def __init__(self, layout, editable=False, add_item_button=False, color_picker=False, copy_params=False,
                  allow_paste_callback=None, copy_to_callback=None):
@@ -322,13 +324,14 @@ class ListWidget(QtWidgets.QListWidget):
             self.act_paste2 = QtWidgets.QAction(qta.icon("fa5s.paste"), "Paste Parameters to All", self)
             self.act_paste2.triggered.connect(self.signal_act_paste2_clicked)
             self.allow_paste_callback = allow_paste_callback
-            self.copy_to_callback = copy_to_callback
             self.act_path = QtWidgets.QAction(qta.icon("mdi.folder-multiple-image"), "Adjust Paths", self)
             self.act_path.triggered.connect(self.signal_act_paths_clicked)
             self.act_path2 = QtWidgets.QAction(qta.icon("mdi.folder"), "Open in Explorer", self)
             self.act_path2.triggered.connect(self.signal_act_paths2_clicked)
             self.act_path3 = QtWidgets.QAction(qta.icon("fa5.copy"), "Copy Path", self)
             self.act_path3.triggered.connect(self.signal_act_paths3_clicked)
+        if copy_to_callback:
+            self.copy_to_callback = copy_to_callback
 
         self.setDragDropMode(QtWidgets.QAbstractItemView.InternalMove)
 
@@ -396,11 +399,11 @@ class ListWidget(QtWidgets.QListWidget):
                 menu.addAction(self.act_path2)
                 menu.addAction(self.act_path)
                 menu.addSeparator()
-                if self.copy_to_callback:
-                    m = self.copy_to_callback()
-                    if m:
-                        menu.addMenu(m)
-                        menu.addSeparator()
+            if self.copy_to_callback:
+                m = self.copy_to_callback()
+                if m:
+                    menu.addMenu(m)
+                    menu.addSeparator()
 
             menu.addAction(self.act_delete)
 
