@@ -116,13 +116,7 @@ class Solver(Saveable):
     verbose = False
 
     preprocessing = None
-    '''
-    preprocessing = [
-        "load_stack": ["1_*.tif", "2_*.tif", voxel_sixe],
-        "3D_piv": [overlap, windowsize, signoise, drifcorrection],
-        "iterpolate_mesh": [],
-    ]
-    '''
+
     def __init__(self, **kwargs):
         self.mesh = SolverMesh()
         super().__init__(**kwargs)
