@@ -322,9 +322,9 @@ class PlottingWindowBase(QtWidgets.QWidget):
 
         if getattr(self, "agg", None) is not None:
             # limit the dataframe to the comparison time
-            res0 = res.groupby("filename").agg("max")
+            res0 = res.groupby("filename", sort=False).agg("max")
             del res["group"]
-            res = res.groupby("filename").agg(self.agg.value())
+            res = res.groupby("filename", sort=False).agg(self.agg.value())
             res["group"] = res0["group"]
         else:
             # limit the dataframe to the comparison time
