@@ -1,4 +1,6 @@
 """
+.. _SectionExampleSingleCell:
+
 Classic TFM (liver fibroblasts)
 ===============================
 

@@ -71,9 +71,5 @@ F_ext = np.array([[np.nan, np.nan, np.nan],  # 0
 M.set_boundary_condition(U, F_ext)
 
 # relax the mesh and move the "varible" nodes
-M.solve_boundarycondition();
-
-
-# visualize the meshes
-M.viewMesh(50, 0.1)
+M.solve_boundarycondition()
 

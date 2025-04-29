@@ -55,8 +55,6 @@ U = np.array([[0   , 0, 0],  # 0
 M.set_target_displacements(U)
 
 # call the regularisation
-M.solve_regularized(stepper=0.1, alpha=0.001);
+M.solve_regularized(step_size=0.1, alpha=0.001)
 
-
-M.viewMesh(50, 1)
 
