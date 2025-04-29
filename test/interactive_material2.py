@@ -30,7 +30,7 @@ axds = plt.axes([0.25, 0.25, 0.65, 0.03], facecolor=axcolor)
 sfreq = Slider(axfreq, 'k', 0, 1200.0, valinit=900, valstep=100)
 #samp = Slider(axamp, '$d_0$', 0.0, 0.001, valinit=0.0004)
 samp = Slider(axamp, '$d_0$', 0.0, 0.1, valinit=0.0004)
-slambdas = Slider(axlambdas, '$\lambda_s$', 0.0, 0.03, valinit=0.0075)
+slambdas = Slider(axlambdas, '$\\lambda_s$', 0.0, 0.03, valinit=0.0075)
 sds = Slider(axds, '$d_s$', 0.0, 0.1, valinit=0.033)
 
 

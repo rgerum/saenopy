@@ -82,7 +82,7 @@ class Stack(Saveable):
             return str(template)
 
         def process(image):
-            if isinstance(image, list):
+            if isinstance(image, (list, np.ndarray)):
                 return np.asarray([process(i) for i in image])
             return normalize_path(image, Path(self.parent.output).parent)
 
@@ -101,7 +101,7 @@ class Stack(Saveable):
             return str(Path(template).absolute())
 
         def process(image):
-            if isinstance(image, list):
+            if isinstance(image, (list, np.ndarray)):
                 return np.asarray([process(i) for i in image])
             return normalize_path(image, Path(self.parent.output).parent)
 

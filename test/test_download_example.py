@@ -16,7 +16,7 @@ np.random.seed(1234)
 @pytest.fixture
 def catch_popup_error(monkeypatch):
     def do_raise(_, name, desc):
-        raise QMessageBoxCritical(f"{name}: {desc}")
+        raise QtWidgets.QMessageBoxCritical(f"{name}: {desc}")
     monkeypatch.setattr(QtWidgets.QMessageBox, "critical", do_raise)
 
 
