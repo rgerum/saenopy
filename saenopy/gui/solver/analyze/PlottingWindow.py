@@ -18,8 +18,8 @@ class PlottingWindow(PlottingWindowBase):
                                               "polarity", "99_percentile_deformation",
                                               "99_percentile_force"])
         self.type.valueChanged.connect(self.replot)
-        self.agg = QtShortCuts.QInputChoice(None, "aggregate", "mean",
-                                            ["mean", "max", "min", "median"])
+        self.agg = QtShortCuts.QInputChoice(None, "aggregate", "mean (± sem)",
+                                            ["mean (± sem)", "max", "min", "median (± sem)"])
         self.agg.valueChanged.connect(self.replot)
 
     def load_file(self, file):

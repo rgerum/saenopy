@@ -331,7 +331,7 @@ class PlottingWindowBase(QtWidgets.QWidget):
             # limit the dataframe to the comparison time
             res0 = res.groupby("filename", sort=False).agg("max")
             del res["group"]
-            res = res.groupby("filename", sort=False).agg(self.agg.value())
+            res = res.groupby("filename", sort=False).agg(self.agg.value().split(" ")[0])
             res["group"] = res0["group"]
         else:
             # limit the dataframe to the comparison time
