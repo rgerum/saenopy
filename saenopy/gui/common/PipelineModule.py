@@ -9,7 +9,7 @@ class ParameterMapping:
     params_name: str = None
     parameter_dict: dict = None
 
-    result: Result = None
+    result: Result | None = None
 
     def __init__(self, params_name: str = None, parameter_dict: dict=None):
         self.params_name = params_name
@@ -200,12 +200,8 @@ class PipelineModule(QtWidgets.QWidget):
                             self.input_button.setText(f"continue")
                         self.input_button.setEnabled(True)
                     else:
-                        if count == 0:
-                            self.input_button.setText(self.pipeline_button_name)
-                            self.input_button.setEnabled(True)
-                        else:
-                            self.input_button.setText(f"done")
-                            self.input_button.setEnabled(False)
+                        self.input_button.setText(f"done")
+                        self.input_button.setEnabled(False)
                 else:
                     self.input_button.setEnabled(self.check_available(result))
 

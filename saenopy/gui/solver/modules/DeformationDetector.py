@@ -105,7 +105,7 @@ class DeformationDetector(PipelineModule):
             if piv is None:
                 break
             count += 1
-        if count < max_count:
+        if count < max_count or max_count == 0:
             return "progress", count, max_count
         return "finished", max_count, max_count
 
@@ -131,7 +131,7 @@ class DeformationDetector(PipelineModule):
             return
 
         if not isinstance(result.mesh_piv, list) or len(result.mesh_piv) == 0:
-            result.reset_piv()
+            result.reset_piv(keep_state=True)
 
         count = len(result.stacks)
         if result.stack_reference is None:

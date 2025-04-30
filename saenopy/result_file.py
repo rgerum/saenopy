@@ -500,12 +500,13 @@ class Result(Saveable):
              
         return super().from_dict(data_dict)
 
-    def reset_piv(self):
+    def reset_piv(self, keep_state=False):
         if self.stack_reference is not None:
             self.mesh_piv = [None] * (len(self.stacks))
         else:
             self.mesh_piv = [None] * (len(self.stacks) - 1)
-        self.set_result_state("piv_parameters", "")
+        if not keep_state:
+            self.set_result_state("piv_parameters", "")
         self.reset_solver()
 
     def reset_solver(self):

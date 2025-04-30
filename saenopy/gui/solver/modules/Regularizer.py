@@ -242,7 +242,7 @@ class Regularizer(PipelineModule):
         self.update_plot()
 
     def update_plot(self):
-        if len(self.result.solvers) == 0:
+        if self.result.solvers is None or len(self.result.solvers) == 0:
             return
         relrec = getattr(self.result.solvers[self.parent.t_slider.value()], "relrec", None)
         if relrec is None:
