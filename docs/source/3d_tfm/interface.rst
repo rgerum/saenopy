@@ -1,7 +1,7 @@
 Interface
 =========
 
-.. figure:: images/Interface_solver_main.png
+.. figure:: images/interface/solver_main.png
 
 The Solver part has an interface with three parts. On the left side all the current loaded files are shown.
 New files can be added here. The central part shows the visualisations of the different evaluation steps. The right
@@ -10,7 +10,7 @@ panel shows the parameters the different evaluation steps.
 Adding Measurements
 -------------------
 
-.. figure:: images/Interface_solver_load.png
+.. figure:: images/interface/solver_load.png
 
 The left panel shows the loaded measurements. You can drag saenopy files here to load them directly or click on
 `add measurement` to open a dialog to select measurements.

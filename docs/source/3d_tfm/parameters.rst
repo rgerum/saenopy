@@ -93,7 +93,7 @@ Material Parameters
 The material parameters :math:`k`, :math:`d_0`, :math:`\lambda_s`, and :math:`d_s` are explained in the section
 :ref:`SectionMaterial`.
 
-.. figure:: images/fiber.png
+.. figure:: images/theory/material/fiber.png
     :width: 70%
 
 Linear Material:

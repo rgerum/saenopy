@@ -14,7 +14,7 @@ The cell of interest is cropped from a larger field of view.
 This example can also be evaluated within the graphical user interface.
 
 
- .. figure:: ../images/BF_TFM/2D.gif
+ .. figure:: ../images/examples/brightfield_tfm/2d.gif
     :scale: 100%
     :align: center
     
@@ -39,7 +39,7 @@ import saenopy
 # For this purpose, we use the "crop" parameter, which specifies the boundaries of region of intrest (in pixel). 
 # The "crop" parameter can be set both from the user interface and from the Python code.
 #
-#  .. figure:: ../images/BF_TFM/Crop.png 
+#  .. figure:: ../images/examples/brightfield_tfm/crop.png
 #
 #
 # We load the relaxed and the contracted stack by using 
@@ -77,7 +77,7 @@ results = saenopy.get_stacks(
 #
 # Small image features enable to measure 3D deformations from the brightfield stack 
 #
-# .. figure:: ../images/BF_TFM/BF_scroll.gif   
+# .. figure:: ../images/examples/brightfield_tfm/bf_scroll.gif
 #   :scale: 100%
 #   :align: center
 # 
@@ -209,13 +209,13 @@ for result in results:
 # Display Results
 # ----------------------
 #
-#  .. figure:: ../images/BF_TFM/Reconstruction.png 
+#  .. figure:: ../images/examples/brightfield_tfm/reconstruction.png
 #   
 # The reconstructed force field (right) generates a reconstructed deformation field (left)
 # that recapitulates the measured matrix deformation field (upper video). The overall cell contractility is 
 # calculated as all force components pointing to the force epicenter.
 #
-#  .. figure:: ../images/BF_TFM/Nans.png 
+#  .. figure:: ../images/examples/brightfield_tfm/nans.png
 #
 # The cell occupied area is omitted since the signal to noise filter replaces the limited information with Nan values (Grey Dots).
 # Therefore, no additional segmentation is required. Since we are working with simple brightfield images here, we 

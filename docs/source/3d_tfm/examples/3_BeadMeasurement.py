@@ -8,7 +8,7 @@ The data is available from the authors website `here <https://www.mech.kuleuven.
 Images of microbeads (channel 'ch01') between a relaxed and deformed stacks are used to calculate matrix deformations (image on the right).
 
 
- .. figure:: ../images/Microbeads.png
+ .. figure:: ../images/examples/bead_measurement/microbeads.png
 
 
 """

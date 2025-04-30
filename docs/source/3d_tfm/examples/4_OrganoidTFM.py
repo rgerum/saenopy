@@ -6,7 +6,7 @@ This example evaluates contractile forces of an individual intestinal organoid e
 The relaxed stacks were recorded after Triton x-100 treatment. We evaluate the contraction between ~23h in collagen compared 
 to the state after drug relaxation (indicated at the end of the video). This example can also be evaluated with the graphical user interface.
 
- .. figure:: ../images/Gif_organoid.gif
+ .. figure:: ../images/examples/organoid_tfm/organoid.gif
     :scale: 50%
     :align: center
 

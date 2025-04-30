@@ -7,7 +7,7 @@ Classic TFM (liver fibroblasts)
 This example evaluates three hepatic stellate cells in 1.2mg/ml collagen with relaxed and deformed stacks. The relaxed stacks were recorded with cytochalasin D treatment of the cells.
 This example can also be evaluated with the graphical user interface.
 
- .. figure:: ../images/Liver_fibroblasts.png
+ .. figure:: ../images/examples/single_cell_tfm/liver_fibroblasts.png
  
 
 """
@@ -215,7 +215,7 @@ for result in results:
 # Display Results
 # ----------------------
 #
-# .. figure:: ../images/Liver_Fibroblast_workflow.png
+# .. figure:: ../images/examples/single_cell_tfm/liver_fibroblast_workflow.png
 #   
 # The reconstructed force field (right) generates a reconstructed deformation field (middle)
 # that recapitulates the measured matrix deformation field (left). The overall cell contractility is 
