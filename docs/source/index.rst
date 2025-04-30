@@ -25,14 +25,7 @@ This migration immune cell demonstrated what scientific discoveries you can achi
    :caption: Contents
    :maxdepth: 2
 
-   interface
-   boundarycondition.ipynb
-   regularization.ipynb
-   mesh
-   material.ipynb
-   auto_examples/index.rst
-   ReadInData
-   api
+   3d_tfm/index
 
 Installation
 ------------

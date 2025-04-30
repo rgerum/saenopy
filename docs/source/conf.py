@@ -28,8 +28,8 @@ extensions = [
 ]
 
 sphinx_gallery_conf = {
-     'examples_dirs': 'examples',   # path to your example scripts
-     'gallery_dirs': 'auto_examples',  # path to where to save gallery generated output
+     'examples_dirs': '3d_tfm/examples',   # path to your example scripts
+     'gallery_dirs': '3d_tfm/auto_examples',  # path to where to save gallery generated output
      'line_numbers': True,
      'download_all_examples': False,
      'min_reported_time': 10,
