@@ -42,7 +42,7 @@ def field(doc="", validators=None, default=None):
 class SolverMesh(Mesh):
     __save_parameters__ = ["nodes", "tetrahedra", "displacements", "forces",
                            "displacements_fixed", "displacements_target", "displacements_target_mask",
-                           "forces_target", "strain_energy", "movable", "cell_boundary_mask",
+                           "forces_target", "forces_border", "strain_energy", "movable", "cell_boundary_mask",
                            "regularisation_mask"]
     number_tetrahedra = 0  # the number of tetrahedra
     number_nodes = 0  # the number of vertices
@@ -79,6 +79,8 @@ class SolverMesh(Mesh):
     #forces_target: NDArray[Shape["N_c, 3"], Float] = field(doc="the external forces on each node, dimensions: N_c x 3",
     forces_target: np.ndarray = field(doc="the external forces on each node, dimensions: N_c x 3",
                                                            validators=check_node_vector_field, default=None)
+    forces_border: np.ndarray = field(doc="the forces at the border (that are target my regularisation mask), dimensions: N_c x 3",
+                                      validators=check_node_vector_field, default=None)
     #stiffness_tensor: NDArray[Shape["N_c, N_c, 3, 3"], Float] = None  # the global stiffness tensor, dimensions: N_c x N_c x 3 x 3
     stiffness_tensor: np.ndarray = None  # the global stiffness tensor, dimensions: N_c x N_c x 3 x 3
 
@@ -848,6 +850,9 @@ class Solver(Saveable):
                 return relrec
 
         self.regularisation_results = np.asarray(relrec)
+        self.mesh.forces_border = self.mesh.forces.copy()
+        self.mesh.forces_border[self.mesh.regularisation_mask] = 0
+        self.mesh.forces[~self.mesh.regularisation_mask] = 0
         return relrec
 
     def _solve_regularization_cg(self, step_size: float = 0.33, solver_precision: float = 1e-18):

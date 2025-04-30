@@ -116,7 +116,7 @@ class Saveable:
         save_parameters = cls.__save_parameters__.copy()
         for name in data_dict:
             if name not in cls.__save_parameters__:
-                raise ValueError(f"Cannot load {name}")
+                raise ValueError(f"Found '{name}' that should not be present. Available parameters are {cls.__save_parameters__}")
             save_parameters.remove(name)
             if isinstance(data_dict[name], np.ndarray) and len(data_dict[name].shape) == 0:
                 data[name] = data_dict[name][()]

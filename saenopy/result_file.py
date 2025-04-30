@@ -310,7 +310,7 @@ class Result(Saveable):
                            'solve_parameters', 'solvers',
                            '___save_name__', '___save_version__']
     ___save_name__ = "Result"
-    ___save_version__ = "1.6"
+    ___save_version__ = "1.7"
     output: str = None
     state: bool = False
 
@@ -497,6 +497,17 @@ class Result(Saveable):
              if data_dict.get("stack_reference", None):
                  data_dict["stack_reference"]["image_filenames"] = np.array(data_dict["stack_reference"]["image_filenames"])
              data_dict["___save_version__"] = "1.6"
+
+        if data_dict["___save_version__"] < "1.7":  # pragma: no cover
+             print(f"convert old version {data_dict['___save_version__']} to 1.7")
+             if data_dict["solvers"] is not None:
+                 for solver in data_dict["solvers"]:
+                     solver["mesh"]["forces_border"] = solver["mesh"]["forces"].copy()
+                     solver["mesh"]["forces_border"][solver["mesh"]["regularisation_mask"]] = 0
+                     solver["mesh"]["forces"][~solver["mesh"]["regularisation_mask"]] = 0
+                     print(solver["mesh"].keys())
+
+             data_dict["___save_version__"] = "1.7"
              
         return super().from_dict(data_dict)
 
