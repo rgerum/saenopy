@@ -370,14 +370,6 @@ class ExportViewer(PipelineModule):
                         self.input_2darrow_headwidth.valueChanged.connect(self.update_display)
 
                 with QtShortCuts.QGroupBox(None, "fiber display") as (self.box_fiberdisplay, _):
-                    with QtShortCuts.QVBoxLayout():
-                        QtShortCuts.currentLayout().setContentsMargins(0, 0, 0, 0)
-                        self.input_cropx = QtShortCuts.QRangeSlider(None, "crop x", 0, 200)
-                        self.input_cropy = QtShortCuts.QRangeSlider(None, "crop y", 0, 200)
-                        self.input_cropz = QtShortCuts.QRangeSlider(None, "crop z", 0, 200)
-                        self.input_cropx.editingFinished.connect(self.update_display)
-                        self.input_cropy.editingFinished.connect(self.update_display)
-                        self.input_cropz.editingFinished.connect(self.update_display)
                     with QtShortCuts.QHBoxLayout():
                         QtShortCuts.currentLayout().setContentsMargins(0, 0, 0, 0)
                         self.channel0_properties = ChannelProperties().addToLayout()
@@ -397,6 +389,15 @@ class ExportViewer(PipelineModule):
                     self.channel1_properties.input_gauss.setValue(7)
                     self.input_thresh = QtShortCuts.QInputNumber(None, "thresh", 1, float=True, min=0, max=2, step=0.1)
                     self.input_thresh.valueChanged.connect(self.update_display)
+
+                    with QtShortCuts.QVBoxLayout():
+                        QtShortCuts.currentLayout().setContentsMargins(0, 0, 0, 0)
+                        self.input_cropx = QtShortCuts.QRangeSlider(None, "crop x", 0, 200)
+                        self.input_cropy = QtShortCuts.QRangeSlider(None, "crop y", 0, 200)
+                        self.input_cropz = QtShortCuts.QRangeSlider(None, "crop z", 0, 200)
+                        self.input_cropx.editingFinished.connect(self.update_display)
+                        self.input_cropy.editingFinished.connect(self.update_display)
+                        self.input_cropz.editingFinished.connect(self.update_display)
 
                 with QtShortCuts.QHBoxLayout():
                     self.time_check = QtShortCuts.QInputBool(None, "show timestamp", True)
