@@ -336,8 +336,11 @@ class ListWidget(QtWidgets.QListWidget):
         self.setDragDropMode(QtWidgets.QAbstractItemView.InternalMove)
 
         self.flags = QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsUserCheckable
+        self.act_edit_item = None
         if editable:
             self.flags |= QtCore.Qt.ItemIsEditable | QtCore.Qt.ItemIsDragEnabled
+            self.act_edit_item = QtWidgets.QAction(qta.icon("fa5s.edit"), "Change Name", self)
+            self.act_edit_item.triggered.connect(self.action_edit_item_clicked)
 
         self.add_item_button = add_item_button
         self.addAddItem()
@@ -381,11 +384,16 @@ class ListWidget(QtWidgets.QListWidget):
         self.add_item = QtWidgets.QListWidgetItem(qta.icon("fa5s.plus"), self.add_item_button, self)
         self.add_item.setFlags(QtCore.Qt.ItemIsEnabled)
 
+    def action_edit_item_clicked(self):
+        self.editItem(self.currentItem())
+
     def list2_context_menu(self, position):
         if self.currentItem() and self.currentItem() != self.add_item:
             # context menu
             menu = QtWidgets.QMenu()
 
+            if self.act_edit_item is not None:
+                menu.addAction(self.act_edit_item)
             if self.act_color is not None:
                 menu.addAction(self.act_color)
             if self.act_copy is not None:

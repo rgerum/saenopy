@@ -305,6 +305,8 @@ class PlottingWindowBase(QtWidgets.QWidget):
                     if checked2 != 0:
                         res.resulting_data["group"] = name
                         results.append(res.resulting_data)
+        if len(results) == 0:
+            return None
         res = pd.concat(results)
         #res["t"] = res["index"] * self.dt.value() / 60
         res.to_csv("tmp_pandas.csv")
@@ -326,6 +328,8 @@ class PlottingWindowBase(QtWidgets.QWidget):
 
         # get all the data as a pandas dataframe
         res = self.getAllCurrentPandasData()
+        if res is None:
+            return
 
         if getattr(self, "agg", None) is not None:
             # limit the dataframe to the comparison time
@@ -399,6 +403,8 @@ class PlottingWindowBase(QtWidgets.QWidget):
         self.canvas.setActive()
         plt.cla()
         res = self.getAllCurrentPandasData()
+        if res is None:
+            return
 
         code_data = [res, [self.time_key, "group", mu_name, "filename"]]
         
