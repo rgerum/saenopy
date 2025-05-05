@@ -287,7 +287,7 @@ def render_2d_colorbar(params, result, pil_image, im_scale, aa_scale, colormap="
     if params["theme"] == "dark":
         color = "w"
 
-    pil_image = add_colorbar(pil_image, scale=params["image"]["scale_overlay"] * params["image"]["scale"],
+    pil_image = add_colorbar(pil_image, scale=params["image"]["scale_overlay"] * im_scale,
                              colormap=colormap,#params["colorbar"]["colorbar"],
                              bar_width=params["colorbar"]["length"] * aa_scale,
                              bar_height=params["colorbar"]["width"] * aa_scale,
