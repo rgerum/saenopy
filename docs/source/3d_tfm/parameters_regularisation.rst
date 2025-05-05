@@ -26,7 +26,7 @@ The maximum number of iterations after which to stop the fitting procedure if th
 iteration earlier.
 
 rel. conv. crit.
----------------
+----------------
 The relative convergence criterion. If the standard deviation of the energy of the last 6 iterations divided my the mean
 does not exceed this value, the fitting procedure is considered converged and iterations are stopped.
 

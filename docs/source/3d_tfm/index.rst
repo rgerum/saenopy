@@ -1,7 +1,7 @@
 3D TFM
 ======
 
-3D TFM takes 3d stacks of images
+3D TFM calculates forces from 3d image stacks (single time point or time series).
 
 .. toctree::
    :maxdepth: 2
