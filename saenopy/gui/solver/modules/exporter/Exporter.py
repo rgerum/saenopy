@@ -19,7 +19,7 @@ from saenopy.gui.common import QtShortCuts, QExtendedGraphicsView
 from saenopy.gui.common.resources import resource_path
 from saenopy.gui.solver.modules.exporter.FiberViewer import ChannelProperties
 from saenopy.gui.solver.modules.exporter.ExporterRender3D import render_3d
-from saenopy.gui.solver.modules.exporter.ExporterRender2D import render_2d
+from saenopy.gui.solver.modules.exporter.ExporterRender2D import render_2d, render_2d_colorbar
 
 from saenopy.gui.common.PipelineModule import PipelineModule
 from saenopy.gui.common.QTimeSlider import QTimeSlider
@@ -588,7 +588,7 @@ class ExportViewer(PipelineModule):
         self.vtk_toolbar.show_image.setVisible(is3D)
 
         self.box_scalebar.setVisible(is2D)
-        self.box_colorbar.setVisible(is2D)
+        #self.box_colorbar.setVisible(is2D)
         self.box_2darrows.setVisible(is2D)
 
         self.box_fiberdisplay.setVisible(is3D)
@@ -949,8 +949,9 @@ plt.imsave("output.png", im)
     def render_view(self, double_render=False):
         render = self.plotter.render
         self.plotter.render = lambda *args: None
+        disp_params = {}
         try:
-            render_3d(self.get_parameters(), self.result, self.plotter, self)
+            disp_params = render_3d(self.get_parameters(), self.result, self.plotter, self)
         finally:
             self.plotter.render = render
 
@@ -973,6 +974,14 @@ plt.imsave("output.png", im)
             im_logo = im_logo.resize([int(400 * scale), int(200 * scale)])
             padding = int(im_logo.width * 0.1)
             im.alpha_composite(im_logo, dest=(im.width - im_logo.width - padding, padding))
+
+        params = self.get_parameters()
+        if params["colorbar"]["hide"] is False:
+            im = render_2d_colorbar(params, self.result, im, 1, 1,
+                                           scale_min=disp_params.get("scale_min", 0),
+                                           scale_max=disp_params.get("scale_max", 100),
+                                           colormap=disp_params.get("colormap", "turbo"),
+                                           unit=disp_params.get("scalebar_unit", "µm"))
 
         im = np.asarray(im)
         self.pixmap1.setPixmap(QtGui.QPixmap(array2qimage(im)))

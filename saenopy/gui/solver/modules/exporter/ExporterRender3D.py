@@ -12,8 +12,9 @@ def render_3d(params, result, plotter, exporter=None):
 
     render = plotter.render
     plotter.render = lambda *args: None
+    disp_params = {}
     try:
-        render_3d_arrows(params, result, plotter)
+        disp_params = render_3d_arrows(params, result, plotter)
 
         render_3d_image(params, result, plotter, exporter)
 
@@ -27,8 +28,10 @@ def render_3d(params, result, plotter, exporter=None):
 
         plotter.previous_plot_params = params
         plotter.previous_plot_result = result
+        return disp_params
     finally:
         plotter.render = render
+        return disp_params
 
 def filter_params(params, used_values, previous_params):
     difference = False
@@ -142,13 +145,14 @@ def render_3d_arrows(params, result, plotter):
         "use_nans",
         "arrows",
         ("time", "t"),
+        ("colorbar", "hide"),
         ("deformation_arrows", ("scale_max", "autoscale", "skip", "arrow_opacity", "colormap", "arrow_scale")),
         ("force_arrows", ("scale_max", "autoscale", "skip", "arrow_opacity", "colormap", "arrow_scale", "use_center", "use_log")),
     ]
     params, changed = filter_params(params, used_values, getattr(plotter, "previous_plot_params", {}))
 
     if not changed and result == getattr(plotter, "previous_plot_result", {}):
-        return
+        return getattr(plotter, "disp_params", {})
 
     obj, field, params_arrows, name = get_mesh_arrows(params, result)
 
@@ -156,13 +160,15 @@ def render_3d_arrows(params, result, plotter):
         plotter.remove_actor("arrows")
         plotter.remove_actor("nans")
         plotter.remove_actor("center")
-        return
+        return getattr(plotter, "disp_params", {})
 
     show_nan = params["use_nans"]
     scalebar_max = params_arrows["scale_max"] if not params_arrows["autoscale"] else None
     colormap = params_arrows["colormap"]
     skip = params_arrows["skip"]
     arrow_opacity = params_arrows["arrow_opacity"]
+    disp_params = {"colormap": colormap, "scalebar_unit": "µm"}
+    plotter.disp_params = disp_params
 
     if field is not None:
         obj_R = obj.nodes * 1e6
@@ -235,10 +241,16 @@ def render_3d_arrows(params, result, plotter):
 
         # update the scalebar
         plotter.auto_value = np.nanpercentile(point_cloud[name + "_mag2"], 99.9)
+        disp_params["scale_min"] = 0
         if scalebar_max is None:
+            disp_params["scale_max"] = np.nanpercentile(point_cloud[name + "_mag2"], 99.9)
             plotter.update_scalar_bar_range([0, np.nanpercentile(point_cloud[name + "_mag2"], 99.9)])
         else:
+            disp_params["scale_max"] = scalebar_max
             plotter.update_scalar_bar_range([0, scalebar_max])
+
+        #if params["colorbar"]["hide"] is True:
+        plotter.remove_scalar_bar()
     else:
         plotter.remove_actor("arrows")
 
@@ -248,6 +260,7 @@ def render_3d_arrows(params, result, plotter):
         plotter.add_points(np.array([center])*1e6, color='m', point_size=10, render=False, name="center")
     else:
         plotter.remove_actor("center")
+    return disp_params
 
 
 def render_3d_image(params, result, plotter, exporter=None):
