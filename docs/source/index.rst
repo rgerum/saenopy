@@ -26,6 +26,7 @@ This migration immune cell demonstrated what scientific discoveries you can achi
    :maxdepth: 2
 
    3d_tfm/index
+   2.5d_spheroid/index
 
 Installation
 ------------
