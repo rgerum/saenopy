@@ -27,6 +27,7 @@ This migration immune cell demonstrated what scientific discoveries you can achi
 
    3d_tfm/index
    2.5d_spheroid/index
+   2.5d_orientation/index
 
 Installation
 ------------
