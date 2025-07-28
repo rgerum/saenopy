@@ -15,6 +15,9 @@ Key advantages include:
 
 
 .. figure:: images/fiber_image.jpg
+   :alt: Spheroid PIV animation
+   :align: center
+   :width: 66%
 
 
 How it works
