@@ -8,6 +8,13 @@ The key innovation is the **assumption of spherical symmetry**, which greatly si
 - **Robust force quantification** even in **optically dense 3D environments** where traditional traction force microscopy is challenging  
 - **Significant speed-up** in computing traction forces by using simple brightfield imaging at the equatorial plane and pre-computed material-specific look-up tables  
 
+
+.. figure:: images/spheroid-piv.gif
+   :alt: Spheroid PIV animation
+   :align: center
+   :width: 66%
+
+
 How it works
 ------------
 
@@ -15,7 +22,7 @@ How it works
 - These measured fields are compared to a look-up table of **precomputed finite-element simulations**, which model how spherical contractile pressures deform the surrounding matrix.
 - By identifying the best-matching simulation, the software estimates the **contractile pressure** and **total force** of the spheroid over time.
 
-This method enables fast and scalable force estimation from brightfield or fluorescence microscopy, extending traction force analysis to systems that were previously inaccessible due to size, shape, or optical limitations.
+This method enables fast and scalable force estimation from brightfield or fluorescence microscopy, extending traction force analysis to multicellular systems that were previously inaccessible due to size-, time- or optical limitations.
 
 For more details, see:
 
