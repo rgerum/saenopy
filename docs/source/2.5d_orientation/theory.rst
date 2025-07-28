@@ -1,8 +1,7 @@
 Theory
 ======
 
-``CompactionAnalyzer`` is a Python package that quantifies the amount of **fiber alignment** and **fiber density** around contractile cells embedded in fibrous matrices.  
-These features can serve as **proxy measures of contractile force**, or can also be used for other applications such as matrix remodeling assessment.
+``CompactionAnalyzer`` is a Python package that quantifies the amount of **fiber alignment** and **fiber density** around contractile cells embedded in fibrous matrices. These features can serve as **proxy measures of contractile force**, or can also be used for other applications such as matrix remodeling assessment.
 
 Unlike traditional traction force microscopy (TFM), this method does not rely on **rheological characterization of the matrix**.  
 Instead, mechanical forces are inferred from the **geometry of gel deformation** and can be compared **relatively between conditions**, such as drug-treated versus control cells within the same matrix.
