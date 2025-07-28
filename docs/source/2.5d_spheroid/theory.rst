@@ -26,7 +26,7 @@ This method enables fast and scalable force estimation from brightfield or fluor
 
 For more details, see:
 
-- **Publication**: `Mark et al., *eLife* (2020) <https://elifesciences.org/articles/51912>`_  
+- **Publication**: `Mark et al. (2020) <https://elifesciences.org/articles/51912>`_  
   *Collective forces of tumor spheroids in three-dimensional biopolymer networks*  
   (`PMC7192581 <https://www.ncbi.nlm.nih.gov/pmc/articles/PMC7192581/>`_)
 

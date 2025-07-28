@@ -9,9 +9,9 @@ Alternatively, the tool can be used to simply quantify the alignment of cells or
 
 .. toctree::
    :maxdepth: 2
-
+    
+   theory
    interface
    parameters
-   theory
    auto_examples/index.rst
    api

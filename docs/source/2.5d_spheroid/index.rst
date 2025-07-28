@@ -6,8 +6,8 @@ Exploit spherical geometry to calculate the three-dimensional (3D) traction forc
 .. toctree::
    :maxdepth: 2
 
+   theory
    interface
    parameters
-   theory
    auto_examples/index.rst
    api
