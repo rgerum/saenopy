@@ -37,13 +37,13 @@ Standalone
 You can download saenopy as a standalone application:
 
 Windows
-https://github.com/rgerum/saenopy/releases/download/v1.0.6/saenopy.exe
+https://github.com/rgerum/saenopy/releases/download/v1.0.7/saenopy.exe
 
 Linux
-https://github.com/rgerum/saenopy/releases/download/v1.0.6/saenopy
+https://github.com/rgerum/saenopy/releases/download/v1.0.7/saenopy
 
 MacOS
-https://github.com/rgerum/saenopy/releases/download/v1.0.6/saenopy_mac.app.zip (In development..)
+https://github.com/rgerum/saenopy/releases/download/v1.0.7/saenopy_mac.app.zip (In development..)
 
 Using Python
 ~~~~~~~~~~~~
