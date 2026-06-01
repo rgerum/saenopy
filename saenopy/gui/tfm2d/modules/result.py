@@ -203,6 +203,19 @@ class Result2D(Saveable):
 
     def on_load(self, filename: str):
         self.output = str(Path(filename))
+        if self.piv_parameters is None:
+            self.piv_parameters = {}
+        for old_name in list(self.piv_parameters):
+            normalized_name = str(old_name).replace("_", "").replace(" ", "").replace("-", "").lower()
+            if self.piv_parameters.get("window_size") is None and normalized_name in {"windowsize", "winsize", "window"}:
+                self.piv_parameters["window_size"] = self.piv_parameters.pop(old_name)
+        if self.piv_parameters.get("window_size") is None:
+            self.piv_parameters["window_size"] = 100
+        else:
+            try:
+                self.piv_parameters["window_size"] = int(float(self.piv_parameters["window_size"]))
+            except (TypeError, ValueError):
+                self.piv_parameters["window_size"] = 100
 
     def get_mask(self):
         if self.mask is None:

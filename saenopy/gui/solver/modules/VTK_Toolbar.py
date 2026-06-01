@@ -19,6 +19,14 @@ class SetValuePseudoWidget:
         self._value = value
 
 
+class NullSharedProperties:
+    def change_property(self, *args):
+        pass
+
+    def add_property(self, *args):
+        pass
+
+
 theme_values = [pv.themes.Theme(), pv.themes.ParaViewTheme(), pv.themes.DarkTheme(), pv.themes.DocumentTheme()]
 vtk_toolbars = []
 class VTK_Toolbar(QtWidgets.QWidget):
@@ -26,6 +34,8 @@ class VTK_Toolbar(QtWidgets.QWidget):
 
     def __init__(self, plotter: BasePlotter, update_display, scalbar_type="deformation", center=False, z_slider=None, channels=None, shared_properties=None):
         super().__init__()
+        if shared_properties is None:
+            shared_properties = NullSharedProperties()
         self.plotter = plotter
         self.update_display = update_display
         self.z_slider = z_slider
@@ -70,6 +80,8 @@ class VTK_Toolbar(QtWidgets.QWidget):
             self.window_scale.setWindowTitle("Saenopy - Arrow Scale")
             with QtShortCuts.QVBoxLayout(self.window_scale):
                 self.arrow_scale = QtShortCuts.QInputNumber(None, "arrow scale", 1, 0.01, 40, use_slider=True, log_slider=True)  ## Extend Slider Max here
+                if self.arrow_scale.value() is None:
+                    self.arrow_scale.setValue(1)
                 self.arrow_scale.valueChanged.connect(self.update_display)
                 addition = ""
                 if self.is_force_plot:
@@ -236,6 +248,8 @@ class VTK_Toolbar(QtWidgets.QWidget):
                 self.colormap_chooser.setValue(value)
                 self.update_display()
         if name == "arrow_scale"+addition:
+            if value is None:
+                value = 1
             if value != self.arrow_scale.value():
                 self.arrow_scale.setValue(value)
                 self.update_display()

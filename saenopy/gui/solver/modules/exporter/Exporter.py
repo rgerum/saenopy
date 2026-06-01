@@ -215,10 +215,11 @@ class ExportViewer(PipelineModule):
                     #self.widget_settings.setMaximumWidth(700)
                     #self.widget_settings.setMinimumWidth(700)
 
+                    shared_properties = getattr(self.parent, "shared_properties", None)
                     self.vtk_toolbar = VTK_Toolbar(self.plotter, self.update_display,
-                                                   shared_properties=self.parent.shared_properties)  # .addToLayout()
+                                                   shared_properties=shared_properties)  # .addToLayout()
                     self.vtk_toolbar2 = VTK_Toolbar(self.plotter, self.update_display, center=True,
-                                                    shared_properties=self.parent.shared_properties)  # .addToLayout()
+                                                    shared_properties=shared_properties)  # .addToLayout()
                     self.z_slider = QTimeSlider("z", self.update_display, "set z position", QtCore.Qt.Vertical).addToLayout()
                 self.t_slider = QTimeSlider(connected=self.update_display).addToLayout()
             self.widget_settings = QtWidgets.QWidget().addToLayout()
@@ -826,6 +827,9 @@ plt.imsave("output.png", im)
                         params[name] = widget.value()
             return params
         params = get_params(self.parameter_map)
+        for key in ("deformation_arrows", "force_arrows"):
+            if params.get(key, {}).get("arrow_scale") is None:
+                params[key]["arrow_scale"] = 1.0
         return params
 
     no_update = True
@@ -838,7 +842,12 @@ plt.imsave("output.png", im)
                 if isinstance(widget, dict):
                     set_params(params[name], widget)
                 else:
-                    widget.setValue(params[name])
+                    value = params[name]
+                    if value is None and isinstance(widget, QtShortCuts.QInputNumber):
+                        value = widget.value()
+                    if name == "arrow_scale" and value is None:
+                        value = 1.0
+                    widget.setValue(value)
 
         self.no_update = True
         try:
