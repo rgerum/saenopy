@@ -81,7 +81,11 @@ def in_random_dir():
         return wrapped
     return wrapper
 
-@settings(suppress_health_check=(HealthCheck.function_scoped_fixture,), deadline=None)
+@settings(
+    suppress_health_check=(HealthCheck.function_scoped_fixture,),
+    deadline=None,
+    max_examples=4,
+)
 @given(use_time=st.booleans(), use_reference=st.booleans())
 @in_random_dir()
 def test_run_example(monkeypatch, random_path, catch_popup_error, use_time, use_reference):
@@ -245,7 +249,11 @@ def test_run_example(monkeypatch, random_path, catch_popup_error, use_time, use_
     batch_evaluate.list.act_delete.triggered.emit()
 
 
-@settings(suppress_health_check=(HealthCheck.function_scoped_fixture,), deadline=None)
+@settings(
+    suppress_health_check=(HealthCheck.function_scoped_fixture,),
+    deadline=None,
+    max_examples=2,
+)
 @given(use_time=st.booleans())
 def test_path_editor(monkeypatch, random_path, catch_popup_error, use_time):
     from saenopy.gui.solver.modules.path_editor import PathEditor, PathChanger
