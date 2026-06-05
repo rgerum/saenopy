@@ -13,19 +13,20 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: pyvista/setup-headless-display-action@v3
         with:
           qt: true
           pyvista: false
       - run: pipx install poetry
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: '3.12'
           cache: 'poetry'
       - run: poetry install --with dev
       - run: |
-          poetry run coverage run -m pytest
+          poetry run coverage run -m pytest --durations=10 --durations-min=1 -o faulthandler_timeout=120
+        timeout-minutes: 10
       - run: poetry run coveralls
         env:
           GITHUB_TOKEN: ${{ secrets.COVERALLS_REPO_TOKEN }}
