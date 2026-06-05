@@ -58,4 +58,4 @@ def in_random_dir():
 def test_download_example(monkeypatch, random_path, catch_popup_error):
     from saenopy.examples import load_example, get_examples
     examples = get_examples()
-    load_example("OrganoidTFM")
+    load_example("OrganoidTFM", progress_callback=lambda *args, **kwargs: None)
