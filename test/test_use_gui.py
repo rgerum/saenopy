@@ -65,6 +65,14 @@ def init_app():
     return app, window, solver, batch_evaluate
 
 
+def process_events_until(app, condition, timeout=120, message="Qt task did not finish"):
+    start = time.monotonic()
+    while not condition():
+        app.processEvents()
+        if time.monotonic() - start > timeout:
+            raise TimeoutError(message)
+
+
 def in_random_dir():
     def wrapper(func):
         def wrapped(monkeypatch, random_path, catch_popup_error, *args, **kwargs):
@@ -190,8 +198,15 @@ def test_run_example(monkeypatch, random_path, catch_popup_error, use_time, use_
     # schedule to run all
     batch_evaluate.run_all()
     # wait until they are processed
-    while batch_evaluate.current_task_id < len(batch_evaluate.tasks):
-        app.processEvents()
+    process_events_until(
+        app,
+        lambda: batch_evaluate.current_task_id >= len(batch_evaluate.tasks),
+        message=(
+            "batch evaluation did not finish; "
+            f"current_task_id={batch_evaluate.current_task_id}, "
+            f"task_count={len(batch_evaluate.tasks)}"
+        ),
+    )
 
     # check the result
     M = results[0].solvers[0]

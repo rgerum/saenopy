@@ -25,7 +25,7 @@ jobs:
           cache: 'poetry'
       - run: poetry install --with dev
       - run: |
-          poetry run coverage run -m pytest --durations=10 --durations-min=1
+          poetry run coverage run -m pytest -vv -s --durations=0 -o faulthandler_timeout=120
         timeout-minutes: 25
       - run: poetry run coveralls
         env:
