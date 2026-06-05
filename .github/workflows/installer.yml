@@ -11,34 +11,26 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
 
-    - name: Set up python
-      id: setup-python
-      uses: actions/setup-python@v4
+    - name: Install uv
+      uses: astral-sh/setup-uv@v7
       with:
-        python-version: '3.12'
+        enable-cache: true
 
-      #----------------------------------------------
-      #  -----  install & configure poetry  -----
-      #----------------------------------------------
-    - name: Install Poetry
-      uses: snok/install-poetry@v1
-      with:
-        virtualenvs-create: true
-        virtualenvs-in-project: true
-        installer-parallel: true
+    - name: Set up Python
+      run: uv python install 3.12
 
     - name: install dependencies
       shell: bash
       run: |
-        poetry install --with dev
-        poetry run python saenopy/add_source.py
+        uv sync --locked --python 3.12 --group dev
+        uv run python saenopy/add_source.py
 
     - name: build exe with pyinstaller
       shell: bash
       run: |
-          poetry run pyinstaller --hidden-import=scipy.io --clean -y --dist output/saenopy_run --onefile --icon "saenopy/img/Icon.ico" --splash "saenopy/img/logo_splash.png" --add-data "saenopy/img:saenopy/img"  saenopy/gui/gui_master.py 
+          uv run pyinstaller --hidden-import=scipy.io --clean -y --dist output/saenopy_run --onefile --icon "saenopy/img/Icon.ico" --splash "saenopy/img/logo_splash.png" --add-data "saenopy/img:saenopy/img"  saenopy/gui/gui_master.py 
           mv output/saenopy_run/gui_master output/saenopy_run/saenopy
           chmod +x output/saenopy_run/saenopy
 
@@ -58,34 +50,26 @@ jobs:
     runs-on: windows-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
-      - name: Set up python
-        id: setup-python
-        uses: actions/setup-python@v4
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
         with:
-          python-version: '3.12'
+          enable-cache: true
 
-        #----------------------------------------------
-        #  -----  install & configure poetry  -----
-        #----------------------------------------------
-      - name: Install Poetry
-        uses: snok/install-poetry@v1
-        with:
-          virtualenvs-create: true
-          virtualenvs-in-project: true
-          installer-parallel: true
+      - name: Set up Python
+        run: uv python install 3.12
 
       - name: install dependencies
         shell: bash
         run: |
-          poetry install --with dev
-          poetry run python saenopy/add_source.py
+          uv sync --locked --python 3.12 --group dev
+          uv run python saenopy/add_source.py
 
       - name: build exe with pyinstaller
         shell: bash
         run: |
-          poetry run pyinstaller --hidden-import=scipy.io --clean -y --dist output/saenopy_run --onefile --icon "saenopy/img/Icon.ico" --splash "saenopy/img/logo_splash.png" --add-data "saenopy/img;saenopy/img"  saenopy/gui/gui_master.py
+          uv run pyinstaller --hidden-import=scipy.io --clean -y --dist output/saenopy_run --onefile --icon "saenopy/img/Icon.ico" --splash "saenopy/img/logo_splash.png" --add-data "saenopy/img;saenopy/img"  saenopy/gui/gui_master.py
           mv output/saenopy_run/gui_master.exe output/saenopy_run/saenopy.exe
 
       - uses: actions/upload-artifact@v4
@@ -103,31 +87,26 @@ jobs:
     runs-on: macos-latest
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
 
-    - name: Set up python
-      id: setup-python
-      uses: actions/setup-python@v4
+    - name: Install uv
+      uses: astral-sh/setup-uv@v7
       with:
-        python-version: '3.12'
+        enable-cache: true
 
-    - name: Install Poetry
-      uses: snok/install-poetry@v1
-      with:
-        virtualenvs-create: true
-        virtualenvs-in-project: true
-        installer-parallel: true
+    - name: Set up Python
+      run: uv python install 3.12
 
     - name: Install dependencies
       shell: bash
       run: |
-        poetry install --with dev
-        poetry run python saenopy/add_source.py
+        uv sync --locked --python 3.12 --group dev
+        uv run python saenopy/add_source.py
 
     - name: Build executable with PyInstaller
       shell: bash
       run: |
-        poetry run pyinstaller --clean -y --dist output/saenopy_run --windowed --add-data "saenopy/img:saenopy/img" saenopy/gui/gui_master.py
+        uv run pyinstaller --clean -y --dist output/saenopy_run --windowed --add-data "saenopy/img:saenopy/img" saenopy/gui/gui_master.py
         mv output/saenopy_run/gui_master.app output/saenopy_run/saenopy_mac.app     
         cd output/saenopy_run
         zip -r saenopy_mac.app.zip saenopy_mac.app
