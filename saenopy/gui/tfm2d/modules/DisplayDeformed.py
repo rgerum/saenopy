@@ -11,7 +11,6 @@ from saenopy.pyTFM.correct_stage_drift import correct_stage_drift
 
 
 class DeformationDetector2(PipelineModule):
-
     def __init__(self, parent=None, layout=None):
         super().__init__(parent, layout)
         self.parent = parent
@@ -27,8 +26,10 @@ class DeformationDetector2(PipelineModule):
     def check_available(self, result):
         return True
 
-    def process(self, result: Result2D, drift_parameters: dict): # type: ignore
-        b_save, a_save, [], drift = correct_stage_drift(result.get_image(1, corrected=False), result.get_image(0, corrected=False))
+    def process(self, result: Result2D, drift_parameters: dict):  # type: ignore
+        b_save, a_save, [], drift = correct_stage_drift(
+            result.get_image(1, corrected=False), result.get_image(0, corrected=False)
+        )
 
         a_save.save(result.input_corrected)
         b_save.save(result.reference_stack_corrected)
@@ -37,13 +38,16 @@ class DeformationDetector2(PipelineModule):
         import_code = "from saenopy.pyTFM.correct_stage_drift import correct_stage_drift\n"
 
         results = []
+
         @export_as_string
         def code():  # pragma: no cover
             # iterate over all the results objects
             for result in results:
                 # make the drift correction
-                b_save, a_save, [], drift = correct_stage_drift(result.get_image(1, corrected=False),
-                                                                result.get_image(0, corrected=False))
+                b_save, a_save, [], drift = correct_stage_drift(
+                    result.get_image(1, corrected=False),
+                    result.get_image(0, corrected=False),
+                )
 
                 a_save.save(result.input_corrected)
                 b_save.save(result.reference_stack_corrected)

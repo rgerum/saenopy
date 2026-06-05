@@ -31,22 +31,30 @@ class ForceCalculator(PipelineModule):
                         #                                               file_type="Pickle Lookup Table (*.pkl)",
                         #                                               existing=True)
 
-                        #self.pixel_size = QtShortCuts.QInputString(None, "pixel_size", "1.29", name_post='µm/px',
+                        # self.pixel_size = QtShortCuts.QInputString(None, "pixel_size", "1.29", name_post='µm/px',
                         #                                           type=float)
 
                         with QtShortCuts.QHBoxLayout():
                             self.x0 = QtShortCuts.QInputString(None, "r_min", "2", type=float)
-                            self.x1 = QtShortCuts.QInputString(None, "r_max", "None", type=float,
-                                                               name_post='spheroid radii', allow_none=True)
+                            self.x1 = QtShortCuts.QInputString(
+                                None,
+                                "r_max",
+                                "None",
+                                type=float,
+                                name_post="spheroid radii",
+                                allow_none=True,
+                            )
 
                     self.input_button = QtShortCuts.QPushButton(None, "calculate forces", self.start_process)
 
-
-        self.setParameterMapping("force_parameters", {
-            "lookup_table": self.lookup_table,
-            "r_min": self.x0,
-            "r_max": self.x1,
-        })
+        self.setParameterMapping(
+            "force_parameters",
+            {
+                "lookup_table": self.lookup_table,
+                "r_min": self.x0,
+                "r_max": self.x1,
+            },
+        )
 
     def choose_lookup(self):
 
@@ -69,26 +77,31 @@ class ForceCalculator(PipelineModule):
         super().setResult(result)
 
     def process(self, result: ResultSpheroid, force_parameters: dict):
-        jf.force.reconstruct_gui(result,  # PIV output folder
-                             str(self.lookup_table.value()),  # lookup table
-                             result.pixel_size,  # pixel size (µm)
-                             r_min=force_parameters["r_min"],
-                             r_max=force_parameters["r_max"])
+        jf.force.reconstruct_gui(
+            result,  # PIV output folder
+            str(self.lookup_table.value()),  # lookup table
+            result.pixel_size,  # pixel size (µm)
+            r_min=force_parameters["r_min"],
+            r_max=force_parameters["r_max"],
+        )
         result.save()
 
     def get_code(self) -> Tuple[str, str]:
         import_code = ""
 
         results = []
+
         @export_as_string
         def code(force_parameters1):  # pragma: no cover
             for result in results:
                 result.force_parameters = force_parameters1
-                jf.force.reconstruct_gui(result,
-                                         result.force_parameters["lookup_table"],
-                                         result.pixel_size,
-                                         r_min=result.force_parameters["r_min"],
-                                         r_max=result.force_parameters["r_max"])
+                jf.force.reconstruct_gui(
+                    result,
+                    result.force_parameters["lookup_table"],
+                    result.pixel_size,
+                    r_min=result.force_parameters["r_min"],
+                    r_max=result.force_parameters["r_max"],
+                )
                 result.save()
 
         data = dict(

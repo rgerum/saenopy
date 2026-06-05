@@ -38,7 +38,7 @@ class DrawWindow(QtWidgets.QWidget):
             layout.addWidget(self)
 
         im = np.zeros((100, 100, 3), dtype=np.uint8)
-        #im = plt.imread("/home/richard/PycharmProjects/pyTFM/example_data_for_pyTFM-master/python_tutorial/04before.tif")
+        # im = plt.imread("/home/richard/PycharmProjects/pyTFM/example_data_for_pyTFM-master/python_tutorial/04before.tif")
         with QtShortCuts.QVBoxLayout(self) as main_layout:
             main_layout.setContentsMargins(0, 0, 0, 0)
             self.view1 = QExtendedGraphicsView.QExtendedGraphicsView().addToLayout()
@@ -56,7 +56,7 @@ class DrawWindow(QtWidgets.QWidget):
 
         self.DrawCursor = QtWidgets.QGraphicsPathItem(self.view1.origin)
         self.DrawCursor.setZValue(10)
-        #self.DrawCursor.setVisible(False)
+        # self.DrawCursor.setVisible(False)
 
         self.full_image = Image.new("I", im.shape[:2][::-1])
 
@@ -112,12 +112,13 @@ class DrawWindow(QtWidgets.QWidget):
         if line_type == 0:
             color = 0
         else:
-            color = self.color#.index
+            color = self.color  # .index
         draw = ImageDraw.Draw(self.full_image)
         draw.line((x1, y1, x2, y2), fill=color, width=size + 1)
         draw.ellipse((x1 - size // 2, y1 - size // 2, x1 + size // 2, y1 + size // 2), fill=color)
 
         import numpy as np
+
         im = np.asarray(self.full_image)
         im = self.palette[im]
         self.pixmap_mask.setPixmap(QtGui.QPixmap(array2qimage(im)))
@@ -138,8 +139,12 @@ class DrawWindow(QtWidgets.QWidget):
     def UpdateDrawCursorDisplay(self) -> None:
         # update color and size of brush cursor
         draw_cursor_path = QtGui.QPainterPath()
-        draw_cursor_path.addEllipse(-self.cursor_size * 0.5, -self.cursor_size * 0.5, self.cursor_size,
-                                    self.cursor_size)
+        draw_cursor_path.addEllipse(
+            -self.cursor_size * 0.5,
+            -self.cursor_size * 0.5,
+            self.cursor_size,
+            self.cursor_size,
+        )
         pen = QtGui.QPen(QtGui.QColor(*self.palette[self.color if not self.alt_pressed else 4, 0:3]))
         pen.setCosmetic(True)
         self.DrawCursor.setPen(pen)
@@ -161,7 +166,13 @@ class DrawWindow(QtWidgets.QWidget):
             self.last_pos = [event.pos().x(), event.pos().y()]
             paint = event.modifiers() != QtCore.Qt.AltModifier
             # add a first circle (so that even if the mouse isn't moved something is drawn)
-            self.DrawLine(self.last_pos[0], self.last_pos[0] + 0.00001, self.last_pos[1], self.last_pos[1], paint)
+            self.DrawLine(
+                self.last_pos[0],
+                self.last_pos[0] + 0.00001,
+                self.last_pos[1],
+                self.last_pos[1],
+                paint,
+            )
             # accept the event
             return True
         if event.type() == QtCore.QEvent.GraphicsSceneMouseRelease and event.button() == QtCore.Qt.LeftButton:
@@ -169,12 +180,12 @@ class DrawWindow(QtWidgets.QWidget):
         # Mouse move event to draw the stroke
         if event.type() == QtCore.QEvent.GraphicsSceneMouseMove:
             if (event.modifiers() == QtCore.Qt.AltModifier) != self.alt_pressed:
-               self.alt_pressed = event.modifiers() == QtCore.Qt.AltModifier
-               self.UpdateDrawCursorDisplay()
+                self.alt_pressed = event.modifiers() == QtCore.Qt.AltModifier
+                self.UpdateDrawCursorDisplay()
             pos = [event.pos().x(), event.pos().y()]
             # draw a line and store the position
             paint = event.modifiers() != QtCore.Qt.AltModifier
-            self.DrawLine(pos[0], self.last_pos[0], pos[1],  self.last_pos[1], paint)
+            self.DrawLine(pos[0], self.last_pos[0], pos[1], self.last_pos[1], paint)
             self.last_pos = pos
             self.DrawCursor.setPos(event.pos())
             # accept the event
@@ -227,20 +238,32 @@ class MinimalGui(QtWidgets.QWidget):
                 self.slider_cursor_opacity = QtShortCuts.QInputNumber(None, "mask opacity", 0.5, 0, 1, True, float=True)
                 self.slider_cursor_opacity.valueChanged.connect(lambda x: self.draw.setOpacity(x))
                 with QtShortCuts.QHBoxLayout():
-                    self.button_red = QtShortCuts.QPushButton(None, "tractions", lambda x: self.draw.setColor(1),
-                                                              icon=qta.icon("fa5s.circle", color="red"))
-                    self.button_green = QtShortCuts.QPushButton(None, "cell boundary", lambda x: self.draw.setColor(2),
-                                                                icon=qta.icon("fa5s.circle", color="green"))
+                    self.button_red = QtShortCuts.QPushButton(
+                        None,
+                        "tractions",
+                        lambda x: self.draw.setColor(1),
+                        icon=qta.icon("fa5s.circle", color="red"),
+                    )
+                    self.button_green = QtShortCuts.QPushButton(
+                        None,
+                        "cell boundary",
+                        lambda x: self.draw.setColor(2),
+                        icon=qta.icon("fa5s.circle", color="green"),
+                    )
                 QtWidgets.QLabel("hold 'alt' key for eraser").addToLayout()
 
+
 app = None
+
+
 def get_mask_using_gui(filename):
     global app
     if app is None:
         app = QtWidgets.QApplication(sys.argv)
-        if sys.platform.startswith('win'):
+        if sys.platform.startswith("win"):
             import ctypes
-            myappid = 'fabrylab.saenopy.master'  # arbitrary string
+
+            myappid = "fabrylab.saenopy.master"  # arbitrary string
             ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
 
     window = MinimalGui(filename)
@@ -248,14 +271,18 @@ def get_mask_using_gui(filename):
     res = app.exec_()
     return window.draw.get_image()
 
+
 def main():
     app = QtWidgets.QApplication(sys.argv)
-    if sys.platform.startswith('win'):
+    if sys.platform.startswith("win"):
         import ctypes
-        myappid = 'fabrylab.saenopy.master'  # arbitrary string
+
+        myappid = "fabrylab.saenopy.master"  # arbitrary string
         ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
 
-    window = MinimalGui("/home/richard/PycharmProjects/pyTFM/example_data_for_pyTFM-master/python_tutorial/04before.tif")
+    window = MinimalGui(
+        "/home/richard/PycharmProjects/pyTFM/example_data_for_pyTFM-master/python_tutorial/04before.tif"
+    )
     window.show()
     try:
         import pyi_splash
@@ -279,6 +306,14 @@ def main():
 
 
 if __name__ == "__main__":
-    print(get_mask_using_gui("/home/richard/PycharmProjects/pyTFM/example_data_for_pyTFM-master/python_tutorial/04before.tif"))
-    print(get_mask_using_gui("/home/richard/PycharmProjects/pyTFM/example_data_for_pyTFM-master/clickpoints_tutorial/KO_analyzed/05bf_before.tif"))
-    #main()
+    print(
+        get_mask_using_gui(
+            "/home/richard/PycharmProjects/pyTFM/example_data_for_pyTFM-master/python_tutorial/04before.tif"
+        )
+    )
+    print(
+        get_mask_using_gui(
+            "/home/richard/PycharmProjects/pyTFM/example_data_for_pyTFM-master/clickpoints_tutorial/KO_analyzed/05bf_before.tif"
+        )
+    )
+    # main()

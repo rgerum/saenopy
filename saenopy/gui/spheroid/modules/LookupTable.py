@@ -26,7 +26,10 @@ class LookUpTable(QtWidgets.QDialog):
 
         with QtShortCuts.QHBoxLayout(self):
             with QtShortCuts.QVBoxLayout() as main_layout:
-                with QtShortCuts.QGroupBox(None, "Material Parameters") as (self.material_parameters, layout):
+                with QtShortCuts.QGroupBox(None, "Material Parameters") as (
+                    self.material_parameters,
+                    layout,
+                ):
                     with QtShortCuts.QHBoxLayout():
                         self.input_k = QtShortCuts.QInputString(None, "k", "1449", type=float)
                         self.input_d_0 = QtShortCuts.QInputString(None, "d_0", "0.00215", type=float)
@@ -34,27 +37,35 @@ class LookUpTable(QtWidgets.QDialog):
                         self.input_lamda_s = QtShortCuts.QInputString(None, "lamdba_s", "0.032", type=float)
                         self.input_ds = QtShortCuts.QInputString(None, "ds", "0.055", type=float)
 
-                with QtShortCuts.QGroupBox(None, "Pressure Range") as (self.material_parameters, layout):
+                with QtShortCuts.QGroupBox(None, "Pressure Range") as (
+                    self.material_parameters,
+                    layout,
+                ):
                     with QtShortCuts.QHBoxLayout():
                         self.start = QtShortCuts.QInputString(None, "min", "0.1", type=float)
                         self.end = QtShortCuts.QInputString(None, "max", "1000", type=float)
                         self.n = QtShortCuts.QInputString(None, "count", "150", type=int)
 
-                with QtShortCuts.QGroupBox(None, "Iteration Parameters") as (self.material_parameters, layout):
+                with QtShortCuts.QGroupBox(None, "Iteration Parameters") as (
+                    self.material_parameters,
+                    layout,
+                ):
                     with QtShortCuts.QHBoxLayout():
                         self.max_iter = QtShortCuts.QInputString(None, "max_iter", "600", type=int)
                         self.step = QtShortCuts.QInputString(None, "step", "0.0033", type=float)
 
-                with QtShortCuts.QGroupBox(None, "Run Parameters") as (self.material_parameters, layout):
+                with QtShortCuts.QGroupBox(None, "Run Parameters") as (
+                    self.material_parameters,
+                    layout,
+                ):
                     with QtShortCuts.QVBoxLayout():
                         self.n_cores = QtShortCuts.QInputNumber(None, "n_cores", 1, float=False)
-                        #layout=None, name=None, value=None, dialog_title="Choose File", file_type="All", filename_checker=None, existing=False, **kwargs):
+                        # layout=None, name=None, value=None, dialog_title="Choose File", file_type="All", filename_checker=None, existing=False, **kwargs):
                         self.output = QtShortCuts.QInputFolder(None, "Output Folder")
 
                 main_layout.addStretch()
 
                 with QtShortCuts.QHBoxLayout() as layout2:
-
                     self.button_run = QtWidgets.QPushButton("run").addToLayout()
                     self.button_run.clicked.connect(self.run)
                     layout2.addStretch()
@@ -158,34 +169,43 @@ class LookUpTable(QtWidgets.QDialog):
         out_table = Path(self.output.value())
         out_folder = out_table.parent / out_table.stem
 
-        material = jf.materials.custom(self.input_k.value(),
-                                       self.input_d_0.value(),
-                                       self.input_lamda_s.value(),
-                                       self.input_ds.value(),
-                                       )
+        material = jf.materials.custom(
+            self.input_k.value(),
+            self.input_d_0.value(),
+            self.input_lamda_s.value(),
+            self.input_ds.value(),
+        )
 
-        jf.simulation.distribute_solver('jf.simulation.spherical_contraction_solver',
-                                        const_args={'meshfile': self.localpath,
-                                                    # path to the provided or the new generated mesh
-                                                    'outfolder': str(out_folder),
-                                                    # output folder to store individual simulations
-                                                    'max_iter': self.max_iter.value(),  # maximal iterationts for convergence
-                                                    'step': self.step.value(),  # step size of iteration
-                                                    'material': material},
-                                        # Enter your own material parameters here
-                                        var_arg='pressure', start=self.start.value(), end=self.end.value(),
-                                        n=self.n.value(), log_scaling=True, n_cores=self.n_cores.value(),
-                                        get_initial=True, callback=lambda i, n: self.progress_signal.emit(i, n))
+        jf.simulation.distribute_solver(
+            "jf.simulation.spherical_contraction_solver",
+            const_args={
+                "meshfile": self.localpath,
+                # path to the provided or the new generated mesh
+                "outfolder": str(out_folder),
+                # output folder to store individual simulations
+                "max_iter": self.max_iter.value(),  # maximal iterationts for convergence
+                "step": self.step.value(),  # step size of iteration
+                "material": material,
+            },
+            # Enter your own material parameters here
+            var_arg="pressure",
+            start=self.start.value(),
+            end=self.end.value(),
+            n=self.n.value(),
+            log_scaling=True,
+            n_cores=self.n_cores.value(),
+            get_initial=True,
+            callback=lambda i, n: self.progress_signal.emit(i, n),
+        )
 
-
-        #lookup_table = jf.simulation.create_lookup_table_solver(str(out_folder), x0=1, x1=50,
+        # lookup_table = jf.simulation.create_lookup_table_solver(str(out_folder), x0=1, x1=50,
         #                                                        n=100)  # output folder for combining the individual simulations
-        #get_displacement, get_pressure = jf.simulation.create_lookup_functions(lookup_table)
-        #jf.simulation.save_lookup_functions(get_displacement, get_pressure, str(out_table))
+        # get_displacement, get_pressure = jf.simulation.create_lookup_functions(lookup_table)
+        # jf.simulation.save_lookup_functions(get_displacement, get_pressure, str(out_table))
         self.finished_signal.emit()
 
-################
 
+################
 
 
 class LookupTableGenerator(QtWidgets.QDialog):
@@ -213,14 +233,15 @@ class LookupTableGenerator(QtWidgets.QDialog):
         super().__init__(parent)
         self.setWindowTitle("Generate Material Lookup Table")
         with QtShortCuts.QHBoxLayout(self):
-            with QtShortCuts.QGroupBox(None, "Generate Material Lookup Table") as (_, layout):
+            with QtShortCuts.QGroupBox(None, "Generate Material Lookup Table") as (
+                _,
+                layout,
+            ):
                 with QtShortCuts.QHBoxLayout() as layout3:
-                    self.button_addList = QtShortCuts.QPushButton(None, "Load existing\nSimulations",
-                                                                  self.loadExisting)
+                    self.button_addList = QtShortCuts.QPushButton(None, "Load existing\nSimulations", self.loadExisting)
                     self.button_addList.setMinimumSize(100, 100)
                     QVLine().addToLayout()
-                    self.button_addList = QtShortCuts.QPushButton(None, "Generate New Simulations",
-                                                                  self.generate)
+                    self.button_addList = QtShortCuts.QPushButton(None, "Generate New Simulations", self.generate)
                     self.button_addList.setMinimumSize(100, 100)
 
                 self.output = QtShortCuts.QInputString(layout, "Input Folder")
@@ -231,8 +252,12 @@ class LookupTableGenerator(QtWidgets.QDialog):
                     self.x1 = QtShortCuts.QInputString(layout2, "x1", "50", type=float)
                     self.n = QtShortCuts.QInputString(layout2, "n", "100", type=int)
 
-                self.lookup_table = QtShortCuts.QInputFilename(layout, "Output Lookup Table", 'lookup_example.npy',
-                                                               file_type="Numpy File (*.npy)")
+                self.lookup_table = QtShortCuts.QInputFilename(
+                    layout,
+                    "Output Lookup Table",
+                    "lookup_example.npy",
+                    file_type="Numpy File (*.npy)",
+                )
 
                 with QtShortCuts.QHBoxLayout(layout) as layout2:
                     layout2.addStretch()
@@ -240,7 +265,8 @@ class LookupTableGenerator(QtWidgets.QDialog):
 
             self.description = QtWidgets.QTextBrowser().addToLayout()
             self.description.setStyleSheet("QTextEdit { background: #f0f0f0}")
-            self.description.setText("""
+            self.description.setText(
+                """
             <h1>Material Lookup-Table</h1>
 
             From the individual simulations we generate our material lookup-table. <br/>
@@ -267,27 +293,33 @@ class LookupTableGenerator(QtWidgets.QDialog):
 
 
 
-            """.strip())
+            """.strip()
+            )
 
     def run(self):
         filename = str(self.output.value())
         if not filename.endswith(".npy"):
             filename = filename + ".npy"
-        lookup_table = jf.simulation.create_lookup_table_solver(filename,
-                                                                x0=self.x0.value(),
-                                                                x1=self.x1.value(),
-                                                                n=self.n.value())
+        lookup_table = jf.simulation.create_lookup_table_solver(
+            filename, x0=self.x0.value(), x1=self.x1.value(), n=self.n.value()
+        )
         jf.simulation.save_lookup_table(lookup_table, filename)
-        #get_displacement, get_pressure = jf.simulation.create_lookup_functions(lookup_table)
-        #jf.simulation.save_lookup_functions(get_displacement, get_pressure, str(self.lookup_table.value()))
+        # get_displacement, get_pressure = jf.simulation.create_lookup_functions(lookup_table)
+        # jf.simulation.save_lookup_functions(get_displacement, get_pressure, str(self.lookup_table.value()))
         self.accept()
+
 
 class SelectLookup(QtWidgets.QDialog):
     progress_signal = QtCore.Signal(int, int)
 
     def loadExisting(self):
         last_folder = settings.value("batch", "batch/lookuptable_path")
-        filename = QtWidgets.QFileDialog.getOpenFileName(None, "Open Lookup Table", last_folder, "Numpy Lookup Table (*.npy);; Pickle Lookup Table (*.pkl)")[0]
+        filename = QtWidgets.QFileDialog.getOpenFileName(
+            None,
+            "Open Lookup Table",
+            last_folder,
+            "Numpy Lookup Table (*.npy);; Pickle Lookup Table (*.pkl)",
+        )[0]
         filename = filename[0] if isinstance(filename, tuple) else str(filename) if filename is not None else None
 
         if filename == "":
@@ -296,7 +328,7 @@ class SelectLookup(QtWidgets.QDialog):
         self.result = filename
         self.label_input.setText(filename)
         self.path_changed()
-        #self.accept()
+        # self.accept()
 
     def generateNewLookup(self):
         dialog = LookupTableGenerator(self)
@@ -314,13 +346,19 @@ class SelectLookup(QtWidgets.QDialog):
                 super().__init__(parent)
                 self.setWindowTitle("Generate a Linear Material Lookup Table")
                 with QtShortCuts.QVBoxLayout(self):
-                    self.label = QtWidgets.QLabel("Interpolate a pre-calculated lookup table to a new Young's Modulus.<br>Note that the poisson ratio for the fiber material model is always 0.25 for the linear case.").addToLayout()
+                    self.label = QtWidgets.QLabel(
+                        "Interpolate a pre-calculated lookup table to a new Young's Modulus.<br>Note that the poisson ratio for the fiber material model is always 0.25 for the linear case."
+                    ).addToLayout()
                     self.label = QtWidgets.QLabel("Select a path where to save the Lookup Table.").addToLayout()
-                    self.inputText = QtShortCuts.QInputFilename(None, "Output Lookup Table", 'lookup_example.npy',
-                                                                file_type="Numpy Lookup Table (*.npy)",
-                                                                settings=settings,
-                                                                settings_key="batch/lookuptable_path",
-                                                                existing=False)
+                    self.inputText = QtShortCuts.QInputFilename(
+                        None,
+                        "Output Lookup Table",
+                        "lookup_example.npy",
+                        file_type="Numpy Lookup Table (*.npy)",
+                        settings=settings,
+                        settings_key="batch/lookuptable_path",
+                        existing=False,
+                    )
                     # self.inputText.valueChanged.connect(self.path_changed)
                     with QtShortCuts.QHBoxLayout() as layout2:
                         layout2.addStretch()
@@ -332,11 +370,14 @@ class SelectLookup(QtWidgets.QDialog):
                 if not filename.endswith(".npy"):
                     filename = filename + ".npy"
                     self.inputText.setValue(filename)
-                jf.simulation.linear_lookup_interpolator(emodulus=self.youngs.value(),
-                                                         output_newtable=filename)
-                QtWidgets.QMessageBox.information(self, "Lookup complete",
-                                                  f"A lookuptable file for a Young's Modulus {self.youngs.value()} has been written to {self.inputText.value()}.")
+                jf.simulation.linear_lookup_interpolator(emodulus=self.youngs.value(), output_newtable=filename)
+                QtWidgets.QMessageBox.information(
+                    self,
+                    "Lookup complete",
+                    f"A lookuptable file for a Young's Modulus {self.youngs.value()} has been written to {self.inputText.value()}.",
+                )
                 self.accept()
+
         dialog = LookupTableDialog(self)
 
         if not dialog.exec():
@@ -351,16 +392,20 @@ class SelectLookup(QtWidgets.QDialog):
             [w.setDisabled(False) for w in self.to_disabled]
             self.canvas.setActive()
             plt.clf()
-            figure = jf.simulation.plot_lookup_table(str(self.result),
-                                                     pressure=[float(self.p0.value()), float(self.p1.value())],
-                                                     distance=[float(self.d1.value()), float(self.d2.value())],
-                                                     figure=self.canvas.figure, show=False)
+            figure = jf.simulation.plot_lookup_table(
+                str(self.result),
+                pressure=[float(self.p0.value()), float(self.p1.value())],
+                distance=[float(self.d1.value()), float(self.d2.value())],
+                figure=self.canvas.figure,
+                show=False,
+            )
             self.canvas.draw()
         except Exception as err:
             [w.setDisabled(True) for w in self.to_disabled]
             raise
 
     result = None
+
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Select Lookup Table")
@@ -375,7 +420,10 @@ class SelectLookup(QtWidgets.QDialog):
                 self.button_addList = QtShortCuts.QPushButton(None, "Generate\nLinear Lookup Table", self.loadLinear)
                 self.button_addList.setMinimumSize(100, 100)
             self.label_input = QtWidgets.QLabel("").addToLayout()
-            with QtShortCuts.QGroupBox(None, "Lookup Table Preview Plot") as (self.plot_preview, _):
+            with QtShortCuts.QGroupBox(None, "Lookup Table Preview Plot") as (
+                self.plot_preview,
+                _,
+            ):
                 with QtShortCuts.QVBoxLayout():
                     self.canvas = MatplotlibWidget(self).addToLayout()
                     self.toolbar = NavigationToolbar(self.canvas, self).addToLayout()
@@ -391,9 +439,17 @@ class SelectLookup(QtWidgets.QDialog):
                 self.button_cancel = QtShortCuts.QPushButton(None, "cancel", self.reject)
                 self.button_ok = QtShortCuts.QPushButton(None, "ok", self.accept)
 
-        self.to_disabled = [self.canvas, self.toolbar, self.p0, self.p1, self.d1, self.d2, self.replot, self.button_ok]
+        self.to_disabled = [
+            self.canvas,
+            self.toolbar,
+            self.p0,
+            self.p1,
+            self.d1,
+            self.d2,
+            self.replot,
+            self.button_ok,
+        ]
         [w.setDisabled(True) for w in self.to_disabled]
-
 
 
 class SelectOrGenerateLookupTable(QtWidgets.QWidget):

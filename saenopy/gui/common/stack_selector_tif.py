@@ -12,8 +12,8 @@ from saenopy.stack import read_tiff
 from typing import List
 
 
-voxel_size_file = Path(appdirs.user_data_dir("saenopy", "rgerum")) / 'voxel_sizes.txt'
-time_delta_file = Path(appdirs.user_data_dir("saenopy", "rgerum")) / 'time_deltas.txt'
+voxel_size_file = Path(appdirs.user_data_dir("saenopy", "rgerum")) / "voxel_sizes.txt"
+time_delta_file = Path(appdirs.user_data_dir("saenopy", "rgerum")) / "time_deltas.txt"
 
 
 def get_last_voxel_sizes() -> List:
@@ -54,8 +54,8 @@ def add_last_voxel_size(size: List) -> None:
         for s in new_sizes[:5]:
             fp.write(s)
             fp.write("\n")
-          
-                
+
+
 def get_last_time_deltas() -> List:
     if not time_delta_file.exists():
         return []
@@ -131,7 +131,12 @@ class StackSelectorTif(QtWidgets.QWidget):
         self.stack_obj = []
 
     def checkAcceptFilename(self, filename):
-        return filename.endswith(".tif") or filename.endswith(".png") or filename.endswith(".jpg") or filename.endswith(".jpeg")
+        return (
+            filename.endswith(".tif")
+            or filename.endswith(".png")
+            or filename.endswith(".jpg")
+            or filename.endswith(".jpeg")
+        )
 
     def setImage(self, filename):
         # get the list of similar filenames
@@ -165,7 +170,7 @@ class StackSelectorTif(QtWidgets.QWidget):
                 with tifffile.TiffReader(file) as tif:
                     for page in range(0, len(tif.pages)):
                         prop["tiff pages"] = page
-                        prop["filename"] = str(file)+f"[{page}]"
+                        prop["filename"] = str(file) + f"[{page}]"
                         properties.append(prop.copy())
             else:
                 properties.append(prop.copy())
@@ -175,7 +180,7 @@ class StackSelectorTif(QtWidgets.QWidget):
 
         for key, value in selected_prop.items():
             if key in df.columns:
-                self.format_template = self.format_template.replace("*", "{"+key+"}", 1)
+                self.format_template = self.format_template.replace("*", "{" + key + "}", 1)
 
         for col in df.columns:
             if len(df[col].unique()) == 1 and col != "filename":
@@ -195,7 +200,12 @@ class StackSelectorTif(QtWidgets.QWidget):
                 continue
             names.append(col)
 
-            prop = QtShortCuts.QInputChoice(self.property_layout, col, str(selected_prop[col]), natsort.natsorted([str(i) for i in df[col].unique()]))
+            prop = QtShortCuts.QInputChoice(
+                self.property_layout,
+                col,
+                str(selected_prop[col]),
+                natsort.natsorted([str(i) for i in df[col].unique()]),
+            )
             prop.valueChanged.connect(self.propertiesChanged)
             prop.name = col
             prop.check = QtShortCuts.QInputBool(prop.layout(), "all", False)
@@ -213,10 +223,10 @@ class StackSelectorTif(QtWidgets.QWidget):
 
         self.z_prop.setValues(properties)
         self.z_prop.setValue(z_name)
-        self.c_prop.setValues(["None"]+properties)
+        self.c_prop.setValues(["None"] + properties)
         self.c_prop.setValue("None")
         if self.use_time:
-            self.t_prop.setValues(["None"]+properties)
+            self.t_prop.setValues(["None"] + properties)
             self.t_prop.setValue("None")
 
         self.setVisible(True)
@@ -244,7 +254,7 @@ class StackSelectorTif(QtWidgets.QWidget):
                 prop.setEnabled(True)
             d = d[d[prop.name] == prop.value()]
             if c_prop_name == prop.name:
-                selected_props_dict[prop.name] = "{c:"+str(prop.value())+"}"
+                selected_props_dict[prop.name] = "{c:" + str(prop.value()) + "}"
                 continue
             if prop.check.value() is True:
                 selected_props_dict[prop.name] = "*"
@@ -253,6 +263,7 @@ class StackSelectorTif(QtWidgets.QWidget):
 
         self.stack_obj = []
         from saenopy.stack import Stack
+
         if not self.use_time or t_prop_name == "None":
             d = d.sort_values(z_prop_name, key=natsort.natsort_keygen())
             self.stack_obj = [Stack("", (1, 1, 1), {}, image_filenames=[[str(f)] for f in d.filename])]
@@ -270,11 +281,11 @@ class StackSelectorTif(QtWidgets.QWidget):
         elif z_prop_name == "tiff pages":
             self.target_glob += "[t]"
         elif ("tiff pages" in selected_props_dict) and (selected_props_dict["tiff pages"] != 0):
-            self.target_glob += f'[{selected_props_dict["tiff pages"]}]'
+            self.target_glob += f"[{selected_props_dict['tiff pages']}]"
         self.parent_selector.stack_changed.emit()
-        self.parent_selector.glob_string_changed.emit('getstack', self.target_glob)
+        self.parent_selector.glob_string_changed.emit("getstack", self.target_glob)
 
-        #self.parent_selector.setZCount(len(d))
+        # self.parent_selector.setZCount(len(d))
         self.d = d
         im = read_tiff(d.iloc[0].filename)
         if len(im.shape) == 3:

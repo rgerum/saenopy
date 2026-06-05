@@ -12,10 +12,8 @@ from saenopy.saveable import Saveable
 from saenopy.result_file import make_path_absolute, make_path_relative
 
 
-
 class Mesh2D:
     pass
-
 
 
 class PivParametersDict(TypedDict):
@@ -31,7 +29,7 @@ class ForceParametersDict(TypedDict):
     lookup_table: Union[str, None]
     r_min: Union[float, None]
     r_max: Union[float, None]
-    
+
 
 class SegmentationDict(TypedDict):
     mask: np.ndarray
@@ -52,22 +50,34 @@ class ResDict(TypedDict):
 
 
 class ResultSpheroid(Saveable):
-    __save_parameters__ = ['template', 'images', 'output', 'pixel_size', 'time_delta',
-                           'thresh_segmentation', 'continuous_segmentation',
-                           'custom_mask', 'n_min', 'n_max', 'shape',
-
-                           'piv_parameters', 'force_parameters',
-
-                           'segmentations', 'displacements',
-                            'res_data', 'res_angles',
-                           '___save_name__', '___save_version__']
+    __save_parameters__ = [
+        "template",
+        "images",
+        "output",
+        "pixel_size",
+        "time_delta",
+        "thresh_segmentation",
+        "continuous_segmentation",
+        "custom_mask",
+        "n_min",
+        "n_max",
+        "shape",
+        "piv_parameters",
+        "force_parameters",
+        "segmentations",
+        "displacements",
+        "res_data",
+        "res_angles",
+        "___save_name__",
+        "___save_version__",
+    ]
     ___save_name__ = "ResultSpheroid"
     ___save_version__ = "1.1"
 
     template: str = None
     images: List[str] = None
     output: str = None
-    state : bool = False
+    state: bool = False
 
     pixel_size: float = None
     time_delta: float = None
@@ -160,7 +170,7 @@ class ResultSpheroid(Saveable):
                     "unit": "pixel",
                     "name": "displacements_measured",
                 }
-            }
+            },
         }
 
     def get_image_data(self, time_point, channel="default", use_reference=False, return_filename=False):
@@ -207,14 +217,20 @@ def fig_to_numpy(fig1, shape):
         buff.seek(0)
         return plt.imread(buff)
 
+
 import glob
 from pathlib import Path
 import os
-def get_stacks_spheroid(input_path, output_path,
-               pixel_size=None,
-               time_delta=None,
-               exist_overwrite_callback=None,
-               load_existing=False) -> List[ResultSpheroid]:
+
+
+def get_stacks_spheroid(
+    input_path,
+    output_path,
+    pixel_size=None,
+    time_delta=None,
+    exist_overwrite_callback=None,
+    load_existing=False,
+) -> List[ResultSpheroid]:
     text = os.path.normpath(input_path)
     glob_string = text.replace("?", "*")
     files = natsorted(glob.glob(glob_string))
@@ -234,7 +250,7 @@ def get_stacks_spheroid(input_path, output_path,
         for element in match:
             reconstructed_file = reconstructed_file.replace("(.*)", element, 1)
         reconstructed_file = reconstructed_file.replace(".*", "*")
-        reconstructed_file = re.sub(r'\\(.)', r'\1', reconstructed_file)
+        reconstructed_file = re.sub(r"\\(.)", r"\1", reconstructed_file)
 
         if reconstructed_file not in data_dict:
             output = Path(output_path) / os.path.relpath(reconstructed_file.replace("*", "{t}"), output_base)

@@ -94,7 +94,13 @@ class BatchEvaluateBase(QtWidgets.QWidget):
             with QtShortCuts.QSplitter() as lay:
                 with QtShortCuts.QVBoxLayout() as layout:
                     layout.setContentsMargins(0, 0, 0, 0)
-                    self.list = ListWidget(None, add_item_button="add measurements", copy_params=True, allow_paste_callback=self.allow_paste, copy_to_callback=self.get_copy_to_menu)
+                    self.list = ListWidget(
+                        None,
+                        add_item_button="add measurements",
+                        copy_params=True,
+                        allow_paste_callback=self.allow_paste,
+                        copy_to_callback=self.get_copy_to_menu,
+                    )
                     layout.addWidget(self.list, 2)
                     self.list.addItemClicked.connect(self.add_measurement)
                     self.list.signal_act_copy_clicked.connect(self.copy_params)
@@ -128,7 +134,11 @@ class BatchEvaluateBase(QtWidgets.QWidget):
                         if getattr(self, "generate_data", None):
                             self.button_excel = QtShortCuts.QPushButton(None, "export data", self.generate_data)
                         if getattr(self, "sub_module_export", None):
-                            self.button_export = QtShortCuts.QPushButton(None, "export images", lambda x: self.sub_module_export.show_window())
+                            self.button_export = QtShortCuts.QPushButton(
+                                None,
+                                "export images",
+                                lambda x: self.sub_module_export.show_window(),
+                            )
 
         self.data = []
         self.list.setData(self.data)
@@ -141,7 +151,7 @@ class BatchEvaluateBase(QtWidgets.QWidget):
         self.signal_task_finished.connect(self.run_finished)
 
         # disable all tabs
-        for i in range(self.tabs.count()-1, -1, -1):
+        for i in range(self.tabs.count() - 1, -1, -1):
             self.tabs.setTabEnabled(i, False)
 
         # load paths
@@ -157,7 +167,7 @@ class BatchEvaluateBase(QtWidgets.QWidget):
 
     def copy_params(self):
         result = self.list.data[self.list.currentRow()][2]
-        params = {name: getattr(result, name+"_tmp") for name in self.result_params}
+        params = {name: getattr(result, name + "_tmp") for name in self.result_params}
         print(params)
         for group in params:
             if params[group] is None:
@@ -195,7 +205,7 @@ class BatchEvaluateBase(QtWidgets.QWidget):
         params = self.result_params
         for par in params:
             if par in data:
-                setattr(result, par+"_tmp", data[par])
+                setattr(result, par + "_tmp", data[par])
         self.set_current_result.emit(result)
 
     def paste_params2(self):
@@ -238,7 +248,9 @@ class BatchEvaluateBase(QtWidgets.QWidget):
                 return
         except IndexError:
             return
-        new_path = QtWidgets.QFileDialog.getSaveFileName(None, "Save Session as Script", os.getcwd(), "Python File (*.py)")[0]
+        new_path = QtWidgets.QFileDialog.getSaveFileName(
+            None, "Save Session as Script", os.getcwd(), "Python File (*.py)"
+        )[0]
         if new_path:
             # ensure filename ends in .py
             if not new_path.endswith(".py"):
@@ -249,9 +261,9 @@ class BatchEvaluateBase(QtWidgets.QWidget):
             for module in self.modules:
                 code1, code2 = module.get_code()
                 import_code += code1
-                run_code += code2 +"\n"
+                run_code += code2 + "\n"
             run_code = import_code + "\n\n" + run_code
-            #print(run_code)
+            # print(run_code)
             with open(new_path, "w") as fp:
                 fp.write(run_code)
 
@@ -307,7 +319,6 @@ class BatchEvaluateBase(QtWidgets.QWidget):
     def dropEvent(self, event: QtCore.QEvent):
         urls = []
         for url in event.mimeData().urls():
-
             url = url.toLocalFile()  # path()
 
             if url[0] == "/" and url[2] == ":":
@@ -342,14 +353,14 @@ class BatchEvaluateBase(QtWidgets.QWidget):
                 except Exception as err:
                     QtWidgets.QMessageBox.critical(self, "Open Files", f"File {p} is not a valid Saenopy file.")
                     traceback.print_exc()
-        #self.update_icons()
+        # self.update_icons()
 
     def add_data(self, data):
         self.list.addData(data.output, True, data, mpl.colors.to_hex(f"gray"))
         self.list.setCurrentRow(len(self.data) - 1)
 
     def update_icons(self):
-        for j in range(self.list.count( ) -1):
+        for j in range(self.list.count() - 1):
             if self.data[j][2].state is True:
                 self.list.item(j).setIcon(qta.icon("fa5s.hourglass-half", options=[dict(color="orange")]))
             else:

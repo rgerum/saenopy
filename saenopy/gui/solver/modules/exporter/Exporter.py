@@ -19,7 +19,10 @@ from saenopy.gui.common import QtShortCuts, QExtendedGraphicsView
 from saenopy.gui.common.resources import resource_path
 from saenopy.gui.solver.modules.exporter.FiberViewer import ChannelProperties
 from saenopy.gui.solver.modules.exporter.ExporterRender3D import render_3d
-from saenopy.gui.solver.modules.exporter.ExporterRender2D import render_2d, render_2d_colorbar
+from saenopy.gui.solver.modules.exporter.ExporterRender2D import (
+    render_2d,
+    render_2d_colorbar,
+)
 
 from saenopy.gui.common.PipelineModule import PipelineModule
 from saenopy.gui.common.QTimeSlider import QTimeSlider
@@ -28,6 +31,7 @@ from saenopy.gui.solver.modules.VTK_Toolbar import VTK_Toolbar
 
 class Writer:
     writer = None
+
     def __init__(self, filename, fps=None, qui_parent=None):
         self.filename_base = Path(filename)
         self.fps = fps
@@ -40,28 +44,53 @@ class Writer:
                 QtWidgets.QMessageBox.critical(self.gui_parent, "Exporter", "Provide a valid filename.")
             raise FileExistsError
         if self.fps is None:
-            if self.filename_base.suffix not in [".png", ".jpg", ".jpeg", ".tif", ".tiff", ".gif"]:
+            if self.filename_base.suffix not in [
+                ".png",
+                ".jpg",
+                ".jpeg",
+                ".tif",
+                ".tiff",
+                ".gif",
+            ]:
                 if self.gui_parent is not None:
-                    QtWidgets.QMessageBox.critical(self.gui_parent, "Exporter",
-                                                   f"File extension '{self.filename_base.suffix}' is not supported for still images.")
+                    QtWidgets.QMessageBox.critical(
+                        self.gui_parent,
+                        "Exporter",
+                        f"File extension '{self.filename_base.suffix}' is not supported for still images.",
+                    )
                 raise ValueError(f"File extension '{self.filename_base.suffix}' is not supported for still images.")
         else:
             if self.filename_base.suffix in [".png", ".jpg", ".jpeg", ".tif", ".tiff"]:
                 if "{t}" not in str(self.filename_base):
-                    self.filename_base = Path(str(self.filename_base.with_suffix("")) + "_{t}" + self.filename_base.suffix)
+                    self.filename_base = Path(
+                        str(self.filename_base.with_suffix("")) + "_{t}" + self.filename_base.suffix
+                    )
             else:
                 if self.filename_base.suffix == ".gif":
                     self.writer = imageio.get_writer(self.filename_base, fps=self.fps, quantizer=2)
                 elif self.filename_base.suffix == ".avi":
-                    self.writer = imageio.get_writer(self.filename_base, fps=self.fps, format='FFMPEG',
-                                                mode='I', codec='h264_x264')
+                    self.writer = imageio.get_writer(
+                        self.filename_base,
+                        fps=self.fps,
+                        format="FFMPEG",
+                        mode="I",
+                        codec="h264_x264",
+                    )
                 elif self.filename_base.suffix == ".mp4":
-                    self.writer = imageio.get_writer(self.filename_base, fps=self.fps, format='FFMPEG',
-                                                mode='I', codec='h264_x264')
+                    self.writer = imageio.get_writer(
+                        self.filename_base,
+                        fps=self.fps,
+                        format="FFMPEG",
+                        mode="I",
+                        codec="h264_x264",
+                    )
                 else:
                     if self.gui_parent is not None:
-                        QtWidgets.QMessageBox.critical(self.gui_parent, "Exporter",
-                                                   f"File extension '{self.filename_base.suffix}' is not supported.")
+                        QtWidgets.QMessageBox.critical(
+                            self.gui_parent,
+                            "Exporter",
+                            f"File extension '{self.filename_base.suffix}' is not supported.",
+                        )
                     raise ValueError("invalid suffix")
         self.filename_base = str(self.filename_base)
         return self
@@ -99,8 +128,15 @@ def formatTimedelta(t: datetime.timedelta, fmt: str) -> str:
     hours = seconds // 3600
     minutes = (seconds % 3600) // 60
     seconds = seconds % 60
-    parts = {"d": t.days, "H": hours, "M": minutes, "S": seconds,
-             "s": t.total_seconds(), "m": t.microseconds // 1000, "f": t.microseconds}
+    parts = {
+        "d": t.days,
+        "H": hours,
+        "M": minutes,
+        "S": seconds,
+        "s": t.total_seconds(),
+        "m": t.microseconds // 1000,
+        "f": t.microseconds,
+    }
 
     max_level = None
     if fmt.find("%d") != -1:
@@ -146,19 +182,20 @@ def formatTimedelta(t: datetime.timedelta, fmt: str) -> str:
         if i == 0:
             fmt = "-" + fmt
         else:
-            fmt = fmt[:i - 1] + "-" + fmt[i:]
+            fmt = fmt[: i - 1] + "-" + fmt[i:]
     return fmt
 
 
 class ExportViewer(PipelineModule):
-
     def __init__(self, parent: "BatchEvaluate", layout):
         super().__init__(parent, layout)
         self.export_window = QtWidgets.QWidget()
 
         if parent is None:
+
             class Null:
                 pass
+
             self.parent = Null()
             self.parent.shared_properties = Null()
             self.parent.shared_properties.add_property = lambda *args: None
@@ -180,20 +217,33 @@ class ExportViewer(PipelineModule):
 
                 with QtShortCuts.QGroupBox(None, "image dimensions"):
                     with QtShortCuts.QHBoxLayout():
-                        self.input_scale = QtShortCuts.QInputNumber(None, "scale", 1, min=0.1, max=10,
-                                                                    use_slider=True, log_slider=True)
+                        self.input_scale = QtShortCuts.QInputNumber(
+                            None,
+                            "scale",
+                            1,
+                            min=0.1,
+                            max=10,
+                            use_slider=True,
+                            log_slider=True,
+                        )
                         self.input_scale.valueChanged.connect(self.update_display)
 
                         self.input_antialiase = QtShortCuts.QInputBool(None, "antialiasing", True)
                         self.input_antialiase.valueChanged.connect(self.update_display)
 
-
                     with QtShortCuts.QHBoxLayout():
                         self.input_width = QtShortCuts.QInputNumber(None, "width", 1024, float=False)
                         self.input_height = QtShortCuts.QInputNumber(None, "height", 768, float=False)
 
-                        self.input_scale_overlay = QtShortCuts.QInputNumber(None, "scale overlay", 1, min=0.1, max=10,
-                                                                            use_slider=True, log_slider=True)
+                        self.input_scale_overlay = QtShortCuts.QInputNumber(
+                            None,
+                            "scale overlay",
+                            1,
+                            min=0.1,
+                            max=10,
+                            use_slider=True,
+                            log_slider=True,
+                        )
                         self.input_scale_overlay.valueChanged.connect(self.update_display)
 
                         self.input_logosize = QtShortCuts.QInputNumber(None, "logo size", 200, float=False, step=10)
@@ -202,7 +252,7 @@ class ExportViewer(PipelineModule):
                         self.input_logosize.valueChanged.connect(self.update_display)
 
                 with QtShortCuts.QHBoxLayout():
-                    self.plotter = pyvista.Plotter(off_screen=True, line_smoothing=True) # multi_samples=4
+                    self.plotter = pyvista.Plotter(off_screen=True, line_smoothing=True)  # multi_samples=4
 
                     self.view1 = QExtendedGraphicsView.QExtendedGraphicsView().addToLayout()
                     self.view1.setMinimumWidth(700)
@@ -211,16 +261,25 @@ class ExportViewer(PipelineModule):
                     self.pixmap1.sceneEventOrig = self.pixmap1.sceneEvent
                     self.pixmap1.sceneEvent = self.sceneEventFilter
 
-                    #self.widget_settings = QtWidgets.QWidget().addToLayout()
-                    #self.widget_settings.setMaximumWidth(700)
-                    #self.widget_settings.setMinimumWidth(700)
+                    # self.widget_settings = QtWidgets.QWidget().addToLayout()
+                    # self.widget_settings.setMaximumWidth(700)
+                    # self.widget_settings.setMinimumWidth(700)
 
                     shared_properties = getattr(self.parent, "shared_properties", None)
-                    self.vtk_toolbar = VTK_Toolbar(self.plotter, self.update_display,
-                                                   shared_properties=shared_properties)  # .addToLayout()
-                    self.vtk_toolbar2 = VTK_Toolbar(self.plotter, self.update_display, center=True,
-                                                    shared_properties=shared_properties)  # .addToLayout()
-                    self.z_slider = QTimeSlider("z", self.update_display, "set z position", QtCore.Qt.Vertical).addToLayout()
+                    self.vtk_toolbar = VTK_Toolbar(
+                        self.plotter,
+                        self.update_display,
+                        shared_properties=shared_properties,
+                    )  # .addToLayout()
+                    self.vtk_toolbar2 = VTK_Toolbar(
+                        self.plotter,
+                        self.update_display,
+                        center=True,
+                        shared_properties=shared_properties,
+                    )  # .addToLayout()
+                    self.z_slider = QTimeSlider(
+                        "z", self.update_display, "set z position", QtCore.Qt.Vertical
+                    ).addToLayout()
                 self.t_slider = QTimeSlider(connected=self.update_display).addToLayout()
             self.widget_settings = QtWidgets.QWidget().addToLayout()
             self.widget_settings.setMaximumWidth(700)
@@ -229,15 +288,39 @@ class ExportViewer(PipelineModule):
                 QtShortCuts.currentLayout().setContentsMargins(0, 0, 0, 0)
                 with QtShortCuts.QGroupBox(None, "camera") as (self.box_camera, _):
                     with QtShortCuts.QHBoxLayout() as layout:
-                        self.input_elevation = QtShortCuts.QInputNumber(None, "elevation", 35, min=-90, max=90, use_slider=True, step=10)
-                        self.input_azimuth = QtShortCuts.QInputNumber(None, "azimuth", 45, min=-180, max=180, use_slider=True, step=10)
-                        self.input_distance = QtShortCuts.QInputNumber(None, "distance", 0, min=0, float=False, step=100)
+                        self.input_elevation = QtShortCuts.QInputNumber(
+                            None,
+                            "elevation",
+                            35,
+                            min=-90,
+                            max=90,
+                            use_slider=True,
+                            step=10,
+                        )
+                        self.input_azimuth = QtShortCuts.QInputNumber(
+                            None,
+                            "azimuth",
+                            45,
+                            min=-180,
+                            max=180,
+                            use_slider=True,
+                            step=10,
+                        )
+                        self.input_distance = QtShortCuts.QInputNumber(
+                            None, "distance", 0, min=0, float=False, step=100
+                        )
 
                         self.input_elevation.valueChanged.connect(self.render_view)
                         self.input_azimuth.valueChanged.connect(self.render_view)
                         self.input_distance.valueChanged.connect(self.render_view)
 
-                        QtShortCuts.QPushButton(None, "", connect=self.reset, icon=qta.icon("fa5s.home"), tooltip="reset view")
+                        QtShortCuts.QPushButton(
+                            None,
+                            "",
+                            connect=self.reset,
+                            icon=qta.icon("fa5s.home"),
+                            tooltip="reset view",
+                        )
                     with QtShortCuts.QHBoxLayout() as layout:
                         self.input_offset_x = QtShortCuts.QInputNumber(None, "offset x", 0, float=False, step=10)
                         self.input_offset_y = QtShortCuts.QInputNumber(None, "offset y", 0, float=False, step=10)
@@ -255,38 +338,67 @@ class ExportViewer(PipelineModule):
                         QtShortCuts.currentLayout().addStretch()
 
                 with QtShortCuts.QHBoxLayout() as layout:
-                    self.input_arrows = QtShortCuts.QInputChoice(None, "arrows", "piv", values=["None", "piv", "target deformations", "fitted deformations", "fitted forces"])
+                    self.input_arrows = QtShortCuts.QInputChoice(
+                        None,
+                        "arrows",
+                        "piv",
+                        values=[
+                            "None",
+                            "piv",
+                            "target deformations",
+                            "fitted deformations",
+                            "fitted forces",
+                        ],
+                    )
                     self.input_arrows.valueChanged.connect(self.update_display)
                     self.input_arrows.valueChanged.connect(self.hide_arrow)
-                    self.input_average_range = QtShortCuts.QInputNumber(None, "averaging z thickness +/-", min=0, max=0,
-                                                                        step=10, unit="µm")
+                    self.input_average_range = QtShortCuts.QInputNumber(
+                        None,
+                        "averaging z thickness +/-",
+                        min=0,
+                        max=0,
+                        step=10,
+                        unit="µm",
+                    )
                     self.input_average_range.valueChanged.connect(self.update_display)
                     QtShortCuts.currentLayout().addStretch()
 
                 with QtShortCuts.QHBoxLayout() as layout:
-                    with QtShortCuts.QGroupBox(None, "deformation arrows") as (self.box_deformation_arrows, _):
+                    with QtShortCuts.QGroupBox(None, "deformation arrows") as (
+                        self.box_deformation_arrows,
+                        _,
+                    ):
                         with QtShortCuts.QHBoxLayout() as layout:
                             self.vtk_toolbar.auto_scale.addToLayout()
                             self.vtk_toolbar.scale_max.addToLayout()
-                            self.input_arrow_opacity = QtShortCuts.QInputNumber(None, "opacity", 1, min=0, max=1, float=True, step=0.1)
+                            self.input_arrow_opacity = QtShortCuts.QInputNumber(
+                                None, "opacity", 1, min=0, max=1, float=True, step=0.1
+                            )
                             self.input_arrow_opacity.valueChanged.connect(self.update_display)
-                            self.input_arrow_skip = QtShortCuts.QInputNumber(None, "skip", 1, min=1, max=10, float=False)
+                            self.input_arrow_skip = QtShortCuts.QInputNumber(
+                                None, "skip", 1, min=1, max=10, float=False
+                            )
                             self.input_arrow_skip.valueChanged.connect(self.update_display)
                         self.vtk_toolbar.colormap_chooser.addToLayout()
 
                         self.vtk_toolbar.arrow_scale.addToLayout()
 
-                    with QtShortCuts.QGroupBox(None, "force arrows") as (self.box_force_arrows, _):
+                    with QtShortCuts.QGroupBox(None, "force arrows") as (
+                        self.box_force_arrows,
+                        _,
+                    ):
                         with QtShortCuts.QHBoxLayout() as layout:
                             self.vtk_toolbar2.auto_scale.addToLayout()
                             self.vtk_toolbar2.scale_max.addToLayout()
                             self.vtk_toolbar2.use_center.addToLayout()
                             self.vtk_toolbar2.use_log.addToLayout()
-                            self.input_arrow_opacity2 = QtShortCuts.QInputNumber(None, "opacity", 1, min=0, max=1,
-                                                                                float=True, step=0.1)
+                            self.input_arrow_opacity2 = QtShortCuts.QInputNumber(
+                                None, "opacity", 1, min=0, max=1, float=True, step=0.1
+                            )
                             self.input_arrow_opacity2.valueChanged.connect(self.update_display)
-                            self.input_arrow_skip2 = QtShortCuts.QInputNumber(None, "skip", 1, min=1, max=10,
-                                                                             float=False)
+                            self.input_arrow_skip2 = QtShortCuts.QInputNumber(
+                                None, "skip", 1, min=1, max=10, float=False
+                            )
                             self.input_arrow_skip2.valueChanged.connect(self.update_display)
                         self.vtk_toolbar2.colormap_chooser.addToLayout()
                         self.vtk_toolbar2.arrow_scale.addToLayout()
@@ -298,7 +410,10 @@ class ExportViewer(PipelineModule):
                     QtShortCuts.currentLayout().addStretch()
 
                 with QtShortCuts.QHBoxLayout() as layout:
-                    with QtShortCuts.QGroupBox(None, "map properties") as (self.box_map_properties, _):
+                    with QtShortCuts.QGroupBox(None, "map properties") as (
+                        self.box_map_properties,
+                        _,
+                    ):
                         self.colormap_maps = QtShortCuts.QDragableColor("turbo").addToLayout()
                         self.colormap_maps.valueChanged.connect(self.update_display)
 
@@ -320,8 +435,14 @@ class ExportViewer(PipelineModule):
                         self.stack_alpha.valueChanged.connect(self.update_display)
 
                         QtShortCuts.QVLine().addToLayout()
-                        self.channel_selectB = QtShortCuts.QInputChoice(None, "", "", [""], ["       "],
-                                                                       tooltip="From which channel to display the stack image.")
+                        self.channel_selectB = QtShortCuts.QInputChoice(
+                            None,
+                            "",
+                            "",
+                            [""],
+                            ["       "],
+                            tooltip="From which channel to display the stack image.",
+                        )
                         self.channel_selectB.valueChanged.connect(self.update_display)
                         self.colormap_chooserB = QtShortCuts.QDragableColor("gray").addToLayout()
                         self.colormap_chooserB.valueChanged.connect(self.update_display)
@@ -333,7 +454,9 @@ class ExportViewer(PipelineModule):
                     with QtShortCuts.QHBoxLayout():
                         self.input_scalebar_hide = QtShortCuts.QInputBool(None, "hide", False)
                         self.input_scalebar_hide.valueChanged.connect(self.update_display)
-                        self.input_scalebar_um = QtShortCuts.QInputNumber(None, "length", 0, min=0, max=10000, unit="µm")
+                        self.input_scalebar_um = QtShortCuts.QInputNumber(
+                            None, "length", 0, min=0, max=10000, unit="µm"
+                        )
                         self.input_scalebar_um.valueChanged.connect(self.update_display)
                         self.input_scalebar_width = QtShortCuts.QInputNumber(None, "width", 5, min=0, max=100)
                         self.input_scalebar_width.valueChanged.connect(self.update_display)
@@ -361,7 +484,10 @@ class ExportViewer(PipelineModule):
                         self.input_colorbar_fontsize.valueChanged.connect(self.update_display)
                         self.input_colorbar_fontsize.addToLayout()
 
-                with QtShortCuts.QGroupBox(None, "2D arrrows") as (self.box_2darrows, _):
+                with QtShortCuts.QGroupBox(None, "2D arrrows") as (
+                    self.box_2darrows,
+                    _,
+                ):
                     with QtShortCuts.QHBoxLayout():
                         self.input_2darrow_width = QtShortCuts.QInputNumber(None, "width", 2, min=0, max=100)
                         self.input_2darrow_width.valueChanged.connect(self.update_display)
@@ -370,7 +496,10 @@ class ExportViewer(PipelineModule):
                         self.input_2darrow_headwidth = QtShortCuts.QInputNumber(None, "head width", 5, min=0, max=100)
                         self.input_2darrow_headwidth.valueChanged.connect(self.update_display)
 
-                with QtShortCuts.QGroupBox(None, "fiber display") as (self.box_fiberdisplay, _):
+                with QtShortCuts.QGroupBox(None, "fiber display") as (
+                    self.box_fiberdisplay,
+                    _,
+                ):
                     with QtShortCuts.QHBoxLayout():
                         QtShortCuts.currentLayout().setContentsMargins(0, 0, 0, 0)
                         self.channel0_properties = ChannelProperties().addToLayout()
@@ -413,10 +542,14 @@ class ExportViewer(PipelineModule):
                     self.time_size.valueChanged.connect(self.update_display)
 
                 with QtShortCuts.QHBoxLayout():
-                    self.outputText3 = QtShortCuts.QInputFilename(None, "output",
-                                                                  file_type="Image Files (*.png, *.jpf, *.tif, *.avi, *.mp4, *.gif)",
-                                                                  settings_key="export/exportfilename",
-                                                                  allow_edit=True, existing=False)
+                    self.outputText3 = QtShortCuts.QInputFilename(
+                        None,
+                        "output",
+                        file_type="Image Files (*.png, *.jpf, *.tif, *.avi, *.mp4, *.gif)",
+                        settings_key="export/exportfilename",
+                        allow_edit=True,
+                        existing=False,
+                    )
                     self.button_export = QtShortCuts.QPushButton(None, "export single image", self.do_export)
                 with QtShortCuts.QHBoxLayout():
                     with QtShortCuts.QVBoxLayout():
@@ -425,11 +558,15 @@ class ExportViewer(PipelineModule):
                             self.time_fps = QtShortCuts.QInputNumber(None, "fps", 1)
                             self.time_steps = QtShortCuts.QInputNumber(None, "steps", 1, float=False)
                     with QtShortCuts.QVBoxLayout():
-                        self.button_export_reference = QtShortCuts.QPushButton(None, "export state/reference", self.do_export_reference)
+                        self.button_export_reference = QtShortCuts.QPushButton(
+                            None, "export state/reference", self.do_export_reference
+                        )
                         with QtShortCuts.QHBoxLayout():
                             self.reference_fps = QtShortCuts.QInputNumber(None, "fps", 1)
                     with QtShortCuts.QVBoxLayout():
-                        self.button_export_rotate = QtShortCuts.QPushButton(None, "export rotate", self.do_export_rotate)
+                        self.button_export_rotate = QtShortCuts.QPushButton(
+                            None, "export rotate", self.do_export_rotate
+                        )
                         with QtShortCuts.QHBoxLayout():
                             self.rotate_fps = QtShortCuts.QInputNumber(None, "fps", 10)
                             self.rotate_steps = QtShortCuts.QInputNumber(None, "steps", 5, float=False)
@@ -452,7 +589,6 @@ class ExportViewer(PipelineModule):
                 "antialiase": self.input_antialiase,
                 "scale_overlay": self.input_scale_overlay,
             },
-
             "camera": {
                 "elevation": self.input_elevation,
                 "azimuth": self.input_azimuth,
@@ -461,14 +597,11 @@ class ExportViewer(PipelineModule):
                 "offset_y": self.input_offset_y,
                 "roll": self.input_roll,
             },
-
             "theme": self.vtk_toolbar.theme,
             "show_grid": self.vtk_toolbar.show_grid,
             "use_nans": self.vtk_toolbar.use_nans,
-
             "arrows": self.input_arrows,
             "averaging_size": self.input_average_range,
-
             "deformation_arrows": {
                 "autoscale": self.vtk_toolbar.auto_scale,
                 "scale_max": self.vtk_toolbar.scale_max,
@@ -477,7 +610,6 @@ class ExportViewer(PipelineModule):
                 "arrow_opacity": self.input_arrow_opacity,
                 "skip": self.input_arrow_skip,
             },
-
             "force_arrows": {
                 "autoscale": self.vtk_toolbar2.auto_scale,
                 "scale_max": self.vtk_toolbar2.scale_max,
@@ -488,11 +620,9 @@ class ExportViewer(PipelineModule):
                 "arrow_opacity": self.input_arrow_opacity2,
                 "skip": self.input_arrow_skip2,
             },
-
             "maps": self.input_maps,
             "maps_cmap": self.colormap_maps,
             "maps_alpha": self.maps_scale,
-
             "stack": {
                 "image": self.vtk_toolbar.show_image,
                 "channel": self.vtk_toolbar.channel_select,
@@ -507,7 +637,6 @@ class ExportViewer(PipelineModule):
                 "colormap_B": self.colormap_chooserB,
                 "alpha_B": self.stack_alphaB,
             },
-
             "scalebar": {
                 "hide": self.input_scalebar_hide,
                 "length": self.input_scalebar_um,
@@ -516,7 +645,6 @@ class ExportViewer(PipelineModule):
                 "ypos": self.input_scalebar_ypos,
                 "fontsize": self.input_scalebar_fontsize,
             },
-
             "colorbar": {
                 "hide": self.input_colorbar_hide,
                 "length": self.input_colorbar_length,
@@ -525,24 +653,19 @@ class ExportViewer(PipelineModule):
                 "ypos": self.input_colorbar_ypos,
                 "fontsize": self.input_colorbar_fontsize,
             },
-
             "2D_arrows": {
                 "width": self.input_2darrow_width,
                 "headlength": self.input_2darrow_headlength,
                 "headheight": self.input_2darrow_headwidth,
             },
-
             "crop": {
                 "x": self.input_cropx,
                 "y": self.input_cropy,
                 "z": self.input_cropz,
             },
-
             "channel0": self.channel0_properties,
             "channel1": self.channel1_properties,
-
             "channel_thresh": self.input_thresh,
-
             "time": {
                 "t": self.t_slider,
                 "format": self.time_format,
@@ -579,17 +702,17 @@ class ExportViewer(PipelineModule):
 
         self.box_camera.setVisible(is3D)
 
-        #self.vtk_toolbar.theme.setVisible(is3D)
+        # self.vtk_toolbar.theme.setVisible(is3D)
         self.vtk_toolbar.show_grid.setVisible(is3D)
         self.vtk_toolbar.use_nans.setVisible(is3D)
 
         self.input_average_range.setVisible(is2D)
-        #self.input_arrow_skip.setVisible(is2D)
+        # self.input_arrow_skip.setVisible(is2D)
 
         self.vtk_toolbar.show_image.setVisible(is3D)
 
         self.box_scalebar.setVisible(is2D)
-        #self.box_colorbar.setVisible(is2D)
+        # self.box_colorbar.setVisible(is2D)
         self.box_2darrows.setVisible(is2D)
 
         self.box_fiberdisplay.setVisible(is3D)
@@ -668,7 +791,9 @@ class ExportViewer(PipelineModule):
     def generate_code(self):
         if self.result is None:
             return
-        new_path = QtWidgets.QFileDialog.getSaveFileName(None, "Save Session as Script", os.getcwd(), "Python File (*.py)")[0]
+        new_path = QtWidgets.QFileDialog.getSaveFileName(
+            None, "Save Session as Script", os.getcwd(), "Python File (*.py)"
+        )[0]
         if new_path:
             # ensure filename ends in .py
             if not new_path.endswith(".py"):
@@ -682,7 +807,7 @@ params = {json.dumps(self.get_parameters(), indent=2).replace("true", "True").re
 im = saenopy.render_image(params, saenopy.load("{self.result.output}"))
 plt.imsave("output.png", im)
 """
-            #print(run_code)
+            # print(run_code)
             with open(new_path, "w") as fp:
                 fp.write(run_code)
 
@@ -691,7 +816,7 @@ plt.imsave("output.png", im)
         self.render_progress.setValue(0)
         for i, value in enumerate(iter):
             yield value
-            self.render_progress.setValue(i+1)
+            self.render_progress.setValue(i + 1)
 
     def do_export(self):
         with Writer(self.outputText3.value(), None, self) as writer:
@@ -715,7 +840,7 @@ plt.imsave("output.png", im)
     def do_export_rotate(self):
         with Writer(self.outputText3.value(), self.rotate_fps.value(), self) as writer:
             azimuth = 45
-            for t in self.progress_iterator(range(azimuth, azimuth+360, self.rotate_steps.value())):
+            for t in self.progress_iterator(range(azimuth, azimuth + 360, self.rotate_steps.value())):
                 while t > 180:
                     t -= 360
                 self.input_azimuth.setValue(t)
@@ -743,8 +868,8 @@ plt.imsave("output.png", im)
                 self.input_arrows.setValue(next(iter(data["fields"].items()))[0])
             else:
                 pass
-                #for widget in [self.input_arrows, self.]
-                #self.input_arrows.setVisible(False)
+                # for widget in [self.input_arrows, self.]
+                # self.input_arrows.setVisible(False)
 
             if "maps" in data:
                 self.input_maps.setValues(["None"] + list(data["maps"].keys()))
@@ -765,7 +890,7 @@ plt.imsave("output.png", im)
                 self.zscan_steps.setEnabled(False)
             else:
                 self.z_slider.setRange(0, data["z_slices_count"] - 1)
-                self.z_slider.setValue( data["z_slices_count"] // 2)
+                self.z_slider.setValue(data["z_slices_count"] // 2)
 
             if len(data["channels"]) > 1:
                 value = self.vtk_toolbar.channel_select.value()
@@ -774,15 +899,18 @@ plt.imsave("output.png", im)
                 self.vtk_toolbar.channel_select.setVisible(True)
 
                 value = self.channel_selectB.value()
-                self.channel_selectB.setValues([-1] + list(np.arange(len(data["channels"]))),
-                                               [""] + data["channels"])
+                self.channel_selectB.setValues(
+                    [-1] + list(np.arange(len(data["channels"]))),
+                    [""] + data["channels"],
+                )
                 self.channel_selectB.setValue("")
                 self.channel_selectB.setVisible(True)
                 self.colormap_chooserB.setVisible(True)
 
                 value = self.channel1_properties.channel_select.value()
-                self.channel1_properties.channel_select.setValues(np.arange(len(data["channels"]))[1:],
-                                                                  data["channels"])
+                self.channel1_properties.channel_select.setValues(
+                    np.arange(len(data["channels"]))[1:], data["channels"]
+                )
                 self.channel1_properties.channel_select.setValue(value)
                 self.channel1_properties.channel_select.setVisible(True)
             else:
@@ -826,6 +954,7 @@ plt.imsave("output.png", im)
                     else:
                         params[name] = widget.value()
             return params
+
         params = get_params(self.parameter_map)
         for key in ("deformation_arrows", "force_arrows"):
             if params.get(key, {}).get("arrow_scale") is None:
@@ -833,6 +962,7 @@ plt.imsave("output.png", im)
         return params
 
     no_update = True
+
     def set_parameters(self, params):
 
         def set_params(params, parameter_map):
@@ -860,8 +990,10 @@ plt.imsave("output.png", im)
             self.no_update = False
 
     def get_time_text(self):
-        return formatTimedelta(datetime.timedelta(seconds=float(self.t_slider.value() * self.result.time_delta) + self.time_start.value()),
-                        self.time_format.value())
+        return formatTimedelta(
+            datetime.timedelta(seconds=float(self.t_slider.value() * self.result.time_delta) + self.time_start.value()),
+            self.time_format.value(),
+        )
 
     def get_current_arrow_data(self):
         mesh = None
@@ -886,7 +1018,10 @@ plt.imsave("output.png", im)
                     factor = 0.1 * self.vtk_toolbar.arrow_scale.value()
                     name = "displacements_measured"
                     colormap = self.vtk_toolbar.colormap_chooser.value()
-                    stack_min_max = [mesh.nodes.min(axis=0) * 1e6, mesh.nodes.max(axis=0) * 1e6]
+                    stack_min_max = [
+                        mesh.nodes.min(axis=0) * 1e6,
+                        mesh.nodes.max(axis=0) * 1e6,
+                    ]
         elif self.input_arrows.value() == "target deformations":
             M = self.result.solvers[self.t_slider.value()]
             # showVectorField2(self, M, "displacements_target")
@@ -896,7 +1031,10 @@ plt.imsave("output.png", im)
                 factor = 0.1 * self.vtk_toolbar.arrow_scale.value()
                 name = "displacements_target"
                 colormap = self.vtk_toolbar.colormap_chooser.value()
-                stack_min_max = [mesh.nodes.min(axis=0) * 1e6, mesh.nodes.max(axis=0) * 1e6]
+                stack_min_max = [
+                    mesh.nodes.min(axis=0) * 1e6,
+                    mesh.nodes.max(axis=0) * 1e6,
+                ]
         elif self.input_arrows.value() == "fitted deformations":
             M = self.result.solvers[self.t_slider.value()]
             if M is not None:
@@ -905,7 +1043,10 @@ plt.imsave("output.png", im)
                 factor = 0.1 * self.vtk_toolbar.arrow_scale.value()
                 name = "displacements"
                 colormap = self.vtk_toolbar.colormap_chooser.value()
-                stack_min_max = [mesh.nodes.min(axis=0) * 1e6, mesh.nodes.max(axis=0) * 1e6]
+                stack_min_max = [
+                    mesh.nodes.min(axis=0) * 1e6,
+                    mesh.nodes.max(axis=0) * 1e6,
+                ]
         elif self.input_arrows.value() == "fitted forces":
             M = self.result.solvers[self.t_slider.value()]
             if M is not None:
@@ -918,21 +1059,40 @@ plt.imsave("output.png", im)
                 name = "forces"
                 colormap = self.vtk_toolbar2.colormap_chooser.value()
                 scale_max = self.vtk_toolbar2.getScaleMax()
-                stack_min_max = [mesh.nodes.min(axis=0) * 1e6, mesh.nodes.max(axis=0) * 1e6]
+                stack_min_max = [
+                    mesh.nodes.min(axis=0) * 1e6,
+                    mesh.nodes.max(axis=0) * 1e6,
+                ]
                 skip = self.input_arrow_skip2.value()
         else:
             # get min/max of stack
             M = self.result.solvers[self.t_slider.value()]
             if M is not None:
                 mesh = M.mesh
-                stack_min_max = [mesh.nodes.min(axis=0) * 1e6, mesh.nodes.max(axis=0) * 1e6]
+                stack_min_max = [
+                    mesh.nodes.min(axis=0) * 1e6,
+                    mesh.nodes.max(axis=0) * 1e6,
+                ]
             else:
                 mesh = self.result.mesh_piv[self.t_slider.value()]
                 if mesh is not None:
-                    stack_min_max = [mesh.nodes.min(axis=0) * 1e6, mesh.nodes.max(axis=0) * 1e6]
+                    stack_min_max = [
+                        mesh.nodes.min(axis=0) * 1e6,
+                        mesh.nodes.max(axis=0) * 1e6,
+                    ]
                 else:
                     stack_min_max = None
-        return mesh, field, center, name, colormap, factor, scale_max, stack_min_max, skip
+        return (
+            mesh,
+            field,
+            center,
+            name,
+            colormap,
+            factor,
+            scale_max,
+            stack_min_max,
+            skip,
+        )
 
     def show_window(self):
         self.export_window.show()
@@ -969,10 +1129,17 @@ plt.imsave("output.png", im)
         tmp_file = str(target_folder / "tmp.png")
 
         if double_render is True:
-            self.plotter.show(auto_close=False, window_size=(self.input_width.value(), self.input_height.value()))
+            self.plotter.show(
+                auto_close=False,
+                window_size=(self.input_width.value(), self.input_height.value()),
+            )
         # render again to prevent potential shifts
-        im = self.plotter.show(screenshot=tmp_file, return_img=True, auto_close=False,
-                               window_size=(self.input_width.value(), self.input_height.value()))
+        im = self.plotter.show(
+            screenshot=tmp_file,
+            return_img=True,
+            auto_close=False,
+            window_size=(self.input_width.value(), self.input_height.value()),
+        )
         im = Image.open(tmp_file).convert("RGBA")
         if self.input_logosize.value() >= 10:
             if self.vtk_toolbar.theme.valueName() == "dark":
@@ -986,11 +1153,17 @@ plt.imsave("output.png", im)
 
         params = self.get_parameters()
         if params["colorbar"]["hide"] is False:
-            im = render_2d_colorbar(params, self.result, im, 1, 1,
-                                           scale_min=disp_params.get("scale_min", 0),
-                                           scale_max=disp_params.get("scale_max", 100),
-                                           colormap=disp_params.get("colormap", "turbo"),
-                                           unit=disp_params.get("scalebar_unit", "µm"))
+            im = render_2d_colorbar(
+                params,
+                self.result,
+                im,
+                1,
+                1,
+                scale_min=disp_params.get("scale_min", 0),
+                scale_max=disp_params.get("scale_max", 100),
+                colormap=disp_params.get("colormap", "turbo"),
+                unit=disp_params.get("scalebar_unit", "µm"),
+            )
 
         im = np.asarray(im)
         self.pixmap1.setPixmap(QtGui.QPixmap(array2qimage(im)))
@@ -1005,10 +1178,15 @@ plt.imsave("output.png", im)
     drag_pos3_start_roll = None
     drag_pos3_start_roll1 = None
     drag_pos4_start_scale = None
+
     def sceneEventFilter(self, event):
         if self.input_use2D.value():
             return False
-        if event.type() == QtCore.QEvent.GraphicsSceneMousePress and event.button() & QtCore.Qt.LeftButton and event.modifiers() & QtCore.Qt.ControlModifier:
+        if (
+            event.type() == QtCore.QEvent.GraphicsSceneMousePress
+            and event.button() & QtCore.Qt.LeftButton
+            and event.modifiers() & QtCore.Qt.ControlModifier
+        ):
             self.drag_pos3 = event.pos()
             self.drag_pos3_start_roll = self.input_roll.value()
             dx = event.pos().x() - self.input_width.value() / 2
@@ -1037,15 +1215,15 @@ plt.imsave("output.png", im)
             self.drag_pos4 = None
         elif event.type() == QtCore.QEvent.GraphicsSceneWheel:
             if event.delta() < 0:
-                scale = self.input_distance.value() * 1.1**(-event.delta()/120)
+                scale = self.input_distance.value() * 1.1 ** (-event.delta() / 120)
             else:
-                scale = self.input_distance.value() / 1.1**(event.delta()/120)
+                scale = self.input_distance.value() / 1.1 ** (event.delta() / 120)
             self.input_distance.setValue(scale)
             self.render_view()
         elif event.type() == QtCore.QEvent.GraphicsSceneMouseMove and self.drag_pos3:
-            dx = event.pos().x() - self.input_width.value()/2
-            dy = event.pos().y() - self.input_height.value()/2
-            angle = (np.rad2deg(-np.arctan2(dy, dx))-self.drag_pos3_start_roll1) + self.drag_pos3_start_roll
+            dx = event.pos().x() - self.input_width.value() / 2
+            dy = event.pos().y() - self.input_height.value() / 2
+            angle = (np.rad2deg(-np.arctan2(dy, dx)) - self.drag_pos3_start_roll1) + self.drag_pos3_start_roll
             self.input_roll.setValue(angle)
             self.render_view()
         elif event.type() == QtCore.QEvent.GraphicsSceneMouseMove and self.drag_pos2:
@@ -1059,8 +1237,8 @@ plt.imsave("output.png", im)
             dx = event.pos().x() - self.drag_pos.x()
             dy = event.pos().y() - self.drag_pos.y()
             dx, dy = rotate([dx, dy], -self.drag_roll)
-            #self.drag_pos = event.pos()
-            azimuth = (self.drag_azimuth - dx * 0.1)
+            # self.drag_pos = event.pos()
+            azimuth = self.drag_azimuth - dx * 0.1
 
             elevation = self.drag_elevation + dy * 0.2
             roll = self.drag_roll
@@ -1085,14 +1263,17 @@ plt.imsave("output.png", im)
             return True
         elif event.type() == QtCore.QEvent.GraphicsSceneMouseMove and self.drag_pos4:
             dy = event.pos().y() - self.drag_pos4.y()
-            scale = self.drag_pos4_start_scale * 10 ** (dy/1000)
+            scale = self.drag_pos4_start_scale * 10 ** (dy / 1000)
             self.input_distance.setValue(scale)
             self.render_view()
             return True
         return False
 
+
 app = None
 exporter = None
+
+
 def render_image(params, result):
     global app, exporter
     app = QtWidgets.QApplication.instance()

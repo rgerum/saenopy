@@ -6,7 +6,10 @@ import traceback
 
 from saenopy import get_stacks
 from saenopy.gui.common import QtShortCuts
-from saenopy.gui.common.stack_selector_tif import add_last_voxel_size, add_last_time_delta
+from saenopy.gui.common.stack_selector_tif import (
+    add_last_voxel_size,
+    add_last_time_delta,
+)
 
 from .Initializer import Initializer
 from .DeformationDetector import DeformationDetector
@@ -32,7 +35,12 @@ class BatchEvaluate(BatchEvaluateBase):
     settings_key = "Seanopy_deformation"
     file_extension = ".saenopy"
 
-    result_params = ["piv_parameters", "mesh_parameters", "material_parameters", "solve_parameters"]
+    result_params = [
+        "piv_parameters",
+        "mesh_parameters",
+        "material_parameters",
+        "solve_parameters",
+    ]
 
     def add_modules(self):
         layout0 = QtShortCuts.currentLayout()
@@ -49,7 +57,12 @@ class BatchEvaluate(BatchEvaluateBase):
         self.sub_module_regularize = Regularizer(self, layout0)
         # self.sub_module_fiber = FiberViewer(self, layout0)
         self.sub_module_export = ExportViewer(self, layout0)
-        self.modules = [self.sub_module_initializer, self.sub_module_deformation, self.sub_module_mesh, self.sub_module_regularize]
+        self.modules = [
+            self.sub_module_initializer,
+            self.sub_module_deformation,
+            self.sub_module_mesh,
+            self.sub_module_regularize,
+        ]
 
     def path_editor(self):
         result = self.list.data[self.list.currentRow()][2]
@@ -57,6 +70,7 @@ class BatchEvaluate(BatchEvaluateBase):
 
     def add_measurement(self):
         last_decision = None
+
         def do_overwrite(filename):
             nonlocal last_decision
 
@@ -153,7 +167,7 @@ class BatchEvaluate(BatchEvaluateBase):
                     data.solve_parameters = example["solve_parameters"]
                 self.add_data(data)
         elif dialog.mode == "example_evaluated":
-                self.load_from_path(dialog.examples_output)
+            self.load_from_path(dialog.examples_output)
 
         # update the icons
         self.update_icons()

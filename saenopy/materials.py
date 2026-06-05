@@ -57,6 +57,7 @@ class Material:
     """
     The base class for all material models.
     """
+
     parameters = {}
     min = -1.0
     max = 4.0
@@ -78,7 +79,12 @@ class Material:
         return sample_and_integrate_function(self.stiffness, self.min, self.max, self.step)
 
     def __str__(self):
-        return self.__class__.__name__+"("+", ".join(key+"="+str(value) for key, value in self.parameters.items())+")"
+        return (
+            self.__class__.__name__
+            + "("
+            + ", ".join(key + "=" + str(value) for key, value in self.parameters.items())
+            + ")"
+        )
 
 
 class SemiAffineFiberMaterial(Material, Saveable):
@@ -100,6 +106,7 @@ class SemiAffineFiberMaterial(Material, Saveable):
         The parameter specifying how strong the strain stiffening is. If omitted the material shows no strain
         stiffening.
     """
+
     __save_parameters__ = ["k", "d_0", "lambda_s", "d_s"]
     k: float = None
     d_0: float = None
@@ -108,17 +115,17 @@ class SemiAffineFiberMaterial(Material, Saveable):
 
     def __init__(self, k, d_0=None, lambda_s=None, d_s=None):
         super().__init__()
-        
-        if (d_0 == "None") or (d_0=="__NONE__"):
+
+        if (d_0 == "None") or (d_0 == "__NONE__"):
             d_0 = None
-        if (lambda_s == "None") or (lambda_s=="__NONE__"):
+        if (lambda_s == "None") or (lambda_s == "__NONE__"):
             lambda_s = None
-        if (d_s == "None") or (d_s=="__NONE__"):
+        if (d_s == "None") or (d_s == "__NONE__"):
             d_s = None
         # parameters
         self.k = k
         self.d_0 = d_0 if d_0 is not None and d_0 >= 0 else None
-        # buckling None (constant stiffness) and buckling zero (drop in stiffness) is not the same 
+        # buckling None (constant stiffness) and buckling zero (drop in stiffness) is not the same
         if self.d_0 is not None and self.d_0 < 1e-30:  # approximate the zero case
             self.d_0 = 1e-30
         self.lambda_s = lambda_s if lambda_s is not None and lambda_s >= 0 else None
@@ -161,8 +168,11 @@ class SemiAffineFiberMaterial(Material, Saveable):
 
         if self.d_0 is not None:
             # calculate the buckling energy
-            y[buckling] = self.k * self.d_0 ** 2 * np.exp(x[buckling] / self.d_0) - self.k * self.d_0 * x[
-                buckling] - self.k * self.d_0 ** 2
+            y[buckling] = (
+                self.k * self.d_0**2 * np.exp(x[buckling] / self.d_0)
+                - self.k * self.d_0 * x[buckling]
+                - self.k * self.d_0**2
+            )
 
         # calculate the energy in the linear range
         y[linear] = 0.5 * self.k * x[linear] ** 2
@@ -172,9 +182,14 @@ class SemiAffineFiberMaterial(Material, Saveable):
             dk = self.d_s * self.k
             sk = self.lambda_s * self.k
             d2k = self.d_s * dk
-            y[stretching] = - 0.5 * self.lambda_s ** 2 * self.k + self.d_s * self.k * self.lambda_s - d2k \
-                            + d2k * np.exp((x[stretching] - self.lambda_s) / self.d_s) - dk * x[stretching] + sk * x[
-                                stretching]
+            y[stretching] = (
+                -0.5 * self.lambda_s**2 * self.k
+                + self.d_s * self.k * self.lambda_s
+                - d2k
+                + d2k * np.exp((x[stretching] - self.lambda_s) / self.d_s)
+                - dk * x[stretching]
+                + sk * x[stretching]
+            )
 
         # return the resulting energy
         return y.reshape(x0.shape)
@@ -204,8 +219,11 @@ class SemiAffineFiberMaterial(Material, Saveable):
         # calculate the energy in the linear range
         y[linear] = self.k * x[linear]
         if self.d_s is not None and self.lambda_s is not None:
-            y[stretching] = self.k * self.lambda_s - self.d_s * self.k + self.d_s * self.k * np.exp(
-                (x[stretching] - self.lambda_s) / self.d_s)
+            y[stretching] = (
+                self.k * self.lambda_s
+                - self.d_s * self.k
+                + self.d_s * self.k * np.exp((x[stretching] - self.lambda_s) / self.d_s)
+            )
 
         # return the resulting energy
         return y.reshape(x0.shape)
@@ -217,10 +235,11 @@ class SemiAffineFiberMaterial(Material, Saveable):
         k = self.k
 
         buckling = self.d_0 is not None
-        strain_stiffening = (self.lambda_s is not None and self.d_s is not None)
+        strain_stiffening = self.lambda_s is not None and self.d_s is not None
 
         # no buckling but strain stiffening
         if not buckling and strain_stiffening:
+
             @njit(numba.core.types.containers.UniTuple(numba.float64[:, :], 3)(numba.float64[:, :]))
             def get_all(s):
                 shape = s.shape
@@ -238,12 +257,18 @@ class SemiAffineFiberMaterial(Material, Saveable):
                     if x < lambda_s:
                         stiff[i] = k
                         force[i] = k * x
-                        energy[i] = 0.5 * k * x ** 2
+                        energy[i] = 0.5 * k * x**2
                     else:
                         stiff[i] = k * np.exp((x - lambda_s) / d_s)
                         force[i] = k * lambda_s - d_s * k + d_s * k * np.exp((x - lambda_s) / d_s)
-                        energy[i] = - 0.5 * lambda_s ** 2 * k + d_s * k * lambda_s - d2k + d2k * np.exp(
-                            (x - lambda_s) / d_s) - dk * x + sk * x
+                        energy[i] = (
+                            -0.5 * lambda_s**2 * k
+                            + d_s * k * lambda_s
+                            - d2k
+                            + d2k * np.exp((x - lambda_s) / d_s)
+                            - dk * x
+                            + sk * x
+                        )
 
                 return energy.reshape(shape), force.reshape(shape), stiff.reshape(shape)
 
@@ -251,6 +276,7 @@ class SemiAffineFiberMaterial(Material, Saveable):
 
         # buckling but no strain stiffening
         if buckling and not strain_stiffening:
+
             @njit(numba.core.types.containers.UniTuple(numba.float64[:, :], 3)(numba.float64[:, :]))
             def get_all(s):
                 shape = s.shape
@@ -264,11 +290,11 @@ class SemiAffineFiberMaterial(Material, Saveable):
                     if x < 0:
                         stiff[i] = k * np.exp(x / d_0)
                         force[i] = k * d_0 * np.exp(x / d_0) - d_0 * k
-                        energy[i] = k * d_0 ** 2 * np.exp(x / d_0) - k * d_0 * x - k * d_0 ** 2
+                        energy[i] = k * d_0**2 * np.exp(x / d_0) - k * d_0 * x - k * d_0**2
                     else:
                         stiff[i] = k
                         force[i] = k * x
-                        energy[i] = 0.5 * k * x ** 2
+                        energy[i] = 0.5 * k * x**2
 
                 return energy.reshape(shape), force.reshape(shape), stiff.reshape(shape)
 
@@ -276,6 +302,7 @@ class SemiAffineFiberMaterial(Material, Saveable):
 
         # no buckling and no strain stiffening
         if not buckling and not strain_stiffening:
+
             @njit(numba.core.types.containers.UniTuple(numba.float64[:, :], 3)(numba.float64[:, :]))
             def get_all(s):
                 shape = s.shape
@@ -288,7 +315,7 @@ class SemiAffineFiberMaterial(Material, Saveable):
                 for i, x in enumerate(s):
                     stiff[i] = k
                     force[i] = k * x
-                    energy[i] = 0.5 * k * x ** 2
+                    energy[i] = 0.5 * k * x**2
 
                 return energy.reshape(shape), force.reshape(shape), stiff.reshape(shape)
 
@@ -311,16 +338,22 @@ class SemiAffineFiberMaterial(Material, Saveable):
                 if x < 0:
                     stiff[i] = k * np.exp(x / d_0)
                     force[i] = k * d_0 * np.exp(x / d_0) - d_0 * k
-                    energy[i] = k * d_0 ** 2 * np.exp(x / d_0) - k * d_0 * x - k * d_0 ** 2
+                    energy[i] = k * d_0**2 * np.exp(x / d_0) - k * d_0 * x - k * d_0**2
                 elif x < lambda_s:
                     stiff[i] = k
                     force[i] = k * x
-                    energy[i] = 0.5 * k * x ** 2
+                    energy[i] = 0.5 * k * x**2
                 else:
                     stiff[i] = k * np.exp((x - lambda_s) / d_s)
                     force[i] = k * lambda_s - d_s * k + d_s * k * np.exp((x - lambda_s) / d_s)
-                    energy[i] = - 0.5 * lambda_s ** 2 * k + d_s * k * lambda_s - d2k + d2k * np.exp(
-                        (x - lambda_s) / d_s) - dk * x + sk * x
+                    energy[i] = (
+                        -0.5 * lambda_s**2 * k
+                        + d_s * k * lambda_s
+                        - d2k
+                        + d2k * np.exp((x - lambda_s) / d_s)
+                        - dk * x
+                        + sk * x
+                    )
 
             return energy.reshape(shape), force.reshape(shape), stiff.reshape(shape)
 
@@ -336,6 +369,7 @@ class LinearMaterial(Material):
     k : float
         The stiffness of the material.
     """
+
     def __init__(self, k):
         # parameters
         self.k = k
@@ -352,4 +386,4 @@ class LinearMaterial(Material):
 
     def energy(self, x):
         # calculate the energy in the linear range
-        return 0.5 * self.k * x ** 2
+        return 0.5 * self.k * x**2

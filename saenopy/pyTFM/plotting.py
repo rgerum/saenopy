@@ -47,19 +47,11 @@ def plot_continuous_boundary_stresses(
     print("plotting cell border stresses")
     min_v = vmin if isinstance(vmin, (float, int)) else min_v
     max_v = vmax if isinstance(vmax, (float, int)) else max_v
-    mask_boundaries = (
-        np.zeros(shape)
-        if not isinstance(mask_boundaries, np.ndarray)
-        else mask_boundaries
-    )
+    mask_boundaries = np.zeros(shape) if not isinstance(mask_boundaries, np.ndarray) else mask_boundaries
 
     fig = plt.figure(figsize=figsize)
     ax = plt.Axes(fig, [0.0, 0.0, 1.0, 1.0])
-    background_color = (
-        plt.get_cmap(cmap)(0)
-        if background_color == "cmap_0"
-        else background_color
-    )
+    background_color = plt.get_cmap(cmap)(0) if background_color == "cmap_0" else background_color
     fig.set_facecolor(background_color)
     ax.set_facecolor(background_color)
     ax.set_axis_off()
@@ -67,9 +59,7 @@ def plot_continuous_boundary_stresses(
 
     scale = 1
     for shape, edge_lines, lines_interpol, *rest in plot_values:
-        all_t_vecs = np.vstack(
-            [subdict["t_vecs"] for subdict in lines_interpol.values()]
-        )
+        all_t_vecs = np.vstack([subdict["t_vecs"] for subdict in lines_interpol.values()])
         if plot_t_vecs:
             scale = scale_for_quiver(
                 all_t_vecs[:, 0],
@@ -78,9 +68,7 @@ def plot_continuous_boundary_stresses(
                 scale_ratio=scale_ratio,
                 return_scale=True,
             )
-        for line_id, interp in tqdm(
-            lines_interpol.items(), total=len(lines_interpol.values())
-        ):
+        for line_id, interp in tqdm(lines_interpol.items(), total=len(lines_interpol.values())):
             p_new = interp["points_new"]
             x_new = p_new[:, 0]
             y_new = p_new[:, 1]
@@ -88,11 +76,8 @@ def plot_continuous_boundary_stresses(
             t_vecs = interp["t_vecs"]
             n_vecs = interp["n_vecs"]
             # plotting line segments
-            c = plt.get_cmap(cmap)(
-                (t_norm - min_v) / (max_v - min_v)
-            )  # normalization and creating a color range
-     
-                
+            c = plt.get_cmap(cmap)((t_norm - min_v) / (max_v - min_v))  # normalization and creating a color range
+
             # see how well that works
             if line_id in edge_lines:  # plot lines at the edge
                 plt.plot(
@@ -103,9 +88,7 @@ def plot_continuous_boundary_stresses(
                     linewidth=linewidth,
                 )
             else:
-                for i in range(
-                    0, len(x_new) - boundary_resolution, boundary_resolution
-                ):
+                for i in range(0, len(x_new) - boundary_resolution, boundary_resolution):
                     plt.plot(
                         [x_new[i], x_new[i + boundary_resolution]],
                         [y_new[i], y_new[i + boundary_resolution]],
@@ -172,8 +155,7 @@ def add_colorbar(
 ):
     norm = matplotlib.colors.Normalize(vmin=vmin, vmax=vmax)
     sm = plt.cm.ScalarMappable(cmap=plt.get_cmap(cmap), norm=norm)
-    
-    
+
     sm.set_array([])  # bug fix for lower matplotlib version
     if cbar_style == "clickpoints":  # colorbar inside of the plot
         cbaxes = inset_axes(
@@ -245,9 +227,7 @@ def show_quiver(
         "angles": "xy",
         "scale": None,
     }
-    quiver_parameters = {
-        key: value for key, value in quiver_parameters.items() if value is not None
-    }
+    quiver_parameters = {key: value for key, value in quiver_parameters.items() if value is not None}
 
     fx = fx.astype("float64")
     fy = fy.astype("float64")
@@ -257,9 +237,7 @@ def show_quiver(
         ax = plt.axes()
     map_values = np.sqrt(fx**2 + fy**2)
     vmin, vmax = set_vmin_vmax(map_values, vmin, vmax)
-    plt.imshow(
-        map_values, cmap=cmap, vmin=vmin, vmax=vmax, alpha=alpha, origin=ax_origin
-    )
+    plt.imshow(map_values, cmap=cmap, vmin=vmin, vmax=vmax, alpha=alpha, origin=ax_origin)
     if plot_style == "clickpoints":
         ax.set_position([0, 0, 1, 1])
     ax.set_axis_off()
@@ -376,7 +354,7 @@ def filter_values(ar1, ar2, abs_filter=0, f_dist=3, filter_method="regular", rad
 
 
 def scale_for_quiver(ar1, ar2, dims, scale_ratio=0.2, return_scale=False):
-    scale = scale_ratio * np.max(dims) / np.nanmax(np.sqrt(ar1 ** 2 + ar2 ** 2))
+    scale = scale_ratio * np.max(dims) / np.nanmax(np.sqrt(ar1**2 + ar2**2))
     if return_scale:
         return scale
     return ar1 * scale, ar2 * scale

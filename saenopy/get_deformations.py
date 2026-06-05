@@ -2,12 +2,13 @@ import numpy as np
 from openpiv.pyprocess3D import extended_search_area_piv3D
 from scipy import interpolate
 
-#from nptyping import NDArray, Shape, Float
-#from pyfields import field
+# from nptyping import NDArray, Shape, Float
+# from pyfields import field
 
 from saenopy.mesh import Mesh, check_node_vector_field
 from saenopy.stack import Stack
 from saenopy.multigrid_helper import create_box_mesh
+
 
 def field(doc, validators, default):
     return default
@@ -16,34 +17,54 @@ def field(doc, validators, default):
 class PivMesh(Mesh):
     __save_parameters__ = ["nodes", "tetrahedra", "displacements_measured"]
 
-    #displacements_measured: NDArray[Shape["N_c, 3"], Float] = field(doc="the measured displacements of each node, dimensions: N_c x 3",
-    displacements_measured: np.ndarray = field(doc="the measured displacements of each node, dimensions: N_c x 3",
-                                                                    validators=check_node_vector_field, default=None)
+    # displacements_measured: NDArray[Shape["N_c, 3"], Float] = field(doc="the measured displacements of each node, dimensions: N_c x 3",
+    displacements_measured: np.ndarray = field(
+        doc="the measured displacements of each node, dimensions: N_c x 3",
+        validators=check_node_vector_field,
+        default=None,
+    )
 
 
-def get_displacements_from_stacks(stack_relaxed: Stack, stack_deformed: Stack, window_size: float,
-                                  element_size: float, signal_to_noise: float, drift_correction: bool) -> PivMesh:
-    fac_overlap = 1 - (element_size/window_size)
+def get_displacements_from_stacks(
+    stack_relaxed: Stack,
+    stack_deformed: Stack,
+    window_size: float,
+    element_size: float,
+    signal_to_noise: float,
+    drift_correction: bool,
+) -> PivMesh:
+    fac_overlap = 1 - (element_size / window_size)
     voxel_size1 = stack_deformed.voxel_size
     voxel_size2 = stack_relaxed.voxel_size
 
-    np.testing.assert_equal(voxel_size1, voxel_size2,
-                            f"The two stacks do not have the same voxel size. {voxel_size1}, {voxel_size2}")
+    np.testing.assert_equal(
+        voxel_size1,
+        voxel_size2,
+        f"The two stacks do not have the same voxel size. {voxel_size1}, {voxel_size2}",
+    )
 
-    np.testing.assert_equal(stack_deformed.shape, stack_relaxed.shape,
-                            f"The two stacks do not have the same voxel count. {stack_deformed.shape}, {stack_relaxed.shape}")
+    np.testing.assert_equal(
+        stack_deformed.shape,
+        stack_relaxed.shape,
+        f"The two stacks do not have the same voxel count. {stack_deformed.shape}, {stack_relaxed.shape}",
+    )
 
     # mean over the rgb channels
     stack_deformed = np.mean(np.array(stack_deformed), axis=2)
     stack_relaxed = np.mean(np.array(stack_relaxed), axis=2)
-    piv_mesh = _get_displacements_from_stacks_old(stack_deformed, stack_relaxed, voxel_size1,
-                                                  window_size=window_size,
-                                                  fac_overlap=fac_overlap,
-                                                  signal_to_noise=signal_to_noise,
-                                                  drift_correction=drift_correction,
-                                                  )
+    piv_mesh = _get_displacements_from_stacks_old(
+        stack_deformed,
+        stack_relaxed,
+        voxel_size1,
+        window_size=window_size,
+        fac_overlap=fac_overlap,
+        signal_to_noise=signal_to_noise,
+        drift_correction=drift_correction,
+    )
     # center
-    piv_mesh.nodes = (piv_mesh.nodes - np.min(piv_mesh.nodes, axis=0)) - (np.max(piv_mesh.nodes, axis=0) - np.min(piv_mesh.nodes, axis=0)) / 2
+    piv_mesh.nodes = (piv_mesh.nodes - np.min(piv_mesh.nodes, axis=0)) - (
+        np.max(piv_mesh.nodes, axis=0) - np.min(piv_mesh.nodes, axis=0)
+    ) / 2
     return piv_mesh
 
 
@@ -62,7 +83,7 @@ def sig2noise_filtering(u, v, sig2noise, w=None, threshold=1.3):
     return u, v, w, ind
 
 
-def replace_outliers(u, v, w=None, method='localmean', max_iter=5, tol=1e-3, kernel_size=1):
+def replace_outliers(u, v, w=None, method="localmean", max_iter=5, tol=1e-3, kernel_size=1):
     """
     As integrated into OpenPiv Jun 19, 2020.
     Since OpenPIV changed several functions later on, we use this version
@@ -144,7 +165,7 @@ def get_dist(kernel, kernel_size):
     return dist, dist_inv
 
 
-def replace_nans_py(array, max_iter, tol, kernel_size = 2, method = 'disk'):
+def replace_nans_py(array, max_iter, tol, kernel_size=2, method="disk"):
     """
     As integrated into OpenPiv Jun 19, 2020.
     Since OpenPIV changed several functions later on, we use this version
@@ -197,7 +218,7 @@ def replace_nans_py(array, max_iter, tol, kernel_size = 2, method = 'disk'):
       -------
       filled : 2d or 3d np.ndarray
           a copy of the input array, where NaN elements have been replaced.
-      """
+    """
 
     DTYPEf = float
     DTYPEi = int
@@ -207,16 +228,16 @@ def replace_nans_py(array, max_iter, tol, kernel_size = 2, method = 'disk'):
 
     # generating the kernel
     kernel = np.zeros([2 * kernel_size + 1] * len(array.shape), dtype=int)
-    if method == 'localmean':
+    if method == "localmean":
         kernel += 1
-    elif method == 'disk':
+    elif method == "disk":
         dist, dist_inv = get_dist(kernel, kernel_size)
         kernel[dist <= kernel_size] = 1
-    elif method == 'distance':
+    elif method == "distance":
         dist, dist_inv = get_dist(kernel, kernel_size)
         kernel[dist <= kernel_size] = dist_inv[dist <= kernel_size]
     else:
-        raise ValueError('method not valid. Should be one of `localmean`, `disk` or `distance`.')
+        raise ValueError("method not valid. Should be one of `localmean`, `disk` or `distance`.")
 
     # list of kernel array indices
     kernel_indices = np.indices(kernel.shape)
@@ -245,7 +266,7 @@ def replace_nans_py(array, max_iter, tol, kernel_size = 2, method = 'disk'):
             n = 0.0
 
             # generating a list of indices of the convolution window in the array
-            slice_indices = np.array(np.meshgrid(*[range(i-kernel_size, i+kernel_size+1) for i in ind]))
+            slice_indices = np.array(np.meshgrid(*[range(i - kernel_size, i + kernel_size + 1) for i in ind]))
             slice_indices = np.reshape(slice_indices, (n_dim, (2 * kernel_size + 1) ** n_dim), order="C").T
 
             # loop over the kernel
@@ -280,8 +301,15 @@ def replace_nans_py(array, max_iter, tol, kernel_size = 2, method = 'disk'):
 
 
 # Full 3D Deformation analysis
-def _get_displacements_from_stacks_old(stack_deformed, stack_relaxed, voxel_size, window_size=12, fac_overlap=0.6,
-                                       signal_to_noise=1.3, drift_correction=True):    # set properties
+def _get_displacements_from_stacks_old(
+    stack_deformed,
+    stack_relaxed,
+    voxel_size,
+    window_size=12,
+    fac_overlap=0.6,
+    signal_to_noise=1.3,
+    drift_correction=True,
+):  # set properties
     voxel_size = np.array(voxel_size)
     window_size = (window_size / voxel_size).astype(int)
     overlap = (fac_overlap * window_size).astype(int)
@@ -289,23 +317,26 @@ def _get_displacements_from_stacks_old(stack_deformed, stack_relaxed, voxel_size
     print("Calculate Deformations", stack_relaxed.shape, window_size, overlap)
 
     # calculate deformations
-    u, v, w, sig2noise = extended_search_area_piv3D(stack_relaxed, stack_deformed,
-                                                    window_size=window_size,
-                                                    overlap=overlap,
-                                                    dt=(1 / du, 1 / dv, 1 / dw),
-                                                    search_area_size=window_size,
-                                                    subpixel_method='gaussian',
-                                                    sig2noise_method='peak2peak',
-                                                    width=2,
-                                                    nfftx=None, nffty=None)
+    u, v, w, sig2noise = extended_search_area_piv3D(
+        stack_relaxed,
+        stack_deformed,
+        window_size=window_size,
+        overlap=overlap,
+        dt=(1 / du, 1 / dv, 1 / dw),
+        search_area_size=window_size,
+        subpixel_method="gaussian",
+        sig2noise_method="peak2peak",
+        width=2,
+        nfftx=None,
+        nffty=None,
+    )
 
-  
     # filter deformations by sig2noise ratio and replace them with nans
     sig2noise_filtering(u, v, sig2noise, w=w, threshold=signal_to_noise)
-    # filling the nan's from neighbours currently notused 
+    # filling the nan's from neighbours currently notused
     # replace_outliers(uf, vf, wf, max_iter=1, tol=100, kernel_size=2, method='disk')
-    
-    # correcting stage drift between the field of views based on all vaild deformations    
+
+    # correcting stage drift between the field of views based on all vaild deformations
     if drift_correction:
         u[~np.isnan(u)] -= np.nanmean(u)
         v[~np.isnan(v)] -= np.nanmean(v)
@@ -313,20 +344,25 @@ def _get_displacements_from_stacks_old(stack_deformed, stack_relaxed, voxel_size
 
     # get coordinates (by multiplication with the ratio of image dimension and deformation grid)
     y, x, z = np.indices(u.shape)
-    y, x, z = (y * stack_deformed.shape[0] * dv / u.shape[0],
-               x * stack_deformed.shape[1] * du / u.shape[1],
-               z * stack_deformed.shape[2] * dw / u.shape[2])
+    y, x, z = (
+        y * stack_deformed.shape[0] * dv / u.shape[0],
+        x * stack_deformed.shape[1] * du / u.shape[1],
+        z * stack_deformed.shape[2] * dw / u.shape[2],
+    )
 
     # create a box mesh - convert to meters for saenopy conversion
-    R, T = create_box_mesh(np.unique(y.ravel()) * 1e-6,  # saeno x
-                           np.unique(x.ravel()) * 1e-6,  # saeno y
-                           np.unique(z.ravel()) * 1e-6)  # saeno z
+    R, T = create_box_mesh(
+        np.unique(y.ravel()) * 1e-6,  # saeno x
+        np.unique(x.ravel()) * 1e-6,  # saeno y
+        np.unique(z.ravel()) * 1e-6,
+    )  # saeno z
 
     # bring deformations in right order (switch from OpenPIV conversion ot saenopy conversion)
     # - convert to meters for saenopy conversion
     U = np.vstack([v.ravel() * 1e-6, -u.ravel() * 1e-6, w.ravel() * 1e-6]).T
 
     from saenopy.mesh import Mesh
+
     mesh = PivMesh(R, T)
     mesh.displacements_measured = U
     return mesh
@@ -335,7 +371,7 @@ def _get_displacements_from_stacks_old(stack_deformed, stack_relaxed, voxel_size
 def interpolate_different_mesh(R, U, Rnew):
     """
     Interpolate Deformations (or any quantity) from one mesh to another.
-    
+
     Non overlapping regimes between meshes are filled with nans - linear interpolation.
 
     Parameters
@@ -346,7 +382,7 @@ def interpolate_different_mesh(R, U, Rnew):
 
     Returns
     -------
-    Unew : New interpolated deformations 
+    Unew : New interpolated deformations
 
     """
 
@@ -357,11 +393,35 @@ def interpolate_different_mesh(R, U, Rnew):
     arr_shape = (points[0].shape[0], points[1].shape[0], points[2].shape[0])
 
     # Interpolate deformations to new mesh
-    Unew = np.array([interpolate.interpn(points, U[:, i].reshape(arr_shape), Rnew, method='linear', bounds_error=False, fill_value=np.nan) for i in range(3)]).T
+    Unew = np.array(
+        [
+            interpolate.interpn(
+                points,
+                U[:, i].reshape(arr_shape),
+                Rnew,
+                method="linear",
+                bounds_error=False,
+                fill_value=np.nan,
+            )
+            for i in range(3)
+        ]
+    ).T
 
     # if the mesh contains nans, interpolate nearest instead of linear to prevent the nans from spreading
     if np.any(np.isnan(Unew)):
-        Unew2 = np.array([interpolate.interpn(points, U[:, i].reshape(arr_shape), Rnew, method='nearest', bounds_error=False, fill_value=np.nan) for i in range(3)]).T
+        Unew2 = np.array(
+            [
+                interpolate.interpn(
+                    points,
+                    U[:, i].reshape(arr_shape),
+                    Rnew,
+                    method="nearest",
+                    bounds_error=False,
+                    fill_value=np.nan,
+                )
+                for i in range(3)
+            ]
+        ).T
         Unew[np.isnan(Unew[:, 0]), :] = Unew2[np.isnan(Unew[:, 0]), :]
 
     return Unew

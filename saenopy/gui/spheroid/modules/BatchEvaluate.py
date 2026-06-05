@@ -22,7 +22,11 @@ class BatchEvaluate(BatchEvaluateBase):
         self.sub_module_deformation = DeformationDetector(self, layout0)
         self.sub_module_forces = ForceCalculator(self, layout0)
         self.sub_module_export = ExportViewer(self, layout0)
-        self.modules = [self.sub_module_deformation, self.sub_module_forces, self.sub_module_export]
+        self.modules = [
+            self.sub_module_deformation,
+            self.sub_module_forces,
+            self.sub_module_export,
+        ]
 
     def path_editor(self):
         result = self.list.data[self.list.currentRow()][2]

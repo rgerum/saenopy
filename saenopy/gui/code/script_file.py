@@ -30,7 +30,11 @@ class OpenScript(QtWidgets.QWidget):
             self.console = self.console.rpartition("<br>")[0] + "<br>"
         text = html.escape(text).replace("\n", "<br>").replace(" ", "&nbsp;")
         if pipe == "stderr":
-            text = re.sub(r"File&nbsp;&quot;(.*?)&quot;,&nbsp;line&nbsp;(\d*)", r"File &quot;<a href=\1#\2 style='color: #548af7'>\1</a>&quot;, line \2", text)
+            text = re.sub(
+                r"File&nbsp;&quot;(.*?)&quot;,&nbsp;line&nbsp;(\d*)",
+                r"File &quot;<a href=\1#\2 style='color: #548af7'>\1</a>&quot;, line \2",
+                text,
+            )
             self.console += f"<span style='color: #d74b45'>{text}</span>"
         else:
             self.console += text
@@ -60,7 +64,13 @@ class OpenScript(QtWidgets.QWidget):
         p = ProcessSimple(run_code, (self.filename,), {}, self.update_console)
         p.start()
         self.process = p
-        self.thread = threading.Thread(target=self.timer_callback, args=(p, self,))
+        self.thread = threading.Thread(
+            target=self.timer_callback,
+            args=(
+                p,
+                self,
+            ),
+        )
         self.thread.start()
 
     def can_run(self):
@@ -79,8 +89,11 @@ class OpenScript(QtWidgets.QWidget):
         self.code = code
         self.unsaved = True
 
+
 from contextlib import redirect_stdout, redirect_stderr
 import traceback
+
+
 def run_code(process, filename):
 
     class Capture:
@@ -94,13 +107,13 @@ def run_code(process, filename):
         with redirect_stderr(Capture("stderr")):
             try:
                 source = open(filename).read()
-                code = compile(source, filename, 'exec')
+                code = compile(source, filename, "exec")
                 exec(code, {"print": print})
 
             except Exception:
                 traceback.print_exc()
-                #error = traceback.format_exc().split("\n")
-                #print("\n".join(error[0:1] + error[3:]), file=sys.stderr)
+                # error = traceback.format_exc().split("\n")
+                # print("\n".join(error[0:1] + error[3:]), file=sys.stderr)
 
 
 from multiprocessing import Process, Queue
@@ -108,6 +121,7 @@ from multiprocessing import Process, Queue
 
 class SignalReturn:
     pass
+
 
 def call_func(func: callable, queue_in: Queue, queue_out: Queue):
     args = queue_in.get()
@@ -118,6 +132,7 @@ def call_func(func: callable, queue_in: Queue, queue_out: Queue):
         queue_out.put(SignalReturn())
         queue_out.put("-1")
     queue_out.put(returns)
+
 
 class ProcessSimple:
     alive = True

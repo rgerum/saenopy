@@ -29,10 +29,9 @@ class Console(QtWidgets.QTextEdit):
 
                 print(file, self.editor.filename)
                 if file == self.editor.filename:
-
-                    cursor = QtGui.QTextCursor(self.editor.document().findBlockByLineNumber(int(line)-1))
+                    cursor = QtGui.QTextCursor(self.editor.document().findBlockByLineNumber(int(line) - 1))
                     self.editor.setTextCursor(cursor)
-                    #QtWidgets.QDesktopServices.openUrl(QUrl(self.anchor))
+                    # QtWidgets.QDesktopServices.openUrl(QUrl(self.anchor))
                     QtWidgets.QApplication.setOverrideCursor(QtCore.Qt.ArrowCursor)
             self.anchor = None
 
@@ -50,7 +49,9 @@ class MainWindowCode(QtWidgets.QWidget):
         with QtShortCuts.QVBoxLayout(self):
             with QtShortCuts.QVBoxLayout():
                 with QtShortCuts.QHBoxLayout():
-                    self.button = QtShortCuts.QPushButton(None, "Open File", self.load, icon=qta.icon("fa5s.folder-open"))
+                    self.button = QtShortCuts.QPushButton(
+                        None, "Open File", self.load, icon=qta.icon("fa5s.folder-open")
+                    )
                     self.tabs = QtWidgets.QTabBar().addToLayout()
                     self.tabs.setTabsClosable(True)
                     self.tabs.setMaximumHeight(32)
@@ -68,12 +69,12 @@ class MainWindowCode(QtWidgets.QWidget):
                 self.editor = CodeEditor()
                 self.highlight = PythonHighlighter(self.editor.document())
                 font = QtGui.QFont()
-                font.setFamily('Courier')
+                font.setFamily("Courier")
                 font.setFixedPitch(True)
                 font.setPointSize(10)
                 self.editor.setFont(font)
 
-                self.console = Console(self, self.editor)#QtWidgets.QTextEdit()
+                self.console = Console(self, self.editor)  # QtWidgets.QTextEdit()
                 self.console.setStyleSheet("background-color: #1e1f22; color: #bcbec4")
                 self.console.setReadOnly(True)
                 self.console.setFont(font)
@@ -113,7 +114,7 @@ class MainWindowCode(QtWidgets.QWidget):
         # and add the tab
         self.tabs.addTab(self.open_scripts[-1].filename.name)
         # select the new tab
-        self.tabs.setCurrentIndex(len(self.open_scripts)-1)
+        self.tabs.setCurrentIndex(len(self.open_scripts) - 1)
 
     def select_tab(self, index=None):
         if index is not None:
@@ -179,11 +180,12 @@ class MainWindowCode(QtWidgets.QWidget):
             self.run()
 
 
-if __name__ == '__main__':  # pragma: no cover
+if __name__ == "__main__":  # pragma: no cover
     app = QtWidgets.QApplication(sys.argv)
-    if sys.platform.startswith('win'):
+    if sys.platform.startswith("win"):
         import ctypes
-        myappid = 'fabrylab.saenopy.master'  # arbitrary string
+
+        myappid = "fabrylab.saenopy.master"  # arbitrary string
         ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
     print(sys.argv)
     window = MainWindowCode()

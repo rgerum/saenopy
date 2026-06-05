@@ -5,7 +5,10 @@ import jointforces as jf
 from pathlib import Path
 
 from saenopy.gui.common.TabModule import TabModule
-from saenopy.gui.orientation.modules.result import ResultOrientation, SegmentationParametersDict
+from saenopy.gui.orientation.modules.result import (
+    ResultOrientation,
+    SegmentationParametersDict,
+)
 from qtpy import QtCore, QtWidgets, QtGui
 from qimage2ndarray import array2qimage
 from saenopy.gui.common import QtShortCuts, QExtendedGraphicsView
@@ -24,21 +27,21 @@ class TabCellOutline(TabModule):
 
     def __init__(self, parent: "BatchEvaluate"):
         super().__init__(parent)
-      #  self.update_display()
+        #  self.update_display()
         with self.parent.tabs.createTab("Segmentation Deformations") as self.tab:
             with QtShortCuts.QVBoxLayout() as layout:
-                #self.label_tab = QtWidgets.QLabel(
+                # self.label_tab = QtWidgets.QLabel(
                 #    "The deformations from the piv algorithm at every window where the crosscorrelation was evaluated.").addToLayout()
 
                 with QtShortCuts.QHBoxLayout() as layout:
-                    #self.plotter = QtInteractor(self, auto_update=False)  # , theme=pv.themes.DocumentTheme())
-                    #self.tab.parent().plotter = self.plotter
-                    #self.plotter.set_background("black")
-                    #layout.addWidget(self.plotter.interactor)
+                    # self.plotter = QtInteractor(self, auto_update=False)  # , theme=pv.themes.DocumentTheme())
+                    # self.tab.parent().plotter = self.plotter
+                    # self.plotter.set_background("black")
+                    # layout.addWidget(self.plotter.interactor)
                     self.label = QExtendedGraphicsView.QExtendedGraphicsView().addToLayout()
                     self.scale1 = ModuleScaleBar(self, self.label)
                     self.color1 = ModuleColorBar(self, self.label)
-                    #self.label.setMinimumWidth(300)
+                    # self.label.setMinimumWidth(300)
                     self.pixmap = QtWidgets.QGraphicsPixmapItem(self.label.origin)
                     self.contour = QtWidgets.QGraphicsPathItem(self.label.origin)
                     pen = QtGui.QPen(QtGui.QColor(255, 0, 0))
@@ -50,9 +53,8 @@ class TabCellOutline(TabModule):
                     self.center.setBrush(brush)
 
     def checkTabEnabled(self, result: ResultOrientation) -> bool:
-            # whether the tab should be enabled for this Result object
-            return self.result.orientation_map is not None
-
+        # whether the tab should be enabled for this Result object
+        return self.result.orientation_map is not None
 
     def setResult(self, result: ResultOrientation):
         super().setResult(result)
@@ -61,7 +63,7 @@ class TabCellOutline(TabModule):
     def update_display(self, *, plotter=None):
         # if self.result is None:
         #     return
-        #if self.current_tab_selected is False:
+        # if self.current_tab_selected is False:
         #    return
 
         im = self.result.get_image(0)
@@ -70,17 +72,18 @@ class TabCellOutline(TabModule):
 
         if self.result.segmentation is not None:
             from skimage import measure
+
             # Find contours at a constant value of 0.8
             contours = measure.find_contours(self.result.segmentation["mask"], 0.5)
 
             path = QtGui.QPainterPath()
             for c in contours:
-                path.moveTo(c[0][1],  c[0][0])
+                path.moveTo(c[0][1], c[0][0])
                 for cc in c:
-                    path.lineTo(cc[1],  cc[0])
+                    path.lineTo(cc[1], cc[0])
             self.contour.setPath(path)
             x, y = self.result.segmentation["centroid"]
-            self.center.setRect(x-3, y-3, 6, 6)
+            self.center.setRect(x - 3, y - 3, 6, 6)
             self.center.setVisible(True)
         else:
             path = QtGui.QPainterPath()

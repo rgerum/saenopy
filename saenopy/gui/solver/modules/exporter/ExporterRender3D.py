@@ -5,7 +5,12 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from saenopy.gui.solver.modules.exporter.FiberViewer import process_stack, join_stacks
-from saenopy.gui.solver.modules.exporter.ExportRenderCommon import get_time_text, getVectorFieldImage, get_mesh_arrows, get_mesh_extent
+from saenopy.gui.solver.modules.exporter.ExportRenderCommon import (
+    get_time_text,
+    getVectorFieldImage,
+    get_mesh_arrows,
+    get_mesh_extent,
+)
 
 
 def render_3d(params, result, plotter, exporter=None):
@@ -33,6 +38,7 @@ def render_3d(params, result, plotter, exporter=None):
         plotter.render = render
         return disp_params
 
+
 def filter_params(params, used_values, previous_params):
     difference = False
     new_params = {}
@@ -57,11 +63,14 @@ def filter_params(params, used_values, previous_params):
 
 def render_3d_fibers(params, result, plotter, exporter):
     used_values = [
-        ("crop", ('y', 'x', 'z')),
+        ("crop", ("y", "x", "z")),
         ("time", ("t",)),
         ("stack", "use_reference_stack"),
         ("channel0", ("show", "sigma_sato", "sigma_gauss", "range", "alpha", "cmap")),
-        ("channel1", ("show", "sigma_sato", "sigma_gauss", "range", "alpha", "cmap", "channel")),
+        (
+            "channel1",
+            ("show", "sigma_sato", "sigma_gauss", "range", "alpha", "cmap", "channel"),
+        ),
         "channel_thresh",
     ]
     params, changed = filter_params(params, used_values, getattr(plotter, "previous_plot_params", {}))
@@ -82,25 +91,18 @@ def render_3d_fibers(params, result, plotter, exporter):
     if params["stack"]["use_reference_stack"]:
         stack = result.stack_reference
 
-    if params["channel0"]["show"] and crops[0] != crops[1] and crops[2] != crops[3] and crops[4] != \
-            crops[5]:
-        stack_data1 = process_stack(stack, 0,
-                                    crops=crops,
-                                    **params["channel0"])
+    if params["channel0"]["show"] and crops[0] != crops[1] and crops[2] != crops[3] and crops[4] != crops[5]:
+        stack_data1 = process_stack(stack, 0, crops=crops, **params["channel0"])
         stack_data = stack_data1
         if exporter is not None:
             exporter.channel0_properties.sigmoid.p.set_im(stack_data1["original"])
     else:
         stack_data1 = None
 
-    if params["channel1"]["show"] and crops[0] != crops[1] and crops[2] != crops[3] and crops[4] != \
-            crops[5]:
-
+    if params["channel1"]["show"] and crops[0] != crops[1] and crops[2] != crops[3] and crops[4] != crops[5]:
         if isinstance(params["channel1"]["channel"], str):
             params["channel1"]["channel"] = result.stacks[0].channels.index(params["channel1"]["channel"])
-        stack_data2 = process_stack(stack,
-                                    crops=crops,
-                                    **params["channel1"])
+        stack_data2 = process_stack(stack, crops=crops, **params["channel1"])
         if exporter is not None:
             exporter.channel1_properties.sigmoid.p.set_im(stack_data2["original"])
         if stack_data1 is not None:
@@ -110,18 +112,26 @@ def render_3d_fibers(params, result, plotter, exporter):
 
     if stack_data is not None:
         dataset = stack_data["data"]
-        mesh = pyvista.ImageData(dimensions=dataset.shape, spacing=stack_data["resolution"],
-                                   origin=stack_data["center"])
-        mesh['values'] = dataset.ravel(order='F')
-        mesh.active_scalars_name = 'values'
+        mesh = pyvista.ImageData(
+            dimensions=dataset.shape,
+            spacing=stack_data["resolution"],
+            origin=stack_data["center"],
+        )
+        mesh["values"] = dataset.ravel(order="F")
+        mesh.active_scalars_name = "values"
 
-        plotter.add_volume(mesh,
-                          cmap=stack_data["cmap"], opacity=stack_data["opacity"],
-                          blending="composite", name="fiber", render=False)  # 1.0*x
+        plotter.add_volume(
+            mesh,
+            cmap=stack_data["cmap"],
+            opacity=stack_data["opacity"],
+            blending="composite",
+            name="fiber",
+            render=False,
+        )  # 1.0*x
         plotter.remove_scalar_bar("values")
     else:
         plotter.remove_actor("fiber")
-    #print("plot time", f"{time.time() - t_start:.3f}s")
+    # print("plot time", f"{time.time() - t_start:.3f}s")
 
 
 def render_3d_text(params, result, plotter):
@@ -134,8 +144,15 @@ def render_3d_text(params, result, plotter):
         return
 
     if result is not None and result.time_delta is not None and params["time"]["display"]:
-        plotter.add_text(get_time_text(params, result), name="time_text", font_size=params["time"]["fontsize"],
-                         position=(20, params["image"]["height"] - 20 - params["time"]["fontsize"] * 2))
+        plotter.add_text(
+            get_time_text(params, result),
+            name="time_text",
+            font_size=params["time"]["fontsize"],
+            position=(
+                20,
+                params["image"]["height"] - 20 - params["time"]["fontsize"] * 2,
+            ),
+        )
     else:
         plotter.remove_actor("time_text")
 
@@ -146,8 +163,30 @@ def render_3d_arrows(params, result, plotter):
         "arrows",
         ("time", "t"),
         ("colorbar", "hide"),
-        ("deformation_arrows", ("scale_max", "autoscale", "skip", "arrow_opacity", "colormap", "arrow_scale")),
-        ("force_arrows", ("scale_max", "autoscale", "skip", "arrow_opacity", "colormap", "arrow_scale", "use_center", "use_log")),
+        (
+            "deformation_arrows",
+            (
+                "scale_max",
+                "autoscale",
+                "skip",
+                "arrow_opacity",
+                "colormap",
+                "arrow_scale",
+            ),
+        ),
+        (
+            "force_arrows",
+            (
+                "scale_max",
+                "autoscale",
+                "skip",
+                "arrow_opacity",
+                "colormap",
+                "arrow_scale",
+                "use_center",
+                "use_log",
+            ),
+        ),
     ]
     params, changed = filter_params(params, used_values, getattr(plotter, "previous_plot_params", {}))
 
@@ -190,7 +229,7 @@ def render_3d_arrows(params, result, plotter):
         # convert to common units
         if name == "displacements_measured" or name == "displacements_target" or name == "displacements":
             # scale deformations to µN
-            point_cloud.point_data[name + "_mag2"] = 1e6*point_cloud.point_data[name + "_mag"].copy()
+            point_cloud.point_data[name + "_mag2"] = 1e6 * point_cloud.point_data[name + "_mag"].copy()
             factor = 0.1 * params_arrows["arrow_scale"]
         if name == "forces":
             # scale forces to pN
@@ -199,9 +238,10 @@ def render_3d_arrows(params, result, plotter):
                     scalebar_max = np.log10(scalebar_max)
                 point_cloud.point_data[name + "_mag2"] = np.log10(1e12 * point_cloud.point_data[name + "_mag"].copy())
                 point_cloud.point_data[name + "_mag2"] *= (
-                        point_cloud.point_data[name + "_mag2"] > point_cloud.point_data[name + "_mag2"] * 0.1)
+                    point_cloud.point_data[name + "_mag2"] > point_cloud.point_data[name + "_mag2"] * 0.1
+                )
             else:
-                point_cloud.point_data[name + "_mag2"] = 1e12*point_cloud.point_data[name + "_mag"].copy()
+                point_cloud.point_data[name + "_mag2"] = 1e12 * point_cloud.point_data[name + "_mag"].copy()
             factor = 0.10 * params_arrows["arrow_scale"]
         # hide nans
         point_cloud.point_data[name + "_mag2"][nan_values] = 0
@@ -209,7 +249,9 @@ def render_3d_arrows(params, result, plotter):
         # scalebar scaling factor
         norm_stack_size = np.abs(np.max(obj_R) - np.min(obj_R))
         if scalebar_max is None:
-            factor = factor * norm_stack_size / np.nanmax(point_cloud[name + "_mag2"])#np.nanpercentile(point_cloud[name + "_mag2"], 99.9)
+            factor = (
+                factor * norm_stack_size / np.nanmax(point_cloud[name + "_mag2"])
+            )  # np.nanpercentile(point_cloud[name + "_mag2"], 99.9)
         else:
             factor = factor * norm_stack_size / scalebar_max
 
@@ -228,16 +270,37 @@ def render_3d_arrows(params, result, plotter):
             if R.shape[0]:
                 point_cloud2 = pv.PolyData(R)
                 point_cloud2.point_data["nan"] = obj_R[nan_values, 0] * np.nan
-                plotter.add_mesh(point_cloud2, colormap=colormap, scalars="nan", show_scalar_bar=False, render=False, name="nans")
+                plotter.add_mesh(
+                    point_cloud2,
+                    colormap=colormap,
+                    scalars="nan",
+                    show_scalar_bar=False,
+                    render=False,
+                    name="nans",
+                )
             else:
                 plotter.remove_actor("nans")
         else:
             plotter.remove_actor("nans")
 
         # add the arrows
-        sargs = dict(title_font_size=15, label_font_size=15, n_labels=3, title=title,
-                     fmt="%.1e", color=plotter._theme.font.color, font_family="arial")
-        plotter.add_mesh(arrows, scalar_bar_args=sargs, colormap=colormap, name="arrows", opacity=arrow_opacity, render=False)
+        sargs = dict(
+            title_font_size=15,
+            label_font_size=15,
+            n_labels=3,
+            title=title,
+            fmt="%.1e",
+            color=plotter._theme.font.color,
+            font_family="arial",
+        )
+        plotter.add_mesh(
+            arrows,
+            scalar_bar_args=sargs,
+            colormap=colormap,
+            name="arrows",
+            opacity=arrow_opacity,
+            render=False,
+        )
 
         # update the scalebar
         plotter.auto_value = np.nanpercentile(point_cloud[name + "_mag2"], 99.9)
@@ -249,7 +312,7 @@ def render_3d_arrows(params, result, plotter):
             disp_params["scale_max"] = scalebar_max
             plotter.update_scalar_bar_range([0, scalebar_max])
 
-        #if params["colorbar"]["hide"] is True:
+        # if params["colorbar"]["hide"] is True:
         plotter.remove_scalar_bar()
     else:
         plotter.remove_actor("arrows")
@@ -257,7 +320,13 @@ def render_3d_arrows(params, result, plotter):
     # plot center points if desired
     if params_arrows.get("use_center", False):
         center = result.solvers[params["time"]["t"]].get_center(mode="Force")
-        plotter.add_points(np.array([center])*1e6, color='m', point_size=10, render=False, name="center")
+        plotter.add_points(
+            np.array([center]) * 1e6,
+            color="m",
+            point_size=10,
+            render=False,
+            name="center",
+        )
     else:
         plotter.remove_actor("center")
     return disp_params
@@ -265,9 +334,21 @@ def render_3d_arrows(params, result, plotter):
 
 def render_3d_image(params, result, plotter, exporter=None):
     used_values = [
-        ("stack", ("image", "colormap", "use_reference_stack", "channel",
-                   "z", "z_proj", "contrast_enhance", "use_contrast_enhance",
-                   "channel_B", "colormap_B")),
+        (
+            "stack",
+            (
+                "image",
+                "colormap",
+                "use_reference_stack",
+                "channel",
+                "z",
+                "z_proj",
+                "contrast_enhance",
+                "use_contrast_enhance",
+                "channel_B",
+                "colormap_B",
+            ),
+        ),
         ("time", "t"),
     ]
     params, changed = filter_params(params, used_values, getattr(plotter, "previous_plot_params", {}))
@@ -334,8 +415,29 @@ def render_3d_bounds(params, result, plotter):
         "use_nans",
         "arrows",
         ("time", "t"),
-        ("deformation_arrows", ("scale_max", "autoscale", "skip", "arrow_opacity", "colormap", "arrow_scale")),
-        ("force_arrows", ("scale_max", "autoscale", "skip", "arrow_opacity", "colormap", "arrow_scale", "use_center")),
+        (
+            "deformation_arrows",
+            (
+                "scale_max",
+                "autoscale",
+                "skip",
+                "arrow_opacity",
+                "colormap",
+                "arrow_scale",
+            ),
+        ),
+        (
+            "force_arrows",
+            (
+                "scale_max",
+                "autoscale",
+                "skip",
+                "arrow_opacity",
+                "colormap",
+                "arrow_scale",
+                "use_center",
+            ),
+        ),
     ]
     params, changed = filter_params(params, used_values, getattr(plotter, "previous_plot_params", {}))
     if not changed and result == getattr(plotter, "previous_plot_result", {}):
@@ -350,11 +452,27 @@ def render_3d_bounds(params, result, plotter):
         # if present draw a cube
         if stack_min_max is not None:
             ((xmin, ymin, zmin), (xmax, ymax, zmax)) = stack_min_max
-            corners = np.asarray([[xmin, ymin, zmin], [xmax, ymin, zmin], [xmin, ymax, zmin], [xmax, ymax, zmin],
-                                  [xmin, ymin, zmax], [xmax, ymin, zmax], [xmin, ymax, zmax], [xmax, ymax, zmax]])
+            corners = np.asarray(
+                [
+                    [xmin, ymin, zmin],
+                    [xmax, ymin, zmin],
+                    [xmin, ymax, zmin],
+                    [xmax, ymax, zmin],
+                    [xmin, ymin, zmax],
+                    [xmax, ymin, zmax],
+                    [xmin, ymax, zmax],
+                    [xmax, ymax, zmax],
+                ]
+            )
             grid = pv.ExplicitStructuredGrid(np.asarray([2, 2, 2]), corners)
-            plotter.add_mesh(grid, style='wireframe', render_lines_as_tubes=False, line_width=2, show_edges=True,
-                             name="border")
+            plotter.add_mesh(
+                grid,
+                style="wireframe",
+                render_lines_as_tubes=False,
+                line_width=2,
+                show_edges=True,
+                name="border",
+            )
         # or remove the current cube
         else:
             plotter.remove_actor("border")
@@ -362,8 +480,7 @@ def render_3d_bounds(params, result, plotter):
     elif show_grid == 3:
         # get the stack shape
         if len(result.stacks):
-            stack_shape = np.array(result.stacks[0].shape[:3]) * np.array(
-                result.stacks[0].voxel_size)
+            stack_shape = np.array(result.stacks[0].shape[:3]) * np.array(result.stacks[0].voxel_size)
         else:
             stack_shape = None
         # draw a cube around it
@@ -371,11 +488,27 @@ def render_3d_bounds(params, result, plotter):
             xmin, xmax = -stack_shape[0] / 2, stack_shape[0] / 2
             ymin, ymax = -stack_shape[1] / 2, stack_shape[1] / 2
             zmin, zmax = -stack_shape[2] / 2, stack_shape[2] / 2
-            corners = np.asarray([[xmin, ymin, zmin], [xmax, ymin, zmin], [xmin, ymax, zmin], [xmax, ymax, zmin],
-                                  [xmin, ymin, zmax], [xmax, ymin, zmax], [xmin, ymax, zmax], [xmax, ymax, zmax]])
+            corners = np.asarray(
+                [
+                    [xmin, ymin, zmin],
+                    [xmax, ymin, zmin],
+                    [xmin, ymax, zmin],
+                    [xmax, ymax, zmin],
+                    [xmin, ymin, zmax],
+                    [xmax, ymin, zmax],
+                    [xmin, ymax, zmax],
+                    [xmax, ymax, zmax],
+                ]
+            )
             grid = pv.ExplicitStructuredGrid(np.asarray([2, 2, 2]), corners)
-            plotter.add_mesh(grid, style='wireframe', render_lines_as_tubes=False, line_width=2,
-                             show_edges=True, name="border")
+            plotter.add_mesh(
+                grid,
+                style="wireframe",
+                render_lines_as_tubes=False,
+                line_width=2,
+                show_edges=True,
+                name="border",
+            )
         # or remove the border
         else:
             plotter.remove_actor("border")
@@ -389,7 +522,11 @@ def render_3d_bounds(params, result, plotter):
         # show the grid or remove it
         if stack_min_max is not None:
             ((xmin, ymin, zmin), (xmax, ymax, zmax)) = stack_min_max
-            plotter.show_grid(bounds=[xmin, xmax, ymin, ymax, zmin, zmax], color=plotter._theme.font.color, render=False)
+            plotter.show_grid(
+                bounds=[xmin, xmax, ymin, ymax, zmin, zmax],
+                color=plotter._theme.font.color,
+                render=False,
+            )
         else:
             plotter.remove_bounds_axes()
     else:
@@ -398,7 +535,10 @@ def render_3d_bounds(params, result, plotter):
 
 def render_3d_camera(params, result, plotter, exporter=None, double_render=False):
     used_values = [
-        ("camera", ("elevation", "azimuth", "distance", "offset_x", "offset_y", "roll")),
+        (
+            "camera",
+            ("elevation", "azimuth", "distance", "offset_x", "offset_y", "roll"),
+        ),
     ]
     params, changed = filter_params(params, used_values, getattr(plotter, "previous_plot_params", {}))
     if not changed and result == getattr(plotter, "previous_plot_result", {}):

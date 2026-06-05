@@ -14,8 +14,8 @@ from saenopy.gui.orientation.modules.BatchEvaluate import BatchEvaluate
 # QSettings
 settings = QtCore.QSettings("FabryLab", "CompactionAnalyzer")
 
-class MainWindow(QtWidgets.QWidget):
 
+class MainWindow(QtWidgets.QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
 
@@ -26,13 +26,12 @@ class MainWindow(QtWidgets.QWidget):
         main_layout = QtWidgets.QHBoxLayout(self)
 
         with QtShortCuts.QTabWidget(main_layout) as self.tabs:
-
             """ """
             with self.tabs.createTab("Analyse Measurements") as v_layout:
                 v_layout.setContentsMargins(0, 0, 0, 0)
                 with QtShortCuts.QHBoxLayout() as h_layout:
                     h_layout.setContentsMargins(0, 0, 0, 0)
-                    #self.deformations = Deformation(h_layout, self)
+                    # self.deformations = Deformation(h_layout, self)
                     self.deformations = BatchEvaluate(self)
                     h_layout.addWidget(self.deformations)
                     self.description = QtWidgets.QTextEdit()
@@ -40,7 +39,8 @@ class MainWindow(QtWidgets.QWidget):
                     self.description.setStyleSheet("QTextEdit { background: #f0f0f0}")
                     self.description.setMaximumWidth(300)
                     h_layout.addWidget(self.description)
-                    self.description.setText("""
+                    self.description.setText(
+                        """
                     <h1>Start Evaluation</h1>
                     
                     As a measure of the contractile strength for cells/organoids in fibrous materials, we quantify the tissue 
@@ -65,7 +65,8 @@ class MainWindow(QtWidgets.QWidget):
                     </ul>
 
 
-                     """.strip())
+                     """.strip()
+                    )
                 v_layout.addWidget(QHLine())
                 with QtShortCuts.QHBoxLayout() as h_layout:
                     h_layout.addStretch()
@@ -78,7 +79,7 @@ class MainWindow(QtWidgets.QWidget):
                 with QtShortCuts.QHBoxLayout() as h_layout:
                     h_layout.setContentsMargins(0, 0, 0, 0)
 
-                    #self.deformations = Force(h_layout, self)
+                    # self.deformations = Force(h_layout, self)
                     self.plotting_window = PlottingWindow(self, self.deformations)
                     h_layout.addWidget(self.plotting_window)
 
@@ -121,20 +122,21 @@ class MainWindow(QtWidgets.QWidget):
     def load(self):
         files = glob.glob(self.input_filename.value())
         self.input_label.setText("\n".join(files))
-#        self.input_filename
+
+    #        self.input_filename
 
     def next(self):
-        self.tabs.setCurrentIndex(self.tabs.currentIndex()+1)
+        self.tabs.setCurrentIndex(self.tabs.currentIndex() + 1)
 
     def previous(self):
-        self.tabs.setCurrentIndex(self.tabs.currentIndex()-1)
+        self.tabs.setCurrentIndex(self.tabs.currentIndex() - 1)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     app = QtWidgets.QApplication(sys.argv)
     print(sys.argv)
     window = MainWindow()
-    #if len(sys.argv) >= 2:
+    # if len(sys.argv) >= 2:
     #    window.loadFile(sys.argv[1])
     window.show()
     sys.exit(app.exec_())

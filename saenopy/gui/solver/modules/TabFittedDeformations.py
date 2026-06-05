@@ -12,7 +12,6 @@ from saenopy.gui.common.TabModule import TabModule
 
 
 class TabFittedDeformations(TabModule):
-
     def __init__(self, parent: "BatchEvaluate"):
         super().__init__(parent)
 
@@ -26,13 +25,22 @@ class TabFittedDeformations(TabModule):
                     self.plotter.set_background("black")
                     layout.addWidget(self.plotter.interactor)
 
-                    self.z_slider = QTimeSlider("z", self.z_slider_value_changed, "set z position",
-                                                QtCore.Qt.Vertical).addToLayout()
+                    self.z_slider = QTimeSlider(
+                        "z",
+                        self.z_slider_value_changed,
+                        "set z position",
+                        QtCore.Qt.Vertical,
+                    ).addToLayout()
                     self.z_slider.t_slider.valueChanged.connect(
-                        lambda value: parent.shared_properties.change_property("z_slider", value, self))
+                        lambda value: parent.shared_properties.change_property("z_slider", value, self)
+                    )
                     parent.shared_properties.add_property("z_slider", self)
 
-                self.vtk_toolbar = VTK_Toolbar(self.plotter, self.update_display, shared_properties=self.parent.shared_properties).addToLayout()
+                self.vtk_toolbar = VTK_Toolbar(
+                    self.plotter,
+                    self.update_display,
+                    shared_properties=self.parent.shared_properties,
+                ).addToLayout()
 
                 self.t_slider = QTimeSlider(connected=self.update_display).addToLayout()
                 self.tab.parent().t_slider = self.t_slider
@@ -57,7 +65,9 @@ class TabFittedDeformations(TabModule):
             self.z_slider.setValue(self.result.stacks[0].shape[2] // 2)
 
             if result.stacks[0].channels:
-                self.vtk_toolbar.channel_select.setValues(np.arange(len(result.stacks[0].channels)), result.stacks[0].channels)
+                self.vtk_toolbar.channel_select.setValues(
+                    np.arange(len(result.stacks[0].channels)), result.stacks[0].channels
+                )
                 self.vtk_toolbar.channel_select.setVisible(True)
             else:
                 self.vtk_toolbar.channel_select.setValue(0)
@@ -75,9 +85,11 @@ class TabFittedDeformations(TabModule):
             CamPos.cam_pos_initialized = True
             M = self.result.solvers[self.t_slider.value()]
             mesh = M.mesh
-            self.plotter.interactor.setToolTip(str(self.result.solve_parameters) + f"\nNodes {mesh.nodes.shape[0]}\nTets {mesh.tetrahedra.shape[0]}")
+            self.plotter.interactor.setToolTip(
+                str(self.result.solve_parameters) + f"\nNodes {mesh.nodes.shape[0]}\nTets {mesh.tetrahedra.shape[0]}"
+            )
             showVectorField2(self, mesh, "displacements")
-            #showVectorField(self.plotter, M, M.U, "displacements", factor=0.1, scalebar_max=self.vtk_toolbar.getScaleMax(), show_nan=self.vtk_toolbar.use_nans.value())
+            # showVectorField(self.plotter, M, M.U, "displacements", factor=0.1, scalebar_max=self.vtk_toolbar.getScaleMax(), show_nan=self.vtk_toolbar.use_nans.value())
             if cam_pos is not None:
                 self.plotter.camera_position = cam_pos
         else:

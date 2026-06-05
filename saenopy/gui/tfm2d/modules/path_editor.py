@@ -23,7 +23,7 @@ def start_path_change(parent, result: Result2D):
     result.input_corrected = str(path_b)
     result.reference_stack_corrected = str(path_a)
 
-    #if path_editor.input_pack.value():
+    # if path_editor.input_pack.value():
     #    for stack in result.stacks:
     #        stack.pack_files()
     #    if result.stack_reference:
@@ -31,7 +31,7 @@ def start_path_change(parent, result: Result2D):
 
     if path_editor.input_save.value():
         result.save()
-        #print("saved")
+        # print("saved")
         return
 
 
@@ -41,10 +41,9 @@ class PathEditor(QtWidgets.QDialog):
         self.setWindowTitle("Change Path")
         with QtShortCuts.QVBoxLayout(self) as layout:
             QtWidgets.QLabel("Change path where the images are stored.").addToLayout()
-            self.label = QtShortCuts.SuperQLabel(
-                f"The current path is {result.bf}.").addToLayout()
+            self.label = QtShortCuts.SuperQLabel(f"The current path is {result.bf}.").addToLayout()
             self.label.setWordWrap(True)
-            #self.input_pack = QtShortCuts.QInputBool(None, "pack files", False)
+            # self.input_pack = QtShortCuts.QInputBool(None, "pack files", False)
             self.input_save = QtShortCuts.QInputBool(None, "save", False)
             self.input_folder = QtShortCuts.QInputFolder(None, "", Path(result.bf), allow_edit=True)
             self.input_folder2 = QtShortCuts.QInputFolder(None, "", Path(result.reference_stack), allow_edit=True)
@@ -53,4 +52,3 @@ class PathEditor(QtWidgets.QDialog):
             with QtShortCuts.QHBoxLayout():
                 self.button_addList0 = QtShortCuts.QPushButton(None, "cancel", self.reject)
                 self.button_addList0 = QtShortCuts.QPushButton(None, "ok", self.accept)
-

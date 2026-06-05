@@ -4,7 +4,10 @@ import matplotlib.pyplot as plt
 import jointforces as jf
 from pathlib import Path
 
-from saenopy.gui.orientation.modules.result import ResultOrientation, SegmentationParametersDict
+from saenopy.gui.orientation.modules.result import (
+    ResultOrientation,
+    SegmentationParametersDict,
+)
 from qtpy import QtCore, QtWidgets, QtGui
 from qimage2ndarray import array2qimage
 from saenopy.gui.common import QtShortCuts, QExtendedGraphicsView
@@ -32,34 +35,56 @@ class SegmentationDetector(PipelineModule):
             with CheckAbleGroup(self, "segmentation").addToLayout() as self.group:
                 with QtShortCuts.QVBoxLayout():
                     with QtShortCuts.QHBoxLayout():
-                        self.seg_thresh = QtShortCuts.QInputString(None, "thresh", "1.0",
-                                                                   type=float,
-                                                                   settings=self.settings,
-                                                                   settings_key="orientation/segmentation/thresh")
-                        self.seg_invert = QtShortCuts.QInputBool(None, "invert", False, settings=self.settings,
-                                                                 settings_key="orientation/segmentation/invert",
-                                                                 tooltip="Tick if cell is dark on white background.")
+                        self.seg_thresh = QtShortCuts.QInputString(
+                            None,
+                            "thresh",
+                            "1.0",
+                            type=float,
+                            settings=self.settings,
+                            settings_key="orientation/segmentation/thresh",
+                        )
+                        self.seg_invert = QtShortCuts.QInputBool(
+                            None,
+                            "invert",
+                            False,
+                            settings=self.settings,
+                            settings_key="orientation/segmentation/invert",
+                            tooltip="Tick if cell is dark on white background.",
+                        )
                     # self.segmention_thres.valueChanged.connect(self.listSelected)
                     with QtShortCuts.QHBoxLayout():
-                        self.seg_gauss1 = QtShortCuts.QInputString(None, "gauss1", "0.5", type=float,
-                                                                   settings=self.settings,
-                                                                   settings_key="orientation/segmentation/gauss1")
+                        self.seg_gauss1 = QtShortCuts.QInputString(
+                            None,
+                            "gauss1",
+                            "0.5",
+                            type=float,
+                            settings=self.settings,
+                            settings_key="orientation/segmentation/gauss1",
+                        )
                         # self.seg_gaus1.valueChanged.connect(self.listSelected)
-                        self.seg_gauss2 = QtShortCuts.QInputString(None, "gauss2", "100", type=float,
-                                                                   settings=self.settings,
-                                                                   settings_key="orientation/segmentation/gauss2")
+                        self.seg_gauss2 = QtShortCuts.QInputString(
+                            None,
+                            "gauss2",
+                            "100",
+                            type=float,
+                            settings=self.settings,
+                            settings_key="orientation/segmentation/gauss2",
+                        )
                         # self.seg_gaus2.valueChanged.connect(self.listSelected)
 
                     self.input_button = QtShortCuts.QPushButton(None, "detect deformations", self.start_process)
 
-        self.setParameterMapping("segmentation_parameters", {
-            "thresh": self.seg_thresh,
-            "gauss1": self.seg_gauss1,
-            "gauss2": self.seg_gauss2,
-            "invert": self.seg_invert,
-        })
+        self.setParameterMapping(
+            "segmentation_parameters",
+            {
+                "thresh": self.seg_thresh,
+                "gauss1": self.seg_gauss1,
+                "gauss2": self.seg_gauss2,
+                "invert": self.seg_invert,
+            },
+        )
 
-        #self.progress_signal.connect(self.progress_callback)
+        # self.progress_signal.connect(self.progress_callback)
 
     def check_available(self, result: ResultOrientation) -> bool:
         return True
@@ -68,7 +93,11 @@ class SegmentationDetector(PipelineModule):
         super().setResult(result)
         self.update_display()
 
-    def process(self, result: ResultOrientation, segmentation_parameters: SegmentationParametersDict):
+    def process(
+        self,
+        result: ResultOrientation,
+        segmentation_parameters: SegmentationParametersDict,
+    ):
         from CompactionAnalyzer.CompactionFunctions import segment_cell, normalize
         from skimage import color
 
@@ -78,15 +107,18 @@ class SegmentationDetector(PipelineModule):
             im_cell = color.rgb2gray(im_cell)
         im_cell_n = normalize(im_cell, 1, 99)
 
-        segmentation = segment_cell(im_cell_n, thres=segmentation_parameters["thresh"],
-                                  seg_gaus1=segmentation_parameters["gauss1"],
-                                  seg_gaus2=segmentation_parameters["gauss2"],
-                                  show_segmentation=False,
-                                  seg_invert=segmentation_parameters["invert"],
-                                  seg_iter=1,
-                                  segmention_method="otsu",
-                                  regional_max_correction=True,
-                                  segmention_min_area=1000)
+        segmentation = segment_cell(
+            im_cell_n,
+            thres=segmentation_parameters["thresh"],
+            seg_gaus1=segmentation_parameters["gauss1"],
+            seg_gaus2=segmentation_parameters["gauss2"],
+            show_segmentation=False,
+            seg_invert=segmentation_parameters["invert"],
+            seg_iter=1,
+            segmention_method="otsu",
+            regional_max_correction=True,
+            segmention_min_area=1000,
+        )
 
         result.segmentation = segmentation
         result.save()
@@ -104,20 +136,22 @@ class SegmentationDetector(PipelineModule):
                 filename,
                 output_path=output1,
                 pixel_size=pixel_size1,
-                load_existing=True)
+                load_existing=True,
+            )
             # or if you want to explicitly load existing results files
             # use * to load multiple result files for batch processing
             # results = saenopy.load_results(result_file)
 
             for result in results:
                 result.piv_parameters = piv_parameters1
-                jf.piv.compute_displacement_series_gui(result,
-                                                       n_max=result.piv_parameters["n_max"],
-                                                       n_min=result.piv_parameters["n_min"],
-                                                       continous_segmentation=result.piv_parameters["continuous_segmentation"],
-                                                       thres_segmentation=result.piv_parameters["thresh_segmentation"],
-                                                       window_size=result.piv_parameters["window_size"],
-                                                       )
+                jf.piv.compute_displacement_series_gui(
+                    result,
+                    n_max=result.piv_parameters["n_max"],
+                    n_min=result.piv_parameters["n_min"],
+                    continous_segmentation=result.piv_parameters["continuous_segmentation"],
+                    thres_segmentation=result.piv_parameters["thresh_segmentation"],
+                    window_size=result.piv_parameters["window_size"],
+                )
                 result.save()
 
         data = dict(

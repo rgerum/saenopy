@@ -44,8 +44,26 @@ class ModuleScaleBar(QtWidgets.QGroupBox):
     def updateBar(self):
         if self.scale == 0 or self.pixtomu is None:
             return
-        mu = 100*self.pixtomu/self.scale
-        values = [1, 5, 10, 25, 50, 75, 100, 150, 200, 250, 500, 1000, 1500, 2000, 2500, 5000, 10000]
+        mu = 100 * self.pixtomu / self.scale
+        values = [
+            1,
+            5,
+            10,
+            25,
+            50,
+            75,
+            100,
+            150,
+            200,
+            250,
+            500,
+            1000,
+            1500,
+            2000,
+            2500,
+            5000,
+            10000,
+        ]
         old_v = mu
         for v in values:
             if mu < v:
@@ -55,8 +73,8 @@ class ModuleScaleBar(QtWidgets.QGroupBox):
         if np.abs(self.pixtomu) < 1e-10:
             pixel = 0
         else:
-            pixel = mu/(self.pixtomu)*self.scale
+            pixel = mu / (self.pixtomu) * self.scale
         self.scalebar.setRect(0, 0, -pixel, 5)
-        self.scalebar_text.setPos(-pixel-20-25, -20-30)
-        self.scalebar_text.setTextWidth(pixel+50)
-        self.scalebar_text.setHtml(u"<center>%d&thinsp;µm</center>" % mu)
+        self.scalebar_text.setPos(-pixel - 20 - 25, -20 - 30)
+        self.scalebar_text.setTextWidth(pixel + 50)
+        self.scalebar_text.setHtml("<center>%d&thinsp;µm</center>" % mu)

@@ -21,21 +21,15 @@ def normal_vectors_from_splines(u, tck):
     :return: n_vectors, list of normal vectors corresponding to the points defined by u
     """
 
-    n_vectors = np.array(
-        splev(u, tck, der=1)
-    ).T  # evaluation of the spline derivative, only at the points inx and y
+    n_vectors = np.array(splev(u, tck, der=1)).T  # evaluation of the spline derivative, only at the points inx and y
     # (returns result as x,y value array
-    n_vectors[:, [1, 0]] = n_vectors[
-        :, [0, 1]
-    ]  # normal vectors by switching x andy and tacking negative x values
+    n_vectors[:, [1, 0]] = n_vectors[:, [0, 1]]  # normal vectors by switching x andy and tacking negative x values
     n_vectors[:, 1] *= -1
     n_vectors = n_vectors / np.linalg.norm(n_vectors, axis=1)[:, None]  # normalizing
     return n_vectors
 
 
-def line_tension(
-    lines_splines, line_lengths, stress_tensor, pixel_length, interpol_factor=1
-):
+def line_tension(lines_splines, line_lengths, stress_tensor, pixel_length, interpol_factor=1):
     """
     function to perform interpolation on lines, to get new x,y coordinates, calculate the normal vectors on these points
     and calculate the stress vector and the norm of the stress vectors, across the lines at the interpolated points.
@@ -57,9 +51,7 @@ def line_tension(
     """
 
     # interpolating the stress vector:
-    pixx = np.linspace(
-        0, 1, stress_tensor.shape[1]
-    )  # coordinate space on which to perform the interpolation
+    pixx = np.linspace(0, 1, stress_tensor.shape[1])  # coordinate space on which to perform the interpolation
     pixy = np.linspace(0, 1, stress_tensor.shape[0])
 
     # using 2-dimensional interpolation on each component
@@ -88,16 +80,13 @@ def line_tension(
         )  # new normal_vectors, using the derivative at interpolation points
 
         # traction vectors using interpolation of the stress tensor
-        t_vecs, t_norm, t_vecs_n, t_vecs_shear = (
-            stress_vector_from_tensor_interpolation(
-                p_new, n_vecs, sig_xx_inter, sig_yx_inter, sig_yy_inter, inter_ranges
-            )
+        t_vecs, t_norm, t_vecs_n, t_vecs_shear = stress_vector_from_tensor_interpolation(
+            p_new, n_vecs, sig_xx_inter, sig_yx_inter, sig_yy_inter, inter_ranges
         )
 
         # conversion to N/m (height not included)
         t_vecs, t_norm, t_vecs_n, t_vecs_shear = [
-            x / (pixel_length * 10**-6)
-            for x in [t_vecs, t_norm, t_vecs_n, t_vecs_shear]
+            x / (pixel_length * 10**-6) for x in [t_vecs, t_norm, t_vecs_n, t_vecs_shear]
         ]
 
         # updating minimal value to find global minimum eventually
@@ -116,9 +105,7 @@ def line_tension(
     return lines_interpol, min_v, max_v
 
 
-def stress_vector_from_tensor_interpolation(
-    ps, n_vecs, sig_xx_inter, sig_yx_inter, sig_yy_inter, inter_ranges
-):
+def stress_vector_from_tensor_interpolation(ps, n_vecs, sig_xx_inter, sig_yx_inter, sig_yy_inter, inter_ranges):
     """
     calculates the stress vector with t=sigma*n ; sigma: stress tensor, n: normal vector to the cut over which the
     stress tensor is calculated. This function uses 2-interpolation functions for the individual stress components,
@@ -136,50 +123,34 @@ def stress_vector_from_tensor_interpolation(
             t_norm: norm of these vectors
     """
 
-    u = copy.deepcopy(
-        ps
-    )  # points represented on the (0,1) interval used for the interpolation function.
+    u = copy.deepcopy(ps)  # points represented on the (0,1) interval used for the interpolation function.
     u[:, 0] = u[:, 0] / inter_ranges[0]
     u[:, 1] = u[:, 1] / inter_ranges[1]
     t_vecs = []
     for i in range(len(u)):
         # stress vectors according to cauchy theorem
         t_vec = [
-            sig_xx_inter(u[i][0], u[i][1]) * n_vecs[i][0]
-            + sig_yx_inter(u[i][0], u[i][1]) * n_vecs[i][1],
-            sig_yx_inter(u[i][0], u[i][1]) * n_vecs[i][0]
-            + sig_yy_inter(u[i][0], u[i][1]) * n_vecs[i][1],
+            sig_xx_inter(u[i][0], u[i][1]) * n_vecs[i][0] + sig_yx_inter(u[i][0], u[i][1]) * n_vecs[i][1],
+            sig_yx_inter(u[i][0], u[i][1]) * n_vecs[i][0] + sig_yy_inter(u[i][0], u[i][1]) * n_vecs[i][1],
         ]
         t_vecs.append(t_vec)
 
     t_vecs = np.array(t_vecs).squeeze()  # removing unused array dimension
     t_norm = np.linalg.norm(t_vecs, axis=1)  # calculating norm of the stress vector
-    t_vec_n = np.abs(
-        np.sum(t_vecs * n_vecs, axis=1)
-    )  # length of the normal component of the line tension
+    t_vec_n = np.abs(np.sum(t_vecs * n_vecs, axis=1))  # length of the normal component of the line tension
     t_vec_shear = np.sqrt(t_norm**2 - t_vec_n**2)  # shear component of the line tension
     return t_vecs, t_norm, t_vec_n, t_vec_shear
 
 
 def calculate_stress_tensor(s_nodes, nodes, dims=None):
     if not dims:
-        stress_tensor = np.zeros(
-            (int(np.sqrt(len(s_nodes))), int(np.sqrt(len(s_nodes))), 2, 2)
-        )
+        stress_tensor = np.zeros((int(np.sqrt(len(s_nodes))), int(np.sqrt(len(s_nodes))), 2, 2))
     else:
         stress_tensor = np.zeros((dims[0], dims[1], 2, 2))
-    stress_tensor[nodes[:, 2].astype(int), nodes[:, 1].astype(int), 0, 0] = s_nodes[
-        :, 0
-    ]  # sigma_x
-    stress_tensor[nodes[:, 2].astype(int), nodes[:, 1].astype(int), 1, 1] = s_nodes[
-        :, 1
-    ]  # sigma_y
-    stress_tensor[nodes[:, 2].astype(int), nodes[:, 1].astype(int), 1, 0] = s_nodes[
-        :, 2
-    ]  # sigma_yx
-    stress_tensor[nodes[:, 2].astype(int), nodes[:, 1].astype(int), 0, 1] = s_nodes[
-        :, 2
-    ]  # sigma_xy
+    stress_tensor[nodes[:, 2].astype(int), nodes[:, 1].astype(int), 0, 0] = s_nodes[:, 0]  # sigma_x
+    stress_tensor[nodes[:, 2].astype(int), nodes[:, 1].astype(int), 1, 1] = s_nodes[:, 1]  # sigma_y
+    stress_tensor[nodes[:, 2].astype(int), nodes[:, 1].astype(int), 1, 0] = s_nodes[:, 2]  # sigma_yx
+    stress_tensor[nodes[:, 2].astype(int), nodes[:, 1].astype(int), 0, 1] = s_nodes[:, 2]  # sigma_xy
     return stress_tensor
 
 
@@ -188,9 +159,7 @@ def coefficient_of_variation(mask, x, border_pad=0):
     mask_cp = copy.deepcopy(mask)
     if border_pad > 0:
         mask_cp = binary_erosion(mask_cp, iterations=border_pad)
-    return np.nanstd(x[mask_cp]) / np.abs(
-        np.nanmean(x[mask_cp])
-    )  # absolute value of mean is an alternative definition
+    return np.nanstd(x[mask_cp]) / np.abs(np.nanmean(x[mask_cp]))  # absolute value of mean is an alternative definition
 
 
 def all_stress_measures(st, px_size=1):
@@ -222,9 +191,7 @@ def all_stress_measures(st, px_size=1):
     )
 
 
-def reorder_vectors_inward(
-    borders, lines_interpol, cell_id, line_ids, plot_n_vecs=False, mask_boundaries=None
-):
+def reorder_vectors_inward(borders, lines_interpol, cell_id, line_ids, plot_n_vecs=False, mask_boundaries=None):
     """
     reorientation of normal and traction force vectors, so that the normal vectors of one cell all point inwards.
     :param borders:
@@ -247,18 +214,12 @@ def reorder_vectors_inward(
     }  # extracting relevant normal vectors
 
     for l_id in line_ids:
-        nps1 = np.round(points_dict[l_id] + n_vectors[l_id]).astype(
-            int
-        )  # predict points original orientation
-        nps2 = np.round(points_dict[l_id] - n_vectors[l_id]).astype(
-            int
-        )  # reversed orientation
+        nps1 = np.round(points_dict[l_id] + n_vectors[l_id]).astype(int)  # predict points original orientation
+        nps2 = np.round(points_dict[l_id] - n_vectors[l_id]).astype(int)  # reversed orientation
         s1 = np.sum(cell_area[nps1[:, 1], nps1[:, 0]])
         s2 = np.sum(cell_area[nps2[:, 1], nps2[:, 0]])
         change_orientation = s1 < s2
-        n_vectors[l_id] *= -(
-            change_orientation * 2 - 1
-        )  # changes orientation inwards or keep it
+        n_vectors[l_id] *= -(change_orientation * 2 - 1)  # changes orientation inwards or keep it
         t_vectors[l_id] *= -(change_orientation * 2 - 1)  # change t vector accordingly
 
     # confirmation of correct vector orientation
@@ -316,18 +277,10 @@ def mean_stress_vector_norm(
                 borders, lines_interpolation, cell_id, line_ids, plot_n_vecs=False
             )
             # optional exclude borders at the colony edge
-            exclude_cond = (
-                borders.edge_lines
-                if exclude_colony_edge
-                else list(lines_interpolation.keys())
-            )
+            exclude_cond = borders.edge_lines if exclude_colony_edge else list(lines_interpolation.keys())
             # excluding some lines (or none) and joining to single array
-            t_vectors = np.vstack(
-                list(exclude_by_key(t_vectors, exclude_cond).values())
-            )
-            n_vectors = np.vstack(
-                list(exclude_by_key(n_vectors, exclude_cond).values())
-            )
+            t_vectors = np.vstack(list(exclude_by_key(t_vectors, exclude_cond).values()))
+            n_vectors = np.vstack(list(exclude_by_key(n_vectors, exclude_cond).values()))
             # calculating normal and shear components of traction vector after reorientation
             tns, tss = normal_and_shear(t_vectors, n_vectors)
             single_cell_force = None
@@ -346,16 +299,9 @@ def mean_stress_vector_norm(
     if exclude_colony_edge:
         lines_interpolation = exclude_by_key(lines_interpolation, borders.edge_lines)
     if norm_level == "lines":  # mean over a line
-        all_values = np.vstack(
-            [
-                np.mean(sub_dict[vtype], axis=0)
-                for sub_dict in lines_interpolation.values()
-            ]
-        )
+        all_values = np.vstack([np.mean(sub_dict[vtype], axis=0) for sub_dict in lines_interpolation.values()])
     if norm_level == "points":  # each point individually
-        all_values = np.concatenate(
-            [sub_dict[vtype] for sub_dict in lines_interpolation.values()]
-        )
+        all_values = np.concatenate([sub_dict[vtype] for sub_dict in lines_interpolation.values()])
 
     # returning the norm of the mean t_vector
     all_values = np.linalg.norm(all_values, axis=1) if vtype == "t_vecs" else all_values

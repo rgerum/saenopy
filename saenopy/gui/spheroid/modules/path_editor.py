@@ -12,17 +12,20 @@ def start_path_change(parent, result: ResultSpheroid):
     if not path_editor.exec():
         return
 
-    path_changer = PathChanger(result.template.replace("*", "{t}"), path_editor.input_folder.value().replace("*", "{t}"))
+    path_changer = PathChanger(
+        result.template.replace("*", "{t}"),
+        path_editor.input_folder.value().replace("*", "{t}"),
+    )
     print(result.images)
     result.images = [path_changer.change_path(path) for path in result.images]
     print(result.images)
     result.template = path_changer.change_path(result.template.replace("*", "{t}")).replace("{t}", "*")
 
-    #if path_editor.input_folder2 is not None:
+    # if path_editor.input_folder2 is not None:
     #    path_changer = PathChanger(result.stack_reference.template, path_editor.input_folder2.value())
     #    path_changer.stack_change(result.stack_reference)
 
-    #if path_editor.input_pack.value():
+    # if path_editor.input_pack.value():
     #    for stack in result.stacks:
     #        stack.pack_files()
     #    if result.stack_reference:
@@ -30,7 +33,7 @@ def start_path_change(parent, result: ResultSpheroid):
 
     if path_editor.input_save.value():
         result.save()
-        #print("saved")
+        # print("saved")
         return
 
 
@@ -40,18 +43,16 @@ class PathEditor(QtWidgets.QDialog):
         self.setWindowTitle("Change Path")
         with QtShortCuts.QVBoxLayout(self) as layout:
             QtWidgets.QLabel("Change path where the images are stored.").addToLayout()
-            self.label = QtShortCuts.SuperQLabel(
-                f"The current path is {result.template}.").addToLayout()
+            self.label = QtShortCuts.SuperQLabel(f"The current path is {result.template}.").addToLayout()
             self.label.setWordWrap(True)
-            #self.input_pack = QtShortCuts.QInputBool(None, "pack files", False)
+            # self.input_pack = QtShortCuts.QInputBool(None, "pack files", False)
             self.input_save = QtShortCuts.QInputBool(None, "save", False)
             self.input_folder = QtShortCuts.QInputFolder(None, "", Path(result.template), allow_edit=True)
-            #if result.stack_reference:
+            # if result.stack_reference:
             #    self.input_folder2 = QtShortCuts.QInputFolder(None, "", Path(result.stack_reference.template),
             #                                                  allow_edit=True)
-            #else:
+            # else:
             #    self.input_folder2 = None
             with QtShortCuts.QHBoxLayout():
                 self.button_addList0 = QtShortCuts.QPushButton(None, "cancel", self.reject)
                 self.button_addList0 = QtShortCuts.QPushButton(None, "ok", self.accept)
-

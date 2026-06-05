@@ -8,7 +8,6 @@ from .PipelineModule import PipelineModule
 
 
 class DisplayCellImage(PipelineModule):
-
     def __init__(self, parent=None, layout=None):
         super().__init__(parent, layout)
         self.parent = parent
@@ -30,7 +29,8 @@ class DisplayCellImage(PipelineModule):
                 active_stack=filename1,
                 reference_stack=reference_stack1,
                 pixel_size=pixel_size1,
-                load_existing=True)
+                load_existing=True,
+            )
             # or if you want to explicitly load existing results files
             # use * to load multiple result files for batch processing
             # results = saenopy.load_results(result_file)

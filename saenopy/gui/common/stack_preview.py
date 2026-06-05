@@ -21,11 +21,11 @@ def crop(im: np.ndarray, z: int, t: int, cropped: CropDict):
     if "z" not in cropped:
         cropped["z"] = (None, None)
     minz = int(cropped["z"][0] or 0)
-    maxz = int(cropped["z"][1] or z+1)
+    maxz = int(cropped["z"][1] or z + 1)
     if "t" not in cropped:
         cropped["t"] = (None, None)
     mint = int(cropped["t"][0] or 0)
-    maxt = int(cropped["t"][1] or t+1)
+    maxt = int(cropped["t"][1] or t + 1)
     if len(im.shape) == 2:
         im = im[:, :, None]
     if im.shape[2] == 1:
@@ -33,7 +33,7 @@ def crop(im: np.ndarray, z: int, t: int, cropped: CropDict):
         im[:, :, 3] = 255
     if im.shape[2] == 3:
         im = np.tile(im, (1, 1, 4))
-        im = np.dstack([im[:, :, 0], im[:, :, 1], im[:, :, 2], np.ones_like(im[:, :, 2])*255])
+        im = np.dstack([im[:, :, 0], im[:, :, 1], im[:, :, 2], np.ones_like(im[:, :, 2]) * 255])
     if minz <= z < maxz and mint <= t < maxt:
         im[:, :minx, 3] = 128
         im[:, maxx:, 3] = 128
@@ -82,8 +82,9 @@ class StackPreview(QtWidgets.QWidget):
 
                 self.t_slider = QTimeSlider(connected=self.z_slider_value_changed).addToLayout()
 
-            self.z_slider = QTimeSlider("z", self.z_slider_value_changed, "set z position",
-                                        QtCore.Qt.Vertical).addToLayout()
+            self.z_slider = QTimeSlider(
+                "z", self.z_slider_value_changed, "set z position", QtCore.Qt.Vertical
+            ).addToLayout()
 
         self.view1.link(self.view2)
         self.current_tab_selected = True
@@ -103,11 +104,11 @@ class StackPreview(QtWidgets.QWidget):
             t_count = 0
         if self.reference_choice.value() == 0:
             t_count -= 1
-        if self.z_slider.t_slider.maximum() != z_count-1:
-            self.z_slider.setRange(0, z_count-1)
+        if self.z_slider.t_slider.maximum() != z_count - 1:
+            self.z_slider.setRange(0, z_count - 1)
             self.z_slider.setValue(z_count // 2)
-        if self.t_slider.t_slider.maximum() != t_count-1:
-            self.t_slider.setRange(0, t_count-1)
+        if self.t_slider.t_slider.maximum() != t_count - 1:
+            self.t_slider.setRange(0, t_count - 1)
 
         z = self.z_slider.value()
         t = self.t_slider.value()
@@ -127,19 +128,18 @@ class StackPreview(QtWidgets.QWidget):
                 self.pixmaps[0].setPixmap(QtGui.QPixmap(array2qimage(crop(im, z, t, cropped))))
                 self.views[0].setExtend(im.shape[0], im.shape[1])
             else:
-
                 im = self.stack.get_image(t, z, 0)
                 self.pixmaps[0].setPixmap(QtGui.QPixmap(array2qimage(crop(im, z, t, cropped))))
                 self.views[0].setExtend(im.shape[0], im.shape[1])
 
-                im = self.stack.get_image(t+1, z, 0)
-                self.pixmaps[1].setPixmap(QtGui.QPixmap(array2qimage(crop(im, z, t+1, cropped))))
+                im = self.stack.get_image(t + 1, z, 0)
+                self.pixmaps[1].setPixmap(QtGui.QPixmap(array2qimage(crop(im, z, t + 1, cropped))))
                 self.views[1].setExtend(im.shape[0], im.shape[1])
 
         else:
             cropped = self.stack.get_crop()
             im = self.stack_reference.get_image(0, z, 0)
-            self.pixmaps[0].setPixmap(QtGui.QPixmap(array2qimage(crop(im, z, t+1, cropped))))
+            self.pixmaps[0].setPixmap(QtGui.QPixmap(array2qimage(crop(im, z, t + 1, cropped))))
             self.views[0].setExtend(im.shape[0], im.shape[1])
 
             if self.stack.get_t_count() == 0:

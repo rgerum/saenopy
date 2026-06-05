@@ -8,7 +8,6 @@ from saenopy.gui.solver.modules.BatchEvaluate import BatchEvaluate
 
 
 class MainWindowSolver(QtWidgets.QWidget):
-
     def __init__(self, parent=None):
         super().__init__(parent)
 
@@ -28,13 +27,15 @@ class MainWindowSolver(QtWidgets.QWidget):
                     self.plotting_window = PlottingWindow(self, self.deformations).addToLayout()
 
 
-if __name__ == '__main__':  # pragma: no cover
+if __name__ == "__main__":  # pragma: no cover
     import multiprocessing
+
     multiprocessing.set_start_method("spawn")
     app = QtWidgets.QApplication(sys.argv)
-    if sys.platform.startswith('win'):
+    if sys.platform.startswith("win"):
         import ctypes
-        myappid = 'fabrylab.saenopy.master'  # arbitrary string
+
+        myappid = "fabrylab.saenopy.master"  # arbitrary string
         ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
     print(sys.argv)
     window = MainWindowSolver()

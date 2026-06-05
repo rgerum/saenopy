@@ -34,11 +34,7 @@ def cut_mask_from_edge(mask, cut_factor, warn_flag=False, fill=True):
         mask_cut = mask[inds[0] : inds[1], inds[2] : inds[3]]
 
     sum_mask2 = np.sum(mask_cut)
-    warn = (
-        "mask was cut close to image edge"
-        if (sum_mask2 < sum_mask1 and warn_flag)
-        else ""
-    )
+    warn = "mask was cut close to image edge" if (sum_mask2 < sum_mask1 and warn_flag) else ""
     return mask_cut, warn
 
 
@@ -63,15 +59,11 @@ def FEM_simulation(nodes, elements, loads, mats, mask_area, verbose=False, **kwa
 
     # System assembly
     KG = ass.assembler(elements, mats, nodes, neq, DME, sparse=True)
-    if isinstance(KG, tuple) or version.parse(solidspy.__version__) > version.parse(
-        "1.1.0"
-    ):
+    if isinstance(KG, tuple) or version.parse(solidspy.__version__) > version.parse("1.1.0"):
         KG = KG[0]
     RHSG = ass.loadasem(loads, IBC, neq)
 
-    if (
-        np.sum(IBC == -1) < 3
-    ):  # 1 or zero fixed nodes/ pure neumann-boundary-condition system needs further constraints
+    if np.sum(IBC == -1) < 3:  # 1 or zero fixed nodes/ pure neumann-boundary-condition system needs further constraints
         # System solution with custom conditions
         # solver with constraints to zero translation and zero rotation
         UG_sol, rx = custom_solver(KG, RHSG, mask_area, nodes, IBC, verbose=verbose)
@@ -84,12 +76,8 @@ def FEM_simulation(nodes, elements, loads, mats, mask_area, verbose=False, **kwa
 
     # average shear and normal stress on the colony area
     UC = pos.complete_disp(IBC, nodes, UG_sol)  # uc are x and y displacements
-    E_nodes, S_nodes = pos.strain_nodes(
-        nodes, elements, mats, UC
-    )  # stresses and strains
-    stress_tensor = calculate_stress_tensor(
-        S_nodes, nodes, dims=mask_area.shape
-    )  # assembling the stress tensor
+    E_nodes, S_nodes = pos.strain_nodes(nodes, elements, mats, UC)  # stresses and strains
+    stress_tensor = calculate_stress_tensor(S_nodes, nodes, dims=mask_area.shape)  # assembling the stress tensor
     return UG_sol, stress_tensor
 
 
@@ -106,9 +94,7 @@ def grid_setup(mask_area, f_x, f_y, E=1, sigma=0.5, edge_factor=0):
     :return:
     """
 
-    coords = np.array(
-        np.where(mask_area)
-    )  # retrieving all coordinates from the  points  in the mask
+    coords = np.array(np.where(mask_area))  # retrieving all coordinates from the  points  in the mask
 
     # setting up nodes list:[node_id,x_coordinate,y_coordinate,fixation_y,fixation_x]
     nodes = np.zeros((coords.shape[1], 5))
@@ -118,19 +104,13 @@ def grid_setup(mask_area, f_x, f_y, E=1, sigma=0.5, edge_factor=0):
 
     # creating an 2D array, with the node id of each pixel. Non assigned pixel is -1.
     ids = np.zeros(mask_area.shape).T - 1
-    ids[coords[0], coords[1]] = np.arange(
-        coords.shape[1], dtype=int
-    )  # filling with node ids
+    ids[coords[0], coords[1]] = np.arange(coords.shape[1], dtype=int)  # filling with node ids
 
     # fix all nodes that are exactly at the edge of the image (minus any regions close to the image edge that are
     # supposed to be ignored)in the movement direction perpendicular to the edge
     ids_cut, w = cut_mask_from_edge(ids, edge_factor, "", fill=False)
-    edge_nodes_horizontal = np.hstack([ids_cut[:, 0], ids_cut[:, -1]]).astype(
-        int
-    )  # upper and lower image edge
-    edge_nodes_vertical = np.hstack([ids_cut[0, :], ids_cut[-1, :]]).astype(
-        int
-    )  # left and right image edge
+    edge_nodes_horizontal = np.hstack([ids_cut[:, 0], ids_cut[:, -1]]).astype(int)  # upper and lower image edge
+    edge_nodes_vertical = np.hstack([ids_cut[0, :], ids_cut[-1, :]]).astype(int)  # left and right image edge
     edge_nodes_horizontal = edge_nodes_horizontal[edge_nodes_horizontal >= 0]
     edge_nodes_vertical = edge_nodes_vertical[edge_nodes_vertical >= 0]
     nodes[edge_nodes_vertical, 3] = -1  # fixed in x direction
@@ -156,9 +136,7 @@ def grid_setup(mask_area, f_x, f_y, E=1, sigma=0.5, edge_factor=0):
         np.sum(np.array([(s[0] < 0) + (s[1] < 0) for s in sqr]), axis=0) > 0
     )  # logical to find any square with negative coordinates
     sqr = [(s[0][~filter], s[1][~filter]) for s in sqr]  # applying filter
-    elements = elements[
-        ~filter
-    ]  # shortening length of elements list according to the same filter
+    elements = elements[~filter]  # shortening length of elements list according to the same filter
 
     # enter node ids in elements, needs counterclockwise arrangement
     # check by calling pyTFM.functions_for_cell_colonie.plot_grid(nodes,elements,inverted_axis=False,symbol_size=4,arrows=True,image=0)
@@ -191,9 +169,7 @@ def prepare_forces(tx, ty, ps, mask):
     f_y = ty * ((ps * (10**-6)) ** 2)
     f_x[~mask] = np.nan  # setting all values outside of mask area to zero
     f_y[~mask] = np.nan
-    f_x_c1 = f_x - np.nanmean(
-        f_x
-    )  # normalizing traction force to sum up to zero (no displacement)
+    f_x_c1 = f_x - np.nanmean(f_x)  # normalizing traction force to sum up to zero (no displacement)
     f_y_c1 = f_y - np.nanmean(f_y)
     f_x_c2, f_y_c2, p = correct_torque(f_x_c1, f_y_c1, mask)
     return f_x_c2, f_y_c2
@@ -203,27 +179,19 @@ def correct_torque(fx, fy, mask_area):
     com = regionprops(mask_area.astype(int))[0].centroid  # finding center of mass
     com = (com[1], com[0])  # as x y coordinate
 
-    c_x, c_y = np.meshgrid(
-        range(fx.shape[1]), range(fx.shape[0])
-    )  # arrays with all x and y coordinates
+    c_x, c_y = np.meshgrid(range(fx.shape[1]), range(fx.shape[0]))  # arrays with all x and y coordinates
     r = np.zeros((fx.shape[0], fx.shape[1], 2))  # array with all positional vectors
     r[:, :, 0] = c_x  # note maybe its also enough to chose any point as refernece point
     r[:, :, 1] = c_y
     r = r - np.array(com)
 
-    f = np.zeros(
-        (fx.shape[0], fx.shape[1], 2), dtype="float64"
-    )  # array with all force vectors
+    f = np.zeros((fx.shape[0], fx.shape[1], 2), dtype="float64")  # array with all force vectors
     f[:, :, 0] = fx
     f[:, :, 1] = fy
-    q = np.zeros(
-        (fx.shape[0], fx.shape[1], 2), dtype="float64"
-    )  # rotated positional vectors
+    q = np.zeros((fx.shape[0], fx.shape[1], 2), dtype="float64")  # rotated positional vectors
 
     def get_torque_angle(p):
-        q[:, :, 0] = +np.cos(p) * (f[:, :, 0]) - np.sin(p) * (
-            f[:, :, 1]
-        )  # what's the mathematics behind this??
+        q[:, :, 0] = +np.cos(p) * (f[:, :, 0]) - np.sin(p) * (f[:, :, 1])  # what's the mathematics behind this??
         q[:, :, 1] = +np.sin(p) * (f[:, :, 0]) + np.cos(p) * (f[:, :, 1])
         torque = np.abs(
             np.nansum(np.cross(r, q, axisa=2, axisb=2))
@@ -276,9 +244,7 @@ def correct_torque(fx, fy, mask_area):
             args=(),
         )["x"]
 
-    q[:, :, 0] = +np.cos(p) * (f[:, :, 0]) - np.sin(p) * (
-        f[:, :, 1]
-    )  # corrected forces
+    q[:, :, 0] = +np.cos(p) * (f[:, :, 0]) - np.sin(p) * (f[:, :, 1])  # corrected forces
     q[:, :, 1] = +np.sin(p) * (f[:, :, 0]) + np.cos(p) * (f[:, :, 1])
 
     return q[:, :, 0], q[:, :, 1], p  # returns corrected forces and rotation angle
@@ -289,12 +255,8 @@ def find_eq_position(nodes, IBC, neq):
 
     nloads = IBC.shape[0]
     RHSG = np.zeros((neq, 2))
-    x_points = np.zeros((neq)).astype(
-        bool
-    )  # mask showing which point has x deformation
-    y_points = np.zeros((neq)).astype(
-        bool
-    )  # mask showing which point has y deformation
+    x_points = np.zeros((neq)).astype(bool)  # mask showing which point has x deformation
+    y_points = np.zeros((neq)).astype(bool)  # mask showing which point has y deformation
     for i in range(nloads):
         il = int(nodes[i, 0])  # index of the node
         ilx = IBC[il, 0]  # indices in RHSG or fixed nodes, if -1
@@ -340,21 +302,13 @@ def custom_solver(mat, rhs, mask_area, nodes, IBC, verbose=False):
     com = regionprops(mask_area.astype(int))[0].centroid  # finding center of mass
     com = (com[1], com[0])  # as x y coordinate
 
-    c_x, c_y = np.meshgrid(
-        range(mask_area.shape[1]), range(mask_area.shape[0])
-    )  # arrays with all x and y coordinates
-    r = np.zeros(
-        (mask_area.shape[0], mask_area.shape[1], 2)
-    )  # array with all positional vectors
-    r[:, :, 0] = (
-        c_x  # Note: maybe its also enough to chose any point as reference point
-    )
+    c_x, c_y = np.meshgrid(range(mask_area.shape[1]), range(mask_area.shape[0]))  # arrays with all x and y coordinates
+    r = np.zeros((mask_area.shape[0], mask_area.shape[1], 2))  # array with all positional vectors
+    r[:, :, 0] = c_x  # Note: maybe its also enough to chose any point as reference point
     r[:, :, 1] = c_y
     # solidspy function that is used to construct the loads vector (rhs)
     nodes_xy_ordered, x_points, y_points = find_eq_position(nodes, IBC, len_disp)
-    r = r[
-        nodes_xy_ordered[:, 1], nodes_xy_ordered[:, 0], :
-    ]  # ordering r in the same order as rhs
+    r = r[nodes_xy_ordered[:, 1], nodes_xy_ordered[:, 0], :]  # ordering r in the same order as rhs
     r = r - np.array(com)
 
     zero_disp_x[x_points] = 1
@@ -382,10 +336,8 @@ def custom_solver(mat, rhs, mask_area, nodes, IBC, verbose=False):
                 show=verbose,
                 conlim=10**12,
             ),
-            dtype=object
-        )[
-            [0, 3]
-        ]  # sparse least squares solver
+            dtype=object,
+        )[[0, 3]]  # sparse least squares solver
     elif type(mat) is np.ndarray:
         # adding to matrix
         mat = np.append(mat, add_matrix, axis=0)

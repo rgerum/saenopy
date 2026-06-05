@@ -2,8 +2,10 @@ import datetime
 import numpy as np
 from saenopy.gui.spheroid.modules.result import ResultSpheroid
 
+
 class Mesh2D:
     pass
+
 
 def get_mesh_arrows(params, result):
     data = result.get_data_structure()
@@ -14,26 +16,43 @@ def get_mesh_arrows(params, result):
     mesh, field = result.get_field_data(params["arrows"], params["time"]["t"])
     if data["fields"][params["arrows"]]["measure"] == "deformation":
         if mesh is not None and field is not None:
-            return mesh, field, params["deformation_arrows"], data["fields"][params["arrows"]]["name"]
+            return (
+                mesh,
+                field,
+                params["deformation_arrows"],
+                data["fields"][params["arrows"]]["name"],
+            )
         else:
-            return None, None, params["deformation_arrows"], data["fields"][params["arrows"]]["name"]
+            return (
+                None,
+                None,
+                params["deformation_arrows"],
+                data["fields"][params["arrows"]]["name"],
+            )
     if data["fields"][params["arrows"]]["measure"] == "force":
         if mesh is not None and field is not None:
-            return mesh, field, params["force_arrows"], data["fields"][params["arrows"]]["name"]
+            return (
+                mesh,
+                field,
+                params["force_arrows"],
+                data["fields"][params["arrows"]]["name"],
+            )
         else:
-            return None, None, params["force_arrows"], data["fields"][params["arrows"]]["name"]
+            return (
+                None,
+                None,
+                params["force_arrows"],
+                data["fields"][params["arrows"]]["name"],
+            )
     return None, None, {}, ""
 
 
-def get_mesh_extent(params, result): 
-    mesh, field = result.get_field_data(params["arrows"], params["time"]["t"]) 
+def get_mesh_extent(params, result):
+    mesh, field = result.get_field_data(params["arrows"], params["time"]["t"])
     if mesh is None:
         return None
     else:
         return [mesh.nodes.min(axis=0) * 1e6, mesh.nodes.max(axis=0) * 1e6]
-  
-
-
 
 
 def getVectorFieldImage(result, params, use_fixed_contrast_if_available=False, use_2D=False, exporter=None):
@@ -43,7 +62,11 @@ def getVectorFieldImage(result, params, use_fixed_contrast_if_available=False, u
         if use_2D:
             image = 1
         if image and params["time"]["t"] < data["time_point_count"]:
-            stack = result.get_image_data(params["time"]["t"], params["stack"]["channel"], params["stack"]["use_reference_stack"])
+            stack = result.get_image_data(
+                params["time"]["t"],
+                params["stack"]["channel"],
+                params["stack"]["use_reference_stack"],
+            )
             if params["stack"]["z_proj"]:
                 z_range = [0, 5, 10, 1000][params["stack"]["z_proj"]]
                 start = np.clip(params["stack"]["z"] - z_range, 0, stack.shape[3])
@@ -64,7 +87,11 @@ def getVectorFieldImage(result, params, use_fixed_contrast_if_available=False, u
                 im = im.astype(np.float64) * 255 / (max - min)
                 im = np.clip(im, 0, 255).astype(np.uint8)
 
-            display_image = [im, data["voxel_size"], params["stack"]["z"] - data["z_slices_count"] / 2]
+            display_image = [
+                im,
+                data["voxel_size"],
+                params["stack"]["z"] - data["z_slices_count"] / 2,
+            ]
             if params["stack"]["image"] == 2:
                 display_image[2] = -stack.shape[3] / 2
         else:
@@ -75,8 +102,10 @@ def getVectorFieldImage(result, params, use_fixed_contrast_if_available=False, u
 
 
 def get_time_text(params, result):
-    return formatTimedelta(datetime.timedelta(seconds=float(params["time"]["t"] * result.time_delta) + params["time"]["start"]),
-                           params["time"]["format"])
+    return formatTimedelta(
+        datetime.timedelta(seconds=float(params["time"]["t"] * result.time_delta) + params["time"]["start"]),
+        params["time"]["format"],
+    )
 
 
 def formatTimedelta(t: datetime.timedelta, fmt: str) -> str:
@@ -88,8 +117,15 @@ def formatTimedelta(t: datetime.timedelta, fmt: str) -> str:
     hours = seconds // 3600
     minutes = (seconds % 3600) // 60
     seconds = seconds % 60
-    parts = {"d": t.days, "H": hours, "M": minutes, "S": seconds,
-             "s": t.total_seconds(), "m": t.microseconds // 1000, "f": t.microseconds}
+    parts = {
+        "d": t.days,
+        "H": hours,
+        "M": minutes,
+        "S": seconds,
+        "s": t.total_seconds(),
+        "m": t.microseconds // 1000,
+        "f": t.microseconds,
+    }
 
     max_level = None
     if fmt.find("%d") != -1:
@@ -135,5 +171,5 @@ def formatTimedelta(t: datetime.timedelta, fmt: str) -> str:
         if i == 0:
             fmt = "-" + fmt
         else:
-            fmt = fmt[:i - 1] + "-" + fmt[i:]
+            fmt = fmt[: i - 1] + "-" + fmt[i:]
     return fmt

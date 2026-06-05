@@ -17,41 +17,64 @@ class AddFilesDialog(AddFilesDialog):
         with self.tabs.createTab("New Measurement") as self.tab:
             with QtShortCuts.QVBoxLayout() as layout:
                 self.label = QtWidgets.QLabel(
-                    "Select two paths as an input wildcard. Use * to specify a placeholder. One should be for the fiber images and one for the cell images.")
+                    "Select two paths as an input wildcard. Use * to specify a placeholder. One should be for the fiber images and one for the cell images."
+                )
                 layout.addWidget(self.label)
 
-                self.cellText = QtShortCuts.QInputFilename(None, "Cell Images", file_type="Image (*.tif *.png *.jpg)",
-                                                           settings=self.settings,
-                                                           settings_key=f"{self.settings_group}/wildcard_cell", existing=True,
-                                                           allow_edit=True)
-                self.fiberText = QtShortCuts.QInputFilename(None, "Fiber Images", file_type="Image (*.tif *.png *.jpg)",
-                                                            settings=self.settings,
-                                                            settings_key=f"{self.settings_group}/wildcard_fiber", existing=True,
-                                                            allow_edit=True)
-                self.outputText = QtShortCuts.QInputFolder(None, "output", settings=self.settings,
-                                                           settings_key=f"{self.settings_group}/output_folder", allow_edit=True)
-                
-                self.pixel_size = QtShortCuts.QInputString(None, "pixel size", 1.29, settings=self.settings,
-                                                           settings_key=f"{self.settings_group}/pixel_size", unit="µm",
-                                                           allow_none=False, type=float)
-                
-                
-                
+                self.cellText = QtShortCuts.QInputFilename(
+                    None,
+                    "Cell Images",
+                    file_type="Image (*.tif *.png *.jpg)",
+                    settings=self.settings,
+                    settings_key=f"{self.settings_group}/wildcard_cell",
+                    existing=True,
+                    allow_edit=True,
+                )
+                self.fiberText = QtShortCuts.QInputFilename(
+                    None,
+                    "Fiber Images",
+                    file_type="Image (*.tif *.png *.jpg)",
+                    settings=self.settings,
+                    settings_key=f"{self.settings_group}/wildcard_fiber",
+                    existing=True,
+                    allow_edit=True,
+                )
+                self.outputText = QtShortCuts.QInputFolder(
+                    None,
+                    "output",
+                    settings=self.settings,
+                    settings_key=f"{self.settings_group}/output_folder",
+                    allow_edit=True,
+                )
+
+                self.pixel_size = QtShortCuts.QInputString(
+                    None,
+                    "pixel size",
+                    1.29,
+                    settings=self.settings,
+                    settings_key=f"{self.settings_group}/pixel_size",
+                    unit="µm",
+                    allow_none=False,
+                    type=float,
+                )
 
                 def changed():
                     from CompactionAnalyzer.CompactionFunctions import generate_lists
+
                     fiber_list_string = os.path.normpath(self.fiberText.value())
                     cell_list_string = os.path.normpath(self.cellText.value())
                     output_folder = os.path.normpath(self.outputText.value())
-                    fiber_list, cell_list, out_list = generate_lists(fiber_list_string, cell_list_string,
-                                                                     output_main=output_folder)
+                    fiber_list, cell_list, out_list = generate_lists(
+                        fiber_list_string, cell_list_string, output_main=output_folder
+                    )
                     if self.fiberText.value() == "" or self.cellText.value() == "":
                         self.label2.setText("")
                         self.label2.setStyleSheet("QLabel { color : red; }")
                         self.button_addList1.setDisabled(True)
                     elif len(fiber_list) != len(cell_list):
                         self.label2.setText(
-                            f"Warning: {len(fiber_list)} fiber images found and {len(cell_list)} cell images found. Numbers do not match.")
+                            f"Warning: {len(fiber_list)} fiber images found and {len(cell_list)} cell images found. Numbers do not match."
+                        )
                         self.label2.setStyleSheet("QLabel { color : red; }")
                         self.button_addList1.setDisabled(True)
                     else:
@@ -70,7 +93,8 @@ class AddFilesDialog(AddFilesDialog):
                                 self.button_addList1.setDisabled(False)
                         else:
                             self.label2.setText(
-                                f"{len(fiber_list)} fiber images found and {len(cell_list)} cell images found.")
+                                f"{len(fiber_list)} fiber images found and {len(cell_list)} cell images found."
+                            )
                             self.label2.setStyleSheet("QLabel { color : green; }")
                             self.button_addList1.setDisabled(False)
 

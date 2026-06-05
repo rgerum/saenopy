@@ -62,7 +62,5 @@ def calculate_deformation(im1, im2, window_size=64, overlap=32, std_factor=20):
     u[mask_std] = np.nan
     v[mask_std] = np.nan
 
-    u, v = openpiv.filters.replace_outliers(
-        u, v, method="localmean", max_iter=10, kernel_size=2
-    )
+    u, v = openpiv.filters.replace_outliers(u, v, method="localmean", max_iter=10, kernel_size=2)
     return u, -v, mask, mask_std  # return -v because of image inverted axis

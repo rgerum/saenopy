@@ -45,7 +45,9 @@ class CodeEditor(QtWidgets.QPlainTextEdit):
             max_value /= 10
             digits += 1
 
-        space = lineNumbersLeftMargin + self.fontMetrics().horizontalAdvance('9') * (digits + 1) + lineNumbersRightMargin
+        space = (
+            lineNumbersLeftMargin + self.fontMetrics().horizontalAdvance("9") * (digits + 1) + lineNumbersRightMargin
+        )
 
         return space
 
@@ -56,7 +58,7 @@ class CodeEditor(QtWidgets.QPlainTextEdit):
         if dy:
             self.lineNumberArea.scroll(0, dy)
         else:
-           self.lineNumberArea.update(0, rect.y(), self.lineNumberArea.width(), rect.height())
+            self.lineNumberArea.update(0, rect.y(), self.lineNumberArea.width(), rect.height())
 
         if rect.contains(self.viewport().rect()):
             self.updateLineNumberAreaWidth(0)
@@ -93,11 +95,25 @@ class CodeEditor(QtWidgets.QPlainTextEdit):
                 if block.isVisible() and bottom >= event.rect().top():
                     number = str(blockNumber + 1)
                     if blockNumber == self.textCursor().blockNumber():
-                        painter.fillRect(QtCore.QRect(0, top, self.lineNumberArea.width()+10, self.fontMetrics().height()), lineColor)
+                        painter.fillRect(
+                            QtCore.QRect(
+                                0,
+                                top,
+                                self.lineNumberArea.width() + 10,
+                                self.fontMetrics().height(),
+                            ),
+                            lineColor,
+                        )
 
                     painter.setPen(QtGui.QColor(lineNumbersTextColor))
-                    painter.drawText(0, top, self.lineNumberArea.width()-lineNumbersRightMargin, self.fontMetrics().height(),
-                                     QtCore.Qt.AlignRight, number)
+                    painter.drawText(
+                        0,
+                        top,
+                        self.lineNumberArea.width() - lineNumbersRightMargin,
+                        self.fontMetrics().height(),
+                        QtCore.Qt.AlignRight,
+                        number,
+                    )
 
                 block = block.next()
                 top = bottom

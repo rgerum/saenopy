@@ -61,9 +61,7 @@ def correct_stage_drift(image1, image2, additional_images=None):
     additional_images_save = []
     for add_image in additional_images:
         add_image_shift = shift(add_image, shift=(-shift_y, -shift_x), order=5)
-        add_image_norm = normalizing(
-            cropping_after_shift(add_image_shift, shift_x, shift_y)
-        )
+        add_image_norm = normalizing(cropping_after_shift(add_image_shift, shift_x, shift_y))
         add_image_save = Image.fromarray(add_image_norm * 255)
         additional_images_save.append(add_image_save)
 

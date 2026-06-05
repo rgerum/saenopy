@@ -4,10 +4,7 @@ from qtpy import QtGui
 
 
 def resource_path(relative):
-    path = os.path.join(
-        str(Path(__file__).parent.parent.parent / "img"),
-        relative
-    )
+    path = os.path.join(str(Path(__file__).parent.parent.parent / "img"), relative)
     return path
 
 
