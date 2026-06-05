@@ -18,7 +18,7 @@ dependencies = [
     "pyvistaqt>=0.11.1,<0.12.0",
     "imagecodecs>=2024.9.22,<2025.0.0",
     "openpiv>=0.24.2,<0.25.0",
-    "pyside6>=6.8.0.2,<7.0.0",
+    "pyside6==6.8.2.1",
     "qtawesome>=1.2.1,<2.0.0",
     "jointforces>=1.0.7,<2.0.0",
     "compactionAnalyzer>=1.0.7,<2.0.0",
