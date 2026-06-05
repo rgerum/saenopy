@@ -115,8 +115,8 @@ class PythonHighlighter(QtGui.QSyntaxHighlighter):
         super().__init__(parent)
 
         # Multi-line strings (expression, flag, style)
-        self.tri_single = (QtCore.QRegularExpression("'''"), 1, STYLES["string2"])
-        self.tri_double = (QtCore.QRegularExpression('"""'), 2, STYLES["string2"])
+        self.tri_single = ("'''", 1, STYLES["string2"])
+        self.tri_double = ('"""', 2, STYLES["string2"])
 
         rules = []
 
@@ -172,26 +172,25 @@ class PythonHighlighter(QtGui.QSyntaxHighlighter):
         # If inside triple-single quotes, start at 0
         if self.previousBlockState() == in_state:
             start = 0
-            add = 0
+            search_from = 0
         # Otherwise, look for the delimiter on this line
         else:
-            match = delimiter.match(text)
-            start = match.capturedStart() if match.hasMatch() else -1
-            add = match.capturedLength()
+            start = text.find(delimiter)
+            search_from = start + len(delimiter)
 
         # As long as there's a delimiter match on this line...
         while start >= 0:
-            match = delimiter.match(text, start + add)
-            end = match.capturedStart() if match.hasMatch() else -1
+            end = text.find(delimiter, search_from)
             # Ending delimiter on this line?
-            if end >= add:
-                length = end - start + add + match.capturedLength()
+            if end >= 0:
+                length = end - start + len(delimiter)
                 self.setCurrentBlockState(0)
             else:
                 self.setCurrentBlockState(in_state)
-                length = len(text) - start + add
+                length = len(text) - start
             # Apply formatting
             self.setFormat(start, length, style)
-            start = match.capturedStart() if match.hasMatch() else -1
+            start = text.find(delimiter, end + len(delimiter)) if end >= 0 else -1
+            search_from = start + len(delimiter)
 
         return self.currentBlockState() == in_state

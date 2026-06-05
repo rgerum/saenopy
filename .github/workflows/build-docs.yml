@@ -11,32 +11,28 @@ jobs:
 
     steps:
       - name: Checkout the repository
-        uses: actions/checkout@v2
-
-      - name: Set up Python
-        uses: actions/setup-python@v2
-        with:
-          python-version: '3.x'  # Specify the Python version you need
+        uses: actions/checkout@v6
 
       - name: Install Pandoc
         run: |
           sudo apt-get update
           sudo apt-get install -y pandoc
 
-      - name: Install Poetry
-        run: |
-          curl -sSL https://install.python-poetry.org | python3 -
-          echo "$HOME/.local/bin" >> $GITHUB_PATH
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+
+      - name: Set up Python
+        run: uv python install 3.12
 
       - name: Install dependencies
-        run: |
-          cd docs
-          poetry install -E docs
+        run: uv sync --locked --extra docs --group docs
 
       - name: Build the documentation
         run: |
           cd docs
-          poetry run make html
+          uv run make html
 
       - name: Deploy to saenopy_website
         env:

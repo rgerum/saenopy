@@ -72,6 +72,14 @@ def init_app():
     return app, window, solver, batch_evaluate
 
 
+def process_events_until(app, condition, timeout=120, message="Qt task did not finish"):
+    start = time.monotonic()
+    while not condition():
+        app.processEvents()
+        if time.monotonic() - start > timeout:
+            raise TimeoutError(message)
+
+
 def in_random_dir():
     def wrapper(func):
         def wrapped(monkeypatch, random_path, catch_popup_error, *args, **kwargs):
@@ -91,7 +99,11 @@ def in_random_dir():
     return wrapper
 
 
-@settings(suppress_health_check=(HealthCheck.function_scoped_fixture,), deadline=None)
+@settings(
+    suppress_health_check=(HealthCheck.function_scoped_fixture,),
+    deadline=None,
+    max_examples=4,
+)
 @given(use_time=st.booleans(), use_reference=st.booleans())
 @in_random_dir()
 def test_run_example(monkeypatch, random_path, catch_popup_error, use_time, use_reference):
@@ -235,8 +247,15 @@ def test_run_example(monkeypatch, random_path, catch_popup_error, use_time, use_
     # schedule to run all
     batch_evaluate.run_all()
     # wait until they are processed
-    while batch_evaluate.current_task_id < len(batch_evaluate.tasks):
-        app.processEvents()
+    process_events_until(
+        app,
+        lambda: batch_evaluate.current_task_id >= len(batch_evaluate.tasks),
+        message=(
+            "batch evaluation did not finish; "
+            f"current_task_id={batch_evaluate.current_task_id}, "
+            f"task_count={len(batch_evaluate.tasks)}"
+        ),
+    )
 
     # check the result
     M = results[0].solvers[0]
@@ -294,7 +313,11 @@ def test_run_example(monkeypatch, random_path, catch_popup_error, use_time, use_
     batch_evaluate.list.act_delete.triggered.emit()
 
 
-@settings(suppress_health_check=(HealthCheck.function_scoped_fixture,), deadline=None)
+@settings(
+    suppress_health_check=(HealthCheck.function_scoped_fixture,),
+    deadline=None,
+    max_examples=2,
+)
 @given(use_time=st.booleans())
 def test_path_editor(monkeypatch, random_path, catch_popup_error, use_time):
     from saenopy.gui.solver.modules.path_editor import PathEditor, PathChanger
@@ -704,6 +727,7 @@ def test_loading(monkeypatch, catch_popup_error, random_path):
     batch_evaluate.add_measurement()
 
     """ download examples """
+    monkeypatch.setattr(AddFilesDialog, "reporthook", lambda *args, **kwargs: None)
 
     def handle_download_example(self: AddFilesDialog):
         # select the existing file tab
@@ -958,16 +982,19 @@ def test_analysis(monkeypatch, catch_popup_error, random_path):
                 )
             return [evaluated_folder / file for file in example["url_evaluated_file"]]
 
+    def silent_progress(*args, **kwargs):
+        return None
+
     files = load_example(
         "ClassicSingleCellTFM",
         target_folder=None,
-        progress_callback=None,
+        progress_callback=silent_progress,
         evaluated=True,
     )
     files2 = load_example(
         "DynamicalSingleCellTFM",
         target_folder=None,
-        progress_callback=None,
+        progress_callback=silent_progress,
         evaluated=True,
     )
     print(files)
