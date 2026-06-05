@@ -123,24 +123,25 @@ class PythonHighlighter(QtGui.QSyntaxHighlighter):
         # If inside triple-single quotes, start at 0
         if self.previousBlockState() == in_state:
             start = 0
-            add = 0
+            search_from = 0
         # Otherwise, look for the delimiter on this line
         else:
             start = text.find(delimiter)
-            add = len(delimiter)
+            search_from = start + len(delimiter)
 
         # As long as there's a delimiter match on this line...
         while start >= 0:
-            end = text.find(delimiter, start + add)
+            end = text.find(delimiter, search_from)
             # Ending delimiter on this line?
-            if end >= add:
-                length = end - start + add + len(delimiter)
+            if end >= 0:
+                length = end - start + len(delimiter)
                 self.setCurrentBlockState(0)
             else:
                 self.setCurrentBlockState(in_state)
-                length = len(text) - start + add
+                length = len(text) - start
             # Apply formatting
             self.setFormat(start, length, style)
-            start = end
+            start = text.find(delimiter, end + len(delimiter)) if end >= 0 else -1
+            search_from = start + len(delimiter)
 
         return self.currentBlockState() == in_state

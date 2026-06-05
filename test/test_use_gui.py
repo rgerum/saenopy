@@ -643,6 +643,8 @@ def test_loading(monkeypatch, catch_popup_error, random_path):
     batch_evaluate.add_measurement()
 
     """ download examples """
+    monkeypatch.setattr(AddFilesDialog, "reporthook", lambda *args, **kwargs: None)
+
     def handle_download_example(self: AddFilesDialog):
         # select the existing file tab
         self.tabs.setCurrentIndex(2)
@@ -814,8 +816,9 @@ def test_analysis(monkeypatch, catch_popup_error, random_path):
                 download_files(example["url_evaluated"], evaluated_folder, progress_callback=progress_callback)
             return [evaluated_folder / file for file in example["url_evaluated_file"]]
 
-    files = load_example("ClassicSingleCellTFM", target_folder=None, progress_callback=None, evaluated=True)
-    files2 = load_example("DynamicalSingleCellTFM", target_folder=None, progress_callback=None, evaluated=True)
+    silent_progress = lambda *args, **kwargs: None
+    files = load_example("ClassicSingleCellTFM", target_folder=None, progress_callback=silent_progress, evaluated=True)
+    files2 = load_example("DynamicalSingleCellTFM", target_folder=None, progress_callback=silent_progress, evaluated=True)
     print(files)
 
     from saenopy.gui.solver.analyze.PlottingWindow import PlottingWindowBase
