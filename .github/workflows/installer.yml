@@ -122,7 +122,7 @@ jobs:
     - name: Build executable with PyInstaller
       shell: bash
       run: |
-        uv run pyinstaller --copy-metadata imageio --clean -y --dist output/saenopy_run --windowed --add-data "saenopy/img:saenopy/img" saenopy/gui/gui_master.py
+        uv run pyinstaller --copy-metadata imageio --clean -y --dist output/saenopy_run --windowed --icon "saenopy/img/Icon.icns" --add-data "saenopy/img:saenopy/img" saenopy/gui/gui_master.py
         mv output/saenopy_run/gui_master.app output/saenopy_run/saenopy_mac.app
 
     - name: Sign macOS app
