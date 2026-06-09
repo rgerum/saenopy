@@ -15,6 +15,8 @@ from saenopy.gui.common.QTimeSlider import QTimeSlider
 
 
 result_view = None
+
+
 class TabResultView(TabModule):
     M: Solver = None
 
@@ -28,7 +30,12 @@ class TabResultView(TabModule):
             with QtShortCuts.QVBoxLayout() as vlayout:
                 with QtShortCuts.QHBoxLayout() as layout_vert_plot:
                     self.input_checks = {}
-                    for name, dislay_name in {"displacements_target": "Target Deformations", "displacements": "Fitted Deformations", "forces": "Forces", "stiffness": "Stiffness"}.items():
+                    for name, dislay_name in {
+                        "displacements_target": "Target Deformations",
+                        "displacements": "Fitted Deformations",
+                        "forces": "Forces",
+                        "stiffness": "Stiffness",
+                    }.items():
                         input_bool = QtShortCuts.QInputBool(layout_vert_plot, dislay_name, name != "stiffness")
                         input_bool.valueChanged.connect(self.replot)
                         self.input_checks[name] = input_bool
@@ -47,8 +54,8 @@ class TabResultView(TabModule):
                 self.plotter = QtInteractor(self.frame, auto_update=False)
                 self.plotter.theme = pv.themes.Theme()
                 self.plotter_layout.addWidget(self.plotter.interactor)
-                #vlayout.addLayout(self.plotter_layout)
-                #return
+                # vlayout.addLayout(self.plotter_layout)
+                # return
                 self.t_slider = QTimeSlider(connected=self.update_display).addToLayout()
                 self.tab.parent().t_slider = self.t_slider
 
@@ -67,9 +74,14 @@ class TabResultView(TabModule):
             maxR = np.max(R, axis=0)
 
             if mesh.regularisation_mask is None:
-                border = (R[:, 0] < minR[0] + 0.5e-6) | (R[:, 0] > maxR[0] - 0.5e-6) | \
-                         (R[:, 1] < minR[1] + 0.5e-6) | (R[:, 1] > maxR[1] - 0.5e-6) | \
-                         (R[:, 2] < minR[2] + 0.5e-6) | (R[:, 2] > maxR[2] - 0.5e-6)
+                border = (
+                    (R[:, 0] < minR[0] + 0.5e-6)
+                    | (R[:, 0] > maxR[0] - 0.5e-6)
+                    | (R[:, 1] < minR[1] + 0.5e-6)
+                    | (R[:, 1] > maxR[1] - 0.5e-6)
+                    | (R[:, 2] < minR[2] + 0.5e-6)
+                    | (R[:, 2] > maxR[2] - 0.5e-6)
+                )
                 mesh.regularisation_mask = ~border
 
             self.point_cloud = pv.PolyData(mesh.nodes)
@@ -94,7 +106,10 @@ class TabResultView(TabModule):
         # self.M.setMaterialModel(SemiAffineFiberMaterial(1645, 0.0008, 0.0075, 0.033), generate_lookup=False)
         if self.M.material_model is None:
             print("Warning using default material parameters")
-            self.M.set_material_model(SemiAffineFiberMaterial(1449, 0.00215, 0.055, 0.032), generate_lookup=False)
+            self.M.set_material_model(
+                SemiAffineFiberMaterial(1449, 0.00215, 0.055, 0.032),
+                generate_lookup=False,
+            )
         self.M._check_relax_ready()
         self.M._prepare_temporary_quantities()
         self.point_cloud2["stiffness"] = self.M.get_max_tet_stiffness() / 6
@@ -102,6 +117,7 @@ class TabResultView(TabModule):
     point_cloud = None
 
     theme = None
+
     def setTheme(self, x):
         self.theme = x
         self.current_result_plotted = False
@@ -140,13 +156,14 @@ class TabResultView(TabModule):
             xmax, ymax, zmax = self.M.mesh.nodes.max(axis=0)
             # color bar design properties
             # Set a custom position and size
-            sargs = dict(#position_x=0.05, position_y=0.95,
-                         title_font_size=15,
-                         label_font_size=9,
-                         n_labels=3,
-                         #italic=True,  ##height=0.25, #vertical=True,
-                         fmt="%.1e",
-                         font_family="arial")
+            sargs = dict(  # position_x=0.05, position_y=0.95,
+                title_font_size=15,
+                label_font_size=9,
+                n_labels=3,
+                # italic=True,  ##height=0.25, #vertical=True,
+                fmt="%.1e",
+                font_family="arial",
+            )
 
             for i, name in enumerate(names):
                 plotter.subplot(i // plotter.shape[1], i % plotter.shape[1])
@@ -159,29 +176,53 @@ class TabResultView(TabModule):
                     # clim =  np.nanpercentile(self.point_cloud2["stiffness"], [50, 99.9])
                     sargs2 = sargs.copy()
                     sargs2["title"] = "Stiffness (Pa)"
-                    plotter.add_mesh(self.point_cloud2, colormap="turbo", point_size=4., render_points_as_spheres=True,
-                                     scalar_bar_args=sargs2, opacity="linear")
+                    plotter.add_mesh(
+                        self.point_cloud2,
+                        colormap="turbo",
+                        point_size=4.0,
+                        render_points_as_spheres=True,
+                        scalar_bar_args=sargs2,
+                        opacity="linear",
+                    )
                     plotter.update_scalar_bar_range(np.nanpercentile(self.point_cloud2["stiffness"], [50, 99.9]))
                 elif name == "forces":
-                    arrows = self.point_cloud.glyph(orient="forces", scale="forces_mag",
-                                                    # Automatically scale maximal force to 15% of axis length
-                                                    factor=0.15 * norm_stack_size / np.nanmax(
-                                                        np.linalg.norm(self.M.mesh.forces * self.M.mesh.regularisation_mask[:, None], axis=1)))
+                    arrows = self.point_cloud.glyph(
+                        orient="forces",
+                        scale="forces_mag",
+                        # Automatically scale maximal force to 15% of axis length
+                        factor=0.15
+                        * norm_stack_size
+                        / np.nanmax(
+                            np.linalg.norm(
+                                self.M.mesh.forces * self.M.mesh.regularisation_mask[:, None],
+                                axis=1,
+                            )
+                        ),
+                    )
                     sargs2 = sargs.copy()
                     sargs2["title"] = "Force (N)"
-                    plotter.add_mesh(arrows, colormap='turbo', name="arrows", scalar_bar_args=sargs2)
+                    plotter.add_mesh(arrows, colormap="turbo", name="arrows", scalar_bar_args=sargs2)
                     plotter.update_scalar_bar_range(np.nanpercentile(self.point_cloud["forces_mag"], [50, 99.9]))
                     # plot center points if desired
                     # plotter.add_points(np.array([self.M.getCenter(mode="Force")]), color='r')
 
                 elif name == "displacements_target":
-                    arrows2 = self.point_cloud.glyph(orient=name, scale=name + "_mag",
-                                                     # Automatically scale maximal force to 10% of axis length
-                                                     factor=0.1 * norm_stack_size / np.nanmax(
-                                                         np.linalg.norm(self.M.mesh.displacements_target, axis=1)))
+                    arrows2 = self.point_cloud.glyph(
+                        orient=name,
+                        scale=name + "_mag",
+                        # Automatically scale maximal force to 10% of axis length
+                        factor=0.1
+                        * norm_stack_size
+                        / np.nanmax(np.linalg.norm(self.M.mesh.displacements_target, axis=1)),
+                    )
                     sargs2 = sargs.copy()
                     sargs2["title"] = "Deformations (m)"
-                    plotter.add_mesh(arrows2, colormap='turbo', name="arrows2", scalar_bar_args=sargs2)  #
+                    plotter.add_mesh(
+                        arrows2,
+                        colormap="turbo",
+                        name="arrows2",
+                        scalar_bar_args=sargs2,
+                    )  #
 
                     # plot center if desired
                     # plotter.add_points(np.array([self.M.getCenter(mode="deformation_target")]), color='w')
@@ -189,13 +230,20 @@ class TabResultView(TabModule):
                     plotter.update_scalar_bar_range(np.nanpercentile(self.point_cloud[name + "_mag"], [50, 99.9]))
                     # plotter.update_scalar_bar_range([0,1.5e-6])
                 elif name == "displacements":
-                    arrows3 = self.point_cloud.glyph(orient=name, scale=name + "_mag",
-                                                     # Automatically scale maximal force to 10% of axis length
-                                                     factor=0.1 * norm_stack_size / np.nanmax(
-                                                         np.linalg.norm(self.M.mesh.displacements, axis=1)))
+                    arrows3 = self.point_cloud.glyph(
+                        orient=name,
+                        scale=name + "_mag",
+                        # Automatically scale maximal force to 10% of axis length
+                        factor=0.1 * norm_stack_size / np.nanmax(np.linalg.norm(self.M.mesh.displacements, axis=1)),
+                    )
                     sargs2 = sargs.copy()
                     sargs2["title"] = "Fitted Deformations [m]"
-                    plotter.add_mesh(arrows3, colormap='turbo', name="arrows3", scalar_bar_args=sargs2)
+                    plotter.add_mesh(
+                        arrows3,
+                        colormap="turbo",
+                        name="arrows3",
+                        scalar_bar_args=sargs2,
+                    )
                     plotter.update_scalar_bar_range(np.nanpercentile(self.point_cloud[name + "_mag"], [50, 99.9]))
                     # plotter.update_scalar_bar_range([0,1.5e-6])
 
@@ -209,8 +257,11 @@ class TabResultView(TabModule):
             for i, name in enumerate(names):
                 plotter.subplot(i // plotter.shape[1], i % plotter.shape[1])
                 if self.theme is not None:
-                    plotter.show_grid(bounds=[xmin, xmax, ymin, ymax, zmin, zmax], color=self.theme.font.color,
-                                      render=False)
+                    plotter.show_grid(
+                        bounds=[xmin, xmax, ymin, ymax, zmin, zmax],
+                        color=self.theme.font.color,
+                        render=False,
+                    )
                 else:
                     plotter.show_grid(bounds=[xmin, xmax, ymin, ymax, zmin, zmax], render=False)
         finally:
@@ -218,7 +269,9 @@ class TabResultView(TabModule):
             plotter.render()
 
     def saveScreenshot(self):
-        new_path = QtWidgets.QFileDialog.getSaveFileName(self, "Save Image", os.getcwd(), "Image Files (*.jpg, *.png)")[0]
+        new_path = QtWidgets.QFileDialog.getSaveFileName(self, "Save Image", os.getcwd(), "Image Files (*.jpg, *.png)")[
+            0
+        ]
         # if we got one, set it
         if new_path:
             imageio.imsave(new_path, self.plotter.image)

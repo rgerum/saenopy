@@ -11,7 +11,7 @@ class ParameterMapping:
 
     result: Result2D = None
 
-    def __init__(self, params_name: str = None, parameter_dict: dict=None):
+    def __init__(self, params_name: str = None, parameter_dict: dict = None):
         self.params_name = params_name
         self.parameter_dict = parameter_dict
         for name, widget in self.parameter_dict.items():
@@ -47,7 +47,7 @@ class ParameterMapping:
             widget.setDisabled(disabled)
 
     def setResult(self, result: Result2D):
-        """ set a new active result object """
+        """set a new active result object"""
         self.result = result
 
         # if a result file is given
@@ -93,7 +93,7 @@ class PipelineModule(QtWidgets.QWidget):
 
         self.processing_progress.connect(self.parent.progress)
 
-    def setParameterMapping(self, params_name: str = None, parameter_dict: dict=None):
+    def setParameterMapping(self, params_name: str = None, parameter_dict: dict = None):
         self.params_name = params_name
         if params_name is None:
             return
@@ -101,6 +101,7 @@ class PipelineModule(QtWidgets.QWidget):
 
     current_result_plotted = False
     current_tab_selected = False
+
     def tabChanged(self, tab):
         if self.tab is not None and self.tab.parent() == tab:
             self.current_tab_selected = True
@@ -117,12 +118,12 @@ class PipelineModule(QtWidgets.QWidget):
         return False
 
     def resultChanged(self, result: Result2D):
-        """ called when the contents of result changed. Only update view if it is the currently displayed one. """
+        """called when the contents of result changed. Only update view if it is the currently displayed one."""
         if result is self.result:
             if self.tab is not None:
                 for i in range(self.parent.tabs.count()):
                     if self.parent.tabs.widget(i) == self.tab.parent():
-                       self.parent.tabs.setTabEnabled(i, self.check_evaluated(result))
+                        self.parent.tabs.setTabEnabled(i, self.check_evaluated(result))
             if self.current_tab_selected is True:
                 self.update_display()
             self.state_changed(result)
@@ -158,12 +159,12 @@ class PipelineModule(QtWidgets.QWidget):
                     mapping.setDisabled(False)
                 if getattr(self, "input_button", None):
                     self.input_button.setEnabled(self.check_available(result))
-            #if getattr(self, "input_button", None):
+            # if getattr(self, "input_button", None):
             #    self.input_button.setEnabled(self.check_available(result))
 
     def setResult(self, result: Result2D):
-        """ set a new active result object """
-        #if result == self.result:
+        """set a new active result object"""
+        # if result == self.result:
         #    return
         self.current_result_plotted = False
         self.result = result
@@ -178,12 +179,16 @@ class PipelineModule(QtWidgets.QWidget):
                     self.parent.tabs.setTabEnabled(i, self.check_evaluated(result))
 
         # check if the results instance can be evaluated currently with this module
-        #if self.check_available(result) is False:
+        # if self.check_available(result) is False:
         if getattr(self, "input_button", None):
             self.input_button.setEnabled(self.check_available(result))
-        if result is None or \
-                (self.params_name and (getattr(result, self.params_name + "_state", "") == "scheduled"
-                                       or getattr(result, self.params_name + "_state", "") == "running")):
+        if result is None or (
+            self.params_name
+            and (
+                getattr(result, self.params_name + "_state", "") == "scheduled"
+                or getattr(result, self.params_name + "_state", "") == "running"
+            )
+        ):
             # if not disable all the widgets
             for mapping in self.parameter_mappings:
                 mapping.setDisabled(True)
@@ -208,8 +213,10 @@ class PipelineModule(QtWidgets.QWidget):
             result = self.result
         if result is None:
             return
-        if getattr(result, self.params_name + "_state", "") == "scheduled" or \
-            getattr(result, self.params_name + "_state", "") == "running":
+        if (
+            getattr(result, self.params_name + "_state", "") == "scheduled"
+            or getattr(result, self.params_name + "_state", "") == "running"
+        ):
             return
 
         params = {}
@@ -221,7 +228,7 @@ class PipelineModule(QtWidgets.QWidget):
         return self.parent.addTask(self.process_thread, result, params, "xx")
 
     def process_thread(self, result: Result2D, params: dict):
-        #params = getattr(result, self.params_name + "_tmp")
+        # params = getattr(result, self.params_name + "_tmp")
         self.parent.progressbar.setRange(0, 0)
         setattr(result, self.params_name + "_state", "running")
         self.processing_state_changed.emit(result)

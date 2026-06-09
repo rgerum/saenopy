@@ -18,19 +18,20 @@ class TabForces(TabModule):
     def tabChanged(self, tab):
         if self.tab is not None and self.tab.parent() == tab:
             if self.checkTabEnabled(self.result):
-                im = render_2d({
-                    "stack": {
-                        "channel": "cells",
+                im = render_2d(
+                    {
+                        "stack": {
+                            "channel": "cells",
+                        },
+                        "arrows": "stress",
+                        "colorbar": {
+                            "hide": True,
+                        },
+                        "scalebar": {
+                            "hide": True,
+                        },
                     },
-                    "arrows": "stress",
-
-                    "colorbar": {
-                        "hide": True,
-                    },
-
-                    "scalebar": {
-                        "hide": True,
-                    },
-                }, self.result)
+                    self.result,
+                )
 
                 self.parent.draw.setImage(im)

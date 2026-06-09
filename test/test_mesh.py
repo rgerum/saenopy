@@ -16,7 +16,7 @@ def test_mesh_shape():
     mesh = SolverMesh(nodes, tetrahedra)
     mesh.energy = np.random.rand(tetrahedra.shape[0])
     with pytest.raises(InvalidShape):
-        mesh.energy = np.random.rand(tetrahedra.shape[0]+1)
+        mesh.energy = np.random.rand(tetrahedra.shape[0] + 1)
     with pytest.raises(InvalidShape):
         mesh.energy = np.random.rand(tetrahedra.shape[0], 10)
 
@@ -24,12 +24,12 @@ def test_mesh_shape():
     with pytest.raises(InvalidShape):
         mesh.displacements = np.random.rand(nodes.shape[0], 4)
     with pytest.raises(InvalidShape):
-        mesh.displacements = np.random.rand(nodes.shape[0]+1, 3)
+        mesh.displacements = np.random.rand(nodes.shape[0] + 1, 3)
     with pytest.raises(InvalidShape):
         mesh.displacements = np.random.rand(nodes.shape[0])
 
     mesh.regularisation_mask = np.random.rand(nodes.shape[0])
     with pytest.raises(InvalidShape):
-        mesh.regularisation_mask = np.random.rand(nodes.shape[0]+1)
+        mesh.regularisation_mask = np.random.rand(nodes.shape[0] + 1)
     with pytest.raises(InvalidShape):
         mesh.regularisation_mask = np.random.rand(nodes.shape[0], 3)

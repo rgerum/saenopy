@@ -9,27 +9,30 @@ from saenopy.gui.common import QtShortCuts
 
 def trace_function(func, data):
     import time
+
     last_time = 0
+
     def trace_lines(frame, event, arg):
         nonlocal t, last_time
-        if event != 'line':
+        if event != "line":
             return
         co = frame.f_code
         func_name = co.co_name
         line_no = frame.f_lineno
         current_time = time.time()
-        data.append([line_no, current_time-t])
-        print(f'{func_name} line {line_no} {current_time-t:.2f} {current_time-last_time:.3f}')
+        data.append([line_no, current_time - t])
+        print(f"{func_name} line {line_no} {current_time - t:.2f} {current_time - last_time:.3f}")
         last_time = current_time
 
     t = 0
+
     def trace_calls(frame, event, arg):
         nonlocal t, last_time
-        if event != 'call':
+        if event != "call":
             return None
         co = frame.f_code
         func_name = co.co_name
-        if func_name == 'write':
+        if func_name == "write":
             # Ignore write() calls from print statements
             return None
         if func_name in TRACE_INTO:
@@ -49,20 +52,25 @@ from matplotlib.figure import Figure
 import ctypes
 
 from qtpy import API_NAME as QT_API_NAME
+
 if QT_API_NAME.startswith("PyQt4"):
     from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg as Canvas
     from matplotlib.backends.backend_qt4agg import FigureManager
-    from matplotlib.backends.backend_qt4 import NavigationToolbar2QT as NavigationToolbar
+    from matplotlib.backends.backend_qt4 import (
+        NavigationToolbar2QT as NavigationToolbar,
+    )
 else:
     from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as Canvas
     from matplotlib.backends.backend_qt5agg import FigureManager
-    from matplotlib.backends.backend_qt5 import NavigationToolbar2QT as NavigationToolbar
+    from matplotlib.backends.backend_qt5 import (
+        NavigationToolbar2QT as NavigationToolbar,
+    )
 
 
 class MatplotlibWidget(Canvas):
-
     def __init__(self, parent=None, width=2, height=1, dpi=100):
         from matplotlib import _pylab_helpers
+
         plt.ioff()
         self.figure = Figure(figsize=(width, height), dpi=dpi)
         self.figure.patch.set_facecolor([0, 1, 0, 0])
@@ -92,20 +100,21 @@ class MatplotlibWidget(Canvas):
 
     def setActive(self):
         from matplotlib import _pylab_helpers
+
         self.manager._cidgcf = self.figure
         _pylab_helpers.Gcf.set_active(self.manager)
 
 
 def execute(func, *args, **kwargs):
     func(*args, **kwargs)
-    #import inspect
-    #code_lines = inspect.getsource(func).split("\n")[1:]
+    # import inspect
+    # code_lines = inspect.getsource(func).split("\n")[1:]
     code_lines = func._source_code.split("\n")[2:]
     indent = len(code_lines[0]) - len(code_lines[0].lstrip())
     code = "\n".join(line[indent:] for line in code_lines)
     for key, value in kwargs.items():
         if isinstance(value, str):
-            code = code.replace(key, "'"+value+"'")
+            code = code.replace(key, "'" + value + "'")
         else:
             code = code.replace(key, str(value))
     code = code.replace("self.canvas.draw()", "plt.show()")
@@ -120,7 +129,7 @@ def kill_thread(thread):
     res = ctypes.pythonapi.PyThreadState_SetAsyncExc(thread_id, ctypes.py_object(SystemExit))
     if res > 1:
         ctypes.pythonapi.PyThreadState_SetAsyncExc(thread_id, 0)
-        print('Exception raise failure')
+        print("Exception raise failure")
 
 
 class QHLine(QtWidgets.QFrame):
@@ -138,7 +147,7 @@ class QVLine(QtWidgets.QFrame):
 
 
 class Spoiler(QtWidgets.QWidget):
-    def __init__(self, parent=None, title='', animationDuration=300):
+    def __init__(self, parent=None, title="", animationDuration=300):
         """
         References:
             # Adapted from c++ version
@@ -202,7 +211,7 @@ class Spoiler(QtWidgets.QWidget):
         self.contentArea.setLayout(contentLayout)
         collapsedHeight = self.sizeHint().height() - self.contentArea.maximumHeight()
         contentHeight = contentLayout.sizeHint().height()
-        for i in range(self.toggleAnimation.animationCount()-1):
+        for i in range(self.toggleAnimation.animationCount() - 1):
             spoilerAnimation = self.toggleAnimation.animationAt(i)
             spoilerAnimation.setDuration(self.animationDuration)
             spoilerAnimation.setStartValue(collapsedHeight)
@@ -216,7 +225,8 @@ class Spoiler(QtWidgets.QWidget):
 class CheckAbleGroup(QtWidgets.QWidget, QtShortCuts.EnterableLayout):
     value_changed = QtCore.Signal(bool)
     main_layout = None
-    def __init__(self, parent=None, title='', animationDuration=300, url=None):
+
+    def __init__(self, parent=None, title="", animationDuration=300, url=None):
         super().__init__(parent=parent)
 
         self.headerLine = QtWidgets.QFrame()
@@ -238,29 +248,29 @@ class CheckAbleGroup(QtWidgets.QWidget, QtShortCuts.EnterableLayout):
                 headerLine.setFrameShadow(QtWidgets.QFrame.Sunken)
                 headerLine.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Maximum)
 
-                #QtShortCuts.currentLayout().addStretch()
+                # QtShortCuts.currentLayout().addStretch()
                 if url is not None:
                     self.label2 = QtWidgets.QPushButton(qta.icon("fa5s.question"), "").addToLayout()
                     self.label2.setToolTip("open the documentation in the browser")
-                    #self.label2.setMaximumWidth(30)
+                    # self.label2.setMaximumWidth(30)
                     self.label2.setStyleSheet("QPushButton { border: none; background: none; }")
                     self.label2.clicked.connect(lambda x: QtGui.QDesktopServices.openUrl(QtCore.QUrl(url)))
             self.child_widget = QtWidgets.QWidget().addToLayout()
         self.layout_self = self
         self.value = self.toggleButton.value
-        #self.setValue = self.toggleButton.setValue
+        # self.setValue = self.toggleButton.setValue
         self.valueChanged = self.toggleButton.valueChanged
         self.toggleButton.valueChanged.connect(self.changedActive)
 
     def paintEvent(self, ev: QtGui.QPaintEvent) -> None:
         with QtGui.QPainter(self) as p:
             p.setPen(QtGui.QPen(QtGui.QColor("gray")))
-            #p.setBrush(QtGui.QBrush(QtGui.QColor("gray")))
+            # p.setBrush(QtGui.QBrush(QtGui.QColor("gray")))
             top = 5
-            p.drawRect(0, self.height()-1, self.width(), 0)
+            p.drawRect(0, self.height() - 1, self.width(), 0)
             p.drawRect(0, top, 0, self.height())
             p.drawRect(0, top, 7, 0)
-            p.drawRect(self.width()-1, top, 0, self.height())
+            p.drawRect(self.width() - 1, top, 0, self.height())
         super().paintEvent(ev)
 
     def toggle(self):
@@ -299,8 +309,17 @@ class ListWidget(QtWidgets.QListWidget):
     copy_to_callback = None
 
     data = []
-    def __init__(self, layout, editable=False, add_item_button=False, color_picker=False, copy_params=False,
-                 allow_paste_callback=None, copy_to_callback=None):
+
+    def __init__(
+        self,
+        layout,
+        editable=False,
+        add_item_button=False,
+        color_picker=False,
+        copy_params=False,
+        allow_paste_callback=None,
+        copy_to_callback=None,
+    ):
         super().__init__()
         if layout is not None:
             layout.addWidget(self)
@@ -376,6 +395,7 @@ class ListWidget(QtWidgets.QListWidget):
         self.no_list_change = False
 
     add_item = None
+
     def addAddItem(self):
         if self.add_item_button is False:
             return
@@ -421,10 +441,11 @@ class ListWidget(QtWidgets.QListWidget):
 
     def change_color(self):
         import matplotlib as mpl
+
         index = self.currentRow()
 
         # get new color from color picker
-        color = QtWidgets.QColorDialog.getColor(QtGui.QColor(*[int(i) for i in mpl.colors.to_rgb(self.data[index][3])]))\
+        color = QtWidgets.QColorDialog.getColor(QtGui.QColor(*[int(i) for i in mpl.colors.to_rgb(self.data[index][3])]))
         # if a color is set, apply it
         if color.isValid():
             self.data[index][3] = "#%02x%02x%02x" % color.getRgb()[:3]
@@ -447,6 +468,7 @@ class ListWidget(QtWidgets.QListWidget):
         self.no_list_change = False
 
     no_list_change = False
+
     def list2_checked_changed(self, item):
         if self.no_list_change is True:
             return
@@ -464,7 +486,7 @@ class ListWidget(QtWidgets.QListWidget):
                 return None
         self.no_list_change = True
         if self.add_item is not None:
-            self.takeItem(self.count()-1)
+            self.takeItem(self.count() - 1)
         self.data.append([d, checked, extra, color])
         item = self.customAddItem(d, checked, color)
         self.addAddItem()
@@ -488,6 +510,7 @@ import multiprocessing
 class SignalReturn:
     pass
 
+
 def call_func(func: callable, queue_in: Queue, queue_out: Queue):
     args = queue_in.get()
     kwargs = queue_in.get()
@@ -499,10 +522,13 @@ def call_func(func: callable, queue_in: Queue, queue_out: Queue):
 class PseudoPipe:
     def __init__(self, progress_signal):
         self.progress_signal = progress_signal
+
     def put(self, data):
         self.progress_signal.emit(data)
 
+
 import threading
+
 
 class ConciseRobustResult(threading.Thread):
     def run(self):
@@ -526,7 +552,11 @@ class ProcessSimple:
         self.kwargs = kwargs
         self.progress_signal = progress_signal
         if use_thread:
-            self.thread = ConciseRobustResult(target=target, args=tuple([PseudoPipe(progress_signal)]+list(args)), kwargs=kwargs)
+            self.thread = ConciseRobustResult(
+                target=target,
+                args=tuple([PseudoPipe(progress_signal)] + list(args)),
+                kwargs=kwargs,
+            )
         else:
             self.queue_in = Queue()
             self.queue_out = Queue()
@@ -579,10 +609,11 @@ class Worker(QtCore.QObject):
         p = ProcessSimple(self.func, self.args, self.kwargs, progress_signal=self.progress)
         p.start()
         result = p.join()
-        #for i in range(5):
+        # for i in range(5):
         #    time.sleep(1)
         #    self.progress.emit(i + 1)
         self.finished.emit(result)
+
 
 class QProcess(QtCore.QObject):
     result = None
@@ -599,13 +630,13 @@ class QProcess(QtCore.QObject):
         self.worker.moveToThread(self.thread)
         # Step 5: Connect signals and slots
         self.thread.started.connect(self.worker.run)
-        #self.worker.finished.connect(self.thread.quit)
-        #self.worker.finished.connect(self.worker.deleteLater)
-        #self.worker.finished.connect(self.finished)
+        # self.worker.finished.connect(self.thread.quit)
+        # self.worker.finished.connect(self.worker.deleteLater)
+        # self.worker.finished.connect(self.finished)
         self.worker.finished.connect(self.set_result)
         self.worker.progress.connect(self.progress)
         self.thread.finished.connect(self.thread.deleteLater)
-        #self.worker.progress.connect(self.reportProgress)
+        # self.worker.progress.connect(self.reportProgress)
 
         # Step 6: Start the thread
         self.thread.start()

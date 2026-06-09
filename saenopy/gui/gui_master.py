@@ -4,6 +4,7 @@ import traceback
 
 from qtpy import QtCore, QtWidgets, QtGui
 import multiprocessing
+
 # keep import for pyinstaller
 import skimage.exposure.exposure
 import skimage.filters.ridges
@@ -28,18 +29,23 @@ class InfoBox(QtWidgets.QWidget):
             with QtShortCuts.QGroupBox(l, name):
                 with QtShortCuts.QVBoxLayout() as l2:
                     if name == "3D TFM":
-                        self.text = QtWidgets.QLabel("Calculate the forces from a\n3D stack or a series of 3D stacks.").addToLayout()
+                        self.text = QtWidgets.QLabel(
+                            "Calculate the forces from a\n3D stack or a series of 3D stacks."
+                        ).addToLayout()
                     elif name == "2.5D Spheroid":
-                        self.text = QtWidgets.QLabel("Calculate the forces of multicellular\naggregates from a timeseries of\n2D images in 3D matrices.").addToLayout()
+                        self.text = QtWidgets.QLabel(
+                            "Calculate the forces of multicellular\naggregates from a timeseries of\n2D images in 3D matrices."
+                        ).addToLayout()
                     elif name == "2D TFM":
                         self.text = QtWidgets.QLabel("Calculate the forces from\n2D images using PyTFM.").addToLayout()
                     else:
-                        self.text = QtWidgets.QLabel("Measure the orientation\nof matrix fibers in 2D images as\na proxy for cellular force.").addToLayout()
+                        self.text = QtWidgets.QLabel(
+                            "Measure the orientation\nof matrix fibers in 2D images as\na proxy for cellular force."
+                        ).addToLayout()
                     self.button1 = QtShortCuts.QPushButton(None, name, func)
 
 
 class MainWindow(QtWidgets.QWidget):
-
     def __init__(self, parent=None):
         super().__init__(parent)
 
@@ -63,18 +69,20 @@ class MainWindow(QtWidgets.QWidget):
                         self.image = QtWidgets.QLabel("x").addToLayout()
                         self.image_timer = QtCore.QTimer()
                         timer_index = 0
+
                         def timer():
                             nonlocal timer_index
                             if timer_index == 14:
-                                #self.image.setPixmap(QtGui.QPixmap(resource_path("Logo.png")))
+                                # self.image.setPixmap(QtGui.QPixmap(resource_path("Logo.png")))
                                 self.image_timer.stop()
                                 return
                             self.image.setPixmap(QtGui.QPixmap(resource_path(f"animation/frame{timer_index:02d}.png")))
                             timer_index += 1
+
                         self.image_timer.timeout.connect(timer)
                         self.image_timer.start(100)
                         timer()
-                        #self.image.setPixmap(QtGui.QPixmap(resource_path("Logo.png")))
+                        # self.image.setPixmap(QtGui.QPixmap(resource_path("Logo.png")))
                         self.image.setScaledContents(True)
                         self.image.setMaximumWidth(400)
                         self.image.setMaximumHeight(200)
@@ -86,7 +94,7 @@ class MainWindow(QtWidgets.QWidget):
                         InfoBox("2.5D Spheroid", lambda: self.setTab(3)).addToLayout()
                         layout2.addStretch()
                         InfoBox("2.5D Orientation", lambda: self.setTab(4)).addToLayout()
-                        layout2.addStretch() 
+                        layout2.addStretch()
                         InfoBox("2D TFM", lambda: self.setTab(5)).addToLayout()
                         layout2.addStretch()
                     layout.addStretch()
@@ -110,7 +118,7 @@ class MainWindow(QtWidgets.QWidget):
                     QtShortCuts.currentLayout().setContentsMargins(0, 0, 0, 0)
                     self.coder = MainWindowCode().addToLayout()
 
-        #self.tabs.setCurrentIndex(self.settings.value("master_tab", 0))
+        # self.tabs.setCurrentIndex(self.settings.value("master_tab", 0))
         self.first_tab_change = False
 
         for file in sys.argv[1:]:
@@ -157,6 +165,7 @@ class MainWindow(QtWidgets.QWidget):
     spheroid = None
     orientation = None
     pytfm2d = None
+
     def changedTab(self, value):
         if self.first_tab_change is False:
             self.settings.setValue("master_tab", value)
@@ -184,15 +193,17 @@ class MainWindow(QtWidgets.QWidget):
 
 def main():  # pragma: no cover
     app = QtWidgets.QApplication(sys.argv)
-    if sys.platform.startswith('win'):
+    if sys.platform.startswith("win"):
         import ctypes
-        myappid = 'fabrylab.saenopy.master'  # arbitrary string
+
+        myappid = "fabrylab.saenopy.master"  # arbitrary string
         ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
 
     window = MainWindow()
     window.show()
     try:
         import pyi_splash
+
         # Close the splash screen. It does not matter when the call
         # to this function is made, the splash screen remains open until
         # this function is called or the Python program is terminated.
@@ -201,6 +212,7 @@ def main():  # pragma: no cover
         pass
 
     from traceback import format_exception
+
     def except_hook(type_, value, tb):
         print(*format_exception(type_, value, tb), file=sys.stderr)
         QtWidgets.QMessageBox.critical(window, "Error", f"An Error occurred:\n{type_.__name__}: {value}")
@@ -212,20 +224,21 @@ def main():  # pragma: no cover
     sys.exit(res)
 
 
-if __name__ == '__main__':  # pragma: no cover
+if __name__ == "__main__":  # pragma: no cover
     # On Windows calling this function is necessary.
     multiprocessing.freeze_support()
     multiprocessing.set_start_method("spawn")
 
     if len(sys.argv) >= 3 and sys.argv[1] == "run" and sys.argv[2].endswith(".py"):
         source = open(sys.argv[2]).read()
-        code = compile(source, sys.argv[1], 'exec')
+        code = compile(source, sys.argv[1], "exec")
         exec(code)
         exit(0)
 
     for arg in sys.argv:
         if arg == "--demo":
             import os
+
             os.environ["DEMO"] = "true"
 
     main()

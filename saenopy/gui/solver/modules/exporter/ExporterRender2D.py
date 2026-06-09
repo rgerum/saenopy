@@ -7,9 +7,112 @@ import matplotlib.pyplot as plt
 from saenopy.gui.common.resources import resource_path
 
 from saenopy.gui.solver.modules.showVectorField import getVectorFieldImage
-from saenopy.gui.solver.modules.exporter.ExportRenderCommon import get_time_text, getVectorFieldImage, get_mesh_arrows
+from saenopy.gui.solver.modules.exporter.ExportRenderCommon import (
+    get_time_text,
+    getVectorFieldImage,
+    get_mesh_arrows,
+)
 
-default_data = {'use2D': True, 'image': {'logo_size': 0, 'scale': 1.0, 'antialiase': True, 'scale_overlay': 1.0}, 'camera': {'elevation': 35.0, 'azimuth': 45.0, 'distance': 0, 'offset_x': 0, 'offset_y': 0, 'roll': 0}, 'theme': 'dark', 'show_grid': True, 'use_nans': False, 'arrows': 'deformation', 'averaging_size': 1.0, 'deformation_arrows': {'autoscale': True, 'scale_max': 10.0, 'colormap': 'turbo', 'arrow_scale': 1.0, 'arrow_opacity': 1.0, 'skip': 1}, 'force_arrows': {'autoscale': True, 'scale_max': 1000.0, 'use_center': False, 'use_log': True, 'colormap': 'turbo', 'arrow_scale': 1.0, 'arrow_opacity': 1.0, 'skip': 1}, 'maps': 'None', 'maps_cmap': 'turbo', 'maps_alpha': 0.5, 'stack': {'image': True, 'channel': 'cells', 'z_proj': False, 'use_contrast_enhance': True, 'contrast_enhance': None, 'colormap': 'gray', 'z': 0, 'use_reference_stack': False, 'alpha': 1.0, 'channel_B': '', 'colormap_B': 'gray', 'alpha_B': 1.0}, 'scalebar': {'hide': False, 'length': 0.0, 'width': 5.0, 'xpos': 15.0, 'ypos': 10.0, 'fontsize': 18.0}, 'colorbar': {'hide': False, 'length': 150.0, 'width': 10.0, 'xpos': 15.0, 'ypos': 10.0, 'fontsize': 18.0}, '2D_arrows': {'width': 2.0, 'headlength': 5.0, 'headheight': 5.0}, 'crop': {'x': (913, 1113), 'y': (893, 1093), 'z': (0, 1)}, 'channel0': {'show': False, 'skip': 1, 'sigma_sato': 2, 'sigma_gauss': 0, 'percentiles': (0, 1), 'range': (0, 1), 'alpha': (0.1, 0.5, 1), 'cmap': 'pink'}, 'channel1': {'show': False, 'skip': 1, 'sigma_sato': 0, 'sigma_gauss': 7, 'percentiles': (0, 1), 'range': (0, 1), 'alpha': (0.1, 0.5, 1), 'cmap': 'Greens', 'channel': 1}, 'channel_thresh': 1.0, 'time': {'t': 0, 'format': '%d:%H:%M', 'start': 0.0, 'display': True, 'fontsize': 18}}
+default_data = {
+    "use2D": True,
+    "image": {"logo_size": 0, "scale": 1.0, "antialiase": True, "scale_overlay": 1.0},
+    "camera": {
+        "elevation": 35.0,
+        "azimuth": 45.0,
+        "distance": 0,
+        "offset_x": 0,
+        "offset_y": 0,
+        "roll": 0,
+    },
+    "theme": "dark",
+    "show_grid": True,
+    "use_nans": False,
+    "arrows": "deformation",
+    "averaging_size": 1.0,
+    "deformation_arrows": {
+        "autoscale": True,
+        "scale_max": 10.0,
+        "colormap": "turbo",
+        "arrow_scale": 1.0,
+        "arrow_opacity": 1.0,
+        "skip": 1,
+    },
+    "force_arrows": {
+        "autoscale": True,
+        "scale_max": 1000.0,
+        "use_center": False,
+        "use_log": True,
+        "colormap": "turbo",
+        "arrow_scale": 1.0,
+        "arrow_opacity": 1.0,
+        "skip": 1,
+    },
+    "maps": "None",
+    "maps_cmap": "turbo",
+    "maps_alpha": 0.5,
+    "stack": {
+        "image": True,
+        "channel": "cells",
+        "z_proj": False,
+        "use_contrast_enhance": True,
+        "contrast_enhance": None,
+        "colormap": "gray",
+        "z": 0,
+        "use_reference_stack": False,
+        "alpha": 1.0,
+        "channel_B": "",
+        "colormap_B": "gray",
+        "alpha_B": 1.0,
+    },
+    "scalebar": {
+        "hide": False,
+        "length": 0.0,
+        "width": 5.0,
+        "xpos": 15.0,
+        "ypos": 10.0,
+        "fontsize": 18.0,
+    },
+    "colorbar": {
+        "hide": False,
+        "length": 150.0,
+        "width": 10.0,
+        "xpos": 15.0,
+        "ypos": 10.0,
+        "fontsize": 18.0,
+    },
+    "2D_arrows": {"width": 2.0, "headlength": 5.0, "headheight": 5.0},
+    "crop": {"x": (913, 1113), "y": (893, 1093), "z": (0, 1)},
+    "channel0": {
+        "show": False,
+        "skip": 1,
+        "sigma_sato": 2,
+        "sigma_gauss": 0,
+        "percentiles": (0, 1),
+        "range": (0, 1),
+        "alpha": (0.1, 0.5, 1),
+        "cmap": "pink",
+    },
+    "channel1": {
+        "show": False,
+        "skip": 1,
+        "sigma_sato": 0,
+        "sigma_gauss": 7,
+        "percentiles": (0, 1),
+        "range": (0, 1),
+        "alpha": (0.1, 0.5, 1),
+        "cmap": "Greens",
+        "channel": 1,
+    },
+    "channel_thresh": 1.0,
+    "time": {
+        "t": 0,
+        "format": "%d:%H:%M",
+        "start": 0.0,
+        "display": True,
+        "fontsize": 18,
+    },
+}
+
 
 def update_dict(new_dict, old_dict, key):
     if isinstance(old_dict[key], dict):
@@ -17,6 +120,7 @@ def update_dict(new_dict, old_dict, key):
             update_dict(new_dict[key], old_dict[key], key2)
     else:
         new_dict[key] = old_dict[key]
+
 
 def render_2d(params, result, exporter=None):
     default_copy = deepcopy(default_data)
@@ -28,19 +132,39 @@ def render_2d(params, result, exporter=None):
     if pil_image is None:
         return np.zeros((10, 10))
 
-    pil_image, disp_params = render_2d_arrows(params, result, pil_image, im_scale, aa_scale, display_image, return_scale=True)
+    pil_image, disp_params = render_2d_arrows(
+        params, result, pil_image, im_scale, aa_scale, display_image, return_scale=True
+    )
 
     if aa_scale == 2:
         pil_image = pil_image.resize([pil_image.width // 2, pil_image.height // 2])
         aa_scale = 1
 
     if params.get("maps", "None") != "None":
-        pil_image, disp_params = render_map(params, result, pil_image, im_scale, aa_scale, display_image, return_scale=True)
+        pil_image, disp_params = render_map(
+            params,
+            result,
+            pil_image,
+            im_scale,
+            aa_scale,
+            display_image,
+            return_scale=True,
+        )
 
     if params["scalebar"]["hide"] is False:
         pil_image = render_2d_scalebar(params, result, pil_image, im_scale, aa_scale)
     if disp_params != None and params["colorbar"]["hide"] is False:
-        pil_image = render_2d_colorbar(params, result, pil_image, im_scale, aa_scale, scale_min=disp_params.get("scale_min", 0), scale_max=disp_params["scale_max"], colormap=disp_params["colormap"], unit=disp_params["scalebar_unit"])
+        pil_image = render_2d_colorbar(
+            params,
+            result,
+            pil_image,
+            im_scale,
+            aa_scale,
+            scale_min=disp_params.get("scale_min", 0),
+            scale_max=disp_params["scale_max"],
+            colormap=disp_params["colormap"],
+            unit=disp_params["scalebar_unit"],
+        )
 
     pil_image = render_2d_time(params, result, pil_image)
 
@@ -50,7 +174,13 @@ def render_2d(params, result, exporter=None):
 
 
 def render_2d_image(params, result, exporter):
-    display_image = getVectorFieldImage(result, params, use_fixed_contrast_if_available=True, use_2D=True, exporter=exporter)
+    display_image = getVectorFieldImage(
+        result,
+        params,
+        use_fixed_contrast_if_available=True,
+        use_2D=True,
+        exporter=exporter,
+    )
     if display_image is None:
         return None, None, 1, 1
     if params["stack"].get("channel_B", "") != "":
@@ -81,7 +211,7 @@ def render_2d_image(params, result, exporter):
         return im
 
     colormap2 = params["stack"]["colormap"]
-    if True: #colormap2 is not None and colormap2 != "gray":
+    if True:  # colormap2 is not None and colormap2 != "gray":
         im = adjust_img(im, colormap2)
         im = im * params["stack"].get("alpha", 1)
 
@@ -93,7 +223,12 @@ def render_2d_image(params, result, exporter):
         im = (im * 255).astype(np.uint8)[:, :, :3]
 
     pil_image = Image.fromarray(im).convert("RGB")
-    pil_image = pil_image.resize([int(pil_image.width * im_scale * aa_scale), int(pil_image.height * im_scale * aa_scale)])
+    pil_image = pil_image.resize(
+        [
+            int(pil_image.width * im_scale * aa_scale),
+            int(pil_image.height * im_scale * aa_scale),
+        ]
+    )
 
     return pil_image, display_image, im_scale, aa_scale
 
@@ -110,7 +245,7 @@ def render_map(params, result, pil_image, im_scale, aa_scale, display_image, ret
     map_im = result.get_map_data(params["maps"])
     cmap = data["maps"][map_name]["colormap"]
     vmin, vmax = data["maps"][map_name]["lim"]
-    #cmap = params["maps_cmap"]
+    # cmap = params["maps_cmap"]
     alpha = params["maps_alpha"]
     if alpha is None:
         alpha = 0.5
@@ -120,10 +255,10 @@ def render_map(params, result, pil_image, im_scale, aa_scale, display_image, ret
     pil_image = pil_image.convert("RGBA")
 
     map_im = map_im - vmin
-    map_im = map_im / (vmax-vmin)
+    map_im = map_im / (vmax - vmin)
     map_im = plt.get_cmap(cmap)(map_im)
 
-    map_im = (map_im*255).astype(np.uint8)
+    map_im = (map_im * 255).astype(np.uint8)
     map_im = np.where(nan_mask, np.asarray(pil_image), map_im)
 
     map_im = Image.fromarray(map_im, mode="RGBA")
@@ -131,7 +266,12 @@ def render_map(params, result, pil_image, im_scale, aa_scale, display_image, ret
     # Composite the overlay on top of the base image
     pil_image = Image.blend(pil_image, map_im, alpha).convert("RGB")
     if return_scale:
-        return pil_image, {"scale_min": vmin, "scale_max": vmax, "colormap": cmap, "scalebar_unit": None}
+        return pil_image, {
+            "scale_min": vmin,
+            "scale_max": vmax,
+            "colormap": cmap,
+            "scalebar_unit": None,
+        }
     return pil_image
 
 
@@ -140,8 +280,10 @@ def render_2d_arrows(params, result, pil_image, im_scale, aa_scale, display_imag
         length2 = np.linalg.norm(field[:, :2], axis=1)
         length3 = np.linalg.norm(field[:, :3], axis=1)
         angle = np.arctan2(field[:, 1], field[:, 0])
-        data = pd.DataFrame(np.hstack((R, length2[:, None], length3[:, None], angle[:, None])),
-                            columns=["x", "y", "length2", "length", "angle"])
+        data = pd.DataFrame(
+            np.hstack((R, length2[:, None], length3[:, None], angle[:, None])),
+            columns=["x", "y", "length2", "length", "angle"],
+        )
         data = data.sort_values(by="length2", ascending=False)
         d2 = data.groupby(["x", "y"]).first()
         # optional slice
@@ -171,7 +313,7 @@ def render_2d_arrows(params, result, pil_image, im_scale, aa_scale, display_imag
     if field is not None:
         # rescale and offset
         scale = 1e6 / display_image[1][0]
-        offset = np.array(display_image[0].shape[0:2]) / 2    
+        offset = np.array(display_image[0].shape[0:2]) / 2
         R = mesh.nodes.copy()
         is3D = R.shape[1] == 3
         field = field.copy()
@@ -184,7 +326,7 @@ def render_2d_arrows(params, result, pil_image, im_scale, aa_scale, display_imag
         if getattr(mesh, "units", None) == "pixels":
             R = R[:, :2]
             R[:, 1] = display_image[0].shape[0] - R[:, 1]
-            field = field[:, :2] 
+            field = field[:, :2]
             field_to_pixel_factor = params_arrows["arrow_scale"] * getattr(mesh, "display_scale", 1)
             field[:, 1] = -field[:, 1]
         else:  # "microns" + 3D
@@ -205,7 +347,9 @@ def render_2d_arrows(params, result, pil_image, im_scale, aa_scale, display_imag
             norm_stack_size = np.abs(np.max(R) - np.min(R))
             scalebar_max = params["deformation_arrows"]["scale_max"]
             if params["deformation_arrows"]["autoscale"]:
-                field_to_pixel_factor *= 0.1 * norm_stack_size / np.nanmax(field*scale_max_to_pixel_factor)  # np.nanpercentile(point_cloud[name + "_mag2"], 99.9)
+                field_to_pixel_factor *= (
+                    0.1 * norm_stack_size / np.nanmax(field * scale_max_to_pixel_factor)
+                )  # np.nanpercentile(point_cloud[name + "_mag2"], 99.9)
             else:
                 field_to_pixel_factor *= 0.1 * norm_stack_size / scalebar_max
 
@@ -225,7 +369,10 @@ def render_2d_arrows(params, result, pil_image, im_scale, aa_scale, display_imag
         else:
             length = np.linalg.norm(field, axis=1)
             angle = np.arctan2(field[:, 1], field[:, 0])
-            field = pd.DataFrame(np.hstack((length[:, None], angle[:, None])), columns=["length", "angle"])
+            field = pd.DataFrame(
+                np.hstack((length[:, None], angle[:, None])),
+                columns=["length", "angle"],
+            )
         # safety check if all arrows where filtered out
         if R.shape[0] != 0:
             # get the colormap
@@ -237,13 +384,23 @@ def render_2d_arrows(params, result, pil_image, im_scale, aa_scale, display_imag
             # make colors uint8
             colors = (colors * 255).astype(np.uint8)
 
-            pil_image = add_quiver(pil_image, R, field.length * field_to_pixel_factor, field.angle, colors,
-                                   scale=im_scale * aa_scale,
-                                   width=params["2D_arrows"]["width"],
-                                   headlength=params["2D_arrows"]["headlength"],
-                                   headheight=params["2D_arrows"]["headheight"])
+            pil_image = add_quiver(
+                pil_image,
+                R,
+                field.length * field_to_pixel_factor,
+                field.angle,
+                colors,
+                scale=im_scale * aa_scale,
+                width=params["2D_arrows"]["width"],
+                headlength=params["2D_arrows"]["headlength"],
+                headheight=params["2D_arrows"]["headheight"],
+            )
     if return_scale:
-        return pil_image, {"scale_max": scale_max, "colormap": colormap, "scalebar_unit": scalebar_unit}
+        return pil_image, {
+            "scale_max": scale_max,
+            "colormap": colormap,
+            "scalebar_unit": scalebar_unit,
+        }
     return pil_image
 
 
@@ -252,7 +409,25 @@ def render_2d_scalebar(params, result, pil_image, im_scale, aa_scale):
 
     def getBarParameters(pixtomu, scale=1):
         mu = 200 * pixtomu / scale
-        values = [1, 5, 10, 25, 50, 75, 100, 150, 200, 250, 500, 1000, 1500, 2000, 2500, 5000, 10000]
+        values = [
+            1,
+            5,
+            10,
+            25,
+            50,
+            75,
+            100,
+            150,
+            200,
+            250,
+            500,
+            1000,
+            1500,
+            2000,
+            2500,
+            5000,
+            10000,
+        ]
         old_v = mu
         for v in values:
             if mu < v:
@@ -274,34 +449,54 @@ def render_2d_scalebar(params, result, pil_image, im_scale, aa_scale):
     if params["theme"] == "dark":
         color = "w"
 
-    pil_image = add_scalebar(pil_image, scale=1, image_scale=im_scale * aa_scale,
-                             width=params["scalebar"]["width"] * aa_scale * scale,
-                             xpos=params["scalebar"]["xpos"] * aa_scale * scale,
-                             ypos=params["scalebar"]["ypos"] * aa_scale * scale,
-                             fontsize=params["scalebar"]["fontsize"] * aa_scale * scale, pixel_width=pixel,
-                             size_in_um=mu, color=color, unit="µm")
+    pil_image = add_scalebar(
+        pil_image,
+        scale=1,
+        image_scale=im_scale * aa_scale,
+        width=params["scalebar"]["width"] * aa_scale * scale,
+        xpos=params["scalebar"]["xpos"] * aa_scale * scale,
+        ypos=params["scalebar"]["ypos"] * aa_scale * scale,
+        fontsize=params["scalebar"]["fontsize"] * aa_scale * scale,
+        pixel_width=pixel,
+        size_in_um=mu,
+        color=color,
+        unit="µm",
+    )
     return pil_image
 
-def render_2d_colorbar(params, result, pil_image, im_scale, aa_scale, colormap="viridis", scale_min=0, scale_max=1, unit="µm"):
+
+def render_2d_colorbar(
+    params,
+    result,
+    pil_image,
+    im_scale,
+    aa_scale,
+    colormap="viridis",
+    scale_min=0,
+    scale_max=1,
+    unit="µm",
+):
     color = "k"
     if params["theme"] == "dark":
         color = "w"
 
-    pil_image = add_colorbar(pil_image, scale=params["image"]["scale_overlay"] * im_scale,
-                             colormap=colormap,#params["colorbar"]["colorbar"],
-                             bar_width=params["colorbar"]["length"] * aa_scale,
-                             bar_height=params["colorbar"]["width"] * aa_scale,
-                             #tick_height=params["colorbar"]["tick_height"] * aa_scale,
-                             #tick_count=params["colorbar"]["tick_count"],
-                             #min_v=params["scalebar"]["min_v"],
-                             min_v=scale_min,
-                             max_v=scale_max,#params["colorbar"]["max_v"],
-                             offset_x=params["colorbar"]["xpos"] * aa_scale,
-                             offset_y=-params["colorbar"]["ypos"] * aa_scale,
-                             fontsize=params["colorbar"]["fontsize"] * aa_scale,
-                             color=color,
-                             unit=unit
-                             )
+    pil_image = add_colorbar(
+        pil_image,
+        scale=params["image"]["scale_overlay"] * im_scale,
+        colormap=colormap,  # params["colorbar"]["colorbar"],
+        bar_width=params["colorbar"]["length"] * aa_scale,
+        bar_height=params["colorbar"]["width"] * aa_scale,
+        # tick_height=params["colorbar"]["tick_height"] * aa_scale,
+        # tick_count=params["colorbar"]["tick_count"],
+        # min_v=params["scalebar"]["min_v"],
+        min_v=scale_min,
+        max_v=scale_max,  # params["colorbar"]["max_v"],
+        offset_x=params["colorbar"]["xpos"] * aa_scale,
+        offset_y=-params["colorbar"]["ypos"] * aa_scale,
+        fontsize=params["colorbar"]["fontsize"] * aa_scale,
+        color=color,
+        unit=unit,
+    )
 
     return pil_image
 
@@ -355,26 +550,32 @@ def add_text(pil_image, text, position, color="w", fontsize=18):
     image.text((x, y), text, color, font=font)
     return pil_image
 
-def add_colorbar(pil_image,
-                 colormap="viridis",
-                 bar_width=150,
-                 bar_height=10,
-                 tick_height=5,
-                 tick_width=1,
-                 tick_count=3,
-                 min_v=0,
-                 max_v=10,
-                 offset_x=15,
-                 offset_y=-10,
-                 scale=1, fontsize=16, color="w", unit="m"):
+
+def add_colorbar(
+    pil_image,
+    colormap="viridis",
+    bar_width=150,
+    bar_height=10,
+    tick_height=5,
+    tick_width=1,
+    tick_count=3,
+    min_v=0,
+    max_v=10,
+    offset_x=15,
+    offset_y=-10,
+    scale=1,
+    fontsize=16,
+    color="w",
+    unit="m",
+):
     cmap = plt.get_cmap(colormap)
     offset_x = int(offset_x * scale)
     offset_y = int(offset_y * scale)
 
-    bar_width = int(bar_width*scale)
-    bar_height = int(bar_height*scale)
-    tick_height = int(tick_height*scale)
-    tick_width = int(tick_width*scale)
+    bar_width = int(bar_width * scale)
+    bar_height = int(bar_height * scale)
+    tick_height = int(tick_height * scale)
+    tick_width = int(tick_width * scale)
 
     if offset_x < 0:
         offset_x = pil_image.size[0] + offset_x
@@ -395,7 +596,8 @@ def add_colorbar(pil_image,
     import matplotlib.ticker as ticker
 
     font_size = int(
-        round(fontsize * scale * 4 / 3))  # the 4/3 appears to be a factor of "converting" screel dpi to image dpi
+        round(fontsize * scale * 4 / 3)
+    )  # the 4/3 appears to be a factor of "converting" screel dpi to image dpi
     if font_size == 0:
         font = None
     else:
@@ -405,7 +607,7 @@ def add_colorbar(pil_image,
             font = ImageFont.truetype("DejaVuSans.ttf", font_size)
 
     locator = ticker.MaxNLocator(nbins=tick_count - 1)
-    #tick_positions = locator.tick_values(min_v, max_v)
+    # tick_positions = locator.tick_values(min_v, max_v)
     tick_positions = np.linspace(min_v, max_v, tick_count)
 
     max_value = tick_positions[-1]
@@ -413,78 +615,106 @@ def add_colorbar(pil_image,
     power = 0
     if unit is not None:
         if max_value:
-            power = int(np.floor(np.log10(max_value)/3)*3)
+            power = int(np.floor(np.log10(max_value) / 3) * 3)
             factor = 10**power
         base_factor = 0
         factor_prefix = {6: "M", 3: "k", -3: "m", -6: "µ", -9: "n", -12: "p"}
         if unit.startswith("p"):
             unit = unit[1:]
             base_power = -12
-            unit = factor_prefix[power+base_power]+unit
+            unit = factor_prefix[power + base_power] + unit
         if unit.startswith("µ") or unit.startswith("u"):
             unit = unit[1:]
             base_power = -6
-            unit = factor_prefix[power + base_power]+unit
+            unit = factor_prefix[power + base_power] + unit
 
     for i, pos in enumerate(tick_positions):
         x0 = offset_x + (bar_width - tick_width - 1) / (tick_count - 1) * i
         y0 = offset_y - bar_height - 1
 
-        image.rectangle([x0, y0-tick_height, x0+tick_width, y0], fill=color)
+        image.rectangle([x0, y0 - tick_height, x0 + tick_width, y0], fill=color)
 
-        text = "%d" % (pos/factor)
+        text = "%d" % (pos / factor)
         length_number = image.textlength(text, font=font)
         height_number = image.textbbox((0, 0), text, font=font)[3]
 
         x = x0 - length_number * 0.5 + 1
-        y = y0 - height_number - tick_height - int(np.ceil(tick_height/2))
+        y = y0 - height_number - tick_height - int(np.ceil(tick_height / 2))
         # draw the text for the number and the unit
         if font is not None:
             image.text((x, y), text, color, font=font)
     if unit:
         height_number = image.textbbox((0, 0), unit, font=font)[3]
         x0 = offset_x + bar_width + 10
-        y0 = offset_y - bar_height  / 2 - height_number /2
+        y0 = offset_y - bar_height / 2 - height_number / 2
         if font is not None:
             image.text((x0, y0), unit, color, font=font)
-    #image.rectangle([pil_image.size[0]-10, 0, pil_image.size[0], 10], fill="w")
+    # image.rectangle([pil_image.size[0]-10, 0, pil_image.size[0], 10], fill="w")
     return pil_image
 
-def add_scalebar(pil_image, scale, image_scale, width, xpos, ypos, fontsize, pixel_width, size_in_um, color="w", unit="µm"):
+
+def add_scalebar(
+    pil_image,
+    scale,
+    image_scale,
+    width,
+    xpos,
+    ypos,
+    fontsize,
+    pixel_width,
+    size_in_um,
+    color="w",
+    unit="µm",
+):
     image = ImageDraw.ImageDraw(pil_image)
     pixel_height = width
     pixel_offset_x = xpos
     pixel_offset_y = ypos
     pixel_offset2 = 3
-    font_size = int(round(fontsize*scale*4/3))  # the 4/3 appears to be a factor of "converting" screel dpi to image dpi
+    font_size = int(
+        round(fontsize * scale * 4 / 3)
+    )  # the 4/3 appears to be a factor of "converting" screel dpi to image dpi
 
-    #pixel_width, size_in_um = self.getBarParameters(1)
+    # pixel_width, size_in_um = self.getBarParameters(1)
     pixel_width *= image_scale
-    color = tuple((matplotlib.colors.to_rgba_array(color)[0, :3]*255).astype("uint8"))
+    color = tuple((matplotlib.colors.to_rgba_array(color)[0, :3] * 255).astype("uint8"))
     if pil_image.mode != "RGB":
         color = int(np.mean(color))
 
     if pixel_offset_x > 0:
-        image.rectangle([pil_image.size[0] -pixel_offset_x - pixel_width, pil_image.size[1] -pixel_offset_y - pixel_height, pil_image.size[0] -pixel_offset_x, pil_image.size[1] -pixel_offset_y], color)
+        image.rectangle(
+            [
+                pil_image.size[0] - pixel_offset_x - pixel_width,
+                pil_image.size[1] - pixel_offset_y - pixel_height,
+                pil_image.size[0] - pixel_offset_x,
+                pil_image.size[1] - pixel_offset_y,
+            ],
+            color,
+        )
     else:
-        image.rectangle([-pixel_offset_x,
-                         pil_image.size[1] - pixel_offset_y - pixel_height,
-                         -pixel_offset_x + pixel_width,
-                         pil_image.size[1] - pixel_offset_y], color)
+        image.rectangle(
+            [
+                -pixel_offset_x,
+                pil_image.size[1] - pixel_offset_y - pixel_height,
+                -pixel_offset_x + pixel_width,
+                pil_image.size[1] - pixel_offset_y,
+            ],
+            color,
+        )
     if True:
         # get the font
         if font_size == 0:
             return pil_image
         try:
-            font = ImageFont.truetype("arial", font_size)#ImageFont.truetype("tahoma.ttf", font_size)
+            font = ImageFont.truetype("arial", font_size)  # ImageFont.truetype("tahoma.ttf", font_size)
         except IOError:
             font = ImageFont.truetype("DejaVuSans.ttf", font_size)
         # width and height of text elements
         text = "%d" % size_in_um
         length_number = image.textlength(text, font=font)
-        length_space = 0.5*image.textlength(" ", font=font)  # here we emulate a half-sized whitespace
+        length_space = 0.5 * image.textlength(" ", font=font)  # here we emulate a half-sized whitespace
         length_unit = image.textlength(unit, font=font)
-        height_number = image.textbbox((0, 0), text+unit, font=font)[3]
+        height_number = image.textbbox((0, 0), text + unit, font=font)[3]
 
         total_length = length_number + length_space + length_unit
 
@@ -492,14 +722,12 @@ def add_scalebar(pil_image, scale, image_scale, width, xpos, ypos, fontsize, pix
         if pixel_offset_x > 0:
             x = pil_image.size[0] - pixel_offset_x - pixel_width * 0.5 - total_length * 0.5
         else:
-            x = - pixel_offset_x + pixel_width * 0.5 - total_length * 0.5
+            x = -pixel_offset_x + pixel_width * 0.5 - total_length * 0.5
         y = pil_image.size[1] - pixel_offset_y - pixel_offset2 - pixel_height - height_number
         # draw the text for the number and the unit
         image.text((x, y), text, color, font=font)
-        image.text((x+length_number+length_space, y), unit, color, font=font)
+        image.text((x + length_number + length_space, y), unit, color, font=font)
         return pil_image
-
-
 
 
 def getarrow(length, angle, scale=1, width=2, headlength=5, headheight=5, offset=None):
@@ -508,9 +736,9 @@ def getarrow(length, angle, scale=1, width=2, headlength=5, headheight=5, offset
     headlength *= scale
     headheight *= scale
 
-    headlength = headlength*np.ones(len(length))
-    headheight = headheight*np.ones(len(length))
-    width = width*np.ones(len(length))
+    headlength = headlength * np.ones(len(length))
+    headheight = headheight * np.ones(len(length))
+    width = width * np.ones(len(length))
     index_small = length < headlength
     if np.any(index_small):
         headheight[index_small] = headheight[index_small] * length[index_small] / headlength[index_small]
@@ -518,8 +746,15 @@ def getarrow(length, angle, scale=1, width=2, headlength=5, headheight=5, offset
         width[index_small] = headheight[index_small]
 
     # generate the arrow points
-    arrow = [(0, width / 2), (length - headlength, width / 2), (length - headlength, headheight / 2), (length, 0),
-            (length - headlength, -headheight / 2), (length - headlength, -width / 2), (0, -width / 2)]
+    arrow = [
+        (0, width / 2),
+        (length - headlength, width / 2),
+        (length - headlength, headheight / 2),
+        (length, 0),
+        (length - headlength, -headheight / 2),
+        (length - headlength, -width / 2),
+        (0, -width / 2),
+    ]
     # and distribute them for each point
     arrows = np.zeros([length.shape[0], 7, 2])
     for p in range(7):
@@ -527,7 +762,7 @@ def getarrow(length, angle, scale=1, width=2, headlength=5, headheight=5, offset
             arrows[:, p, i] = arrow[p][i]
 
     # rotate the arrow
-    #angle = np.deg2rad(angle)
+    # angle = np.deg2rad(angle)
     rot = np.array([[np.cos(angle), np.sin(angle)], [-np.sin(angle), np.cos(angle)]])
     arrows = np.einsum("ijk,kli->ijl", arrows, rot)
 
@@ -539,7 +774,15 @@ def getarrow(length, angle, scale=1, width=2, headlength=5, headheight=5, offset
 
 def add_quiver(pil_image, R, lengths, angles, colors, scale=1, width=2, headlength=5, headheight=5):
     # get the arrows
-    arrows = getarrow(lengths, angles, scale=scale, width=width, headlength=headlength, headheight=headheight, offset=R*scale)
+    arrows = getarrow(
+        lengths,
+        angles,
+        scale=scale,
+        width=width,
+        headlength=headlength,
+        headheight=headheight,
+        offset=R * scale,
+    )
 
     # draw the arrows
     image = ImageDraw.ImageDraw(pil_image, "RGBA")

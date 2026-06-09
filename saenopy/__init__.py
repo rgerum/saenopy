@@ -8,4 +8,4 @@ from .gui.solver.modules.exporter.Exporter import render_image
 
 from . import pyTFM as pyTFM
 
-__version__ = importlib.metadata.metadata('saenopy')['version']
+__version__ = importlib.metadata.metadata("saenopy")["version"]

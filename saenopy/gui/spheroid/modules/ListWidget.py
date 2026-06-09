@@ -11,6 +11,7 @@ class ListWidget(QtWidgets.QListWidget):
     addItemClicked = QtCore.Signal()
 
     data = []
+
     def __init__(self, layout, editable=False, add_item_button=False, color_picker=False):
         super().__init__()
         layout.addWidget(self)
@@ -65,6 +66,7 @@ class ListWidget(QtWidgets.QListWidget):
         self.no_list_change = False
 
     add_item = None
+
     def addAddItem(self):
         if self.add_item_button is False:
             return
@@ -89,6 +91,7 @@ class ListWidget(QtWidgets.QListWidget):
 
     def change_color(self):
         import matplotlib as mpl
+
         index = self.currentRow()
 
         # get new color from color picker
@@ -114,6 +117,7 @@ class ListWidget(QtWidgets.QListWidget):
         self.no_list_change = False
 
     no_list_change = False
+
     def list2_checked_changed(self, item):
         if self.no_list_change is True:
             return
@@ -127,7 +131,7 @@ class ListWidget(QtWidgets.QListWidget):
     def addData(self, d, checked, extra=None, color=None):
         self.no_list_change = True
         if self.add_item is not None:
-            self.takeItem(self.count()-1)
+            self.takeItem(self.count() - 1)
         self.data.append([d, checked, extra, color])
         item = self.customAddItem(d, checked, color)
         self.addAddItem()

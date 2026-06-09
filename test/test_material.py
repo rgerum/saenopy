@@ -37,4 +37,3 @@ def test_material():
 
         np.testing.assert_almost_equal(np.log(f), np.log(e_prime), decimal=3)
         np.testing.assert_almost_equal(np.log(s), np.log(f_prime), decimal=3)
-

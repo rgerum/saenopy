@@ -41,6 +41,7 @@ class BatchEvaluate(BatchEvaluateBase):
 
     def add_measurement(self):
         last_decision = None
+
         def do_overwrite(filename):
             nonlocal last_decision
 
@@ -78,9 +79,12 @@ class BatchEvaluate(BatchEvaluateBase):
             cellText = dialog.cellText.value()
 
             try:
-                results = get_orientation_files(dialog.outputText.value(),
-                    fiberText, cellText, pixel_size=dialog.pixel_size.value(),
-                   exist_overwrite_callback=do_overwrite,
+                results = get_orientation_files(
+                    dialog.outputText.value(),
+                    fiberText,
+                    cellText,
+                    pixel_size=dialog.pixel_size.value(),
+                    exist_overwrite_callback=do_overwrite,
                 )
             except Exception as err:
                 # notify the user if errors occured
@@ -103,19 +107,19 @@ class BatchEvaluate(BatchEvaluateBase):
             # generate a stack with the examples data
             results = get_orientation_files(
                 fiber_list_string=str(example["input_fiber"]),
-                cell_list_string = str(example["input_cell"]),
-                output_path = str(example["output_path"]),
-                pixel_size = example["pixel_size"],
+                cell_list_string=str(example["input_cell"]),
+                output_path=str(example["output_path"]),
+                pixel_size=example["pixel_size"],
                 exist_overwrite_callback=do_overwrite,
             )
             # load all the measurement objects
             for data in results:
-                #if getattr(data, "is_read", False) is False:
+                # if getattr(data, "is_read", False) is False:
                 #    data.piv_parameters = example["piv_parameters"]
                 #    data.force_parameters = example["force_parameters"]
                 self.add_data(data)
         elif dialog.mode == "example_evaluated":
-                self.load_from_path(dialog.examples_output)
+            self.load_from_path(dialog.examples_output)
 
         # update the icons
         self.update_icons()

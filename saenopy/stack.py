@@ -10,6 +10,7 @@ import imageio
 
 from saenopy.saveable import Saveable
 
+
 class CropDict(TypedDict, total=False):
     x: Tuple[Union[int, None], Union[int, None]]
     y: Tuple[Union[int, None], Union[int, None]]
@@ -17,17 +18,20 @@ class CropDict(TypedDict, total=False):
     t: Tuple[Union[int, None], Union[int, None]]
 
 
-
-
-
 class Stack(Saveable):
-    __save_parameters__ = ['template', 'voxel_size', 'crop', '_shape',
-                           'image_filenames', 'channels', # 'leica_file',
-                           'packed_files']
+    __save_parameters__ = [
+        "template",
+        "voxel_size",
+        "crop",
+        "_shape",
+        "image_filenames",
+        "channels",  # 'leica_file',
+        "packed_files",
+    ]
     parent = None
 
     template: str = None
-    voxel_size: Tuple[float,float,float] = None
+    voxel_size: Tuple[float, float, float] = None
     crop: CropDict = None
 
     _shape = None
@@ -47,7 +51,13 @@ class Stack(Saveable):
             match = re.match(r"(.*)\{f\:(\d*)\}\{c\:(\d*)\}(?:\{t\:(\d*)\})?.lif", template)
             if match:
                 from saenopy.gui.common.lif_reader import LifFile
-                self.leica_filename, self.leica_folder, self.leica_channel, self.leica_time = match.groups()
+
+                (
+                    self.leica_filename,
+                    self.leica_folder,
+                    self.leica_channel,
+                    self.leica_time,
+                ) = match.groups()
                 if self.leica_time is None:  # pragma: no cover
                     self.leica_time = 0
                 else:
@@ -87,7 +97,7 @@ class Stack(Saveable):
             return normalize_path(image, Path(self.parent.output).parent)
 
         self.template = process(self.template)
-        #self.parent.template = process(self.parent.template)
+        # self.parent.template = process(self.parent.template)
 
         if self.image_filenames is not None:
             self.image_filenames = process(self.image_filenames)
@@ -119,14 +129,19 @@ class Stack(Saveable):
 
     def description(self, z):
         try:
-            return f"shape {self.shape}px\nsize {np.array(self.shape[:3])*np.array(self.voxel_size)}μm\nvoxel size {self.voxel_size}μm\n{self.image_filenames[z][0]}"
+            return f"shape {self.shape}px\nsize {np.array(self.shape[:3]) * np.array(self.voxel_size)}μm\nvoxel size {self.voxel_size}μm\n{self.image_filenames[z][0]}"
         except (IndexError, TypeError):
             return ""
 
     @property
     def shape(self) -> tuple:
         if self.leica_file is not None:
-            return (self.leica_file.dims.y, self.leica_file.dims.x, self.leica_file.dims.z, 1)
+            return (
+                self.leica_file.dims.y,
+                self.leica_file.dims.x,
+                self.leica_file.dims.z,
+                1,
+            )
         if self._shape is None:
             filename = self.image_filenames[0][0]
             if not Path(filename).is_absolute() and self.parent is not None:
@@ -143,7 +158,7 @@ class Stack(Saveable):
         return self[:, :, :, z, channel].squeeze()
 
     def __getitem__(self, index) -> np.ndarray:
-        """ axes are y, x, rgb, z, c """
+        """axes are y, x, rgb, z, c"""
         if self.leica_file is not None:
             if isinstance(index[3], slice):
                 z_min = 0
@@ -178,9 +193,10 @@ class Stack(Saveable):
 
 def template_to_array(filename, crop):
     from saenopy.result_file import get_channel_placeholder
+
     filename, channel1 = get_channel_placeholder(filename)
     results1, output_base = format_glob(filename)
-    for (template, d1) in results1.groupby("template"):
+    for template, d1 in results1.groupby("template"):
         if template.endswith("[z]"):
             template = template.replace("[z]", "[{z}]")
         z_indices = natsort.natsorted(d1.z.unique())
@@ -244,7 +260,11 @@ def format_glob(pattern):
     if match:
         pattern, page = match.groups()
 
-    regexp_string = re.sub(r"(?<!{)\\{([^{}]*)\\}(?!})", r"(?P<\1>.*)", re.escape(pattern).replace("\\*\\*", ".*").replace("\\*", ".*"))
+    regexp_string = re.sub(
+        r"(?<!{)\\{([^{}]*)\\}(?!})",
+        r"(?P<\1>.*)",
+        re.escape(pattern).replace("\\*\\*", ".*").replace("\\*", ".*"),
+    )
     regexp_string3 = ""
     replacement = ""
     count = 1
@@ -267,7 +287,9 @@ def format_glob(pattern):
         output_base = Path(output_base).parent
 
     file_list = []
-    for file in output_base.rglob(str(Path(glob_string).relative_to(output_base))):#glob.glob(glob_string, recursive=True):
+    for file in output_base.rglob(
+        str(Path(glob_string).relative_to(output_base))
+    ):  # glob.glob(glob_string, recursive=True):
         file = str(Path(file))
         group = regexp_string2.match(file).groupdict()
         template_name = re.sub(regexp_string3, replacement, file.replace("{", "{{").replace("}", "}}"))
@@ -276,14 +298,14 @@ def format_glob(pattern):
         try:
             page = int(page)
             if page != 0:
-                group["filename"] = file+f"[{page}]"
+                group["filename"] = file + f"[{page}]"
                 group["template"] = template_name + "[" + str(page) + "]"
             file_list.append(group)
         except ValueError:
             with tifffile.TiffReader(file) as tif:
                 group["template"] = template_name + "[" + str(page) + "]"
                 for i in range(len(tif.pages)):
-                    group["filename"] = file+f"[{i}]"
+                    group["filename"] = file + f"[{i}]"
                     group[page] = i
                     file_list.append(group.copy())
     return pd.DataFrame(file_list), output_base

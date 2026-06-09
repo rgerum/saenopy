@@ -10,7 +10,6 @@ settings = QtCore.QSettings("Saenopy", "Saenopy")
 
 
 class MainWindow(QtWidgets.QWidget):
-
     def __init__(self, parent=None):
         super().__init__(parent)
 
@@ -24,7 +23,6 @@ class MainWindow(QtWidgets.QWidget):
         main_layout = QtWidgets.QHBoxLayout(self)
 
         with QtShortCuts.QTabWidget(main_layout) as self.tabs:
-
             """ """
             with self.tabs.createTab("Analyse Measurements"):
                 with QtShortCuts.QHBoxLayout() as h_layout:
@@ -35,7 +33,8 @@ class MainWindow(QtWidgets.QWidget):
                     self.description.setStyleSheet("QTextEdit { background: #f0f0f0}")
                     h_layout.addWidget(self.description)
                     self.description.setMaximumWidth(300)
-                    self.description.setText("""
+                    self.description.setText(
+                        """
                     <h1>Deformation Detection</h1>
                     <p>
                         We need to extract the deformations from the recorded image data.
@@ -71,7 +70,8 @@ class MainWindow(QtWidgets.QWidget):
                          <li><b>r_min, r_max</b>: Distance range (relative radii towards center) in which deformations are 
                          included for the force calculation</li>
                      </ul>                 
-                     """.strip())
+                     """.strip()
+                    )
 
             """ """
             with self.tabs.createTab("Data Analysis"):
@@ -115,10 +115,12 @@ class MainWindow(QtWidgets.QWidget):
     def load(self):
         files = glob.glob(self.input_filename.value())
         self.input_label.setText("\n".join(files))
+
+
 #        self.input_filename
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     app = QtWidgets.QApplication(sys.argv)
     print(sys.argv)
     window = MainWindow()

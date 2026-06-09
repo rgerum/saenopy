@@ -16,27 +16,38 @@ class CamPos:
 
 
 class TabPiv(TabModule):
-
     def __init__(self, parent: "BatchEvaluate"):
         super().__init__(parent)
 
         with self.parent.tabs.createTab("PIV Deformations") as self.tab:
             with QtShortCuts.QVBoxLayout() as layout:
                 self.label_tab = QtWidgets.QLabel(
-                    "The deformations from the piv algorithm at every window where the crosscorrelation was evaluated.").addToLayout()
+                    "The deformations from the piv algorithm at every window where the crosscorrelation was evaluated."
+                ).addToLayout()
 
                 with QtShortCuts.QHBoxLayout() as layout:
                     self.plotter = QtInteractor(None, auto_update=False)  # , theme=pv.themes.DocumentTheme())
                     self.tab.parent().plotter = self.plotter
                     layout.addWidget(self.plotter.interactor)
 
-                    self.z_slider = QTimeSlider("z", self.z_slider_value_changed, "set z position",
-                                                QtCore.Qt.Vertical).addToLayout()
+                    self.z_slider = QTimeSlider(
+                        "z",
+                        self.z_slider_value_changed,
+                        "set z position",
+                        QtCore.Qt.Vertical,
+                    ).addToLayout()
                     self.z_slider.t_slider.valueChanged.connect(
-                        lambda value: parent.shared_properties.change_property("z_slider", value, self))
+                        lambda value: parent.shared_properties.change_property("z_slider", value, self)
+                    )
                     parent.shared_properties.add_property("z_slider", self)
 
-                self.vtk_toolbar = VTK_Toolbar(self.plotter, self.update_display, "deformation", z_slider=self.z_slider, shared_properties=self.parent.shared_properties).addToLayout()
+                self.vtk_toolbar = VTK_Toolbar(
+                    self.plotter,
+                    self.update_display,
+                    "deformation",
+                    z_slider=self.z_slider,
+                    shared_properties=self.parent.shared_properties,
+                ).addToLayout()
 
                 self.t_slider = QTimeSlider(connected=self.update_display).addToLayout()
                 self.tab.parent().t_slider = self.t_slider
@@ -62,7 +73,9 @@ class TabPiv(TabModule):
 
             if result.stacks[0].channels:
                 value = self.vtk_toolbar.channel_select.value()
-                self.vtk_toolbar.channel_select.setValues(np.arange(len(result.stacks[0].channels)), result.stacks[0].channels)
+                self.vtk_toolbar.channel_select.setValues(
+                    np.arange(len(result.stacks[0].channels)), result.stacks[0].channels
+                )
                 self.vtk_toolbar.channel_select.setValue(value)
                 self.vtk_toolbar.channel_select.setVisible(True)
             else:
@@ -96,7 +109,8 @@ class TabPiv(TabModule):
             return
 
         plotter.interactor.setToolTip(
-            str(self.result.piv_parameters) + f"\nNodes {mesh.nodes.shape[0]}\nTets {mesh.tetrahedra.shape[0]}")
+            str(self.result.piv_parameters) + f"\nNodes {mesh.nodes.shape[0]}\nTets {mesh.tetrahedra.shape[0]}"
+        )
 
         if mesh.displacements_measured is not None:
             showVectorField2(self, mesh, "displacements_measured")

@@ -175,7 +175,7 @@ def get_mapping(p, func, indices):
     mapping = []
     for i in range(len(p)):
         pp = p.copy()
-        pp[i] = pp[i]+1
+        pp[i] = pp[i] + 1
         mm = func(pp)
         for i in indices:
             if mm[i] != m[i]:
@@ -186,7 +186,16 @@ def get_mapping(p, func, indices):
     return mapping
 
 
-def minimize(cost_data: list, parameter_start: Sequence, method='Powell', maxfev:int = 1e4, MaterialClass=SemiAffineFiberMaterial, x_sample=20, colors=None, **kwargs):
+def minimize(
+    cost_data: list,
+    parameter_start: Sequence,
+    method="Powell",
+    maxfev: int = 1e4,
+    MaterialClass=SemiAffineFiberMaterial,
+    x_sample=20,
+    colors=None,
+    **kwargs,
+):
     parameter_start = np.array(parameter_start)
 
     costs_shear = []
@@ -210,7 +219,7 @@ def minimize(cost_data: list, parameter_start: Sequence, method='Powell', maxfev
                 stretchy = data[:, 1]
 
                 ###lambda_h = np.arange(1 - 0.05, 1 + 0.07, 0.01)
-                lambda_h = np.linspace(np.min(stretchx), np.max(stretchx), x_sample) ## fit complete input data regime
+                lambda_h = np.linspace(np.min(stretchx), np.max(stretchx), x_sample)  ## fit complete input data regime
                 lambda_v = np.arange(0, 1.1, 0.001)
 
                 def cost(p):
@@ -230,7 +239,9 @@ def minimize(cost_data: list, parameter_start: Sequence, method='Powell', maxfev
 
                     x, y = get_stretch_thinning(lambda_h, lambda_v, material)
                     plt.plot(x, y, "r-", lw=3, label="model")
+
                 return cost, plot_me
+
             cost, plot = getCost(func, data, params)
             costs_stretch.append(cost)
             plots_stretch.append(plot)
@@ -244,8 +255,9 @@ def minimize(cost_data: list, parameter_start: Sequence, method='Powell', maxfev
 
                 x0 = shearx
                 dx = x0[1] - x0[0]
-                weights = np.diff(np.log(x0), append=np.log(
-                    x0[-1] + dx)) ** 2  # needs to be improved (based on spacing of data points in logarithmic space)
+                weights = (
+                    np.diff(np.log(x0), append=np.log(x0[-1] + dx)) ** 2
+                )  # needs to be improved (based on spacing of data points in logarithmic space)
                 gamma = np.linspace(np.min(x0), np.max(x0), x_sample)
 
                 def cost(p):
@@ -281,8 +293,9 @@ def minimize(cost_data: list, parameter_start: Sequence, method='Powell', maxfev
 
                 x0 = shearx
                 dx = x0[1] - x0[0]
-                weights = np.diff(np.log(x0), append=np.log(
-                    x0[-1] + dx)) ** 2  # needs to be improved (based on spacing of data points in logarithmic space)
+                weights = (
+                    np.diff(np.log(x0), append=np.log(x0[-1] + dx)) ** 2
+                )  # needs to be improved (based on spacing of data points in logarithmic space)
                 gamma = np.linspace(np.min(x0), np.max(x0), x_sample)
 
                 def cost(p):
@@ -294,7 +307,9 @@ def minimize(cost_data: list, parameter_start: Sequence, method='Powell', maxfev
                     x, y = get_shear_rheometer_stress(gamma, material1)
                     stretchy2 = interp1d(x, np.clip(y, 1e-9, None), fill_value=np.nan, bounds_error=False)(shearx)
                     valid_indices = ~np.isnan(stretchy2)
-                    cost = np.nansum((np.log(stretchy2[valid_indices]) - np.log(sheary[valid_indices])) ** 2 * weights[valid_indices])
+                    cost = np.nansum(
+                        (np.log(stretchy2[valid_indices]) - np.log(sheary[valid_indices])) ** 2 * weights[valid_indices]
+                    )
                     return cost
 
                 def plot_me(color=color):
@@ -311,16 +326,27 @@ def minimize(cost_data: list, parameter_start: Sequence, method='Powell', maxfev
             plots_shear.append(plot)
 
     for i in range(5):
-        for mapping, costs in [[mapping_shear, costs_shear], [mapping_stretch, costs_stretch]]:
+        for mapping, costs in [
+            [mapping_shear, costs_shear],
+            [mapping_stretch, costs_stretch],
+        ]:
             if len(costs) == 0:
                 continue
+
             # define the cost function
             def cost(p):
                 return sum([c(p) for c in costs])
 
             # minimize the cost with reasonable start parameters
             from scipy.optimize import minimize
-            sol = minimize(cost, parameter_start[mapping], method=method, options={'maxfev': maxfev}, **kwargs)
+
+            sol = minimize(
+                cost,
+                parameter_start[mapping],
+                method=method,
+                options={"maxfev": maxfev},
+                **kwargs,
+            )
             parameter_start[mapping] = sol["x"]
 
         if len(costs_shear) == 0 or len(costs_stretch) == 0:
@@ -335,7 +361,7 @@ def minimize(cost_data: list, parameter_start: Sequence, method='Powell', maxfev
             plt.xlabel("strain")
             plt.ylabel("stress")
         if len(plots_stretch):
-            plt.subplot(1, subplot_count, 1+(len(plots_stretch)>0))
+            plt.subplot(1, subplot_count, 1 + (len(plots_stretch) > 0))
             for plot in plots_stretch:
                 plot()
             plt.xlabel("horizontal stretch")

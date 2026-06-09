@@ -17,9 +17,7 @@ class FindingBorderError(Exception):
 
 def graph_to_mask(graph, points, dims):
     m = np.zeros(dims)
-    ps = np.array(
-        [y for x in list(graph.values()) for y in x]
-    )  # flattening list of point ids
+    ps = np.array([y for x in list(graph.values()) for y in x])  # flattening list of point ids
     ps_coord = points[ps]  # getting coordinates
     m[ps_coord[:, 0], ps_coord[:, 1]] = 1  # writing points
     return m
@@ -48,15 +46,10 @@ def check_connectivity(graph, ep):
     # i.e. if I break a connection between two points by removing ep
     l1_ps = graph[ep]  # first layer of points
     # check if this causes a line break
-    l2_ps = [
-        [pi for pi in graph[p] if pi != ep] for p in l1_ps
-    ]  # second layer of points if original point was removed
+    l2_ps = [[pi for pi in graph[p] if pi != ep] for p in l1_ps]  # second layer of points if original point was removed
     # third layer of points // don't need to go deeper due to properties of skeletonize
     # also adding points form second layer
-    l3_ps = [
-        np.unique(list(chain.from_iterable([graph[p] for p in l2_p] + [l2_p])))
-        for l2_p in l2_ps
-    ]
+    l3_ps = [np.unique(list(chain.from_iterable([graph[p] for p in l2_p] + [l2_p]))) for l2_p in l2_ps]
     # check if all points in l1_ps are connected even if ep is removed
     connectivity = all([all([p in sub_group for p in l1_ps]) for sub_group in l3_ps])
     # check for connection between points in layer 1--> no connection means
@@ -80,9 +73,7 @@ def remove_endpoints(graph, ep, removed=None):
     connectivity = check_connectivity(graph, ep)
     if connectivity:
         nps = graph[ep]
-        remove_point_from_graph(
-            graph, ep
-        )  # removes the point and all connections form the graph
+        remove_point_from_graph(graph, ep)  # removes the point and all connections form the graph
         removed.append(ep)
     else:
         return
@@ -127,9 +118,7 @@ def find_dead_end_lines(graph, non_dead_end_points, max_id):
     dead_end_lines = {}
     for ep in eps_id:
         lps = find_path(graph, ep, non_dead_end_points, path=[])
-        non_dead_end_points.extend(
-            lps
-        )  # adding points in the newly discovered line segments to termination points
+        non_dead_end_points.extend(lps)  # adding points in the newly discovered line segments to termination points
         if len(lps) > 3:  # filtering single points and very small bits
             max_id += 1
             dead_end_lines[max_id] = lps
@@ -147,18 +136,14 @@ def find_lines_simple(graph):
             (x for x in iter(graph_cp.keys()) if len(graph_cp[x]) == 1),
             next(iter(graph_cp.keys())),
         )
-        line = find_path_to_endpoint(
-            graph_cp, new_endpoint, path=[], first=True
-        )  # only explores one direction
+        line = find_path_to_endpoint(graph_cp, new_endpoint, path=[], first=True)  # only explores one direction
         for p in line:
             remove_point_from_graph(graph_cp, p)
         if len(line) > 2:
             lines_points[i] = line
             i += 1
         if i > 10000:
-            raise FindingBorderError(
-                "found more than 100000 lines; something went wrong"
-            )
+            raise FindingBorderError("found more than 100000 lines; something went wrong")
     return lines_points
 
 
@@ -203,9 +188,7 @@ def find_path_to_endpoint(graph, start, path=None, first=False):
     if path is None:
         path = []
     path = path + [start]
-    if (
-        len(graph[start]) < 2 and not first
-    ):  # stop if we reached a point with only one neighbour
+    if len(graph[start]) < 2 and not first:  # stop if we reached a point with only one neighbour
         return path
     if start not in graph.keys():
         return None
@@ -231,9 +214,7 @@ def find_line_segment_recursive(graph, start, path=None, left_right=0):
     """
     if path is None:
         path = []
-    if (
-        len(graph[start]) > 2
-    ):  # stop if intersection (point with 3 neighbours is reached
+    if len(graph[start]) > 2:  # stop if intersection (point with 3 neighbours is reached
         return path  # returns the function before next recursion
     # otherwise there is some overlap
 
@@ -242,9 +223,7 @@ def find_line_segment_recursive(graph, start, path=None, left_right=0):
     if len(path) == 1:
         new_p = new_ps[left_right]  # just choose one point
     else:
-        new_p = new_ps[new_ps != path[-2]][
-            0
-        ]  # next point that wasn't the previous point
+        new_p = new_ps[new_ps != path[-2]][0]  # next point that wasn't the previous point
     # recursive function
     new_path = find_line_segment_recursive(graph, new_p, path)  # next step
 
@@ -319,20 +298,16 @@ def identify_line_segments(graph, points):  #
     lines_dict = {}
     n = 0  # counter in while loop
     all_points = list(graph.keys())  # all points in the graph
-    intersect_ps = [
-        key for key, values in graph.items() if len(values) > 2
-    ]  # finding intersection points
+    intersect_ps = [key for key, values in graph.items() if len(values) > 2]  # finding intersection points
     if len(intersect_ps) == 0:
         raise FindingBorderError("Can't identify internal cell borders.")
     remaining = set(all_points) - set(intersect_ps)  # remaining point ids
-    while (
-        len(remaining) > 0
-    ):  # stop when all points are assigned to intersect or line segment
+    while len(remaining) > 0:  # stop when all points are assigned to intersect or line segment
         start = next(iter(remaining))  # first point of remaining points
         # finding a line segment
-        line_seg = list(reversed(find_line_segment(graph, start=start, left_right=0)))[
-            :-1
-        ] + find_line_segment(graph, start=start, left_right=1)
+        line_seg = list(reversed(find_line_segment(graph, start=start, left_right=0)))[:-1] + find_line_segment(
+            graph, start=start, left_right=1
+        )
 
         remaining -= set(line_seg)  # updating remaining list
 
@@ -342,9 +317,7 @@ def identify_line_segments(graph, points):  #
             n = n + 1
 
         if n > 20000:  # expectation if loop should get suck
-            raise FindingBorderError(
-                "found more than 20000 cell borders; something went wrong"
-            )
+            raise FindingBorderError("found more than 20000 cell borders; something went wrong")
 
     # plot to confirm correct lines
     # plt.figure()
@@ -397,16 +370,12 @@ def find_neighbor_lines(
         next_ps.remove(other_endpoint)
 
     # remove if point is in visited list or in own line
-    for p in copy.deepcopy(
-        next_ps
-    ):  # change in the list while iterating is not a nice idea-->
+    for p in copy.deepcopy(next_ps):  # change in the list while iterating is not a nice idea-->
         if p in visited or p in own_points:
             next_ps.remove(p)
 
     # extract if point can be found in other line
-    for p in copy.deepcopy(
-        next_ps
-    ):  # change in the list while iterating is not a nice idea--> make a copy
+    for p in copy.deepcopy(next_ps):  # change in the list while iterating is not a nice idea--> make a copy
         if p in end_points:
             next_ps.remove(p)
             neighbours.append(p)
@@ -441,9 +410,7 @@ def find_exact_line_endpoints(lines_points, points, graph):
     :return: lines_endpoints_com: dictionary with the line_id:[new endpoint at start, new_endpoint at end]
     """
 
-    end_points = [
-        [ps[0], ps[-1]] for ps in lines_points.values()
-    ]  # all end points in lines
+    end_points = [[ps[0], ps[-1]] for ps in lines_points.values()]  # all end points in lines
     end_points = [p for ps in end_points for p in ps]
 
     # finding all neighbouring edpoints for one endpoint of a line
@@ -454,12 +421,8 @@ def find_exact_line_endpoints(lines_points, points, graph):
         l_points_core = l_points[1:-1]
         end1 = l_points[0]
         end2 = l_points[-1]
-        v, neighbours1 = find_neighbor_lines(
-            graph, [end1], end2, l_points_core, end_points, visited=[], neighbours=[]
-        )
-        v, neighbours2 = find_neighbor_lines(
-            graph, [end2], end1, l_points_core, end_points, visited=[], neighbours=[]
-        )
+        v, neighbours1 = find_neighbor_lines(graph, [end1], end2, l_points_core, end_points, visited=[], neighbours=[])
+        v, neighbours2 = find_neighbor_lines(graph, [end2], end1, l_points_core, end_points, visited=[], neighbours=[])
         lines_endpoints[line] = (
             neighbours1 + [end1],
             neighbours2 + [end2],

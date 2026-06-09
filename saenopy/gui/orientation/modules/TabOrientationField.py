@@ -17,7 +17,7 @@ class TabOrientationField(TabModule):
 
         with self.parent.tabs.createTab("Orientation (cell center)") as self.tab:
             with QtShortCuts.QVBoxLayout() as layout:
-                #self.label_tab = QtWidgets.QLabel(
+                # self.label_tab = QtWidgets.QLabel(
                 #    "The deformations from the piv algorithm at every window where the crosscorrelation was evaluated.").addToLayout()
 
                 with QtShortCuts.QHBoxLayout() as layout:
@@ -39,43 +39,42 @@ class TabOrientationField(TabModule):
     def update_display(self, *, plotter=None):
         if self.result is None:
             return
-        im = render_2d({
-            "image": {
-                "scale": 1,
-                "scale_overlay": 1,
-                "antialiase": 1,
-                "logo_size": 0,
+        im = render_2d(
+            {
+                "image": {
+                    "scale": 1,
+                    "scale_overlay": 1,
+                    "antialiase": 1,
+                    "logo_size": 0,
+                },
+                "stack": {
+                    "image": 1,
+                    "channel": "cells",
+                    "colormap": "gray",
+                    "alpha": 1,
+                    "channel_B": "fibers",
+                    "colormap_B": "gray",
+                    "alpha_B": 1,
+                    "use_reference_stack": False,
+                    "contrast_enhance": None,
+                    "z_proj": False,
+                    "z": 0,
+                    "use_contrast_enhance": True,
+                },
+                "time": {"t": 0},
+                "maps": "orientation_cell_center",
+                "maps_cmap": "coolwarm",
+                "maps_alpha": 0.5,
+                "colorbar": {
+                    "hide": True,
+                },
+                "scalebar": {
+                    "hide": True,
+                },
+                "theme": "dark",
             },
-            "stack": {
-                "image": 1,
-                "channel": "cells",
-                "colormap": "gray",
-                "alpha": 1,
-                "channel_B": "fibers",
-                "colormap_B": "gray",
-                "alpha_B": 1,
-                "use_reference_stack": False,
-                "contrast_enhance": None,
-                "z_proj": False,
-                "z": 0,
-                "use_contrast_enhance": True,
-            },
-            "time": {
-                "t": 0
-            },
-            "maps": "orientation_cell_center",
-            "maps_cmap": "coolwarm",
-            "maps_alpha": 0.5,
-
-            "colorbar": {
-                "hide": True,
-            },
-
-            "scalebar": {
-                "hide": True,
-            },
-            "theme": "dark",
-        }, self.result)
+            self.result,
+        )
         self.pixmap.setPixmap(QtGui.QPixmap(array2qimage(im)))
         self.label.setExtend(im.shape[1], im.shape[0])
         self.scale1.setScale([self.result.pixel_size])

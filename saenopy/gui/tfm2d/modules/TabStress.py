@@ -18,4 +18,4 @@ class TabStress(TabModule):
         if self.tab is not None and self.tab.parent() == tab:
             if self.checkTabEnabled(self.result):
                 im = self.result.get_line_tensions()
-                self.parent.draw.setImage(im*255)
+                self.parent.draw.setImage(im * 255)

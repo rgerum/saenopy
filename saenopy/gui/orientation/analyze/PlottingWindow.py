@@ -11,11 +11,19 @@ class PlottingWindow(PlottingWindowBase):
     file_extension = ".saenopyOrientation"
 
     def add_parameters(self):
-        self.type = QtShortCuts.QInputChoice(None, "type", "global orientation",
-                                             ["global orientation", "normalized intensity (first shell)", "orientation over distance", "normed intensity over distance"])
+        self.type = QtShortCuts.QInputChoice(
+            None,
+            "type",
+            "global orientation",
+            [
+                "global orientation",
+                "normalized intensity (first shell)",
+                "orientation over distance",
+                "normed intensity over distance",
+            ],
+        )
         self.type.valueChanged.connect(self.replot)
-        self.agg = QtShortCuts.QInputChoice(None, "aggregate", "mean",
-                                            ["mean", "max", "min", "median"])
+        self.agg = QtShortCuts.QInputChoice(None, "aggregate", "mean", ["mean", "max", "min", "median"])
         self.agg.valueChanged.connect(self.replot)
 
     def __init__(self, parent=None, batch_evluate_instance=None):
@@ -55,22 +63,22 @@ class PlottingWindow(PlottingWindowBase):
             i = i.copy()
             i.update(global_data)
             i["filename"] = file
-            i["t"] = i['Shell_mid (µm)']
+            i["t"] = i["Shell_mid (µm)"]
             res.resulting_data.append(i)
         res.resulting_data = pd.DataFrame(res.resulting_data)
         return res
 
     def get_label(self):
         if self.type.value() == "global orientation":
-            mu_name = 'Orientation'
-            y_label = 'Orientation'
+            mu_name = "Orientation"
+            y_label = "Orientation"
         elif self.type.value() == "normalized intensity (first shell)":
-            mu_name = 'normalized intensity (first shell)'
-            y_label = 'normalized intensity (first shell)'
+            mu_name = "normalized intensity (first shell)"
+            y_label = "normalized intensity (first shell)"
         elif self.type.value() == "orientation over distance":
-            mu_name = 'Orientation (individual)'
-            y_label = 'Orientation (individual)'
+            mu_name = "Orientation (individual)"
+            y_label = "Orientation (individual)"
         elif self.type.value() == "normed intensity over distance":
-            mu_name = 'Intensity Norm (individual)'
-            y_label = 'Intensity Norm (individual)'
+            mu_name = "Intensity Norm (individual)"
+            y_label = "Intensity Norm (individual)"
         return mu_name, y_label

@@ -69,7 +69,7 @@ class QExtendedGraphicsView(QtWidgets.QGraphicsView):
         self.scene_pan = np.array([250, 250])
         self.scene_panning = False
         self.last_pos = [0, 0]
-        self.scene_zoom = 1.
+        self.scene_zoom = 1.0
 
         self.setScene(self.scene)
         self.scene.setBackgroundBrush(QtCore.Qt.black)
@@ -117,7 +117,8 @@ class QExtendedGraphicsView(QtWidgets.QGraphicsView):
         self.hud_center = QtWidgets.QGraphicsPathItem()
         self.scene.addItem(self.hud_center)
         self.hud_center.setTransform(
-            QtGui.QTransform(1, 0, 0, 1, self.size().width() * 0.5, self.size().height() * 0.5))
+            QtGui.QTransform(1, 0, 0, 1, self.size().width() * 0.5, self.size().height() * 0.5)
+        )
 
         self.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
         self.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
@@ -133,7 +134,7 @@ class QExtendedGraphicsView(QtWidgets.QGraphicsView):
         # self.setContentsMargins(0, 0, 0, 0)
 
     def setExtend(self, width, height):
-        do_fit_to_view = (self.fitted and self.view_rect != [width, height])
+        do_fit_to_view = self.fitted and self.view_rect != [width, height]
         self.rotater1.resetTransform()
         self.origin.resetTransform()
         self.view_rect = [width, height]
@@ -149,11 +150,21 @@ class QExtendedGraphicsView(QtWidgets.QGraphicsView):
 
         if with_transform:
             # compose the transformation matrix
-            t = self.origin.transform() * QtGui.QTransform(c, s, -s, c, 0,
-                                                           0) * self.rotater1.transform() * self.translater.transform() * self.scaler.transform()
+            t = (
+                self.origin.transform()
+                * QtGui.QTransform(c, s, -s, c, 0, 0)
+                * self.rotater1.transform()
+                * self.translater.transform()
+                * self.scaler.transform()
+            )
         else:
             # leave out the rotation
-            t = self.origin.transform() * self.rotater1.transform() * self.translater.transform() * self.scaler.transform()
+            t = (
+                self.origin.transform()
+                * self.rotater1.transform()
+                * self.translater.transform()
+                * self.scaler.transform()
+            )
         # transfrom upper left and lower right pixel
         start = t.inverted()[0].map(QtCore.QPoint(0, 0))
         end = t.inverted()[0].map(QtCore.QPoint(self.size().width(), self.size().height()))
@@ -187,7 +198,8 @@ class QExtendedGraphicsView(QtWidgets.QGraphicsView):
         self.hud_rightCenter.setTransform(QtGui.QTransform(1, 0, 0, 1, self.size().width(), self.size().height() * 0.5))
 
         self.hud_center.setTransform(
-            QtGui.QTransform(1, 0, 0, 1, self.size().width() * 0.5, self.size().height() * 0.5))
+            QtGui.QTransform(1, 0, 0, 1, self.size().width() * 0.5, self.size().height() * 0.5)
+        )
         self.setSceneRect(0, 0, self.size().width(), self.size().height())
 
     def rotate(self, angle):
@@ -237,7 +249,7 @@ class QExtendedGraphicsView(QtWidgets.QGraphicsView):
             self.centerOn(width / 2, np.mean([start_y, end_y]))
 
     def centerOn(self, x, y):
-        """ center the view on pos(x,y)"""
+        """center the view on pos(x,y)"""
         # get the size of the dispalyed image in px
         width, height = self.view_rect
         # print("image dimensions:", width,height)
@@ -264,7 +276,8 @@ class QExtendedGraphicsView(QtWidgets.QGraphicsView):
         # part 2 -> add offset between image and view
         self.translater.setTransform(
             QtGui.QTransform(1, 0, 0, 1, (width / 2 - x) + xoff / 2, (height / 2 - y) + yoff / 2),
-            combine=False)
+            combine=False,
+        )
 
     def translateOrigin(self, x, y):
         # TODO do we still use this function or can we remove it?
@@ -292,13 +305,17 @@ class QExtendedGraphicsView(QtWidgets.QGraphicsView):
 
     def mapSceneToOrigin(self, pos):
         pos = self.mapToScene(pos)
-        return QtCore.QPoint(pos.x() / self.scaler.transform().m11() - self.translater.transform().dx(),
-                             pos.y() / self.scaler.transform().m22() - self.translater.transform().dy())
+        return QtCore.QPoint(
+            pos.x() / self.scaler.transform().m11() - self.translater.transform().dx(),
+            pos.y() / self.scaler.transform().m22() - self.translater.transform().dy(),
+        )
 
     def mapToOrigin(self, pos):
         pos = self.mapToScene(pos)
-        return QtCore.QPoint(pos.x() / self.scaler.transform().m11() - self.translater.transform().dx(),
-                             pos.y() / self.scaler.transform().m22() - self.translater.transform().dy())
+        return QtCore.QPoint(
+            pos.x() / self.scaler.transform().m11() - self.translater.transform().dx(),
+            pos.y() / self.scaler.transform().m22() - self.translater.transform().dy(),
+        )
 
     def mapFromOrigin(self, x, y=None):
         try:
@@ -307,8 +324,10 @@ class QExtendedGraphicsView(QtWidgets.QGraphicsView):
         except:
             pass
         # pos = self.mapToScene(pos)
-        pos = QtCore.QPoint((x + self.translater.transform().dx()) * self.scaler.transform().m11(),
-                            (y + self.translater.transform().dy()) * self.scaler.transform().m22())
+        pos = QtCore.QPoint(
+            (x + self.translater.transform().dx()) * self.scaler.transform().m11(),
+            (y + self.translater.transform().dy()) * self.scaler.transform().m22(),
+        )
         return self.mapFromScene(pos)
 
     def mousePressEvent(self, event):
@@ -321,8 +340,10 @@ class QExtendedGraphicsView(QtWidgets.QGraphicsView):
         if self.scene_panning:
             new_pos = PosToArray(self.mapToScene(event.pos()))
             delta = new_pos - self.last_pos
-            self.translater.setTransform(QtGui.QTransform(1, 0, 0, 1, *delta / self.scaler.transform().m11()),
-                                         combine=True)
+            self.translater.setTransform(
+                QtGui.QTransform(1, 0, 0, 1, *delta / self.scaler.transform().m11()),
+                combine=True,
+            )
             self.last_pos = new_pos
             self.fitted = 0
             self.panEvent(*delta)
@@ -369,10 +390,12 @@ class QExtendedGraphicsView(QtWidgets.QGraphicsView):
         view2 = other
 
         def changes1(*args, scale=0, pos=0):
-            view2.setOriginScale(
-                view1.getOriginScale() * view1.view_rect[0] / view2.view_rect[0])
+            view2.setOriginScale(view1.getOriginScale() * view1.view_rect[0] / view2.view_rect[0])
             start_x, start_y, end_x, end_y = view1.GetExtend()
-            center_x, center_y = start_x + (end_x - start_x) / 2, start_y + (end_y - start_y) / 2
+            center_x, center_y = (
+                start_x + (end_x - start_x) / 2,
+                start_y + (end_y - start_y) / 2,
+            )
             center_x = center_x / view1.view_rect[0] * view2.view_rect[0]
             center_y = center_y / view1.view_rect[1] * view2.view_rect[1]
             view2.centerOn(center_x, center_y)
@@ -385,10 +408,12 @@ class QExtendedGraphicsView(QtWidgets.QGraphicsView):
         view1.panEvent = changes1
 
         def changes2(*args, scale=0, pos=0):
-            view1.setOriginScale(
-                view2.getOriginScale() * view2.view_rect[0] / view1.view_rect[0])
+            view1.setOriginScale(view2.getOriginScale() * view2.view_rect[0] / view1.view_rect[0])
             start_x, start_y, end_x, end_y = view2.GetExtend()
-            center_x, center_y = start_x + (end_x - start_x) / 2, start_y + (end_y - start_y) / 2
+            center_x, center_y = (
+                start_x + (end_x - start_x) / 2,
+                start_y + (end_y - start_y) / 2,
+            )
             center_x = center_x / view2.view_rect[0] * view1.view_rect[0]
             center_y = center_y / view2.view_rect[1] * view1.view_rect[1]
             view1.centerOn(center_x, center_y)
@@ -403,7 +428,10 @@ class QExtendedGraphicsView(QtWidgets.QGraphicsView):
 
     def get_center(self):
         start_x, start_y, end_x, end_y = self.GetExtend()
-        center_x, center_y = start_x + (end_x - start_x) / 2, start_y + (end_y - start_y) / 2
+        center_x, center_y = (
+            start_x + (end_x - start_x) / 2,
+            start_y + (end_y - start_y) / 2,
+        )
         return center_x, center_y
 
     def link2(self, other, link_x=True, link_y=False):
@@ -445,8 +473,7 @@ class QExtendedGraphicsView(QtWidgets.QGraphicsView):
                 return
             try:
                 skip_signal = True
-                view1.setOriginScale(
-                    view2.getOriginScale() * view2.view_rect[0] / view1.view_rect[0])
+                view1.setOriginScale(view2.getOriginScale() * view2.view_rect[0] / view1.view_rect[0])
                 center_x, center_y = view2.get_center()
                 center_x = center_x / view2.view_rect[0] * view1.view_rect[0]
                 center_y = center_y / view2.view_rect[1] * view1.view_rect[1]
@@ -469,7 +496,7 @@ class QExtendedGraphicsView(QtWidgets.QGraphicsView):
         # changes2()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     app = QtWidgets.QApplication(sys.argv)
     view = QExtendedGraphicsView()
     view.show()

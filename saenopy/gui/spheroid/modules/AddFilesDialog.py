@@ -20,24 +20,50 @@ class AddFilesDialog(AddFilesDialog):
         with self.tabs.createTab("New Measurement") as self.tab:
             with QtShortCuts.QVBoxLayout() as layout:
                 self.label = QtWidgets.QLabel(
-                    "Select a path as an input wildcard.<br/>Use a <b>? placeholder</b> to specify <b>different timestamps</b> of a measurement.<br/>Optionally use a <b>* placeholder</b> to specify <b>different measurements</b> to load.")
+                    "Select a path as an input wildcard.<br/>Use a <b>? placeholder</b> to specify <b>different timestamps</b> of a measurement.<br/>Optionally use a <b>* placeholder</b> to specify <b>different measurements</b> to load."
+                )
                 layout.addWidget(self.label)
 
-                self.inputText = QtShortCuts.QInputFilename(None, "input", file_type="Image (*.tif *.png *.jpg)",
-                                                            settings=self.settings,
-                                                            settings_key=f"{self.settings_group}/wildcard", existing=True,
-                                                            allow_edit=True)
-                self.pixel_size = QtShortCuts.QInputString(None, "pixel size", 1.29, settings=self.settings,
-                                                           settings_key=f"{self.settings_group}/pixel_size", unit="µm",
-                                                           allow_none=False, type=float)
-                self.time_delta = QtShortCuts.QInputString(None, "time delta", 120, settings=self.settings,
-                                                           settings_key=f"{self.settings_group}/delta_t", unit="s",
-                                                           allow_none=False, type=float)
-                self.outputText = QtShortCuts.QInputFolder(None, "output", settings=self.settings,
-                                                           settings_key=f"{self.settings_group}/wildcard2", allow_edit=True)
+                self.inputText = QtShortCuts.QInputFilename(
+                    None,
+                    "input",
+                    file_type="Image (*.tif *.png *.jpg)",
+                    settings=self.settings,
+                    settings_key=f"{self.settings_group}/wildcard",
+                    existing=True,
+                    allow_edit=True,
+                )
+                self.pixel_size = QtShortCuts.QInputString(
+                    None,
+                    "pixel size",
+                    1.29,
+                    settings=self.settings,
+                    settings_key=f"{self.settings_group}/pixel_size",
+                    unit="µm",
+                    allow_none=False,
+                    type=float,
+                )
+                self.time_delta = QtShortCuts.QInputString(
+                    None,
+                    "time delta",
+                    120,
+                    settings=self.settings,
+                    settings_key=f"{self.settings_group}/delta_t",
+                    unit="s",
+                    allow_none=False,
+                    type=float,
+                )
+                self.outputText = QtShortCuts.QInputFolder(
+                    None,
+                    "output",
+                    settings=self.settings,
+                    settings_key=f"{self.settings_group}/wildcard2",
+                    allow_edit=True,
+                )
 
                 def changed():
                     import glob, re
+
                     text = os.path.normpath(self.inputText.value())
 
                     glob_string = text.replace("?", "*")
@@ -53,7 +79,7 @@ class AddFilesDialog(AddFilesDialog):
                         for element in match:
                             reconstructed_file = reconstructed_file.replace("(.*)", element, 1)
                         reconstructed_file = reconstructed_file.replace(".*", "*")
-                        reconstructed_file = re.sub(r'\\(.)', r'\1', reconstructed_file)
+                        reconstructed_file = re.sub(r"\\(.)", r"\1", reconstructed_file)
 
                         if reconstructed_file not in data:
                             data[reconstructed_file] = 0
@@ -77,17 +103,16 @@ class AddFilesDialog(AddFilesDialog):
                         self.button_addList1.setDisabled(True)
                     elif max_count == 1:
                         self.label2.setText(
-                            f"Found {len(counts)} measurements with {max_count} images.<br>Maybe check the wildcard placeholder. Did you forget the : placeholder?")
+                            f"Found {len(counts)} measurements with {max_count} images.<br>Maybe check the wildcard placeholder. Did you forget the : placeholder?"
+                        )
                         self.label2.setStyleSheet("QLabel { color : orange; }")
                         self.button_addList1.setDisabled(True)
                     elif min_count == max_count:
-                        self.label2.setText(
-                            f"Found {len(counts)} measurements with each {min_count} images.")
+                        self.label2.setText(f"Found {len(counts)} measurements with each {min_count} images.")
                         self.label2.setStyleSheet("QLabel { color : green; }")
                         self.button_addList1.setDisabled(False)
                     else:
-                        self.label2.setText(
-                            f"Found {len(counts)} measurements with {counts} images.")
+                        self.label2.setText(f"Found {len(counts)} measurements with {counts} images.")
                         self.label2.setStyleSheet("QLabel { color : green; }")
                         self.button_addList1.setDisabled(False)
 

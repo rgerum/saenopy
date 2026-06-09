@@ -58,13 +58,28 @@ class BatchEvaluate(BatchEvaluateBase):
             self.slider_cursor_opacity = QtShortCuts.QInputNumber(None, "mask opacity", 0.5, 0, 1, True, float=True)
             self.slider_cursor_opacity.valueChanged.connect(lambda x: self.draw.setOpacity(x))
             with QtShortCuts.QHBoxLayout():
-                self.button_red = QtShortCuts.QPushButton(None, "tractions", lambda x: self.draw.setColor(1),
-                                                          icon=qta.icon("fa5s.circle", color="red"))
-                self.button_green = QtShortCuts.QPushButton(None, "cell boundary (optional)", lambda x: self.draw.setColor(2),
-                                                            icon=qta.icon("fa5s.circle", color="green"))
+                self.button_red = QtShortCuts.QPushButton(
+                    None,
+                    "tractions",
+                    lambda x: self.draw.setColor(1),
+                    icon=qta.icon("fa5s.circle", color="red"),
+                )
+                self.button_green = QtShortCuts.QPushButton(
+                    None,
+                    "cell boundary (optional)",
+                    lambda x: self.draw.setColor(2),
+                    icon=qta.icon("fa5s.circle", color="green"),
+                )
                 # self.button_blue = QtShortCuts.QPushButton(None, "blue", lambda x: self.draw.setColor(3), icon=qta.icon("fa5s.circle", color="blue"))
             QtWidgets.QLabel("hold 'alt' key for eraser").addToLayout()
-        self.modules = [self.sub_bf, self.sub_draw2, self.sub_draw3, self.sub_force, self.sub_force_gen, self.sub_stress]
+        self.modules = [
+            self.sub_bf,
+            self.sub_draw2,
+            self.sub_draw3,
+            self.sub_force,
+            self.sub_force_gen,
+            self.sub_stress,
+        ]
 
     def add_tabs(self):
         with QtShortCuts.QVBoxLayout() as layout:
@@ -89,8 +104,9 @@ class BatchEvaluate(BatchEvaluateBase):
             self.scale1 = ModuleScaleBar(self, self.draw.view1)
 
     def generate_data(self):
-        new_path = QtWidgets.QFileDialog.getSaveFileName(None, "Save Data CSV", os.getcwd(),
-                                                         "Comma Separated File (*.csv)")[0]
+        new_path = QtWidgets.QFileDialog.getSaveFileName(
+            None, "Save Data CSV", os.getcwd(), "Comma Separated File (*.csv)"
+        )[0]
         if not new_path:
             return None
         # ensure filename ends in .py
@@ -99,29 +115,24 @@ class BatchEvaluate(BatchEvaluateBase):
 
         key_units = {
             "filename": "",
-            
             "contractility": "N",
             "area Traction Area": "m2",
             "strain energy": "J",
-            
             "area Cell Area": "m2",
             "cell number": "",
             "center of object": "",
-
             "mean normal stress Cell Area": "N/m",
             "max normal stress Cell Area": "N/m",
             "max shear stress Cell Area": "N/m",
             "cv mean normal stress Cell Area": "",
             "cv max normal stress Cell Area": "",
             "cv max shear stress Cell Area": "",
-
             "average magnitude line tension": "N/m",
             "std magnitude line tension": "",
             "average normal line tension": "N/m",
             "std normal line tension": "",
             "average shear line tension": "N/m",
             "std shear line tension": "",
-
             "average cell force": "N/m",
             "average cell pressure": "N/m",
             "average cell shear": "N/m",
@@ -160,6 +171,7 @@ class BatchEvaluate(BatchEvaluateBase):
 
     def add_measurement(self):
         last_decision = None
+
         def do_overwrite(filename):
             nonlocal last_decision
 
@@ -200,9 +212,13 @@ class BatchEvaluate(BatchEvaluateBase):
             active_stack = dialog.stack_data_input.value()
 
             try:
-                results = get_stacks2D(dialog.outputText.value(),
-                    bf_stack, active_stack, reference_stack, pixel_size=dialog.pixel_size.value(),
-                   exist_overwrite_callback=do_overwrite,
+                results = get_stacks2D(
+                    dialog.outputText.value(),
+                    bf_stack,
+                    active_stack,
+                    reference_stack,
+                    pixel_size=dialog.pixel_size.value(),
+                    exist_overwrite_callback=do_overwrite,
                 )
             except Exception as err:
                 # notify the user if errors occured
@@ -238,7 +254,7 @@ class BatchEvaluate(BatchEvaluateBase):
                     data.force_parameters = example["force_parameters"]
                 self.add_data(data)
         elif dialog.mode == "example_evaluated":
-                self.load_from_path(dialog.examples_output)
+            self.load_from_path(dialog.examples_output)
 
         # update the icons
         self.update_icons()

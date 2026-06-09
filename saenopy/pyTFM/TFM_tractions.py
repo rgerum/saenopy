@@ -40,9 +40,7 @@ def ffttc_traction(
     """
 
     # 0) subtracting mean(better name for this step)
-    u_shift = u - np.mean(
-        u
-    )  # shifting to zero mean  (translating to pixel size of u-image is done later)
+    u_shift = u - np.mean(u)  # shifting to zero mean  (translating to pixel size of u-image is done later)
     v_shift = v - np.mean(v)
 
     # Ben's algorithm:
@@ -72,9 +70,7 @@ def ffttc_traction(
         ]
         * int(max_ind)
     )
-    kx = (
-        np.append(kx1, kx2, axis=1) * 2 * np.pi
-    )  # fourier transform in this case is defined as
+    kx = np.append(kx1, kx2, axis=1) * 2 * np.pi  # fourier transform in this case is defined as
     # F(kx)=1/2pi integral(exp(i*kx*x)dk therefore kx must be expressed as a spatial frequency in distance*2*pi
     ky = np.transpose(kx)
     k = np.sqrt(kx**2 + ky**2) / (pixel_size2 * max_ind)
@@ -86,12 +82,8 @@ def ffttc_traction(
     # 3) calculation of K --> Tensor to calculate displacements from traction forces. We calculate inverse of K
     # K⁻¹=[[kix kid],
     #     [kid,kiy]]  ,,, so is "diagonal, kid appears two times
-    kix = ((k * young) / (2 * (1 - sigma**2))) * (
-        1 - sigma + sigma * np.cos(alpha) ** 2
-    )
-    kiy = ((k * young) / (2 * (1 - sigma**2))) * (
-        1 - sigma + sigma * np.sin(alpha) ** 2
-    )
+    kix = ((k * young) / (2 * (1 - sigma**2))) * (1 - sigma + sigma * np.cos(alpha) ** 2)
+    kiy = ((k * young) / (2 * (1 - sigma**2))) * (1 - sigma + sigma * np.sin(alpha) ** 2)
     kid = ((k * young) / (2 * (1 - sigma**2))) * (sigma * np.sin(alpha) * np.cos(alpha))
 
     # adding zeros in kid diagonals
@@ -121,27 +113,15 @@ def ffttc_traction(
     ty_filter = ty_cut
 
     if spatial_filter == "mean":
-        fs = (
-            fs
-            if isinstance(fs, (float, int))
-            else int(int(np.max((ax1_length, ax2_length))) / 16)
-        )
+        fs = fs if isinstance(fs, (float, int)) else int(int(np.max((ax1_length, ax2_length))) / 16)
         tx_filter = uniform_filter(tx_cut, size=fs)
         ty_filter = uniform_filter(ty_cut, size=fs)
     if spatial_filter == "gaussian":
-        fs = (
-            fs
-            if isinstance(fs, (float, int))
-            else int(np.max((ax1_length, ax2_length))) / 50
-        )
+        fs = fs if isinstance(fs, (float, int)) else int(np.max((ax1_length, ax2_length))) / 50
         tx_filter = gaussian_filter(tx_cut, sigma=fs)
         ty_filter = gaussian_filter(ty_cut, sigma=fs)
     if spatial_filter == "median":
-        fs = (
-            fs
-            if isinstance(fs, (float, int))
-            else int(int(np.max((ax1_length, ax2_length))) / 16)
-        )
+        fs = fs if isinstance(fs, (float, int)) else int(int(np.max((ax1_length, ax2_length))) / 16)
         tx_filter = median_filter(tx_cut, size=fs)
         ty_filter = median_filter(ty_cut, size=fs)
 
@@ -220,9 +200,9 @@ def ffttc_traction_finite_thickness(
 
     # gamma = ((3 - 4 * sigma) * (c ** 2) + (1 - 2 * sigma) ** 2 + (k * h) ** 2) / (
     #         (3 - 4 * sigma) * s * c + k * h)  ## inf values here because k goes to zero
-    gamma = (
-        (3 - 4 * sigma) + (((1 - 2 * sigma) ** 2) / (c**2)) + ((r**2) / (c**2))
-    ) / ((3 - 4 * sigma) * s_c + r / (c**2))
+    gamma = ((3 - 4 * sigma) + (((1 - 2 * sigma) ** 2) / (c**2)) + ((r**2) / (c**2))) / (
+        (3 - 4 * sigma) * s_c + r / (c**2)
+    )
 
     # 4) calculate fourier transform of displacements
     u_ft = scipy.fft.fft2(u_expand)
@@ -260,27 +240,15 @@ def ffttc_traction_finite_thickness(
     tx_filter = tx_cut
     ty_filter = ty_cut
     if spatial_filter == "mean":
-        fs = (
-            fs
-            if isinstance(fs, (float, int))
-            else int(int(np.max((ax1_length, ax2_length))) / 16)
-        )
+        fs = fs if isinstance(fs, (float, int)) else int(int(np.max((ax1_length, ax2_length))) / 16)
         tx_filter = uniform_filter(tx_cut, size=fs)
         ty_filter = uniform_filter(ty_cut, size=fs)
     if spatial_filter == "gaussian":
-        fs = (
-            fs
-            if isinstance(fs, (float, int))
-            else int(np.max((ax1_length, ax2_length))) / 50
-        )
+        fs = fs if isinstance(fs, (float, int)) else int(np.max((ax1_length, ax2_length))) / 50
         tx_filter = gaussian_filter(tx_cut, sigma=fs)
         ty_filter = gaussian_filter(ty_cut, sigma=fs)
     if spatial_filter == "median":
-        fs = (
-            fs
-            if isinstance(fs, (float, int))
-            else int(int(np.max((ax1_length, ax2_length))) / 16)
-        )
+        fs = fs if isinstance(fs, (float, int)) else int(int(np.max((ax1_length, ax2_length))) / 16)
         tx_filter = median_filter(tx_cut, size=fs)
         ty_filter = median_filter(ty_cut, size=fs)
 

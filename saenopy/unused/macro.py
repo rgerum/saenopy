@@ -41,16 +41,34 @@ def get_quadrature(n: int, x_min: float, x_max: float) -> (np.ndarray, np.ndarra
         w = [5 / 9, 8 / 9, 5 / 9]
 
     elif n == 4:
-        points = [-np.sqrt(3 / 7 - 2 / 7 * np.sqrt(6 / 5)), +np.sqrt(3 / 7 - 2 / 7 * np.sqrt(6 / 5)),
-                  -np.sqrt(3 / 7 + 2 / 7 * np.sqrt(6 / 5)), +np.sqrt(3 / 7 + 2 / 7 * np.sqrt(6 / 5))]
-        w = [(18 + np.sqrt(30)) / 36, (18 + np.sqrt(30)) / 36, (18 - np.sqrt(30)) / 36, (18 - np.sqrt(30)) / 36]
+        points = [
+            -np.sqrt(3 / 7 - 2 / 7 * np.sqrt(6 / 5)),
+            +np.sqrt(3 / 7 - 2 / 7 * np.sqrt(6 / 5)),
+            -np.sqrt(3 / 7 + 2 / 7 * np.sqrt(6 / 5)),
+            +np.sqrt(3 / 7 + 2 / 7 * np.sqrt(6 / 5)),
+        ]
+        w = [
+            (18 + np.sqrt(30)) / 36,
+            (18 + np.sqrt(30)) / 36,
+            (18 - np.sqrt(30)) / 36,
+            (18 - np.sqrt(30)) / 36,
+        ]
 
     elif n == 5:
-        points = [0,
-                  -1 / 3 * np.sqrt(5 - 2 * np.sqrt(10 / 7)), +1 / 3 * np.sqrt(5 - 2 * np.sqrt(10 / 7)),
-                  -1 / 3 * np.sqrt(5 + 2 * np.sqrt(10 / 7)), +1 / 3 * np.sqrt(5 + 2 * np.sqrt(10 / 7))]
-        w = [128 / 225, (322 + 13 * np.sqrt(70)) / 900, (322 + 13 * np.sqrt(70)) / 900, (322 - 13 * np.sqrt(70)) / 900,
-             (322 - 13 * np.sqrt(70)) / 900]
+        points = [
+            0,
+            -1 / 3 * np.sqrt(5 - 2 * np.sqrt(10 / 7)),
+            +1 / 3 * np.sqrt(5 - 2 * np.sqrt(10 / 7)),
+            -1 / 3 * np.sqrt(5 + 2 * np.sqrt(10 / 7)),
+            +1 / 3 * np.sqrt(5 + 2 * np.sqrt(10 / 7)),
+        ]
+        w = [
+            128 / 225,
+            (322 + 13 * np.sqrt(70)) / 900,
+            (322 + 13 * np.sqrt(70)) / 900,
+            (322 - 13 * np.sqrt(70)) / 900,
+            (322 - 13 * np.sqrt(70)) / 900,
+        ]
 
     else:
         raise ValueError()
@@ -63,7 +81,9 @@ def get_quadrature(n: int, x_min: float, x_max: float) -> (np.ndarray, np.ndarra
     return points, w
 
 
-def combine_quadrature(p1_w1: Sequence, p2_w2: Sequence) -> (np.ndarray, np.ndarray, np.ndarray):
+def combine_quadrature(
+    p1_w1: Sequence, p2_w2: Sequence
+) -> (np.ndarray, np.ndarray, np.ndarray):
     """
     Combine the quadratures of two different axes.
 
@@ -90,7 +110,9 @@ def combine_quadrature(p1_w1: Sequence, p2_w2: Sequence) -> (np.ndarray, np.ndar
     return x, y, w
 
 
-def get_shear_rheometer_stress(gamma: np.ndarray, material: Material, s: np.ndarray = None) -> (np.ndarray, np.ndarray):
+def get_shear_rheometer_stress(
+    gamma: np.ndarray, material: Material, s: np.ndarray = None
+) -> (np.ndarray, np.ndarray):
     r"""
     This function returns the stress the material model generates when subjected to a shear strain,
     as seen in a shear rheometer.
@@ -282,6 +304,7 @@ from scipy import interpolate
 import matplotlib.pyplot as plt
 from saenopy.materials import SemiAffineFiberMaterial
 
+
 def fit_error(xy, xy0, w=None):
     # split the data
     x, y = xy
@@ -289,15 +312,17 @@ def fit_error(xy, xy0, w=None):
     # interpolate the fit to ensure we have values at the correct x positions
     f = interpolate.interp1d(x, y, bounds_error=False)
     # evaluate the interpolated fit at the x0 values and calculate the squared difference to the y0 values
-    difference = (y0-f(x0))**2
+    difference = (y0 - f(x0)) ** 2
     # if we have no weights
     if w is None:
         # just take the mean (ignoring nans)
-        return np.sqrt(np.nanmean(difference/np.nanmax(y0)))
+        return np.sqrt(np.nanmean(difference / np.nanmax(y0)))
     # if not ignore the nans by finding the indices
     indices = ~np.isnan(difference)
     # and average with the given weights
-    return np.sqrt(np.average(difference[indices]/np.nanmax(y0[indices]), weights=w[indices]))
+    return np.sqrt(
+        np.average(difference[indices] / np.nanmax(y0[indices]), weights=w[indices])
+    )
 
 
 def get_cost_function(func, data_shear1, params, MaterialClass, x_sample=100):
@@ -307,7 +332,7 @@ def get_cost_function(func, data_shear1, params, MaterialClass, x_sample=100):
     gamma1 = np.linspace(np.min(x0), np.max(x0), x_sample)
 
     # define weights for logarithmic weighting of points of the shear data
-    weights1 = None#np.diff(np.log(x0), append=np.log(x0[-1] + dx))**2 #needs to be improved (based on spacing of data points in logarithmic space)
+    weights1 = None  # np.diff(np.log(x0), append=np.log(x0[-1] + dx))**2 #needs to be improved (based on spacing of data points in logarithmic space)
 
     # weights1[:] = 1
 
@@ -316,9 +341,9 @@ def get_cost_function(func, data_shear1, params, MaterialClass, x_sample=100):
         # print(material)
         offset = 0
         for pp in p:
-            if pp < 0 :
+            if pp < 0:
                 offset += -pp
-        return fit_error(func(gamma1, material), data_shear1, weights1)+offset
+        return fit_error(func(gamma1, material), data_shear1, weights1) + offset
 
     def plot(p):
         def plot_me():
@@ -328,25 +353,39 @@ def get_cost_function(func, data_shear1, params, MaterialClass, x_sample=100):
 
             x, y = func(gamma1, material)
             plt.plot(x, y, "r-", lw=3, label="model")
+
         return plot_me
 
     return cost, plot
 
 
-def minimize_old(cost_data: list, parameter_start: Sequence, method='Nelder-Mead', maxfev:int = 1e4, MaterialClass=SemiAffineFiberMaterial, x_sample=100, **kwargs):
+def minimize_old(
+    cost_data: list,
+    parameter_start: Sequence,
+    method="Nelder-Mead",
+    maxfev: int = 1e4,
+    MaterialClass=SemiAffineFiberMaterial,
+    x_sample=100,
+    **kwargs,
+):
     costs = []
     plots = []
 
     for func, data, params in cost_data:
         if func == get_stretch_thinning:
+
             def func(x, material):
                 lambda_v = np.arange(0, 1.1, 0.01)
                 return get_stretch_thinning(x, lambda_v, material)
-        c, p = get_cost_function(func, data, params, x_sample=x_sample, MaterialClass=MaterialClass)
+
+        c, p = get_cost_function(
+            func, data, params, x_sample=x_sample, MaterialClass=MaterialClass
+        )
         costs.append(c)
         plots.append(p)
 
     from tqdm import tqdm
+
     pbar = tqdm(total=maxfev)
 
     # define the cost function
@@ -356,7 +395,10 @@ def minimize_old(cost_data: list, parameter_start: Sequence, method='Nelder-Mead
 
     # minimize the cost with reasonable start parameters
     from scipy.optimize import minimize
-    sol = minimize(cost, parameter_start, method=method, options={'maxfev': maxfev}, **kwargs)
+
+    sol = minimize(
+        cost, parameter_start, method=method, options={"maxfev": maxfev}, **kwargs
+    )
 
     if sol.success is True:
         pbar.close()
@@ -371,7 +413,10 @@ def minimize_old(cost_data: list, parameter_start: Sequence, method='Nelder-Mead
 
         for func in subplot_dict:
             subplot_dict[func] = plt.subplot(1, subplot_index, subplot_dict[func])
-            if func == get_shear_rheometer_stress or func == get_extensional_rheometer_stress:
+            if (
+                func == get_shear_rheometer_stress
+                or func == get_extensional_rheometer_stress
+            ):
                 plt.xlabel("strain")
                 plt.ylabel("stress")
             if func == get_stretch_thinning:
@@ -390,7 +435,7 @@ def get_maping(p, func, indices):
     mapping = []
     for i in range(len(p)):
         pp = p.copy()
-        pp[i] = pp[i]+1
+        pp[i] = pp[i] + 1
         mm = func(pp)
         for i in indices:
             if mm[i] != m[i]:
@@ -401,7 +446,16 @@ def get_maping(p, func, indices):
     return mapping
 
 
-def minimize(cost_data: list, parameter_start: Sequence, method='Powell', maxfev:int = 1e4, MaterialClass=SemiAffineFiberMaterial, x_sample=20, colors=None, **kwargs):
+def minimize(
+    cost_data: list,
+    parameter_start: Sequence,
+    method="Powell",
+    maxfev: int = 1e4,
+    MaterialClass=SemiAffineFiberMaterial,
+    x_sample=20,
+    colors=None,
+    **kwargs,
+):
     parameter_start = np.array(parameter_start)
 
     costs_shear = []
@@ -425,7 +479,9 @@ def minimize(cost_data: list, parameter_start: Sequence, method='Powell', maxfev
                 stretchy = data[:, 1]
 
                 ###lambda_h = np.arange(1 - 0.05, 1 + 0.07, 0.01)
-                lambda_h = np.linspace(np.min(stretchx), np.max(stretchx), x_sample) ## fit complete input data regime
+                lambda_h = np.linspace(
+                    np.min(stretchx), np.max(stretchx), x_sample
+                )  ## fit complete input data regime
                 lambda_v = np.arange(0, 1.1, 0.001)
 
                 def cost(p):
@@ -435,7 +491,9 @@ def minimize(cost_data: list, parameter_start: Sequence, method='Powell', maxfev
                     p = params(parameter_start)
                     material1 = MaterialClass(*p)
                     x, y = get_stretch_thinning(lambda_h, lambda_v, material1)
-                    stretchy2 = interp1d(x, y, fill_value=np.nan, bounds_error=False)(stretchx)
+                    stretchy2 = interp1d(x, y, fill_value=np.nan, bounds_error=False)(
+                        stretchx
+                    )
                     cost = np.nansum((stretchy2 - stretchy) ** 2)
                     return cost
 
@@ -445,7 +503,9 @@ def minimize(cost_data: list, parameter_start: Sequence, method='Powell', maxfev
 
                     x, y = get_stretch_thinning(lambda_h, lambda_v, material)
                     plt.plot(x, y, "r-", lw=3, label="model")
+
                 return cost, plot_me
+
             cost, plot = getCost(func, data, params)
             costs_stretch.append(cost)
             plots_stretch.append(plot)
@@ -459,8 +519,9 @@ def minimize(cost_data: list, parameter_start: Sequence, method='Powell', maxfev
 
                 x0 = shearx
                 dx = x0[1] - x0[0]
-                weights = np.diff(np.log(x0), append=np.log(
-                    x0[-1] + dx)) ** 2  # needs to be improved (based on spacing of data points in logarithmic space)
+                weights = (
+                    np.diff(np.log(x0), append=np.log(x0[-1] + dx)) ** 2
+                )  # needs to be improved (based on spacing of data points in logarithmic space)
                 gamma = np.linspace(np.min(x0), np.max(x0), x_sample)
 
                 def cost(p):
@@ -470,8 +531,12 @@ def minimize(cost_data: list, parameter_start: Sequence, method='Powell', maxfev
                     p = params(parameter_start)
                     material1 = MaterialClass(*p)
                     x, y = get_shear_rheometer_stress(gamma, material1)
-                    stretchy2 = interp1d(x, y, fill_value=np.nan, bounds_error=False)(shearx)
-                    cost = np.nansum((np.log(stretchy2) - np.log(sheary)) ** 2 * weights)
+                    stretchy2 = interp1d(x, y, fill_value=np.nan, bounds_error=False)(
+                        shearx
+                    )
+                    cost = np.nansum(
+                        (np.log(stretchy2) - np.log(sheary)) ** 2 * weights
+                    )
                     return cost
 
                 def plot_me(color=color):
@@ -488,16 +553,27 @@ def minimize(cost_data: list, parameter_start: Sequence, method='Powell', maxfev
             plots_shear.append(plot)
 
     for i in range(5):
-        for mapping, costs in [[mapping_shear, costs_shear], [mapping_stretch, costs_stretch]]:
+        for mapping, costs in [
+            [mapping_shear, costs_shear],
+            [mapping_stretch, costs_stretch],
+        ]:
             if len(costs) == 0:
                 continue
+
             # define the cost function
             def cost(p):
                 return sum([c(p) for c in costs])
 
             # minimize the cost with reasonable start parameters
             from scipy.optimize import minimize
-            sol = minimize(cost, parameter_start[mapping], method=method, options={'maxfev': maxfev}, **kwargs)
+
+            sol = minimize(
+                cost,
+                parameter_start[mapping],
+                method=method,
+                options={"maxfev": maxfev},
+                **kwargs,
+            )
             parameter_start[mapping] = sol["x"]
 
         if len(costs_shear) == 0 or len(costs_stretch) == 0:
@@ -512,7 +588,7 @@ def minimize(cost_data: list, parameter_start: Sequence, method='Powell', maxfev
             plt.xlabel("strain")
             plt.ylabel("stress")
         if len(plots_stretch):
-            plt.subplot(1, subplot_count, 1+(len(plots_stretch)>0))
+            plt.subplot(1, subplot_count, 1 + (len(plots_stretch) > 0))
             for plot in plots_stretch:
                 plot()
             plt.xlabel("horizontal stretch")

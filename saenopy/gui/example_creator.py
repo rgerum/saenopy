@@ -10,5 +10,5 @@ image = np.zeros(pos)
 for i in range(size[0]):
     for j in range(size[1]):
         for k in range(size[2]):
-            #distance = np.linalg.
+            # distance = np.linalg.
             pass

@@ -5,20 +5,25 @@ from matplotlib.figure import Figure
 
 
 from qtpy import API_NAME as QT_API_NAME
+
 if QT_API_NAME.startswith("PyQt4"):
     from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg as Canvas
     from matplotlib.backends.backend_qt4agg import FigureManager
-    from matplotlib.backends.backend_qt4 import NavigationToolbar2QT as NavigationToolbar
+    from matplotlib.backends.backend_qt4 import (
+        NavigationToolbar2QT as NavigationToolbar,
+    )
 else:
     from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as Canvas
     from matplotlib.backends.backend_qt5agg import FigureManager
-    from matplotlib.backends.backend_qt5 import NavigationToolbar2QT as NavigationToolbar
+    from matplotlib.backends.backend_qt5 import (
+        NavigationToolbar2QT as NavigationToolbar,
+    )
 
 
 class MatplotlibWidget(Canvas):
-
     def __init__(self, parent=None, width=4, height=3, dpi=100):
         from matplotlib import _pylab_helpers
+
         plt.ioff()
         self.figure = Figure(figsize=(width, height), dpi=dpi)
         self.figure.patch.set_facecolor([0, 1, 0, 0])
@@ -48,5 +53,6 @@ class MatplotlibWidget(Canvas):
 
     def setActive(self):
         from matplotlib import _pylab_helpers
+
         self.manager._cidgcf = self.figure
         _pylab_helpers.Gcf.set_active(self.manager)

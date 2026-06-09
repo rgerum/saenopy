@@ -5,6 +5,7 @@ from matplotlib.widgets import Slider, Button, RadioButtons
 from saenopy.materials import SemiAffineFiberMaterial
 from saenopy.macro import get_shear_rheometer_stress
 import saenopy
+
 material = SemiAffineFiberMaterial(900, 0.0004, 0.0075, 0.033)
 
 fig, ax = plt.subplots()
@@ -14,25 +15,24 @@ gamma = np.arange(0.005, 0.3, 0.0001)
 M = saenopy.Solver()
 M.set_beams()
 x, y = get_shear_rheometer_stress(gamma, material, M.s)
-#y = material.stiffness(gamma)
+# y = material.stiffness(gamma)
 
-l, = plt.plot(x, y, lw=2)
+(l,) = plt.plot(x, y, lw=2)
 ax.margins(x=0)
 plt.ylabel("shear stress")
 plt.xlabel("strain")
 
-axcolor = 'lightgoldenrodyellow'
+axcolor = "lightgoldenrodyellow"
 axfreq = plt.axes([0.25, 0.1, 0.65, 0.03], facecolor=axcolor)
 axamp = plt.axes([0.25, 0.15, 0.65, 0.03], facecolor=axcolor)
 axlambdas = plt.axes([0.25, 0.20, 0.65, 0.03], facecolor=axcolor)
 axds = plt.axes([0.25, 0.25, 0.65, 0.03], facecolor=axcolor)
 
-sfreq = Slider(axfreq, 'k', 0, 1200.0, valinit=900, valstep=100)
-#samp = Slider(axamp, '$d_0$', 0.0, 0.001, valinit=0.0004)
-samp = Slider(axamp, '$d_0$', 0.0, 0.1, valinit=0.0004)
-slambdas = Slider(axlambdas, '$\\lambda_s$', 0.0, 0.03, valinit=0.0075)
-sds = Slider(axds, '$d_s$', 0.0, 0.1, valinit=0.033)
-
+sfreq = Slider(axfreq, "k", 0, 1200.0, valinit=900, valstep=100)
+# samp = Slider(axamp, '$d_0$', 0.0, 0.001, valinit=0.0004)
+samp = Slider(axamp, "$d_0$", 0.0, 0.1, valinit=0.0004)
+slambdas = Slider(axlambdas, "$\\lambda_s$", 0.0, 0.03, valinit=0.0075)
+sds = Slider(axds, "$d_s$", 0.0, 0.1, valinit=0.033)
 
 
 def update(val):
@@ -53,12 +53,14 @@ sds.on_changed(update)
 
 
 rax = plt.axes([0.025, 0.5, 0.11, 0.15], facecolor=axcolor)
-radio = RadioButtons(rax, ('linear', 'log'), active=0)
+radio = RadioButtons(rax, ("linear", "log"), active=0)
 
 
 def colorfunc(label):
     ax.set_xscale(label)
     fig.canvas.draw_idle()
+
+
 radio.on_clicked(colorfunc)
 
 plt.show()

@@ -18,22 +18,22 @@ class TabDeformation(TabModule):
     def tabChanged(self, tab):
         if self.tab is not None and self.tab.parent() == tab:
             if self.checkTabEnabled(self.result):
-
                 if self.result is None:
                     return
-                im = render_2d({
-                    "stack": {
-                        "channel": "cells",
+                im = render_2d(
+                    {
+                        "stack": {
+                            "channel": "cells",
+                        },
+                        "arrows": "deformation",
+                        "colorbar": {
+                            "hide": True,
+                        },
+                        "scalebar": {
+                            "hide": True,
+                        },
                     },
-                    "arrows": "deformation",
-
-                    "colorbar": {
-                        "hide": True,
-                    },
-
-                    "scalebar": {
-                        "hide": True,
-                    },
-                }, self.result)
+                    self.result,
+                )
 
                 self.parent.draw.setImage(im)

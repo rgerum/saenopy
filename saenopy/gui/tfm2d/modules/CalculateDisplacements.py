@@ -13,40 +13,68 @@ from saenopy.pyTFM.plotting import show_quiver
 
 
 class DeformationDetector3(PipelineModule):
-
     def __init__(self, parent=None, layout=None):
         super().__init__(parent, layout)
         self.parent = parent
-        #layout.addWidget(self)
+        # layout.addWidget(self)
 
         with QtShortCuts.QVBoxLayout(self) as layout:
             layout.setContentsMargins(0, 0, 0, 0)
             with CheckAbleGroup(self, "find deformations (piv)").addToLayout() as self.group:
                 with QtShortCuts.QVBoxLayout() as layout:
                     with QtShortCuts.QHBoxLayout():
-                        self.input_win = QtShortCuts.QInputNumber(None, "window size", 100, float=False,
-                                                                  value_changed=self.valueChanged, unit="px",
-                                                                  tooltip="the size of the volume to look for a match")
-                        self.input_overlap = QtShortCuts.QInputNumber(None, "overlap", 60, step=1, float=False,
-                                                                          value_changed=self.valueChanged, unit="px",
-                                                                          tooltip="the overlap of windows")
-                        self.input_std = QtShortCuts.QInputNumber(None, "std_factor", 15, step=1, float=False,
-                                                                      value_changed=self.valueChanged, unit="px",
-                                                                      tooltip="additional filter for extreme values in deformation field")
+                        self.input_win = QtShortCuts.QInputNumber(
+                            None,
+                            "window size",
+                            100,
+                            float=False,
+                            value_changed=self.valueChanged,
+                            unit="px",
+                            tooltip="the size of the volume to look for a match",
+                        )
+                        self.input_overlap = QtShortCuts.QInputNumber(
+                            None,
+                            "overlap",
+                            60,
+                            step=1,
+                            float=False,
+                            value_changed=self.valueChanged,
+                            unit="px",
+                            tooltip="the overlap of windows",
+                        )
+                        self.input_std = QtShortCuts.QInputNumber(
+                            None,
+                            "std_factor",
+                            15,
+                            step=1,
+                            float=False,
+                            value_changed=self.valueChanged,
+                            unit="px",
+                            tooltip="additional filter for extreme values in deformation field",
+                        )
                     self.label = QtWidgets.QLabel().addToLayout()
                     self.input_button = QtShortCuts.QPushButton(None, "detect deformations", self.start_process)
 
-        self.setParameterMapping("piv_parameters", {
-            "window_size": self.input_win,
-            "overlap": self.input_overlap,
-            "std_factor": self.input_std
-        })
+        self.setParameterMapping(
+            "piv_parameters",
+            {
+                "window_size": self.input_win,
+                "overlap": self.input_overlap,
+                "std_factor": self.input_std,
+            },
+        )
 
     def check_available(self, result):
         return True
 
-    def process(self, result: Result2D, piv_parameters: dict): # type: ignore
-        u, v, mask_val, mask_std = calculate_deformation(result.get_image(0), result.get_image(1), window_size=int(piv_parameters["window_size"]), overlap=int(piv_parameters["overlap"]), std_factor=int(piv_parameters["std_factor"]))
+    def process(self, result: Result2D, piv_parameters: dict):  # type: ignore
+        u, v, mask_val, mask_std = calculate_deformation(
+            result.get_image(0),
+            result.get_image(1),
+            window_size=int(piv_parameters["window_size"]),
+            overlap=int(piv_parameters["overlap"]),
+            std_factor=int(piv_parameters["std_factor"]),
+        )
         result.u = -u
         result.v = v
         result.mask_val = mask_val
@@ -64,6 +92,7 @@ class DeformationDetector3(PipelineModule):
         import_code = "from saenopy.pyTFM.calculate_deformation import calculate_deformation\n"
 
         results = []
+
         @export_as_string
         def code(my_piv_params):  # pragma: no cover
             # define the parameters for the piv deformation detection
@@ -75,18 +104,19 @@ class DeformationDetector3(PipelineModule):
                 result.piv_parameters = piv_parameters
 
                 # calculate the deformation between the two images
-                u, v, mask_val, mask_std = calculate_deformation(result.get_image(0), result.get_image(1),
-                                                                 window_size=piv_parameters["window_size"],
-                                                                 overlap=piv_parameters["overlap"],
-                                                                 std_factor=piv_parameters["std_factor"])
+                u, v, mask_val, mask_std = calculate_deformation(
+                    result.get_image(0),
+                    result.get_image(1),
+                    window_size=piv_parameters["window_size"],
+                    overlap=piv_parameters["overlap"],
+                    std_factor=piv_parameters["std_factor"],
+                )
                 result.u = -u
                 result.v = v
                 result.mask_val = mask_val
                 result.mask_std = mask_std
 
-        data = {
-            "my_piv_params": self.result.piv_parameters_tmp
-        }
+        data = {"my_piv_params": self.result.piv_parameters_tmp}
 
         code = get_code(code, data)
 

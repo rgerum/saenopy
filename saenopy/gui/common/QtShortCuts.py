@@ -32,9 +32,11 @@ def setCurrentLayout(layout):
     app = QtWidgets.QApplication.instance()
     app.current_layout = layout
 
+
 def currentLayout():
     app = QtWidgets.QApplication.instance()
-    return getattr(app, 'current_layout', None)
+    return getattr(app, "current_layout", None)
+
 
 def addToLayout(self, layout=None):
     if layout is None and currentLayout() is not None:
@@ -42,11 +44,17 @@ def addToLayout(self, layout=None):
     layout.addWidget(self)
     return self
 
+
 QtWidgets.QWidget.addToLayout = addToLayout
+
+
 def connect(self, target):
     super().connect(target)
     return self
+
+
 QtCore.Signal.connect = connect
+
 
 class QInput(QtWidgets.QWidget):
     """
@@ -57,6 +65,7 @@ class QInput(QtWidgets.QWidget):
     - The value of the input element get be set with setValue(value) and queried by value()
 
     """
+
     # the signal when the user has changed the value
     valueChanged = QtCore.Signal(object)
 
@@ -64,7 +73,16 @@ class QInput(QtWidgets.QWidget):
 
     last_emited_value = None
 
-    def __init__(self, layout=None, name=None, tooltip=None, stretch=False, value_changed=None, settings=None, settings_key=None):
+    def __init__(
+        self,
+        layout=None,
+        name=None,
+        tooltip=None,
+        stretch=False,
+        value_changed=None,
+        settings=None,
+        settings_key=None,
+    ):
         # initialize the super widget
         super(QInput, self).__init__()
 
@@ -133,6 +151,7 @@ class QInput(QtWidgets.QWidget):
         # dummy method to be overloaded by child classes
         pass
 
+
 class QRangeSlider(QInput):
     valueChanged = QtCore.Signal(tuple)
     editingFinished = QtCore.Signal()
@@ -146,6 +165,7 @@ class QRangeSlider(QInput):
         self.layout().addWidget(self.input_min)
 
         from superqt import QRangeSlider
+
         self.slider = QRangeSlider(QtCore.Qt.Horizontal).addToLayout()
         self.slider.valueChanged.connect(self._valueChangedEvent)
         self.layout().addWidget(self.slider)
@@ -189,12 +209,28 @@ class QRangeSlider(QInput):
 
 
 cast_float = float
+
+
 class QInputNumber(QInput):
     valueChanged = QtCore.Signal(float)
     slider_dragged = False
 
-    def __init__(self, layout=None, name=None, value=0, min=None, max=None, use_slider=False, float=True, decimals=2,
-                 unit=None, step=None, name_post=None, log_slider=False, **kwargs):
+    def __init__(
+        self,
+        layout=None,
+        name=None,
+        value=0,
+        min=None,
+        max=None,
+        use_slider=False,
+        float=True,
+        decimals=2,
+        unit=None,
+        step=None,
+        name_post=None,
+        log_slider=False,
+        **kwargs,
+    ):
         # initialize the super widget
         QInput.__init__(self, layout, name, **kwargs)
 
@@ -215,8 +251,11 @@ class QInputNumber(QInput):
             self.layout().addWidget(self.slider)
             self.log_slider = log_slider
             if log_slider:
-                self.slider.setRange(int(np.log10(min) * self.decimal_factor), int(np.log10(max) * self.decimal_factor))
-                self.slider.valueChanged.connect(lambda x: self._valueChangedEvent(10**(x / self.decimal_factor)))
+                self.slider.setRange(
+                    int(np.log10(min) * self.decimal_factor),
+                    int(np.log10(max) * self.decimal_factor),
+                )
+                self.slider.valueChanged.connect(lambda x: self._valueChangedEvent(10 ** (x / self.decimal_factor)))
             else:
                 self.slider.setRange(int(min * self.decimal_factor), int(max * self.decimal_factor))
                 self.slider.valueChanged.connect(lambda x: self._valueChangedEvent(x / self.decimal_factor))
@@ -259,7 +298,10 @@ class QInputNumber(QInput):
         self.spin_box.setMaximum(max)
         if self.slider:
             if self.log_slider:
-                self.slider.setRange(int(np.log10(min) * self.decimal_factor), int(np.log10(max) * self.decimal_factor))
+                self.slider.setRange(
+                    int(np.log10(min) * self.decimal_factor),
+                    int(np.log10(max) * self.decimal_factor),
+                )
                 self.slider.valueChanged.connect(lambda x: self._valueChangedEvent(10 ** (x / self.decimal_factor)))
             else:
                 self.slider.setRange(int(min * self.decimal_factor), int(max * self.decimal_factor))
@@ -295,7 +337,19 @@ class QInputString(QInput):
     valueChanged = QtCore.Signal(object)
     error = None
 
-    def __init__(self, layout=None, name=None, value="", allow_none=True, none_value="None", type=str, unit=None, name_post=None, validator=None, **kwargs):
+    def __init__(
+        self,
+        layout=None,
+        name=None,
+        value="",
+        allow_none=True,
+        none_value="None",
+        type=str,
+        unit=None,
+        name_post=None,
+        validator=None,
+        **kwargs,
+    ):
         # initialize the super widget
         QInput.__init__(self, layout, name, **kwargs)
         self.none_value = none_value
@@ -332,7 +386,7 @@ class QInputString(QInput):
             return
 
     def emitValueChanged(self):
-        """ connected to the textChanged signal """
+        """connected to the textChanged signal"""
         try:
             value = self.value()
             if self.validator is not None:
@@ -344,7 +398,9 @@ class QInputString(QInput):
 
     def _doSetValue(self, value):
         if self.type == "exp":
-            self.line_edit.setText(f"10**{np.format_float_positional(np.log10(float(value)), precision=2, unique=True, fractional=True, trim='-')}")
+            self.line_edit.setText(
+                f"10**{np.format_float_positional(np.log10(float(value)), precision=2, unique=True, fractional=True, trim='-')}"
+            )
         else:
             self.line_edit.setText(str(value))
 
@@ -358,9 +414,9 @@ class QInputString(QInput):
             return float(text)
         if self.type == "exp":
             if text.startswith("1e"):
-                return 10**float(text[2:])
+                return 10 ** float(text[2:])
             if text.startswith("10**"):
-                return 10**float(text[4:])
+                return 10 ** float(text[4:])
             return float(text)
         return text
 
@@ -372,7 +428,16 @@ class QInputBool(QInput):
     icon = None
     buttons = None
 
-    def __init__(self, layout=None, name=None, value=False, icon=None, group=False, tooltip=None, **kwargs):
+    def __init__(
+        self,
+        layout=None,
+        name=None,
+        value=False,
+        icon=None,
+        group=False,
+        tooltip=None,
+        **kwargs,
+    ):
         # initialize the super widget
         QInput.__init__(self, layout, name, tooltip=tooltip, **kwargs)
         self.tooltip = tooltip
@@ -394,9 +459,9 @@ class QInputBool(QInput):
                 if tooltip and isinstance(tooltip, list):
                     button.setToolTip(tooltip[len(self.buttons)])
                 self.layout().addWidget(button)
-                #self.button_group.addButton(button)
+                # self.button_group.addButton(button)
                 self.buttons.append(button)
-                button.clicked.connect(lambda _, index=len(self.buttons): self.button_group_clicked(index-1))
+                button.clicked.connect(lambda _, index=len(self.buttons): self.button_group_clicked(index - 1))
         elif icon is not None:
             self.icon = icon
             self.button = QtWidgets.QPushButton()
@@ -424,7 +489,7 @@ class QInputBool(QInput):
         if self.no_signal:
             return
         self.my_value = index
-        #self._doSetValue(self.my_value)
+        # self._doSetValue(self.my_value)
         self._valueChangedEvent(self.my_value)
 
     def button_clicked(self):
@@ -461,8 +526,16 @@ class QInputBool(QInput):
 
 
 class QInputChoice(QInput):
-
-    def __init__(self, layout=None, name=None, value=None, values=None, value_names=None, reference_by_index=False, **kwargs):
+    def __init__(
+        self,
+        layout=None,
+        name=None,
+        value=None,
+        values=None,
+        value_names=None,
+        reference_by_index=False,
+        **kwargs,
+    ):
         # initialize the super widget
         QInput.__init__(self, layout, name, **kwargs)
 
@@ -555,8 +628,11 @@ class QInputColor(QInput):
 
     def _openDialog(self):
         # get new color from color picker
-        color = QtWidgets.QColorDialog.getColor(QtGui.QColor(*tuple(mpl.colors.to_rgba_array(self.value())[0] * 255)),
-                                                self.parent(), self.label.text() + " choose color")
+        color = QtWidgets.QColorDialog.getColor(
+            QtGui.QColor(*tuple(mpl.colors.to_rgba_array(self.value())[0] * 255)),
+            self.parent(),
+            self.label.text() + " choose color",
+        )
         # if a color is set, apply it
         if color.isValid():
             color = mpl.colors.to_hex(color.getRgbF())
@@ -579,7 +655,18 @@ class QInputFilename(QInput):
     valueChanged = QtCore.Signal(str)
     last_folder = None
 
-    def __init__(self, layout=None, name=None, value=None, dialog_title="Choose File", file_type="All", filename_checker=None, existing=False, allow_edit=False, **kwargs):
+    def __init__(
+        self,
+        layout=None,
+        name=None,
+        value=None,
+        dialog_title="Choose File",
+        file_type="All",
+        filename_checker=None,
+        existing=False,
+        allow_edit=False,
+        **kwargs,
+    ):
         # initialize the super widget
         QInput.__init__(self, layout, name, **kwargs)
 
@@ -611,15 +698,31 @@ class QInputFilename(QInput):
         # open an new files
         if not self.existing:
             if "PYCHARM_HOSTED" in os.environ:
-                filename = QtWidgets.QFileDialog.getSaveFileName(None, self.dialog_title, self.last_folder, self.file_type, options=QtWidgets.QFileDialog.DontUseNativeDialog)[0]
+                filename = QtWidgets.QFileDialog.getSaveFileName(
+                    None,
+                    self.dialog_title,
+                    self.last_folder,
+                    self.file_type,
+                    options=QtWidgets.QFileDialog.DontUseNativeDialog,
+                )[0]
             else:
-                filename = QtWidgets.QFileDialog.getSaveFileName(None, self.dialog_title, self.last_folder, self.file_type)[0]
+                filename = QtWidgets.QFileDialog.getSaveFileName(
+                    None, self.dialog_title, self.last_folder, self.file_type
+                )[0]
         # or choose an existing file
         else:
             if "PYCHARM_HOSTED" in os.environ:
-                filename = QtWidgets.QFileDialog.getOpenFileName(None, self.dialog_title, self.last_folder, self.file_type, options=QtWidgets.QFileDialog.DontUseNativeDialog)[0]
+                filename = QtWidgets.QFileDialog.getOpenFileName(
+                    None,
+                    self.dialog_title,
+                    self.last_folder,
+                    self.file_type,
+                    options=QtWidgets.QFileDialog.DontUseNativeDialog,
+                )[0]
             else:
-                filename = QtWidgets.QFileDialog.getOpenFileName(None, self.dialog_title, self.last_folder, self.file_type)[0]
+                filename = QtWidgets.QFileDialog.getOpenFileName(
+                    None, self.dialog_title, self.last_folder, self.file_type
+                )[0]
 
         # get the string
         if isinstance(filename, tuple):  # Qt5
@@ -651,7 +754,16 @@ class QInputFolder(QInput):
     valueChanged = QtCore.Signal(str)
     last_folder = None
 
-    def __init__(self, layout=None, name=None, value=None, dialog_title="Choose Folder", filename_checker=None, allow_edit=False, **kwargs):
+    def __init__(
+        self,
+        layout=None,
+        name=None,
+        value=None,
+        dialog_title="Choose Folder",
+        filename_checker=None,
+        allow_edit=False,
+        **kwargs,
+    ):
         # initialize the super widget
         QInput.__init__(self, layout, name, **kwargs)
 
@@ -704,6 +816,7 @@ class QInputFolder(QInput):
         # return the color
         return self.line.text()
 
+
 class QPushButton(QtWidgets.QPushButton):
     def __init__(self, layout, name, connect=None, icon=None, tooltip=None):
         super().__init__(name)
@@ -716,6 +829,7 @@ class QPushButton(QtWidgets.QPushButton):
             self.setIcon(icon)
         if tooltip is not None:
             self.setToolTip(tooltip)
+
 
 class QGroupBox(QtWidgets.QGroupBox):
     def __init__(self, layout, name):
@@ -731,8 +845,8 @@ class QGroupBox(QtWidgets.QGroupBox):
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.layout_self.__exit__(exc_type, exc_val, exc_tb)
 
-class QTabWidget(QtWidgets.QTabWidget):
 
+class QTabWidget(QtWidgets.QTabWidget):
     def __init__(self, layout, *args, **kwargs):
         super().__init__(*args, **kwargs)
         if layout is None and currentLayout() is not None:
@@ -753,14 +867,12 @@ class QTabWidget(QtWidgets.QTabWidget):
 
 
 class QTabBarWidget(QtWidgets.QTabBar):
-
     def __init__(self, layout, *args, **kwargs):
         super().__init__(*args, **kwargs)
         if layout is None and currentLayout() is not None:
             layout = currentLayout()
         layout.addWidget(self)
         self.widgets = []
-
 
     def createTab(self, name):
         tab_stack = QtWidgets.QWidget()
@@ -780,6 +892,7 @@ class QTabBarWidget(QtWidgets.QTabBar):
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         pass
+
 
 class EnterableLayout:
     def __enter__(self):
@@ -809,7 +922,7 @@ class QHBoxLayout(QtWidgets.QHBoxLayout, EnterableLayout):
     def __init__(self, parent=None, no_margins=False):
         if parent is None and currentLayout() is not None:
             parent = currentLayout()
-        if getattr(parent, "addLayout", None) is None:#isinstance(parent, QtWidgets.QWidget):
+        if getattr(parent, "addLayout", None) is None:  # isinstance(parent, QtWidgets.QWidget):
             super().__init__(parent)
         else:
             super().__init__()
@@ -903,8 +1016,15 @@ def AddQLineEdit(layout, text, value=None, strech=False, editwidth=None):
     return lineEdit
 
 
-def AddQSaveFileChoose(layout, text, value=None, dialog_title="Choose File", file_type="All", filename_checker=None,
-                       strech=False):
+def AddQSaveFileChoose(
+    layout,
+    text,
+    value=None,
+    dialog_title="Choose File",
+    file_type="All",
+    filename_checker=None,
+    strech=False,
+):
     horizontal_layout = QtWidgets.QHBoxLayout()
     layout.addLayout(horizontal_layout)
     text = QtWidgets.QLabel(text)
@@ -936,8 +1056,15 @@ def AddQSaveFileChoose(layout, text, value=None, dialog_title="Choose File", fil
     return lineEdit
 
 
-def AddQOpenFileChoose(layout, text, value=None, dialog_title="Choose File", file_type="All", filename_checker=None,
-                       strech=False):
+def AddQOpenFileChoose(
+    layout,
+    text,
+    value=None,
+    dialog_title="Choose File",
+    file_type="All",
+    filename_checker=None,
+    strech=False,
+):
     horizontal_layout = QtWidgets.QHBoxLayout()
     layout.addLayout(horizontal_layout)
     text = QtWidgets.QLabel(text)
@@ -1072,8 +1199,11 @@ def GetColorByIndex(index):
     colors = np.linspace(0, 1, 16, endpoint=False).tolist() * 3  # 16 different hues
     saturations = [1] * 16 + [0.5] * 16 + [1] * 16  # in two different saturations
     value = [1] * 16 + [1] * 16 + [0.5] * 16  # and two different values
-    return "#%02x%02x%02x" % tuple((np.array(
-        colorsys.hsv_to_rgb((np.array(colors[index]) * 3) % 1, saturations[index], value[index])) * 255).astype(int))
+    return "#%02x%02x%02x" % tuple(
+        (
+            np.array(colorsys.hsv_to_rgb((np.array(colors[index]) * 3) % 1, saturations[index], value[index])) * 255
+        ).astype(int)
+    )
 
 
 # set the standard colors for the color picker dialog
@@ -1084,7 +1214,10 @@ for index, (color, sat, val) in enumerate(zip(colors, saturations, value)):
     # deform the index, as the dialog fills them column wise and we want to fill them row wise
     index = index % 8 * 6 + index // 8
     # convert color from hsv to rgb, to an array, to an tuple, to a hex string then to an integer
-    color_integer = int("%02x%02x%02x" % tuple((np.array(colorsys.hsv_to_rgb(color, sat, val)) * 255).astype(int)), 16)
+    color_integer = int(
+        "%02x%02x%02x" % tuple((np.array(colorsys.hsv_to_rgb(color, sat, val)) * 255).astype(int)),
+        16,
+    )
     try:
         QtWidgets.QColorDialog.setStandardColor(index, QtGui.QColor(color_integer))  # for Qt5
     except TypeError:
@@ -1092,12 +1225,15 @@ for index, (color, sat, val) in enumerate(zip(colors, saturations, value)):
 
 
 import matplotlib.pyplot as plt
+
+
 class ColorMapChoose(QtWidgets.QDialog):
-    """ A dialog to select a colormap """
+    """A dialog to select a colormap"""
+
     result = ""
 
     def __init__(self, parent: QtWidgets.QWidget, map):
-        """ initialize the dialog with all the colormap of matplotlib """
+        """initialize the dialog with all the colormap of matplotlib"""
         QtWidgets.QDialog.__init__(self, parent)
         main_layout = QtWidgets.QVBoxLayout(self)
         self.layout_self = QtWidgets.QHBoxLayout()
@@ -1118,29 +1254,130 @@ class ColorMapChoose(QtWidgets.QDialog):
 
         # Have colormaps separated into categories:
         # http://matplotlib.org/examples/color/colormaps_reference.html
-        cmaps = [('Perceptually Uniform Sequential', [
-            'viridis', 'plasma', 'inferno', 'magma']),
-                 ('Sequential', [
-                     'Greys', 'Purples', 'Blues', 'Greens', 'Oranges', 'Reds',
-                     'YlOrBr', 'YlOrRd', 'OrRd', 'PuRd', 'RdPu', 'BuPu',
-                     'GnBu', 'PuBu', 'YlGnBu', 'PuBuGn', 'BuGn', 'YlGn']),
-                 ('Simple Colors', [
-                     'gray', 'red', 'orange', 'yellow', 'lime', 'green', 'mint', 'cyan', 'navy', 'blue', 'purple', 'magenta', 'grape']),
-                 ('Sequential (2)', [
-                     'binary', 'gist_yarg', 'gist_gray', 'gray', 'bone', 'pink',
-                     'spring', 'summer', 'autumn', 'winter', 'cool', 'Wistia',
-                     'hot', 'afmhot', 'gist_heat', 'copper']),
-                 ('Diverging', [
-                     'PiYG', 'PRGn', 'BrBG', 'PuOr', 'RdGy', 'RdBu',
-                     'RdYlBu', 'RdYlGn', 'Spectral', 'coolwarm', 'bwr', 'seismic']),
-                 ('Qualitative', [
-                     'Pastel1', 'Pastel2', 'Paired', 'Accent',
-                     'Dark2', 'Set1', 'Set2', 'Set3',
-                     'tab10', 'tab20', 'tab20b', 'tab20c']),
-                 ('Miscellaneous', [
-                     'turbo', 'flag', 'prism', 'ocean', 'gist_earth', 'terrain', 'gist_stern',
-                     'gnuplot', 'gnuplot2', 'CMRmap', 'cubehelix', 'brg', 'hsv',
-                     'gist_rainbow', 'rainbow', 'nipy_spectral', 'gist_ncar'])]
+        cmaps = [
+            (
+                "Perceptually Uniform Sequential",
+                ["viridis", "plasma", "inferno", "magma"],
+            ),
+            (
+                "Sequential",
+                [
+                    "Greys",
+                    "Purples",
+                    "Blues",
+                    "Greens",
+                    "Oranges",
+                    "Reds",
+                    "YlOrBr",
+                    "YlOrRd",
+                    "OrRd",
+                    "PuRd",
+                    "RdPu",
+                    "BuPu",
+                    "GnBu",
+                    "PuBu",
+                    "YlGnBu",
+                    "PuBuGn",
+                    "BuGn",
+                    "YlGn",
+                ],
+            ),
+            (
+                "Simple Colors",
+                [
+                    "gray",
+                    "red",
+                    "orange",
+                    "yellow",
+                    "lime",
+                    "green",
+                    "mint",
+                    "cyan",
+                    "navy",
+                    "blue",
+                    "purple",
+                    "magenta",
+                    "grape",
+                ],
+            ),
+            (
+                "Sequential (2)",
+                [
+                    "binary",
+                    "gist_yarg",
+                    "gist_gray",
+                    "gray",
+                    "bone",
+                    "pink",
+                    "spring",
+                    "summer",
+                    "autumn",
+                    "winter",
+                    "cool",
+                    "Wistia",
+                    "hot",
+                    "afmhot",
+                    "gist_heat",
+                    "copper",
+                ],
+            ),
+            (
+                "Diverging",
+                [
+                    "PiYG",
+                    "PRGn",
+                    "BrBG",
+                    "PuOr",
+                    "RdGy",
+                    "RdBu",
+                    "RdYlBu",
+                    "RdYlGn",
+                    "Spectral",
+                    "coolwarm",
+                    "bwr",
+                    "seismic",
+                ],
+            ),
+            (
+                "Qualitative",
+                [
+                    "Pastel1",
+                    "Pastel2",
+                    "Paired",
+                    "Accent",
+                    "Dark2",
+                    "Set1",
+                    "Set2",
+                    "Set3",
+                    "tab10",
+                    "tab20",
+                    "tab20b",
+                    "tab20c",
+                ],
+            ),
+            (
+                "Miscellaneous",
+                [
+                    "turbo",
+                    "flag",
+                    "prism",
+                    "ocean",
+                    "gist_earth",
+                    "terrain",
+                    "gist_stern",
+                    "gnuplot",
+                    "gnuplot2",
+                    "CMRmap",
+                    "cubehelix",
+                    "brg",
+                    "hsv",
+                    "gist_rainbow",
+                    "rainbow",
+                    "nipy_spectral",
+                    "gist_ncar",
+                ],
+            ),
+        ]
 
         for cmap_category, cmap_list in cmaps:
             layout = QtWidgets.QVBoxLayout()
@@ -1149,7 +1386,7 @@ class ColorMapChoose(QtWidgets.QDialog):
             label.setFixedWidth(150)
             for cmap in cmap_list:
                 button = QtWidgets.QPushButton(cmap)
-                button.setStyleSheet("text-align: center; border: 2px solid black; "+self.getBackground(cmap))
+                button.setStyleSheet("text-align: center; border: 2px solid black; " + self.getBackground(cmap))
                 button.clicked.connect(lambda _, cmap=cmap, button=button: self.buttonClicked(button.text()))
                 self.buttons.append(button)
                 layout.addWidget(button)
@@ -1164,22 +1401,23 @@ class ColorMapChoose(QtWidgets.QDialog):
             elif self.input_invert.value() and not cmap.endswith("_r"):
                 cmap = cmap + "_r"
             button.setText(cmap)
-            button.setStyleSheet("text-align: center; border: 2px solid black; "+self.getBackground(cmap))
+            button.setStyleSheet("text-align: center; border: 2px solid black; " + self.getBackground(cmap))
 
     def buttonClicked(self, text: str):
-        """ the used as selected a colormap, we are done """
+        """the used as selected a colormap, we are done"""
         self.result = text
         self.done(1)
 
     def exec(self):
-        """ execute the dialog and return the result """
+        """execute the dialog and return the result"""
         result = QtWidgets.QDialog.exec(self)
         return self.result, result == 1
 
     def getBackground(self, color: str) -> str:
-        """ convert a colormap to a gradient background """
+        """convert a colormap to a gradient background"""
         import matplotlib.pyplot as plt
         import matplotlib as mpl
+
         try:
             cmap = plt.get_cmap(color)
         except:
@@ -1194,7 +1432,7 @@ class ColorMapChoose(QtWidgets.QDialog):
 
 
 class QDragableColor(QtWidgets.QLabel):
-    """ a color widget that can be dragged onto another QDragableColor widget to exchange the two colors.
+    """a color widget that can be dragged onto another QDragableColor widget to exchange the two colors.
     Alternatively it can be right-clicked to select either a color or a colormap through their respective menus.
     The button can represent either a single color or a colormap.
     """
@@ -1204,15 +1442,16 @@ class QDragableColor(QtWidgets.QLabel):
     valueChanged = QtCore.Signal(str)
 
     def __init__(self, value: str):
-        """ initialize with a color """
+        """initialize with a color"""
         super().__init__(value)
         import matplotlib.pyplot as plt
+
         self.maps = plt.colormaps()
         self.setAlignment(QtCore.Qt.AlignHCenter)
         self.setColor(value, True)
 
     def getBackground(self) -> str:
-        """ get the background of the color button """
+        """get the background of the color button"""
 
         try:
             cmap = plt.get_cmap(self.color)
@@ -1227,19 +1466,21 @@ class QDragableColor(QtWidgets.QLabel):
         return text
 
     def setColor(self, value: str, no_signal=False):
-        """ set the current color """
+        """set the current color"""
         # display and save the new color
         self.color = value
         self.setText(value)
         self.color_changed.emit(value)
         self.valueChanged.emit(value)
         if value in self.maps:
-            self.setStyleSheet("text-align: center; border: 2px solid black; padding: 0.1em; "+self.getBackground())
+            self.setStyleSheet("text-align: center; border: 2px solid black; padding: 0.1em; " + self.getBackground())
         else:
-            self.setStyleSheet(f"text-align: center; background-color: {value}; border: 2px solid black; padding: 0.1em; ")
+            self.setStyleSheet(
+                f"text-align: center; background-color: {value}; border: 2px solid black; padding: 0.1em; "
+            )
 
     def getColor(self) -> str:
-        """ get the current color """
+        """get the current color"""
         # return the color
         return self.color
 
@@ -1250,13 +1491,13 @@ class QDragableColor(QtWidgets.QLabel):
         self.setColor(value)
 
     def mousePressEvent(self, event):
-        """ when a mouse button is pressed """
+        """when a mouse button is pressed"""
         # a mouse button opens a color choose menu
         if event.button() == QtCore.Qt.LeftButton:
             self.openDialog()
 
     def openDialog(self):
-        """ open a color chooser dialog """
+        """open a color chooser dialog"""
         if self.color in self.maps:
             dialog = ColorMapChoose(self.parent(), self.color)
             colormap, selected = dialog.exec()
@@ -1277,15 +1518,33 @@ class QDragableColor(QtWidgets.QLabel):
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 from matplotlib.colors import LinearSegmentedColormap
+
+
 def add_colormap(name, color1, color2):
     r1, g1, b1 = color1
     r2, g2, b2 = color2
-    mpl.colormaps.register(LinearSegmentedColormap(name,
-                                                   {'red': ((0,r1,r1),(1,r2,r2)), 'green': ((0,g1,g1),(1,g2,g2)),
-                                                    'blue': ((0,b1,b1),(1,b2,b2))}))
-    mpl.colormaps.register(LinearSegmentedColormap(name+"_r",
-                                                   {'red': ((0,r2,r2),(1,r1,r1)), 'green': ((0,g2,g2),(1,g1,g1)),
-                                                    'blue': ((0,b2,b2),(1,b1,b1))}))
+    mpl.colormaps.register(
+        LinearSegmentedColormap(
+            name,
+            {
+                "red": ((0, r1, r1), (1, r2, r2)),
+                "green": ((0, g1, g1), (1, g2, g2)),
+                "blue": ((0, b1, b1), (1, b2, b2)),
+            },
+        )
+    )
+    mpl.colormaps.register(
+        LinearSegmentedColormap(
+            name + "_r",
+            {
+                "red": ((0, r2, r2), (1, r1, r1)),
+                "green": ((0, g2, g2), (1, g1, g1)),
+                "blue": ((0, b2, b2), (1, b1, b1)),
+            },
+        )
+    )
+
+
 try:
     add_colormap("red", (0, 0, 0), (1, 0, 0))
     add_colormap("orange", (0, 0, 0), (1, 0.5, 0))
@@ -1300,7 +1559,8 @@ try:
     add_colormap("magenta", (0, 0, 0), (1, 0, 1))
     add_colormap("grape", (0, 0, 0), (1, 0, 0.5))
 except:
-    print ("Did not update colormaps since colormaps with identical names already existing. ")
+    print("Did not update colormaps since colormaps with identical names already existing. ")
+
 
 class SuperQLabel(QtWidgets.QLabel):
     def __init__(self, *args, **kwargs):
@@ -1315,9 +1575,13 @@ class SuperQLabel(QtWidgets.QLabel):
         opt = QtWidgets.QStyleOption()
         opt.initFrom(self)
         with QtGui.QPainter(self) as painter:
-
             self.style().drawPrimitive(QtWidgets.QStyle.PE_Widget, opt, painter, self)
 
-            self.style().drawItemText(painter, self.rect(),
-                                      self.textalignment, self.palette(), True, self.text())
-
+            self.style().drawItemText(
+                painter,
+                self.rect(),
+                self.textalignment,
+                self.palette(),
+                True,
+                self.text(),
+            )

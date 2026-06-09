@@ -17,20 +17,26 @@ from saenopy.gui.common.gui_classes import ListWidget, MatplotlibWidget, execute
 
 
 class AddFilesDialog(QtWidgets.QDialog):
-
     def __init__(self, parent, settings, file_extension):
         super().__init__(parent)
         self.setWindowTitle("Add Files")
         with QtShortCuts.QVBoxLayout(self) as layout:
             self.label = QtWidgets.QLabel(
-                "Select a path as an input wildcard. Use * to specify a placeholder. All paths that match the wildcard will be added.")
+                "Select a path as an input wildcard. Use * to specify a placeholder. All paths that match the wildcard will be added."
+            )
             layout.addWidget(self.label)
 
             def checker(filename):
-                return filename + "/**/*"+file_extension
+                return filename + "/**/*" + file_extension
 
-            self.inputText = QtShortCuts.QInputFolder(None, None, settings=settings, filename_checker=checker,
-                                                      settings_key="batch_eval/analyse_force_wildcard", allow_edit=True)
+            self.inputText = QtShortCuts.QInputFolder(
+                None,
+                None,
+                settings=settings,
+                filename_checker=checker,
+                settings_key="batch_eval/analyse_force_wildcard",
+                allow_edit=True,
+            )
             with QtShortCuts.QHBoxLayout() as layout3:
                 # self.button_clear = QtShortCuts.QPushButton(None, "clear list", self.clear_files)
                 layout3.addStretch()
@@ -45,10 +51,28 @@ class ExportDialog(QtWidgets.QDialog):
         with QtShortCuts.QVBoxLayout(self) as layout:
             self.label = QtWidgets.QLabel("Select a path to export the plot script with the data.")
             layout.addWidget(self.label)
-            self.inputText = QtShortCuts.QInputFilename(None, None, file_type="Python Script (*.py)", settings=settings,
-                                                        settings_key="batch_eval/export_plot", existing=False)
-            self.strip_data = QtShortCuts.QInputBool(None, "export only essential data columns", True, settings=settings, settings_key="batch_eval/export_complete_df")
-            self.include_df = QtShortCuts.QInputBool(None, "include dataframe in script", True, settings=settings, settings_key="batch_eval/export_include_df")
+            self.inputText = QtShortCuts.QInputFilename(
+                None,
+                None,
+                file_type="Python Script (*.py)",
+                settings=settings,
+                settings_key="batch_eval/export_plot",
+                existing=False,
+            )
+            self.strip_data = QtShortCuts.QInputBool(
+                None,
+                "export only essential data columns",
+                True,
+                settings=settings,
+                settings_key="batch_eval/export_complete_df",
+            )
+            self.include_df = QtShortCuts.QInputBool(
+                None,
+                "include dataframe in script",
+                True,
+                settings=settings,
+                settings_key="batch_eval/export_include_df",
+            )
             with QtShortCuts.QHBoxLayout() as layout3:
                 # self.button_clear = QtShortCuts.QPushButton(None, "clear list", self.clear_files)
                 layout3.addStretch()
@@ -85,6 +109,7 @@ class PlottingWindowBase(QtWidgets.QWidget):
         for index, folder in enumerate(self.data_folders):
             name, checked, files, color = folder
             act = QtWidgets.QAction(qta.icon("fa5s.circle", options=[dict(color=color)]), name, self)
+
             def clicked(*, index=index):
                 if delete is True:
                     self.list2.delete_item()
@@ -93,12 +118,17 @@ class PlottingWindowBase(QtWidgets.QWidget):
                     self.add_files([filename])
                 except Exception as e:
                     import traceback
+
                     traceback.print_exception(e)
                     print(e, file=sys.stderr)
-                    QtWidgets.QMessageBox.critical(self, "Error", f"Measurement could not be added to Analysis.\n"
-                                                                  f"Is it evaluated completely?")
+                    QtWidgets.QMessageBox.critical(
+                        self,
+                        "Error",
+                        f"Measurement could not be added to Analysis.\nIs it evaluated completely?",
+                    )
                     return
-                self.list2.setCurrentRow(self.list2.count()-2)
+                self.list2.setCurrentRow(self.list2.count() - 2)
+
             act.triggered.connect(clicked)
             menu2.addAction(act)
             self.copy_to_actions.append(act)
@@ -124,49 +154,65 @@ class PlottingWindowBase(QtWidgets.QWidget):
         self.current_plot_func = lambda: None
 
         with QtShortCuts.QVBoxLayout(self) as main_layout0:
-         main_layout0.setContentsMargins(0, 0, 0, 0)
-         with QtShortCuts.QHBoxLayout() as main_layout00:
-             self.button_save = QtShortCuts.QPushButton(None, "save", lambda x: self.save())
-             self.button_load = QtShortCuts.QPushButton(None, "load", lambda x: self.load())
-             main_layout00.addStretch()
-         with QtShortCuts.QHBoxLayout() as main_layout:
-            with QtShortCuts.QVBoxLayout() as layout:
-                with QtShortCuts.QGroupBox(None, "Groups") as (_, layout2):
-                    layout2.setContentsMargins(0, 3, 0, 1)
-                    self.list = ListWidget(layout2, True, add_item_button="add group", color_picker=True)
-                    self.list.setStyleSheet("QListWidget{border: none}")
-                    self.list.itemSelectionChanged.connect(self.listSelected)
-                    self.list.itemChanged.connect(self.replot)
-                    self.list.rows_moved_event.connect(self.replot)
-                    self.list.itemChanged.connect(self.update_group_name)
-                    self.list.addItemClicked.connect(self.addGroup)
+            main_layout0.setContentsMargins(0, 0, 0, 0)
+            with QtShortCuts.QHBoxLayout() as main_layout00:
+                self.button_save = QtShortCuts.QPushButton(None, "save", lambda x: self.save())
+                self.button_load = QtShortCuts.QPushButton(None, "load", lambda x: self.load())
+                main_layout00.addStretch()
+            with QtShortCuts.QHBoxLayout() as main_layout:
+                with QtShortCuts.QVBoxLayout() as layout:
+                    with QtShortCuts.QGroupBox(None, "Groups") as (_, layout2):
+                        layout2.setContentsMargins(0, 3, 0, 1)
+                        self.list = ListWidget(
+                            layout2,
+                            True,
+                            add_item_button="add group",
+                            color_picker=True,
+                        )
+                        self.list.setStyleSheet("QListWidget{border: none}")
+                        self.list.itemSelectionChanged.connect(self.listSelected)
+                        self.list.itemChanged.connect(self.replot)
+                        self.list.rows_moved_event.connect(self.replot)
+                        self.list.itemChanged.connect(self.update_group_name)
+                        self.list.addItemClicked.connect(self.addGroup)
 
-                with QtShortCuts.QGroupBox(layout, "Group") as (self.box_group, layout2):
-                    layout2.setContentsMargins(0, 3, 0, 1)
-                    self.list2 = ListWidget(layout2, add_item_button="add files", copy_to_callback=self.get_copy_to_menu_item)
-                    self.list2.setStyleSheet("QListWidget{border: none}")
-                    self.list2.itemSelectionChanged.connect(self.run2)
-                    self.list2.itemChanged.connect(self.replot)
-                    self.list2.addItemClicked.connect(self.addFiles)
+                    with QtShortCuts.QGroupBox(layout, "Group") as (
+                        self.box_group,
+                        layout2,
+                    ):
+                        layout2.setContentsMargins(0, 3, 0, 1)
+                        self.list2 = ListWidget(
+                            layout2,
+                            add_item_button="add files",
+                            copy_to_callback=self.get_copy_to_menu_item,
+                        )
+                        self.list2.setStyleSheet("QListWidget{border: none}")
+                        self.list2.itemSelectionChanged.connect(self.run2)
+                        self.list2.itemChanged.connect(self.replot)
+                        self.list2.addItemClicked.connect(self.addFiles)
 
-                    self.setAcceptDrops(True)
+                        self.setAcceptDrops(True)
 
-            with QtShortCuts.QGroupBox(main_layout, "Plot Forces") as (_, layout):
-                self.add_parameters()
+                with QtShortCuts.QGroupBox(main_layout, "Plot Forces") as (_, layout):
+                    self.add_parameters()
 
-                self.canvas = MatplotlibWidget(self)
-                layout.addWidget(self.canvas)
-                layout.addWidget(NavigationToolbar(self.canvas, self))
+                    self.canvas = MatplotlibWidget(self)
+                    layout.addWidget(self.canvas)
+                    layout.addWidget(NavigationToolbar(self.canvas, self))
 
-                with QtShortCuts.QHBoxLayout() as layout2:
-                    self.button_export = QtShortCuts.QPushButton(layout2, "Export", self.export)
-                    layout2.addStretch()
-                    self.button_run = QtShortCuts.QPushButton(layout2, "Single Time Course", self.run2)
-                    self.button_run2 = QtShortCuts.QPushButton(layout2, "Grouped Time Courses", self.plot_groups)
-                    self.button_run3 = QtShortCuts.QPushButton(layout2, "Grouped Bar Plot", self.barplot)
-                    self.plot_buttons = [self.button_run, self.button_run2, self.button_run3]
-                    for button in self.plot_buttons:
-                        button.setCheckable(True)
+                    with QtShortCuts.QHBoxLayout() as layout2:
+                        self.button_export = QtShortCuts.QPushButton(layout2, "Export", self.export)
+                        layout2.addStretch()
+                        self.button_run = QtShortCuts.QPushButton(layout2, "Single Time Course", self.run2)
+                        self.button_run2 = QtShortCuts.QPushButton(layout2, "Grouped Time Courses", self.plot_groups)
+                        self.button_run3 = QtShortCuts.QPushButton(layout2, "Grouped Bar Plot", self.barplot)
+                        self.plot_buttons = [
+                            self.button_run,
+                            self.button_run2,
+                            self.button_run3,
+                        ]
+                        for button in self.plot_buttons:
+                            button.setCheckable(True)
 
         self.list.setData(self.data_folders)
         self.addGroup()
@@ -180,7 +226,14 @@ class PlottingWindowBase(QtWidgets.QWidget):
                 filename += ".json"
             list_new = []
             for item in self.list.data:
-                list_new.append({"name": item[0], "selected": item[1], "color": item[3], "paths": []})
+                list_new.append(
+                    {
+                        "name": item[0],
+                        "selected": item[1],
+                        "color": item[3],
+                        "paths": [],
+                    }
+                )
                 for item2 in item[2]:
                     list_new[-1]["paths"].append({"path": item2[0], "selected": item[1]})
 
@@ -227,7 +280,7 @@ class PlottingWindowBase(QtWidgets.QWidget):
             if url.endswith(self.file_extension):
                 urls += [url]
             else:
-                urls += glob.glob(url + "/**/*"+self.file_extension, recursive=True)
+                urls += glob.glob(url + "/**/*" + self.file_extension, recursive=True)
         self.add_files(urls)
 
     def add_files(self, urls):
@@ -244,8 +297,8 @@ class PlottingWindowBase(QtWidgets.QWidget):
                     continue
                 if self.list2.data is current_group:
                     self.list2.addData(file, True, res)
-                    #self.replot()
-                #app.processEvents()
+                    # self.replot()
+                # app.processEvents()
             except FileNotFoundError:
                 continue
         self.check_results_with_time()
@@ -265,7 +318,6 @@ class PlottingWindowBase(QtWidgets.QWidget):
         self.button_run.setEnabled(time_values)
         self.button_run2.setEnabled(time_values)
 
-
     def update_group_name(self):
         if self.list.currentItem() is not None:
             self.box_group.setTitle(f"Files for '{self.list.currentItem().text()}'")
@@ -274,7 +326,7 @@ class PlottingWindowBase(QtWidgets.QWidget):
             self.box_group.setEnabled(False)
 
     def addGroup(self):
-        text = f"Group{1+len(self.data_folders)}"
+        text = f"Group{1 + len(self.data_folders)}"
         item = self.list.addData(text, True, [], mpl.colors.to_hex(f"C{len(self.data_folders)}"))
         self.list.setCurrentItem(item)
         self.list.editItem(item)
@@ -308,7 +360,7 @@ class PlottingWindowBase(QtWidgets.QWidget):
         if len(results) == 0:
             return None
         res = pd.concat(results)
-        #res["t"] = res["index"] * self.dt.value() / 60
+        # res["t"] = res["index"] * self.dt.value() / 60
         res.to_csv("tmp_pandas.csv")
         return res
 
@@ -357,42 +409,57 @@ class PlottingWindowBase(QtWidgets.QWidget):
                 if np.isnan(data.sem()):
                     plt.bar(name, data.mean(), color=color_dict[name])
                 else:
-                    plt.bar(name, data.mean(), yerr=data.sem(), error_kw=dict(capsize=5), color=color_dict[name])
+                    plt.bar(
+                        name,
+                        data.mean(),
+                        yerr=data.sem(),
+                        error_kw=dict(capsize=5),
+                        color=color_dict[name],
+                    )
                 # add the number of averaged points
-                plt.text(index, float(data.mean() + np.nan_to_num(data.sem())), f"n={data.count()}", ha="center", va="bottom")
+                plt.text(
+                    index,
+                    float(data.mean() + np.nan_to_num(data.sem())),
+                    f"n={data.count()}",
+                    ha="center",
+                    va="bottom",
+                )
 
             # add ticks and labels
             plt.ylabel(y_label)
             # despine the axes
             plt.gca().spines["top"].set_visible(False)
             plt.gca().spines["right"].set_visible(False)
-            #plt.tight_layout()
+            # plt.tight_layout()
             # show the plot
             self.canvas.draw()
 
-        code = execute(plot, code_data[0][code_data[1]], mu_name=mu_name, y_label=y_label, color_dict2=color_dict)
+        code = execute(
+            plot,
+            code_data[0][code_data[1]],
+            mu_name=mu_name,
+            y_label=y_label,
+            color_dict2=color_dict,
+        )
 
         self.export_data = [code, code_data]
-    
-        
-    def get_time_factor(self, maxtime): 
-        factor = 1 
+
+    def get_time_factor(self, maxtime):
+        factor = 1
         x_label = "Time (s)"
-        
-        if maxtime > 2*60:
+
+        if maxtime > 2 * 60:
             factor = 60
             x_label = "Time (min)"
-        if maxtime > 2*60*60:  
-            factor = 60*60
+        if maxtime > 2 * 60 * 60:
+            factor = 60 * 60
             x_label = "Time (h)"
-        if maxtime > 3*60*60*24:  
-            factor = 60*60*24
+        if maxtime > 3 * 60 * 60 * 24:
+            factor = 60 * 60 * 24
             x_label = "Time (days)"
-            
+
         return factor, x_label
-        
-   
-    
+
     def plot_groups(self):
         for button in self.plot_buttons:
             button.setChecked(False)
@@ -407,15 +474,14 @@ class PlottingWindowBase(QtWidgets.QWidget):
             return
 
         code_data = [res, [self.time_key, "group", mu_name, "filename"]]
-        
+
         # get best fitting time label
         factor, x_label = self.get_time_factor(np.max(res.t))
-        
-        
+
         # add a vertical line where the comparison time is
         if getattr(self, "input_tbar", None) and self.input_tbar.value() is not None:
             comp_h = self.get_comparison_index() * (res.iloc[1][self.time_key] - res.iloc[0][self.time_key])
-            plt.axvline(comp_h/factor, color="k")
+            plt.axvline(comp_h / factor, color="k")
 
         color_dict = {d[0]: d[3] for d in self.data_folders}
 
@@ -429,10 +495,23 @@ class PlottingWindowBase(QtWidgets.QWidget):
                 # get the mean and sem
                 x = data.groupby(self.time_key)[mu_name].agg(["mean", "sem", "count"])
                 # plot the mean curve
-                p, = plt.plot(x.index/factor, x["mean"], color=color_dict[group_name], lw=2, label=f"{group_name} (n={int(x['count'].mean())})")
+                (p,) = plt.plot(
+                    x.index / factor,
+                    x["mean"],
+                    color=color_dict[group_name],
+                    lw=2,
+                    label=f"{group_name} (n={int(x['count'].mean())})",
+                )
                 # add a shaded area for the standard error
-                plt.fill_between(x.index/factor, x["mean"] - x["sem"], x["mean"] + x["sem"], facecolor=p.get_color(), lw=0, alpha=0.5)
-                
+                plt.fill_between(
+                    x.index / factor,
+                    x["mean"] - x["sem"],
+                    x["mean"] + x["sem"],
+                    facecolor=p.get_color(),
+                    lw=0,
+                    alpha=0.5,
+                )
+
             # add a grid
             plt.grid(True)
             # add labels
@@ -444,7 +523,15 @@ class PlottingWindowBase(QtWidgets.QWidget):
             # show
             self.canvas.draw()
 
-        code = execute(plot, code_data[0][code_data[1]], mu_name=mu_name, y_label=y_label, color_dict2=color_dict, factor=factor, x_label=x_label)
+        code = execute(
+            plot,
+            code_data[0][code_data[1]],
+            mu_name=mu_name,
+            y_label=y_label,
+            color_dict2=color_dict,
+            factor=factor,
+            x_label=x_label,
+        )
 
         self.export_data = [code, code_data]
         return
@@ -455,42 +542,40 @@ class PlottingWindowBase(QtWidgets.QWidget):
         for button in self.plot_buttons:
             button.setChecked(False)
         self.button_run.setChecked(True)
-        #return
+        # return
         self.current_plot_func = self.run2
         mu_name, y_label = self.get_label()
         if 0:
             if self.type.value() == "Contractility":
-                mu_name = 'Mean Contractility (µN)'
-                std_name = 'St.dev. Contractility (µN)'
-                y_label = 'Contractility (µN)'
+                mu_name = "Mean Contractility (µN)"
+                std_name = "St.dev. Contractility (µN)"
+                y_label = "Contractility (µN)"
             else:
-                mu_name = 'Mean Pressure (Pa)'
-                std_name = 'St.dev. Pressure (Pa)'
-                y_label = 'Pressure (Pa)'
+                mu_name = "Mean Pressure (Pa)"
+                std_name = "St.dev. Pressure (Pa)"
+                y_label = "Pressure (Pa)"
 
         try:
             res = self.data_folders[self.list.currentRow()][2][self.list2.currentRow()][2].resulting_data
         except IndexError:
             return
 
-        #plt.figure(figsize=(6, 3))
+        # plt.figure(figsize=(6, 3))
         code_data = [res, [self.time_key, mu_name]]
-
 
         self.canvas.setActive()
         plt.cla()
-        
-                       
+
         # get best fitting time label
         factor2, x_label2 = self.get_time_factor(np.max(res.t))
-        print (factor2)
+        print(factor2)
 
         @export_as_string
         def plot(res, mu_name, y_label, plot_color, factor2, x_label2):
             mu = res[mu_name]
 
             # plot time course of mean values
-            p, = plt.plot(res.t/factor2, mu, lw=2, color=plot_color)
+            (p,) = plt.plot(res.t / factor2, mu, lw=2, color=plot_color)
 
             # add grid
             plt.grid(True)
@@ -502,7 +587,15 @@ class PlottingWindowBase(QtWidgets.QWidget):
             # show the plot
             self.canvas.draw()
 
-        code = execute(plot, code_data[0][code_data[1]], mu_name=mu_name, y_label=y_label, plot_color=self.data_folders[self.list.currentRow()][3], factor2=factor2, x_label2=x_label2)
+        code = execute(
+            plot,
+            code_data[0][code_data[1]],
+            mu_name=mu_name,
+            y_label=y_label,
+            plot_color=self.data_folders[self.list.currentRow()][3],
+            factor2=factor2,
+            x_label2=x_label2,
+        )
 
         self.export_data = [code, code_data]
 

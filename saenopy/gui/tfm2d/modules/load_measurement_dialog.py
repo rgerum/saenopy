@@ -16,27 +16,55 @@ class AddFilesDialog(AddFilesDialog):
             with QtShortCuts.QHBoxLayout():
                 with QtShortCuts.QVBoxLayout():
                     label1 = QtWidgets.QLabel("cell image").addToLayout()
-                    self.stack_bf_input = QtShortCuts.QInputFilename(None, None, file_type="Image Files (*.tif *.tiff *.jpg *.jpeg *.png)",
-                                                                     settings=self.settings,
-                                                                     settings_key=f"{self.settings_group}/input0", allow_edit=True,
-                                                                     existing=True)
+                    self.stack_bf_input = QtShortCuts.QInputFilename(
+                        None,
+                        None,
+                        file_type="Image Files (*.tif *.tiff *.jpg *.jpeg *.png)",
+                        settings=self.settings,
+                        settings_key=f"{self.settings_group}/input0",
+                        allow_edit=True,
+                        existing=True,
+                    )
                 with QtShortCuts.QVBoxLayout():
                     label1 = QtWidgets.QLabel("reference").addToLayout()
-                    self.stack_reference_input = QtShortCuts.QInputFilename(None, None, file_type="Image Files (*.tif *.tiff *.jpg *.jpeg *.png)",
-                                                                            settings=self.settings,
-                                                                            settings_key=f"{self.settings_group}/input1", allow_edit=True,
-                                                                            existing=True)
+                    self.stack_reference_input = QtShortCuts.QInputFilename(
+                        None,
+                        None,
+                        file_type="Image Files (*.tif *.tiff *.jpg *.jpeg *.png)",
+                        settings=self.settings,
+                        settings_key=f"{self.settings_group}/input1",
+                        allow_edit=True,
+                        existing=True,
+                    )
                 with QtShortCuts.QVBoxLayout():
                     label1 = QtWidgets.QLabel("deformed").addToLayout()
-                    self.stack_data_input = QtShortCuts.QInputFilename(None, None, file_type="Image Files (*.tif *.tiff *.jpg *.jpeg *.png)",
-                                                                       settings=self.settings,
-                                                                       settings_key=f"{self.settings_group}/input2", allow_edit=True,
-                                                                       existing=True)
-            self.pixel_size = QtShortCuts.QInputString(None, "pixel size", 0.201, settings=self.settings, name_post='µm/px',
-                                                       settings_key=f"{self.settings_group}/pixel_size", allow_none=False, type=float)
+                    self.stack_data_input = QtShortCuts.QInputFilename(
+                        None,
+                        None,
+                        file_type="Image Files (*.tif *.tiff *.jpg *.jpeg *.png)",
+                        settings=self.settings,
+                        settings_key=f"{self.settings_group}/input2",
+                        allow_edit=True,
+                        existing=True,
+                    )
+            self.pixel_size = QtShortCuts.QInputString(
+                None,
+                "pixel size",
+                0.201,
+                settings=self.settings,
+                name_post="µm/px",
+                settings_key=f"{self.settings_group}/pixel_size",
+                allow_none=False,
+                type=float,
+            )
             QtShortCuts.currentLayout().addStretch()
-            self.outputText = QtShortCuts.QInputFolder(None, "output", settings=self.settings,
-                                                       settings_key=f"{self.settings_group}/wildcard", allow_edit=True)
+            self.outputText = QtShortCuts.QInputFolder(
+                None,
+                "output",
+                settings=self.settings,
+                settings_key=f"{self.settings_group}/wildcard",
+                allow_edit=True,
+            )
             with QtShortCuts.QHBoxLayout():
                 # self.button_clear = QtShortCuts.QPushButton(None, "clear list", self.clear_files)
                 QtShortCuts.currentLayout().addStretch()

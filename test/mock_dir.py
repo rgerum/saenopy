@@ -42,8 +42,9 @@ class MockDir:
                 for key in structure:
                     folder = parent / key
                     remove_mock(structure[key], folder)
-                    #folder.rmdir()
+                    # folder.rmdir()
                     shutil.rmtree(folder, ignore_errors=False, onerror=None)
+
         remove_mock(self.structure)
 
 
@@ -67,14 +68,14 @@ def create_tif(filename, y=20, x=10, z=1, rgb=None):
     with tifffile.TiffWriter(filename) as tif:
         for i in range(z):
             if rgb is None:
-                tif.write((np.random.rand(y, x)*255).astype(np.uint8))
+                tif.write((np.random.rand(y, x) * 255).astype(np.uint8))
             else:
-                tif.write((np.random.rand(y, x, rgb)*255).astype(np.uint8))
+                tif.write((np.random.rand(y, x, rgb) * 255).astype(np.uint8))
 
 
 def sf4(x):
     if isinstance(x, float):
-        x = float(np.format_float_positional(x, precision=4, unique=False, fractional=False,trim='k'))
+        x = float(np.format_float_positional(x, precision=4, unique=False, fractional=False, trim="k"))
         return x
     return [sf4(xx) for xx in x]
 

@@ -7,8 +7,10 @@ from saenopy.gui.common import QtShortCuts
 import appdirs
 
 
-voxel_size_file = Path(appdirs.user_data_dir("saenopy", "rgerum")) / 'voxel_sizes.txt'
-time_delta_file = Path(appdirs.user_data_dir("saenopy", "rgerum")) / 'time_deltas.txt'
+voxel_size_file = Path(appdirs.user_data_dir("saenopy", "rgerum")) / "voxel_sizes.txt"
+time_delta_file = Path(appdirs.user_data_dir("saenopy", "rgerum")) / "time_deltas.txt"
+
+
 def get_last_voxel_sizes():
     if not voxel_size_file.exists():
         return []
@@ -20,6 +22,7 @@ def get_last_voxel_sizes():
                 if line not in sizes:
                     sizes.append(line)
     return sizes
+
 
 def add_last_voxel_size(size):
     size = ", ".join(str(s) for s in size)
@@ -33,6 +36,7 @@ def add_last_voxel_size(size):
             fp.write(s)
             fp.write("\n")
 
+
 def get_last_time_deltas():
     if not time_delta_file.exists():
         return []
@@ -44,6 +48,7 @@ def get_last_time_deltas():
                 if line not in sizes:
                     sizes.append(line)
     return sizes
+
 
 def add_last_time_delta(size):
     size = str(size)
@@ -61,7 +66,13 @@ def add_last_time_delta(size):
 class StackSelectorCrop(QtWidgets.QWidget):
     set_voxel_size = None
 
-    def __init__(self, parent: "StackSelector", reference_choice, parent2: "StackSelector", use_time=False):
+    def __init__(
+        self,
+        parent: "StackSelector",
+        reference_choice,
+        parent2: "StackSelector",
+        use_time=False,
+    ):
         super().__init__()
         self.parent_selector = parent
         self.reference_choice = reference_choice
@@ -69,10 +80,12 @@ class StackSelectorCrop(QtWidgets.QWidget):
         with QtShortCuts.QHBoxLayout(self) as main_layout:
             main_layout.setContentsMargins(0, 0, 0, 0)
             with QtShortCuts.QVBoxLayout():
-                self.input_voxel_size = QtShortCuts.QInputString(None, "Voxel size (xyz) (µm)", "0, 0, 0", validator=self.validator)
+                self.input_voxel_size = QtShortCuts.QInputString(
+                    None, "Voxel size (xyz) (µm)", "0, 0, 0", validator=self.validator
+                )
                 self.input_voxel_size.valueChanged.connect(self.input_voxel_size_changed)
                 self.completer = QtWidgets.QCompleter(get_last_voxel_sizes(), self)
-                #self.completer.setCompletionMode(QtWidgets.QCompleter.UnfilteredPopupCompletion)
+                # self.completer.setCompletionMode(QtWidgets.QCompleter.UnfilteredPopupCompletion)
                 self.input_voxel_size.line_edit.setCompleter(self.completer)
 
                 with QtShortCuts.QHBoxLayout():
@@ -94,12 +107,18 @@ class StackSelectorCrop(QtWidgets.QWidget):
 
             with QtShortCuts.QVBoxLayout():
                 with QtShortCuts.QHBoxLayout():
-                    self.input_time_dt = QtShortCuts.QInputString(None, "Time Delta", "0",
-                                                                     validator=self.validator_time, type=float)
+                    self.input_time_dt = QtShortCuts.QInputString(
+                        None,
+                        "Time Delta",
+                        "0",
+                        validator=self.validator_time,
+                        type=float,
+                    )
                     self.input_time_dt.setEnabled(False)
                     self.input_time_dt.emitValueChanged()
-                    self.input_tbar_unit = QtShortCuts.QInputChoice(self.input_time_dt.layout(), None, "s",
-                                                                    ["s", "min", "h"])
+                    self.input_tbar_unit = QtShortCuts.QInputChoice(
+                        self.input_time_dt.layout(), None, "s", ["s", "min", "h"]
+                    )
                     self.completer2 = QtWidgets.QCompleter(get_last_time_deltas(), self)
                     self.input_time_dt.line_edit.setCompleter(self.completer2)
 
@@ -139,11 +158,12 @@ class StackSelectorCrop(QtWidgets.QWidget):
         y_max = im.shape[0]
         x_max = im.shape[1]
 
-        if x_max != self.input_cropx.range()[1] or\
-            y_max != self.input_cropy.range()[1] or\
-            z_max != self.input_cropz.range()[1] or\
-            t_max != self.input_cropt.range()[1]:
-
+        if (
+            x_max != self.input_cropx.range()[1]
+            or y_max != self.input_cropy.range()[1]
+            or z_max != self.input_cropz.range()[1]
+            or t_max != self.input_cropt.range()[1]
+        ):
             self.input_cropx.setRange(0, x_max)
             self.input_cropy.setRange(0, y_max)
             self.input_cropz.setRange(0, z_max)
@@ -179,7 +199,7 @@ class StackSelectorCrop(QtWidgets.QWidget):
                 if self.parent2.get_t_count():
                     self.input_t_label.setText(f"{t_max} time steps - 1 reference state\n{t_max} differences")
                 else:
-                    self.input_t_label.setText(f"{t_max} time steps - no reference state\n{t_max-1} differences")
+                    self.input_t_label.setText(f"{t_max} time steps - no reference state\n{t_max - 1} differences")
             self.input_time_dt.emitValueChanged()
 
             self.label.setText(f"Stack: ({x_max}, {y_max}, {z_max})px")
@@ -238,7 +258,9 @@ class StackSelectorCrop(QtWidgets.QWidget):
             t_max_ref = 0
         t_max = self.input_cropt.value()[1] - self.input_cropt.value()[0]
         num_diff = t_max + t_max_ref - 1
-        self.input_t_label.setText(f"{t_max_ref if t_max_ref else 'no'} reference state, {t_max} time step{'s' if t_max != 1 else ''}\n→ {num_diff} difference{'s' if num_diff != 1 else ''} {'(invalid)' if num_diff == 0 else ''}")
+        self.input_t_label.setText(
+            f"{t_max_ref if t_max_ref else 'no'} reference state, {t_max} time step{'s' if t_max != 1 else ''}\n→ {num_diff} difference{'s' if num_diff != 1 else ''} {'(invalid)' if num_diff == 0 else ''}"
+        )
 
     def z_moved(self):
         self.parent_selector.stack_changed.emit()
@@ -249,7 +271,11 @@ class StackSelectorCrop(QtWidgets.QWidget):
         if not self.validator(None):
             return
         voxel_size = self.getVoxelSize()
-        shape = (self.input_cropx.range()[1], self.input_cropy.range()[1], self.input_cropz.range()[1])
+        shape = (
+            self.input_cropx.range()[1],
+            self.input_cropy.range()[1],
+            self.input_cropz.range()[1],
+        )
         shape2 = np.array(shape) * np.array(voxel_size)
         self.label2.setText(f"{shape2}µm")
 

@@ -2,11 +2,11 @@ import numpy as np
 
 
 def strain_energy_points(u, v, tx, ty, pixel_size1, pixel_size2):
-    pixel_size1 *= 10 ** -6
-    pixel_size2 *= 10 ** -6  # conversion to m
+    pixel_size1 *= 10**-6
+    pixel_size2 *= 10**-6  # conversion to m
     # u is given in pixels/minutes where a pixel is from the original image (pixel_size1)
     # tx is given in forces/pixels**2 where a pixel is from the deformation/traction field (pixel_size2)
-    energy_points = 0.5 * (pixel_size2 ** 2) * (tx * u * pixel_size1 + ty * v * pixel_size1)
+    energy_points = 0.5 * (pixel_size2**2) * (tx * u * pixel_size1 + ty * v * pixel_size1)
     # value of a background point
     bg = np.percentile(energy_points, 20)
     energy_points -= bg
@@ -51,7 +51,7 @@ def contractility(tx, ty, pixel_size, mask):
 
     tract_abs = np.sqrt(tx_filter**2 + ty_filter**2)
 
-    area = (pixel_size * (10 ** -6)) ** 2  # in meter
+    area = (pixel_size * (10**-6)) ** 2  # in meter
     fx = tx_filter * area  # calculating forces (in Newton) by multiplying with area
     fy = ty_filter * area
 

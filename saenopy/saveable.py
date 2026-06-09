@@ -9,7 +9,7 @@ def format_value(mytype, value, key_name_for_debug=""):
         value = None
     if value is None:
         return None
-    if getattr(mytype,"from_dict", None):  
+    if getattr(mytype, "from_dict", None):
         return mytype.from_dict(value)
     # a TypedDict
     elif getattr(mytype, "__annotations__", None):
@@ -24,7 +24,7 @@ def format_value(mytype, value, key_name_for_debug=""):
                 value[key] = format_value(value_type, value[key])
             except KeyError:
                 raise KeyError(f"Key '{key}' not found in '{key_name_for_debug}'. Value is {value}")
-    elif typing.get_origin(mytype) in {typing.Dict,dict}:
+    elif typing.get_origin(mytype) in {typing.Dict, dict}:
         type_key = typing.get_args(mytype)[0]
         type_value = typing.get_args(mytype)[1]
         new_value = {}
@@ -35,7 +35,7 @@ def format_value(mytype, value, key_name_for_debug=""):
     elif typing.get_origin(mytype) is Union:
         for subtype in typing.get_args(mytype):
             try:
-                return format_value(subtype,value)
+                return format_value(subtype, value)
             except ValueError:
                 continue
         raise ValueError(f"Element can not be cast to any of the Union types {mytype}: {repr(value)}")
@@ -43,13 +43,15 @@ def format_value(mytype, value, key_name_for_debug=""):
         return [format_value(typing.get_args(mytype)[0], v) for v in value]
     elif typing.get_origin(mytype) is tuple:
         if len(typing.get_args(mytype)) != len(value):
-            raise ValueError(f"Tuple type definition and object have a different number of elements {typing.get_args(mytype)} and {value}")
+            raise ValueError(
+                f"Tuple type definition and object have a different number of elements {typing.get_args(mytype)} and {value}"
+            )
         return tuple([format_value(typing.get_args(mytype)[i], v) for i, v in enumerate(value)])
     elif mytype == float:
         return float(value)
     elif mytype == bool:
         return bool(value)
-    elif mytype == str: 
+    elif mytype == str:
         return str(value)
     elif mytype == int:
         return int(value)
@@ -70,14 +72,18 @@ class Saveable:
             attribute = getattr(self, param)
             if getattr(attribute, "to_dict", None) is not None:
                 data[param] = getattr(attribute, "to_dict")()
-            elif isinstance(attribute, list) and len(attribute) and (getattr(attribute[0], "to_dict", None) is not None or attribute[0] is None):
+            elif (
+                isinstance(attribute, list)
+                and len(attribute)
+                and (getattr(attribute[0], "to_dict", None) is not None or attribute[0] is None)
+            ):
                 my_list = []
                 for attr in attribute:
                     value = attr
                     if attr is None:
                         value = "__NONE__"
                     elif getattr(attribute[0], "to_dict", None):
-                        value = getattr(attr, "to_dict")()         
+                        value = getattr(attr, "to_dict")()
                     my_list.append(value)
                 data[param] = my_list
             elif isinstance(attribute, PurePath):
@@ -90,6 +96,7 @@ class Saveable:
 
     def save(self, filename: str, file_format=None):
         from pathlib import Path
+
         if file_format is None:
             file_format = Path(filename).suffix
 
@@ -97,15 +104,27 @@ class Saveable:
 
         if file_format == ".h5py" or file_format == ".h5":  # pragma: no cover
             return dict_to_h5(filename, flatten_dict(data))
-        elif file_format == ".npz" or file_format == ".saenopy" or file_format == ".saenopy2D" or file_format == ".saenopySpheroid" or file_format == ".saenopyOrientation":
+        elif (
+            file_format == ".npz"
+            or file_format == ".saenopy"
+            or file_format == ".saenopy2D"
+            or file_format == ".saenopySpheroid"
+            or file_format == ".saenopyOrientation"
+        ):
             np.savez(filename, **data)
-            try: # numpy 2.0
+            try:  # numpy 2.0
                 np.lib._npyio_impl._savez(filename, [], flatten_dict(data), True, allow_pickle=False)
             except AttributeError:
                 np.lib.npyio._savez(filename, [], flatten_dict(data), True, allow_pickle=False)
             import shutil
-            if file_format == ".saenopy" or file_format == ".saenopy2D" or file_format == ".saenopySpheroid" or file_format == ".saenopyOrientation":
-                shutil.move(filename+".npz", filename)
+
+            if (
+                file_format == ".saenopy"
+                or file_format == ".saenopy2D"
+                or file_format == ".saenopySpheroid"
+                or file_format == ".saenopyOrientation"
+            ):
+                shutil.move(filename + ".npz", filename)
         else:
             raise ValueError("format not supported")
 
@@ -116,7 +135,9 @@ class Saveable:
         save_parameters = cls.__save_parameters__.copy()
         for name in data_dict:
             if name not in cls.__save_parameters__:
-                raise ValueError(f"Found '{name}' that should not be present. Available parameters are {cls.__save_parameters__}")
+                raise ValueError(
+                    f"Found '{name}' that should not be present. Available parameters are {cls.__save_parameters__}"
+                )
             save_parameters.remove(name)
             if isinstance(data_dict[name], np.ndarray) and len(data_dict[name].shape) == 0:
                 data[name] = data_dict[name][()]
@@ -124,7 +145,7 @@ class Saveable:
                 data[name] = data_dict[name]
             if name in types:
                 data[name] = format_value(types[name], data[name], name)
-                    
+
         if len(save_parameters):
             raise ValueError(f"The following parameters were not found in the save file {save_parameters}")
         return cls(**data)
@@ -132,20 +153,28 @@ class Saveable:
     @classmethod
     def load(cls, filename, file_format=None):
         from pathlib import Path
+
         if file_format is None:
             file_format = Path(filename).suffix
         if file_format == ".h5py" or file_format == ".h5":  # pragma: no cover
             import h5py
+
             data = h5py.File(filename, "a")
             result = cls.from_dict(unflatten_dict_h5(data))
-        elif file_format == ".npz" or file_format == ".saenopy" or file_format == ".saenopy2D" or file_format == ".saenopySpheroid" or file_format == ".saenopyOrientation":
+        elif (
+            file_format == ".npz"
+            or file_format == ".saenopy"
+            or file_format == ".saenopy2D"
+            or file_format == ".saenopySpheroid"
+            or file_format == ".saenopyOrientation"
+        ):
             data = np.load(filename, allow_pickle=False)
 
             result = cls.from_dict(unflatten_dict(data))
         else:
             raise ValueError("Unknown format")
-        if getattr(result, 'on_load', None) is not None:
-            getattr(result, 'on_load')(filename)
+        if getattr(result, "on_load", None) is not None:
+            getattr(result, "on_load")(filename)
         return result
 
 
@@ -224,6 +253,7 @@ def unflatten_dict(data):
 
 def dict_to_h5(filename, data):  # pragma: no cover
     import h5py
+
     with h5py.File(filename, "w") as f:
         for key in data.keys():
             if isinstance(data[key], str):
@@ -243,6 +273,7 @@ def dict_to_h5(filename, data):  # pragma: no cover
 
 def unflatten_dict_h5(data):  # pragma: no cover
     import h5py
+
     if isinstance(data, h5py.Group):
         if data.attrs.get("type") == "list":
             result = [unflatten_dict_h5(v) for v in data.values()]

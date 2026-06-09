@@ -35,42 +35,49 @@ def read_tiff(image_filenames):
         im = np.mean(im[:, :, :3], axis=2)
     return im
 
+
 class PivParametersDict(TypedDict):
     window_size: int
     overlap: int
     std_factor: int
+
 
 class ForceParametersDict(TypedDict):
     young: float
     sigma: float
     h: float
 
-ResDict = TypedDict('ResDict', {
- 'contractility': float,
- 'area Traction Area': float,
- 'strain energy': float,
- 'center of object': Tuple[float, float],
- 'mean normal stress Cell Area': float,
- 'max normal stress Cell Area': float,
- 'max shear stress Cell Area':float,
- 'cv mean normal stress Cell Area':float,
- 'cv max normal stress Cell Area':float,
- 'cv max shear stress Cell Area': float,
- 'cell number': int,
- 'area Cell Area':float,
- 'average magnitude line tension':float,
- 'std magnitude line tension':float,
- 'average normal line tension':float,
- 'std normal line tension': float,
- 'average shear line tension': float,
- 'std shear line tension':float,
- 'average cell force':float,
- 'std cell force': float,
- 'average cell pressure': float,
- 'std cell pressure': float,
- 'average cell shear': float,
- 'std cell shear': float,
-})
+
+ResDict = TypedDict(
+    "ResDict",
+    {
+        "contractility": float,
+        "area Traction Area": float,
+        "strain energy": float,
+        "center of object": Tuple[float, float],
+        "mean normal stress Cell Area": float,
+        "max normal stress Cell Area": float,
+        "max shear stress Cell Area": float,
+        "cv mean normal stress Cell Area": float,
+        "cv max normal stress Cell Area": float,
+        "cv max shear stress Cell Area": float,
+        "cell number": int,
+        "area Cell Area": float,
+        "average magnitude line tension": float,
+        "std magnitude line tension": float,
+        "average normal line tension": float,
+        "std normal line tension": float,
+        "average shear line tension": float,
+        "std shear line tension": float,
+        "average cell force": float,
+        "std cell force": float,
+        "average cell pressure": float,
+        "std cell pressure": float,
+        "average cell shear": float,
+        "std cell shear": float,
+    },
+)
+
 
 class LtDict(TypedDict):
     points_new: np.ndarray
@@ -80,17 +87,39 @@ class LtDict(TypedDict):
     t_normal: np.ndarray
     t_shear: np.ndarray
 
+
 class EmptyDict(TypedDict):
     pass
 
 
 class Result2D(Saveable):
-    __save_parameters__ = ['bf', 'input', 'reference_stack', 'output', 'pixel_size', 'u', 'v', 'mask_val', 'mask_std',
-                           'tx', 'ty', 'fx', 'fy',
-                           'shape', 'mask', 'res_dict',
-                           'piv_parameters', 'force_parameters',
-                           'borders_inter_shape', 'borders_edge_lines', 'lt', 'min_v', 'max_v',
-                           '___save_name__', '___save_version__']
+    __save_parameters__ = [
+        "bf",
+        "input",
+        "reference_stack",
+        "output",
+        "pixel_size",
+        "u",
+        "v",
+        "mask_val",
+        "mask_std",
+        "tx",
+        "ty",
+        "fx",
+        "fy",
+        "shape",
+        "mask",
+        "res_dict",
+        "piv_parameters",
+        "force_parameters",
+        "borders_inter_shape",
+        "borders_edge_lines",
+        "lt",
+        "min_v",
+        "max_v",
+        "___save_name__",
+        "___save_version__",
+    ]
     ___save_name__ = "Result2D"
     ___save_version__ = "1.0"
 
@@ -128,7 +157,7 @@ class Result2D(Saveable):
 
     borders_inter_shape: Tuple[int, int] = None
     borders_edge_lines: List[int] = None
-    lt:  Dict[str, LtDict] = None
+    lt: Dict[str, LtDict] = None
     min_v: float = None
     max_v: float = None
 
@@ -190,8 +219,16 @@ class Result2D(Saveable):
 
     def get_line_tensions(self):
         if self.im_tension is None:
-            fig3, ax = plot_continuous_boundary_stresses([self.borders_inter_shape, self.borders_edge_lines, self.lt, self.min_v, self.max_v],
-                                                         cbar_style="outside")
+            fig3, ax = plot_continuous_boundary_stresses(
+                [
+                    self.borders_inter_shape,
+                    self.borders_edge_lines,
+                    self.lt,
+                    self.min_v,
+                    self.max_v,
+                ],
+                cbar_style="outside",
+            )
             self.im_tension = fig_to_numpy(fig3, self.shape)
         return self.im_tension
 
@@ -207,7 +244,11 @@ class Result2D(Saveable):
             self.piv_parameters = {}
         for old_name in list(self.piv_parameters):
             normalized_name = str(old_name).replace("_", "").replace(" ", "").replace("-", "").lower()
-            if self.piv_parameters.get("window_size") is None and normalized_name in {"windowsize", "winsize", "window"}:
+            if self.piv_parameters.get("window_size") is None and normalized_name in {
+                "windowsize",
+                "winsize",
+                "window",
+            }:
                 self.piv_parameters["window_size"] = self.piv_parameters.pop(old_name)
         if self.piv_parameters.get("window_size") is None:
             self.piv_parameters["window_size"] = 100
@@ -261,8 +302,8 @@ class Result2D(Saveable):
                     "measure": "force",
                     "unit": "Pa",
                     "name": "stress",
-                }
-            }
+                },
+            },
         }
 
     def get_image_data(self, time_point, channel="default", use_reference=False):
@@ -286,9 +327,9 @@ class Result2D(Saveable):
         vf = 1
 
         if name == "deformation":
-            vx = self.u*self.pixel_size
-            vy = self.v*self.pixel_size
-            vf = 10/self.pixel_size
+            vx = self.u * self.pixel_size
+            vy = self.v * self.pixel_size
+            vf = 10 / self.pixel_size
         if name == "stress":
             vx = self.tx
             vy = self.ty
@@ -324,9 +365,15 @@ def fig_to_numpy(fig1, shape):
         return plt.imread(buff)
 
 
-def get_stacks2D(output_path, bf_stack, active_stack, reference_stack, pixel_size,
-               exist_overwrite_callback=None,
-               load_existing=False):
+def get_stacks2D(
+    output_path,
+    bf_stack,
+    active_stack,
+    reference_stack,
+    pixel_size,
+    exist_overwrite_callback=None,
+    load_existing=False,
+):
     output_base = Path(bf_stack).parent
     while "*" in str(output_base):
         output_base = Path(output_base).parent
@@ -344,9 +391,13 @@ def get_stacks2D(output_path, bf_stack, active_stack, reference_stack, pixel_siz
         raise ValueError("no reference image selected")
 
     if len(bf_stack) != len(active_stack):
-        raise ValueError(f"the number of bf images ({len(bf_stack)}) does not match the number of active images {len(active_stack)}")
+        raise ValueError(
+            f"the number of bf images ({len(bf_stack)}) does not match the number of active images {len(active_stack)}"
+        )
     if len(bf_stack) != len(reference_stack):
-        raise ValueError(f"the number of bf images ({len(bf_stack)}) does not match the number of reference images {len(reference_stack)}")
+        raise ValueError(
+            f"the number of bf images ({len(bf_stack)}) does not match the number of reference images {len(reference_stack)}"
+        )
 
     results = []
     for i in range(len(bf_stack)):

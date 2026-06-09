@@ -40,59 +40,76 @@ class Segmentation(TypedDict):
     radius: float
     centroid: Tuple[float, float]
 
+
 class GlobalResult(TypedDict):
     pass
 
-GlobalResult = TypedDict("GlobalResult", {
-    'Mean Coherency': float,
-    'Mean Coherency (weighted by intensity)': float,
-    'Mean Angle': float,
-    'Mean Angle (weighted by coherency)': float,
-    'Mean Angle (weighted by intensity and coherency)': float,
-    'Orientation': float,
-    'Orientation (weighted by coherency)': float,
-    'Orientation (weighted by intensity and coherency)': float,
-})
+
+GlobalResult = TypedDict(
+    "GlobalResult",
+    {
+        "Mean Coherency": float,
+        "Mean Coherency (weighted by intensity)": float,
+        "Mean Angle": float,
+        "Mean Angle (weighted by coherency)": float,
+        "Mean Angle (weighted by intensity and coherency)": float,
+        "Orientation": float,
+        "Orientation (weighted by coherency)": float,
+        "Orientation (weighted by intensity and coherency)": float,
+    },
+)
+
 
 class DistanceResult(TypedDict):
     pass
 
-DistanceResult = TypedDict('DistanceResult', {
-    'Shell_mid (px)': float,
-    'Shell_mid (µm)': float,
-    'Intensity (accumulated)': float,
-    'Intensity (individual)': float,
-    'Intensity Norm (individual)': float,
-    'Intensity Norm (accumulated)': float,
-    'Angle (accumulated)': float,
-    'Angle (individual)': float,
-    'Angle (individual-weightInt)': float,
-    'Orientation (accumulated)': float,
-    'Orientation (individual)': float,
-    'Orientation (individual-weightInt)': float,
-    'Intensity disttocenter (accumulated)': float,
-    'Intensity disttocenter (individual)': float,
-    'Intensity Norm disttocenter (individual)': float,
-    'Intensity Norm disttocenter (accumulated)': float,
-    'Angle disttocenter (accumulated)': float,
-    'Angle disttocenter (individual)': float,
-    'Orientation disttocenter (accumulated)': float,
-    'Orientation disttocenter (individual)': float,
-})
+
+DistanceResult = TypedDict(
+    "DistanceResult",
+    {
+        "Shell_mid (px)": float,
+        "Shell_mid (µm)": float,
+        "Intensity (accumulated)": float,
+        "Intensity (individual)": float,
+        "Intensity Norm (individual)": float,
+        "Intensity Norm (accumulated)": float,
+        "Angle (accumulated)": float,
+        "Angle (individual)": float,
+        "Angle (individual-weightInt)": float,
+        "Orientation (accumulated)": float,
+        "Orientation (individual)": float,
+        "Orientation (individual-weightInt)": float,
+        "Intensity disttocenter (accumulated)": float,
+        "Intensity disttocenter (individual)": float,
+        "Intensity Norm disttocenter (individual)": float,
+        "Intensity Norm disttocenter (accumulated)": float,
+        "Angle disttocenter (accumulated)": float,
+        "Angle disttocenter (individual)": float,
+        "Orientation disttocenter (accumulated)": float,
+        "Orientation disttocenter (individual)": float,
+    },
+)
 
 
 class ResultOrientation(Saveable):
-    __save_parameters__ = ['image_cell', 'image_fiber', 'pixel_size', 'output',
-                           'segmentation_parameters', 'orientation_parameters',
-                           'segmentation',
-                           'orientation_map',
-                           'coherence_map',
-                           'angle_to_x_map',
-                           'orientation_vectors',
-                           'shape',
-                           "results_total",
-                           "results_distance",
-                           '___save_name__', '___save_version__']
+    __save_parameters__ = [
+        "image_cell",
+        "image_fiber",
+        "pixel_size",
+        "output",
+        "segmentation_parameters",
+        "orientation_parameters",
+        "segmentation",
+        "orientation_map",
+        "coherence_map",
+        "angle_to_x_map",
+        "orientation_vectors",
+        "shape",
+        "results_total",
+        "results_distance",
+        "___save_name__",
+        "___save_version__",
+    ]
     ___save_name__ = "ResultOrientation"
     ___save_version__ = "1.0"
 
@@ -220,9 +237,14 @@ class ResultOrientation(Saveable):
             return self.coherence_map
 
 
-def get_orientation_files(output_path, fiber_list_string, cell_list_string, pixel_size,
-                    exist_overwrite_callback=None,
-                    load_existing=False):
+def get_orientation_files(
+    output_path,
+    fiber_list_string,
+    cell_list_string,
+    pixel_size,
+    exist_overwrite_callback=None,
+    load_existing=False,
+):
     output_base = Path(fiber_list_string).parent
     while "*" in str(output_base):
         output_base = Path(output_base).parent
@@ -237,7 +259,9 @@ def get_orientation_files(output_path, fiber_list_string, cell_list_string, pixe
         raise ValueError("no cell image selected")
 
     if len(fiber_list_string) != len(cell_list_string):
-        raise ValueError(f"the number of fiber images ({len(fiber_list_string)}) does not match the number of cell images {len(cell_list_string)}")
+        raise ValueError(
+            f"the number of fiber images ({len(fiber_list_string)}) does not match the number of cell images {len(cell_list_string)}"
+        )
 
     results = []
     for i in range(len(fiber_list_string)):

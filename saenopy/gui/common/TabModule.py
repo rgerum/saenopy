@@ -17,6 +17,7 @@ class TabModule(QtWidgets.QWidget):
 
     current_result_plotted = False
     current_tab_selected = False
+
     def tabChanged(self, tab):
         if self.tab is not None and self.tab.parent() == tab:
             self.current_tab_selected = True
@@ -27,17 +28,17 @@ class TabModule(QtWidgets.QWidget):
             self.current_tab_selected = False
 
     def resultChanged(self, result: Result):
-        """ called when the contents of result changed. Only update view if it is the currently displayed one. """
+        """called when the contents of result changed. Only update view if it is the currently displayed one."""
         if result is self.result:
             if self.tab is not None:
                 for i in range(self.parent.tabs.count()):
                     if self.parent.tabs.widget(i) == self.tab.parent():
-                       self.parent.tabs.setTabEnabled(i, self.checkTabEnabled(result))
+                        self.parent.tabs.setTabEnabled(i, self.checkTabEnabled(result))
             if self.current_tab_selected is True:
                 self.update_display()
 
     def setResult(self, result: Result):
-        """ set a new active result object """
+        """set a new active result object"""
         self.current_result_plotted = False
         self.result = result
 
@@ -58,4 +59,3 @@ class TabModule(QtWidgets.QWidget):
 
     def checkTabEnabled(self, result):
         return True
-

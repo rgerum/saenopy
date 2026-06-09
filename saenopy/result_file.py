@@ -14,6 +14,7 @@ from saenopy.solver import Solver
 from saenopy.get_deformations import PivMesh
 from typing import TypedDict, Tuple
 
+
 def get_channel_placeholder(filename):
     match = re.match(r".*{c:([^}]*)}.*", filename)
     if match:
@@ -39,7 +40,7 @@ def process_line(filename, output_path):
     if filename.endswith(".lif"):
         match = re.match(r"(.*)\{f\:(\d*)\}\{c\:(\d*)\}(\{t\:(\d*)\})?.lif", filename)
         filename, folder, channel, _, time = match.groups()
-        files = glob.glob(filename+".lif", recursive=True)
+        files = glob.glob(filename + ".lif", recursive=True)
 
         output_base = filename
         while "*" in str(output_base):
@@ -49,31 +50,39 @@ def process_line(filename, output_path):
             relative = os.path.relpath(file, output_base)
             counts = {}
             from saenopy.gui.common.lif_reader import LifFile
+
             leica_file = LifFile(file).get_image(folder)
             counts["z"] = leica_file.dims.z
             counts["c"] = leica_file.channels
             if leica_file.dims.t > 1 and time is None:
                 counts["t"] = leica_file.dims.t
-            results.append({"filename": f"{file[:-4]}{{f:{folder}}}{{c:{channel}}}.lif", "dimensions": counts, "output": Path(output_path) / relative})
+            results.append(
+                {
+                    "filename": f"{file[:-4]}{{f:{folder}}}{{c:{channel}}}.lif",
+                    "dimensions": counts,
+                    "output": Path(output_path) / relative,
+                }
+            )
             if leica_file.dims.t > 1 and time is None:
                 import numpy as np
+
                 results[-1]["times"] = np.arange(counts["t"])
         return results
     filename, channel1 = get_channel_placeholder(filename)
     results1, output_base = format_glob(Path(filename))
 
-    for (r1, d1) in results1.groupby("template"):
+    for r1, d1 in results1.groupby("template"):
         counts = {"z": len(d1.z.unique())}
         iterator = get_iterator(d1.z.unique(), "z")
         if channel1 is not None:
-            r1 = r1.replace("{c}", "{c:"+channel1+"}")
+            r1 = r1.replace("{c}", "{c:" + channel1 + "}")
             counts["c"] = len(d1.c.unique())
             iterator = get_iterator(d1.c.unique(), "c", iterator)
         if "t" in d1.columns:
             counts["t"] = len(d1.t.unique())
             iterator = get_iterator(d1.t.unique(), "t", iterator)
-        #print(r1, counts, np.prod([c for c in counts.values()]), len(d1))
-        #assert np.prod([c for c in counts.values()]) == len(d1)
+        # print(r1, counts, np.prod([c for c in counts.values()]), len(d1))
+        # assert np.prod([c for c in counts.values()]) == len(d1)
         # check if all files exist and have the same shape
         template = d1.iloc[0].template
         shape = None
@@ -82,7 +91,7 @@ def process_line(filename, output_path):
             if re.match(r"(.*.tif)\[(.*)\]", filename):
                 filename, page = re.match(r"(.*.tif)\[(.*)\]", filename).groups()
             # the file needs to exist
-            #if not Path(filename).exists():
+            # if not Path(filename).exists():
             #    raise FileNotFoundError(f"Could not find file {filename}")
             if Path(filename).suffix in [".tif", ".tiff"]:
                 with tifffile.TiffFile(filename) as f:
@@ -99,7 +108,9 @@ def process_line(filename, output_path):
         # create the output path
         output = Path(output_path) / os.path.relpath(r1, output_base)
         output = output.parent / output.stem
-        output = Path(str(output).replace("*", "").replace("{c}", "{c" + str(channel1) + "}").replace("{c:", "{c") + ".saenopy")
+        output = Path(
+            str(output).replace("*", "").replace("{c}", "{c" + str(channel1) + "}").replace("{c:", "{c") + ".saenopy"
+        )
 
         results.append({"filename": r1, "dimensions": counts, "output": output})
         if "t" in d1.columns:
@@ -112,10 +123,16 @@ def normalize_path(template, output):
     return template
 
 
-def get_stacks(filename, output_path, voxel_size, time_delta=None, reference_stack=None,
-               crop=None,
-               exist_overwrite_callback=None,
-               load_existing=False):
+def get_stacks(
+    filename,
+    output_path,
+    voxel_size,
+    time_delta=None,
+    reference_stack=None,
+    crop=None,
+    exist_overwrite_callback=None,
+    load_existing=False,
+):
     filename = str(filename)
     output_path = str(output_path)
     if reference_stack is not None:
@@ -126,7 +143,8 @@ def get_stacks(filename, output_path, voxel_size, time_delta=None, reference_sta
         results2 = process_line(reference_stack, output_path)
         if len(results1) != len(results2):
             raise ValueError(
-                f"Number of active stacks ({len(results1)}) does not match the number of reference stacks ({len(results2)}).")
+                f"Number of active stacks ({len(results1)}) does not match the number of reference stacks ({len(results2)})."
+            )
         for r1, r2 in zip(results1, results2):
             if r1["dimensions"]["z"] != r2["dimensions"]["z"]:
                 raise ValueError("active and reference stack need the same number of z slices")
@@ -145,8 +163,13 @@ def get_stacks(filename, output_path, voxel_size, time_delta=None, reference_sta
                 if (crop is not None) and ("t" in crop):
                     times = times[slice(*crop["t"])]
                 for t in times:
-                    stacks.append(Stack(normalize_path(r1["filename"].replace("{t}", t), output),
-                                        voxel_size, crop=crop))
+                    stacks.append(
+                        Stack(
+                            normalize_path(r1["filename"].replace("{t}", t), output),
+                            voxel_size,
+                            crop=crop,
+                        )
+                    )
             else:
                 stacks = [Stack(normalize_path(r1["filename"], output), voxel_size, crop=crop)]
 
@@ -185,9 +208,24 @@ def get_stacks(filename, output_path, voxel_size, time_delta=None, reference_sta
                     times = times[slice(*crop["t"])]
                 for t in times:
                     if r1["filename"].endswith(".lif"):
-                        stacks.append(Stack(normalize_path(r1["filename"].replace(".lif", f"{{t:{t}}}.lif"), output), voxel_size, crop=crop))
+                        stacks.append(
+                            Stack(
+                                normalize_path(
+                                    r1["filename"].replace(".lif", f"{{t:{t}}}.lif"),
+                                    output,
+                                ),
+                                voxel_size,
+                                crop=crop,
+                            )
+                        )
                     else:
-                        stacks.append(Stack(normalize_path(r1["filename"].replace("{t}", t), output), voxel_size, crop=crop))
+                        stacks.append(
+                            Stack(
+                                normalize_path(r1["filename"].replace("{t}", t), output),
+                                voxel_size,
+                                crop=crop,
+                            )
+                        )
             else:
                 stacks = [Stack(normalize_path(r1["filename"], output), voxel_size, crop=crop)]
 
@@ -239,6 +277,7 @@ def is_relative_to(path, base):
     except ValueError:
         return False
 
+
 def make_path_relative(filename, base):
     """
     Returns the relative path of `filename` with respect to the `base` directory,
@@ -253,9 +292,9 @@ def make_path_relative(filename, base):
     file_path = PurePath(filename)
 
     # Use PureWindowsPath if on a non-Windows system handling Windows paths
-    if not isinstance(base_path, PureWindowsPath) and '\\' in str(base):
+    if not isinstance(base_path, PureWindowsPath) and "\\" in str(base):
         base_path = PureWindowsPath(base)
-    if not isinstance(file_path, PureWindowsPath) and '\\' in str(filename):
+    if not isinstance(file_path, PureWindowsPath) and "\\" in str(filename):
         file_path = PureWindowsPath(filename)
 
     if not file_path.is_absolute():
@@ -263,7 +302,7 @@ def make_path_relative(filename, base):
 
     offset = ""
     for i in range(3):
-        if is_relative_to(file_path,base_path):
+        if is_relative_to(file_path, base_path):
             return str(offset / file_path.relative_to(base_path))
         base_path = base_path.parent
         offset /= PurePath("..")
@@ -282,16 +321,19 @@ class PivParametersDict(TypedDict):
     signal_to_noise: float
     drift_correction: bool
 
+
 class MeshParametersDict(TypedDict):
     reference_stack: str
     element_size: float
     mesh_size: Union[Tuple[float, float, float], str]
-    
+
+
 class MaterialParametersDict(TypedDict):
     k: float
     d_0: float
     lambda_s: float
     d_s: float
+
 
 class SolveParametersDict(TypedDict):
     alpha: float
@@ -299,16 +341,23 @@ class SolveParametersDict(TypedDict):
     max_iterations: int
     rel_conv_crit: float
     prev_t_as_start: bool
-    
-    
 
 
 class Result(Saveable):
-    __save_parameters__ = ['stacks', 'stack_reference', 'template',
-                           'time_delta', 'piv_parameters', 'mesh_piv',
-                           'mesh_parameters', 'material_parameters',
-                           'solve_parameters', 'solvers',
-                           '___save_name__', '___save_version__']
+    __save_parameters__ = [
+        "stacks",
+        "stack_reference",
+        "template",
+        "time_delta",
+        "piv_parameters",
+        "mesh_piv",
+        "mesh_parameters",
+        "material_parameters",
+        "solve_parameters",
+        "solvers",
+        "___save_name__",
+        "___save_version__",
+    ]
     ___save_name__ = "Result"
     ___save_version__ = "1.7"
     output: str = None
@@ -335,6 +384,7 @@ class Result(Saveable):
                 return [apply_rename(o, rename) for o in obj_data]
 
             from typing import Callable
+
             for r in rename:
                 if r["new"] is not None:
                     if isinstance(r["old"], Callable):
@@ -344,8 +394,9 @@ class Result(Saveable):
                     elif "default" in r:
                         obj_data[r["new"]] = r["default"]
                     else:
-                        raise ValueError(f"File does not contain parameter {r['old']} and {r['new']} does not have a "
-                                         f"default value.")
+                        raise ValueError(
+                            f"File does not contain parameter {r['old']} and {r['new']} does not have a default value."
+                        )
                 if r.get("renames_child", None) is not None:
                     apply_rename(obj_data[r["new"]], r.get("renames_child", None))
 
@@ -367,89 +418,146 @@ class Result(Saveable):
         if data_dict["___save_version__"] < "1.2":  # pragma: no cover
             print(f"convert old version {data_dict['___save_version__']} to 1.2")
             renames = [
-                dict(old="stack", new="stack", renames_child=[
-                    dict(old="shape", new="_shape"),
-                    dict(old="leica_file", new=None),
-                    dict(old="crop", new="crop", default=None),
-                    dict(old="packed_files", new="packed_files", default=None),
-                ]),
-                dict(old="stack_reference", new="stack_reference", renames_child=[
-                    dict(old="shape", new="_shape"),
-                    dict(old="leica_file", new=None),
-                    dict(old="crop", new="crop", default=None),
-                    dict(old="packed_files", new="packed_files", default=None),
-                ]),
-                dict(old="piv_parameter", new="piv_parameters", renames_child=[
-                    dict(old="win_um", new="window_size"),
-                    dict(old="elementsize", new="element_size"),
-                    dict(old="signoise_filter", new="signal_to_noise"),
-                ]),
-                dict(old="interpolate_parameter", new="mesh_parameters", renames_child=[
-                    dict(old="inner_region", new=None),
-                    dict(old="thinning_factor", new=None),
-                    dict(old=lambda d: ("piv" if d["mesh_size_same"] else (d["mesh_size_x"], d["mesh_size_y"], d["mesh_size_z"])), new="mesh_size"),
-                    dict(old="mesh_size_same", new=None),
-                    dict(old="mesh_size_x", new=None),
-                    dict(old="mesh_size_y", new=None),
-                    dict(old="mesh_size_z", new=None),
-                ]),
-                dict(old="solve_parameter", new="material_parameters", renames_child=[
-                    dict(old="d0", new="d_0"),
-                    dict(old="ds", new="d_s"),
-                    dict(old="alpha", new=None),
-                    dict(old="stepper", new=None),
-                    dict(old="i_max", new=None),
-                    dict(old="rel_conv_crit", new=None),
-                ], default=dict(k=1645, d0=0.0008, lambda_s=0.0075, ds=0.033)),
-                dict(old="solve_parameter", new="solve_parameters", renames_child=[
-                    dict(old="k", new=None),
-                    dict(old="d0", new=None),
-                    dict(old="lambda_s", new=None),
-                    dict(old="ds", new=None),
-                    dict(old="stepper", new="step_size"),
-                    dict(old="i_max", new="max_iterations"),
-                ], default=dict(alpha=1e10, stepper=0.33, i_max=100, rel_conv_crit=0.01)),
-
-                dict(old="mesh_piv", new="mesh_piv", renames_child=[
-                    dict(old="R", new="nodes"),
-                    dict(old="T", new="tetrahedra"),
-                    dict(old="node_vars", new=None),
-                    dict(old=lambda d: d["node_vars"]["U_measured"], new="displacements_measured"),
-                ]),
-
-                dict(old="solver", new="solver", renames_child=[
-                    dict(old=lambda d: dict(
-                        nodes=d["R"],
-                        tetrahedra=d["T"],
-                        displacements=d["U"],
-                        displacements_fixed=d.get("U_fixed", None),
-                        displacements_target=d["U_target"],
-                        displacements_target_mask=d["U_target_mask"],
-                        regularisation_mask=d["reg_mask"],
-                        movable=d["var"],
-                        forces=d["f"],
-                        forces_target=d["f_target"],
-                        strain_energy=d["E_glo"],
-                    ),
-                         new="mesh"),
-                    dict(old="R", new=None),
-                    dict(old="T", new=None),
-                    dict(old="U", new=None),
-                    dict(old="U_fixed", new=None),
-                    dict(old="U_target", new=None),
-                    dict(old="U_target_mask", new=None),
-                    dict(old="reg_mask", new=None),
-                    dict(old="f", new=None),
-                    dict(old="f_target", new=None),
-                    dict(old="E_glo", new=None),
-                    dict(old="var", new=None),
-                    dict(old="regularisation_parameters", new="regularisation_parameters", default=None),
-                    dict(old="relrec", new="regularisation_results", default=[]),
-                    dict(old="material_model", new="material_model", renames_child=[
+                dict(
+                    old="stack",
+                    new="stack",
+                    renames_child=[
+                        dict(old="shape", new="_shape"),
+                        dict(old="leica_file", new=None),
+                        dict(old="crop", new="crop", default=None),
+                        dict(old="packed_files", new="packed_files", default=None),
+                    ],
+                ),
+                dict(
+                    old="stack_reference",
+                    new="stack_reference",
+                    renames_child=[
+                        dict(old="shape", new="_shape"),
+                        dict(old="leica_file", new=None),
+                        dict(old="crop", new="crop", default=None),
+                        dict(old="packed_files", new="packed_files", default=None),
+                    ],
+                ),
+                dict(
+                    old="piv_parameter",
+                    new="piv_parameters",
+                    renames_child=[
+                        dict(old="win_um", new="window_size"),
+                        dict(old="elementsize", new="element_size"),
+                        dict(old="signoise_filter", new="signal_to_noise"),
+                    ],
+                ),
+                dict(
+                    old="interpolate_parameter",
+                    new="mesh_parameters",
+                    renames_child=[
+                        dict(old="inner_region", new=None),
+                        dict(old="thinning_factor", new=None),
+                        dict(
+                            old=lambda d: (
+                                "piv"
+                                if d["mesh_size_same"]
+                                else (
+                                    d["mesh_size_x"],
+                                    d["mesh_size_y"],
+                                    d["mesh_size_z"],
+                                )
+                            ),
+                            new="mesh_size",
+                        ),
+                        dict(old="mesh_size_same", new=None),
+                        dict(old="mesh_size_x", new=None),
+                        dict(old="mesh_size_y", new=None),
+                        dict(old="mesh_size_z", new=None),
+                    ],
+                ),
+                dict(
+                    old="solve_parameter",
+                    new="material_parameters",
+                    renames_child=[
                         dict(old="d0", new="d_0"),
                         dict(old="ds", new="d_s"),
-                    ], default=dict(k=1645, d0=0.0008, lambda_s=0.0075, ds=0.033)),
-                ]),
+                        dict(old="alpha", new=None),
+                        dict(old="stepper", new=None),
+                        dict(old="i_max", new=None),
+                        dict(old="rel_conv_crit", new=None),
+                    ],
+                    default=dict(k=1645, d0=0.0008, lambda_s=0.0075, ds=0.033),
+                ),
+                dict(
+                    old="solve_parameter",
+                    new="solve_parameters",
+                    renames_child=[
+                        dict(old="k", new=None),
+                        dict(old="d0", new=None),
+                        dict(old="lambda_s", new=None),
+                        dict(old="ds", new=None),
+                        dict(old="stepper", new="step_size"),
+                        dict(old="i_max", new="max_iterations"),
+                    ],
+                    default=dict(alpha=1e10, stepper=0.33, i_max=100, rel_conv_crit=0.01),
+                ),
+                dict(
+                    old="mesh_piv",
+                    new="mesh_piv",
+                    renames_child=[
+                        dict(old="R", new="nodes"),
+                        dict(old="T", new="tetrahedra"),
+                        dict(old="node_vars", new=None),
+                        dict(
+                            old=lambda d: d["node_vars"]["U_measured"],
+                            new="displacements_measured",
+                        ),
+                    ],
+                ),
+                dict(
+                    old="solver",
+                    new="solver",
+                    renames_child=[
+                        dict(
+                            old=lambda d: dict(
+                                nodes=d["R"],
+                                tetrahedra=d["T"],
+                                displacements=d["U"],
+                                displacements_fixed=d.get("U_fixed", None),
+                                displacements_target=d["U_target"],
+                                displacements_target_mask=d["U_target_mask"],
+                                regularisation_mask=d["reg_mask"],
+                                movable=d["var"],
+                                forces=d["f"],
+                                forces_target=d["f_target"],
+                                strain_energy=d["E_glo"],
+                            ),
+                            new="mesh",
+                        ),
+                        dict(old="R", new=None),
+                        dict(old="T", new=None),
+                        dict(old="U", new=None),
+                        dict(old="U_fixed", new=None),
+                        dict(old="U_target", new=None),
+                        dict(old="U_target_mask", new=None),
+                        dict(old="reg_mask", new=None),
+                        dict(old="f", new=None),
+                        dict(old="f_target", new=None),
+                        dict(old="E_glo", new=None),
+                        dict(old="var", new=None),
+                        dict(
+                            old="regularisation_parameters",
+                            new="regularisation_parameters",
+                            default=None,
+                        ),
+                        dict(old="relrec", new="regularisation_results", default=[]),
+                        dict(
+                            old="material_model",
+                            new="material_model",
+                            renames_child=[
+                                dict(old="d0", new="d_0"),
+                                dict(old="ds", new="d_s"),
+                            ],
+                            default=dict(k=1645, d0=0.0008, lambda_s=0.0075, ds=0.033),
+                        ),
+                    ],
+                ),
                 dict(old="time_delta", new="time_delta", default=None),
                 dict(old="stack_parameters", new=None),
             ]
@@ -470,45 +578,59 @@ class Result(Saveable):
         if data_dict["___save_version__"] < "1.4":  # pragma: no cover
             print(f"convert old version {data_dict['___save_version__']} to 1.4")
             renames = [
-                dict(old="solvers", new="solvers", renames_child=[
-                    dict(old="mesh", new="mesh", renames_child=[
-                        dict(old="cell_boundary_mask", new="cell_boundary_mask", default=None)
-                    ]),
-                ]),
+                dict(
+                    old="solvers",
+                    new="solvers",
+                    renames_child=[
+                        dict(
+                            old="mesh",
+                            new="mesh",
+                            renames_child=[
+                                dict(
+                                    old="cell_boundary_mask",
+                                    new="cell_boundary_mask",
+                                    default=None,
+                                )
+                            ],
+                        ),
+                    ],
+                ),
             ]
             apply_rename(data_dict, renames)
             apply_delete(data_dict, renames)
 
             data_dict["___save_version__"] = "1.4"
-       
+
         if data_dict["___save_version__"] < "1.5":  # pragma: no cover
-             print(f"convert old version {data_dict['___save_version__']} to 1.5")
-             if data_dict["solve_parameters"] is not None:
-                 data_dict["solve_parameters"]["prev_t_as_start"] = False
-             data_dict["___save_version__"] = "1.5"
+            print(f"convert old version {data_dict['___save_version__']} to 1.5")
+            if data_dict["solve_parameters"] is not None:
+                data_dict["solve_parameters"]["prev_t_as_start"] = False
+            data_dict["___save_version__"] = "1.5"
 
         if data_dict["___save_version__"] < "1.6":  # pragma: no cover
-             print(f"convert old version {data_dict['___save_version__']} to 1.6")
-             if data_dict["solvers"] is not None:
-                 for solver in data_dict["solvers"]:
-                     solver["regularisation_results"] = np.array(solver["regularisation_results"])
-             for stack in data_dict["stacks"]:
-                 stack["image_filenames"] = np.array(stack["image_filenames"])
-             if data_dict.get("stack_reference", None):
-                 data_dict["stack_reference"]["image_filenames"] = np.array(data_dict["stack_reference"]["image_filenames"])
-             data_dict["___save_version__"] = "1.6"
+            print(f"convert old version {data_dict['___save_version__']} to 1.6")
+            if data_dict["solvers"] is not None:
+                for solver in data_dict["solvers"]:
+                    solver["regularisation_results"] = np.array(solver["regularisation_results"])
+            for stack in data_dict["stacks"]:
+                stack["image_filenames"] = np.array(stack["image_filenames"])
+            if data_dict.get("stack_reference", None):
+                data_dict["stack_reference"]["image_filenames"] = np.array(
+                    data_dict["stack_reference"]["image_filenames"]
+                )
+            data_dict["___save_version__"] = "1.6"
 
         if data_dict["___save_version__"] < "1.7":  # pragma: no cover
-             print(f"convert old version {data_dict['___save_version__']} to 1.7")
-             if data_dict["solvers"] is not None:
-                 for solver in data_dict["solvers"]:
-                     solver["mesh"]["forces_border"] = solver["mesh"]["forces"].copy()
-                     solver["mesh"]["forces_border"][solver["mesh"]["regularisation_mask"]] = 0
-                     solver["mesh"]["forces"][~solver["mesh"]["regularisation_mask"]] = 0
-                     print(solver["mesh"].keys())
+            print(f"convert old version {data_dict['___save_version__']} to 1.7")
+            if data_dict["solvers"] is not None:
+                for solver in data_dict["solvers"]:
+                    solver["mesh"]["forces_border"] = solver["mesh"]["forces"].copy()
+                    solver["mesh"]["forces_border"][solver["mesh"]["regularisation_mask"]] = 0
+                    solver["mesh"]["forces"][~solver["mesh"]["regularisation_mask"]] = 0
+                    print(solver["mesh"].keys())
 
-             data_dict["___save_version__"] = "1.7"
-             
+            data_dict["___save_version__"] = "1.7"
+
         return super().from_dict(data_dict)
 
     def reset_piv(self, keep_state=False):
@@ -531,7 +653,10 @@ class Result(Saveable):
                 M = Solver()
                 M.set_nodes(solver.mesh.nodes)
                 M.set_tetrahedra(solver.mesh.tetrahedra)
-                M.set_target_displacements(solver.mesh.displacements_target, solver.mesh.displacements_target_mask)
+                M.set_target_displacements(
+                    solver.mesh.displacements_target,
+                    solver.mesh.displacements_target_mask,
+                )
 
                 self.solvers[i] = M
 
@@ -566,7 +691,6 @@ class Result(Saveable):
             if self.stack_reference is not None:
                 self.stack_reference.paths_relative(self)
             self.template = str(make_path_relative(Path(self.template).absolute(), Path(self.output).parent))
-
 
         # if demo move parts to simulate empty result
         if os.environ.get("DEMO") == "true":  # pragma: no cover
@@ -638,13 +762,22 @@ class Result(Saveable):
         text += indent + indent + "base_folder = " + base_folder + "\n"
         if self.stack_reference is not None:
             if self.stack_reference.template.startswith(base_folder):
-                text += indent + indent + "reference = " + self.stack_reference.template[len(base_folder):] + "\n"
+                text += indent + indent + "reference = " + self.stack_reference.template[len(base_folder) :] + "\n"
             else:
                 text += indent + indent + "reference = " + self.stack_reference.template + "\n"
         if self.time_delta is not None:
             text += indent + indent + "time_delta = " + str(self.time_delta) + "\n"
         for stack, filename in zip(self.stacks, folders):
-            text += indent + indent + filename[len(base_folder):] + " " + str(stack.voxel_size) + " " + str(stack.channels) + "\n"
+            text += (
+                indent
+                + indent
+                + filename[len(base_folder) :]
+                + " "
+                + str(stack.voxel_size)
+                + " "
+                + str(stack.channels)
+                + "\n"
+            )
         text += indent + "]" + "\n"
         if self.piv_parameters:
             text += indent + "piv_parameters = " + str(self.piv_parameters) + "\n"
@@ -663,8 +796,8 @@ class Result(Saveable):
             "time_point_count": len(self.stacks),
             "has_reference": self.stack_reference is not None,
             "z_slices_count": self.stacks[0].shape[2] if self.stacks else 0,
-            "im_shape": self.stacks[0].shape if self.stacks else (0,0,0),
-            "voxel_size": self.stacks[0].voxel_size if self.stacks else (0,0,0),
+            "im_shape": self.stacks[0].shape if self.stacks else (0, 0, 0),
+            "voxel_size": self.stacks[0].voxel_size if self.stacks else (0, 0, 0),
             "time_delta": self.time_delta,
             "channels": self.stacks[0].channels if self.stacks else [],
             "fields": {
@@ -691,8 +824,8 @@ class Result(Saveable):
                     "measure": "force",
                     "unit": "N",
                     "name": "forces",
-                }
-            }
+                },
+            },
         }
 
     def get_image_data(self, time_point, channel="default", use_reference=False):
@@ -728,5 +861,5 @@ class Result(Saveable):
                 if M is not None:
                     return M.mesh, -M.mesh.forces * M.mesh.regularisation_mask[:, None]
         except IndexError:
-            return None, None         
+            return None, None
         return None, None

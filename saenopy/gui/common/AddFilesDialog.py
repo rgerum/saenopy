@@ -23,10 +23,15 @@ class AddFilesDialog(QtWidgets.QDialog):
         if self.file_extension is None:
             return
         with self.tabs.createTab("Existing Measurement") as self.tab3:
-            self.outputText3 = QtShortCuts.QInputFilename(None, "output", settings=self.settings,
-                                                          file_type=f"Results Files (*{self.file_extension})",
-                                                          settings_key=f"{self.settings_group}/wildcard_existing",
-                                                          allow_edit=True, existing=True)
+            self.outputText3 = QtShortCuts.QInputFilename(
+                None,
+                "output",
+                settings=self.settings,
+                file_type=f"Results Files (*{self.file_extension})",
+                settings_key=f"{self.settings_group}/wildcard_existing",
+                allow_edit=True,
+                existing=True,
+            )
             self.tab3.addStretch()
             with QtShortCuts.QHBoxLayout() as layout3:
                 layout3.addStretch()
@@ -50,19 +55,22 @@ class AddFilesDialog(QtWidgets.QDialog):
                         pix = QtGui.QPixmap(str(properties["img"]))
                         pix = pix.scaledToWidth(
                             int(200 * QtGui.QGuiApplication.primaryScreen().logicalDotsPerInch() / 96),
-                            QtCore.Qt.SmoothTransformation)
+                            QtCore.Qt.SmoothTransformation,
+                        )
                         label.setPixmap(pix)
                         label.setSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
-                        self.button_example1 = QtShortCuts.QPushButton(None, "Open",
-                                                                       lambda *,
-                                                                              example_name=example_name: self.load_example(
-                                                                           example_name))
+                        self.button_example1 = QtShortCuts.QPushButton(
+                            None,
+                            "Open",
+                            lambda *, example_name=example_name: self.load_example(example_name),
+                        )
                         self.example_buttons.append(self.button_example1)
 
-                        self.button_example2 = QtShortCuts.QPushButton(None, "Open (evaluated)",
-                                                                       lambda *,
-                                                                              example_name=example_name: self.load_example(
-                                                                           example_name, evaluated=True))
+                        self.button_example2 = QtShortCuts.QPushButton(
+                            None,
+                            "Open (evaluated)",
+                            lambda *, example_name=example_name: self.load_example(example_name, evaluated=True),
+                        )
                         self.button_example2.setEnabled(properties.get("url_evaluated", None) is not None)
                         self.example_buttons.append(self.button_example2)
                 lay.addStretch()
@@ -83,7 +91,6 @@ class AddFilesDialog(QtWidgets.QDialog):
                 self.add_new_measurement_tab()
                 self.add_existing_measurent_tab()
                 self.add_examples_tab()
-
 
     def accept_new(self):
         self.mode = "new"
@@ -114,15 +121,19 @@ class AddFilesDialog(QtWidgets.QDialog):
         progress_size = int(count * block_size)
         speed = int(progress_size / (1024 * duration + 0.001))
         percent = int(count * block_size * 100 / total_size)
-        sys.stdout.write("\r...%d%%, %d MB, %d KB/s, %d seconds passed" %
-                         (percent, progress_size / (1024 * 1024), speed, duration))
+        sys.stdout.write(
+            "\r...%d%%, %d MB, %d KB/s, %d seconds passed" % (percent, progress_size / (1024 * 1024), speed, duration)
+        )
         sys.stdout.flush()
-        self.download_state.setText("...%d%%, %d MB, %d KB/s, %d seconds passed" %
-                                    (percent, progress_size / (1024 * 1024), speed, duration))
+        self.download_state.setText(
+            "...%d%%, %d MB, %d KB/s, %d seconds passed" % (percent, progress_size / (1024 * 1024), speed, duration)
+        )
         self.download_progress.setValue(percent)
 
 
 last_decision = None
+
+
 def do_overwrite(filename, self):
     global last_decision
 
@@ -145,6 +156,7 @@ def do_overwrite(filename, self):
         last_decision = dialog.mode
     # return the decision
     return dialog.mode
+
 
 class FileExistsDialog(QtWidgets.QDialog):
     mode: str = None

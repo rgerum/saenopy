@@ -29,7 +29,7 @@ def start_path_change(parent, result: Result):
 
     if path_editor.input_save.value():
         result.save()
-        #print("saved")
+        # print("saved")
         return
 
 
@@ -39,15 +39,15 @@ class PathEditor(QtWidgets.QDialog):
         self.setWindowTitle("Change Path")
         with QtShortCuts.QVBoxLayout(self) as layout:
             QtWidgets.QLabel("Change path where the images are stored.").addToLayout()
-            self.label = QtShortCuts.SuperQLabel(
-                f"The current path is {result.template}.").addToLayout()
+            self.label = QtShortCuts.SuperQLabel(f"The current path is {result.template}.").addToLayout()
             self.label.setWordWrap(True)
             self.input_pack = QtShortCuts.QInputBool(None, "pack files", False)
             self.input_save = QtShortCuts.QInputBool(None, "save", False)
             self.input_folder = QtShortCuts.QInputFolder(None, "", Path(result.template), allow_edit=True)
             if result.stack_reference:
-                self.input_folder2 = QtShortCuts.QInputFolder(None, "", Path(result.stack_reference.template),
-                                                              allow_edit=True)
+                self.input_folder2 = QtShortCuts.QInputFolder(
+                    None, "", Path(result.stack_reference.template), allow_edit=True
+                )
             else:
                 self.input_folder2 = None
             with QtShortCuts.QHBoxLayout():
@@ -62,9 +62,11 @@ class PathChanger:
 
         old_template = re.sub(r"\{c(:[^}]*)?\}", r"{c}", old_template)
         old_template = re.sub(r"\[z\]$", "[{z}]", old_template)
-        old_template_re = re.sub(r"\\\{c(:[^}]*)?\\\}", r"(?P<c>.*)",
-                                 re.escape(old_template).replace("\\{t\\}", r"(?P<t>.*)").replace("\\{z\\}",
-                                                                                                  r"(?P<z>.*)"))
+        old_template_re = re.sub(
+            r"\\\{c(:[^}]*)?\\\}",
+            r"(?P<c>.*)",
+            re.escape(old_template).replace("\\{t\\}", r"(?P<t>.*)").replace("\\{z\\}", r"(?P<z>.*)"),
+        )
         self.old_template_re = re.compile(old_template_re)
 
         self.new_template = new_template
@@ -78,8 +80,8 @@ class PathChanger:
         if match is None:
             raise ValueError(f"Path {path} does not fit template {self.old_template_re}")
         new = self.new_template_format.format(**match.groupdict())
-        #print("change_path From", path)
-        #print("change_path To  ", new)
+        # print("change_path From", path)
+        # print("change_path To  ", new)
         if path_type:
             return Path(new)
         return new

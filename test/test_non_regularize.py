@@ -6,6 +6,7 @@ import numpy as np
 from saenopy.multigrid_helper import create_box_mesh
 
 import sys
+
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "package"))
 
 import saenopy
@@ -14,7 +15,6 @@ from saenopy.materials import SemiAffineFiberMaterial
 
 
 class Test_DataFile(unittest.TestCase):
-
     def setUp(self):
         pass
 
@@ -61,12 +61,15 @@ class Test_DataFile(unittest.TestCase):
         getForce(1.01)
 
         for i in range(3):
-            np.testing.assert_almost_equal(-np.mean(M.mesh.displacements[R[:, i] < 0]), np.mean(M.mesh.displacements[R[:, i] > 0]))
+            np.testing.assert_almost_equal(
+                -np.mean(M.mesh.displacements[R[:, i] < 0]),
+                np.mean(M.mesh.displacements[R[:, i] > 0]),
+            )
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     __path__ = os.path.dirname(os.path.abspath(__file__))
-    log_file = os.path.join(__path__, 'log_'+__key__+'.txt')
+    log_file = os.path.join(__path__, "log_" + __key__ + ".txt")
     with open(log_file, "w") as f:
         runner = unittest.TextTestRunner(f)
         unittest.main(testRunner=runner)

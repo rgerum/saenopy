@@ -3,6 +3,7 @@ code written by MathieuLeocmach
 retrieved from https://github.com/MathieuLeocmach/read_lif
 used under GPLv3 license
 """
+
 import struct
 import xml.etree.ElementTree as ET
 
@@ -105,11 +106,10 @@ class LifImage:
         self.settings = image_info["settings"]
 
     def __repr__(self):
-        return repr('LifImage object with dimensions: ' + str(self.dims))
+        return repr("LifImage object with dimensions: " + str(self.dims))
 
     def _get_len_nondisplay_dims(self):
-        non_display_dims_len = [self.dims_n[d] for d in self.dims_n.keys()
-                                if d not in self.display_dims]
+        non_display_dims_len = [self.dims_n[d] for d in self.dims_n.keys() if d not in self.display_dims]
         if len(non_display_dims_len) >= 2:
             len_nondisplay = reduce(lambda x, y: x * y, non_display_dims_len)
             # Todo: Check if this is needed..
@@ -134,7 +134,7 @@ class LifImage:
         """
         n = int(n)
 
-        seek_distance = (self.channels * self._get_len_nondisplay_dims())
+        seek_distance = self.channels * self._get_len_nondisplay_dims()
 
         if n >= seek_distance:
             raise ValueError("Invalid item trying to be retrieved.")
@@ -144,12 +144,8 @@ class LifImage:
         elif isinstance(self.filename, io.IOBase):
             image = self.filename
         else:
-            raise TypeError(
-                f"expected str, bytes, os.PathLike, or io.IOBase, "
-                f"not {type(self.filename)}"
-            )
+            raise TypeError(f"expected str, bytes, os.PathLike, or io.IOBase, not {type(self.filename)}")
         with image:
-
             # self.offsets[1] is the length of the image
             if self.offsets[1] == 0:
                 # In the case of a blank image, we can calculate the length from
@@ -177,18 +173,25 @@ class LifImage:
             # len(data) is the number of bytes (8-bit)
             # However, it is safer to let the lif file tell us the resolution
             if self.bit_depth[0] == 8:
-                return Image.frombytes("L",
-                                       (self.dims_n[self.display_dims[0]],
-                                        self.dims_n[self.display_dims[1]]),
-                                       data)
+                return Image.frombytes(
+                    "L",
+                    (
+                        self.dims_n[self.display_dims[0]],
+                        self.dims_n[self.display_dims[1]],
+                    ),
+                    data,
+                )
             elif self.bit_depth[0] <= 16:
-                return Image.frombytes("I;16",
-                                       (self.dims_n[self.display_dims[0]],
-                                        self.dims_n[self.display_dims[1]]),
-                                       data)
+                return Image.frombytes(
+                    "I;16",
+                    (
+                        self.dims_n[self.display_dims[0]],
+                        self.dims_n[self.display_dims[1]],
+                    ),
+                    data,
+                )
             else:
-                raise ValueError("Unknown bit-depth, please submit a bug report"
-                                 " on Github")
+                raise ValueError("Unknown bit-depth, please submit a bug report on Github")
 
     def get_plane(self, display_dims=None, c=0, requested_dims=None):
         """
@@ -218,10 +221,12 @@ class LifImage:
             raise ValueError("display_dims must be a two value tuple")
 
         if requested_dims.keys() in display_dims:
-            warnings.warn("One or more of the display_dims is in the "
-                          "requested_dims dictionary. Currently this has no "
-                          "effect. All data from the display_dims will be "
-                          "returned.")
+            warnings.warn(
+                "One or more of the display_dims is in the "
+                "requested_dims dictionary. Currently this has no "
+                "effect. All data from the display_dims will be "
+                "returned."
+            )
 
         if display_dims != self.display_dims:
             raise NotImplementedError("Arbitrary dimensions are not yet supported")
@@ -233,18 +238,14 @@ class LifImage:
         # Check if any of the dims exceeds what is in the image
         for i in self.dims_n.keys():
             if (requested_dims[i] + 1) > self.dims_n.get(i, 0):
-                raise ValueError(f"Requested frame in dimension {str(i)} "
-                                 f"doesn't exist")
+                raise ValueError(f"Requested frame in dimension {str(i)} doesn't exist")
 
         if isinstance(self.filename, (str, bytes, os.PathLike)):
             image = open(self.filename, "rb")
         elif isinstance(self.filename, io.IOBase):
             image = self.filename
         else:
-            raise TypeError(
-                f"expected str, bytes, os.PathLike, or io.IOBase, "
-                f"not {type(self.filename)}"
-            )
+            raise TypeError(f"expected str, bytes, os.PathLike, or io.IOBase, not {type(self.filename)}")
 
         # Read the specified data into the buffer
         with open(self.filename, "rb") as image:
@@ -260,8 +261,7 @@ class LifImage:
             key_idx = range(0, len(dim_len))  # For calculations below
 
             # Note, this does not include the first dim, need to index i - 1 later
-            precalc_dim_prod = tuple([reduce(lambda x, y: x * y, dim_len[:i])
-                                      for i in key_idx if len(dim_len[:i]) > 0])
+            precalc_dim_prod = tuple([reduce(lambda x, y: x * y, dim_len[:i]) for i in key_idx if len(dim_len[:i]) > 0])
 
             # Define the size of the plane to return
             total_len = self.dims_n[display_dims[0]] * self.dims_n[display_dims[1]]
@@ -318,18 +318,15 @@ class LifImage:
         # len(data) is the number of bytes (8-bit)
         # However, it is safer to let the lif file tell us the resolution
         if self.bit_depth[0] == 8:
-            return Image.frombytes("L",
-                                   (self.dims_n[display_dims[0]],
-                                    self.dims_n[display_dims[1]]),
-                                   data)
+            return Image.frombytes("L", (self.dims_n[display_dims[0]], self.dims_n[display_dims[1]]), data)
         elif self.bit_depth[0] <= 16:
-            return Image.frombytes("I;16",
-                                   (self.dims_n[display_dims[0]],
-                                    self.dims_n[display_dims[1]]),
-                                   data)
+            return Image.frombytes(
+                "I;16",
+                (self.dims_n[display_dims[0]], self.dims_n[display_dims[1]]),
+                data,
+            )
         else:
-            raise ValueError("Unknown bit-depth, please submit a bug report"
-                             " on Github")
+            raise ValueError("Unknown bit-depth, please submit a bug report on Github")
 
     def get_frame(self, z=0, t=0, c=0, m=0):
         """
@@ -345,8 +342,7 @@ class LifImage:
             Pillow Image object
         """
         if self.display_dims != (1, 2):
-            raise ValueError("Atypical imaging experiment, please use "
-                             "get_plane() instead of get_frame()")
+            raise ValueError("Atypical imaging experiment, please use get_plane() instead of get_frame()")
 
         t = int(t)
         c = int(c)
@@ -468,7 +464,7 @@ class LifImage:
 
 def _read_long(handle):
     """Reads eight bytes, returns the long (Private)."""
-    long_data, = struct.unpack("Q", handle.read(8))
+    (long_data,) = struct.unpack("Q", handle.read(8))
     return long_data
 
 
@@ -489,8 +485,7 @@ def _check_magic(handle, bool_return=False):
     else:
         if not bool_return:
             handle.close()
-            raise ValueError("This is probably not a LIF file. "
-                             "Expected LIF magic byte at " + str(handle.tell()))
+            raise ValueError("This is probably not a LIF file. Expected LIF magic byte at " + str(handle.tell()))
         else:
             return False
 
@@ -508,7 +503,7 @@ def _check_mem(handle, bool_return=False):
 
 def _read_int(handle):
     """Reads four bytes, returns the int (Private)."""
-    int_data, = struct.unpack("I", handle.read(4))
+    (int_data,) = struct.unpack("I", handle.read(4))
     return int_data
 
 
@@ -564,9 +559,7 @@ class LifFile:
             children = tree.findall("./Element")
         for item in children:
             has_sub_children = len(item.findall("./Children/Element/Data")) > 0
-            is_image = (
-                len(item.findall("./Data/Image")) > 0
-            )
+            is_image = len(item.findall("./Data/Image")) > 0
 
             # Check to see if the Memblock idnetified in the XML actually has a size,
             # otherwise it won't have an offset
@@ -597,16 +590,13 @@ class LifFile:
             # This finds empty folders
             has_sub_children = len(item.findall("./Children/Element/Data")) > 0
 
-            is_image = (
-                len(item.findall("./Data/Image")) > 0
-            )
+            is_image = len(item.findall("./Data/Image")) > 0
 
             if is_image:
                 # If additional XML data extraction is needed, add it here.
 
                 # Find the dimensions, get them in order
-                dims = item.findall("./Data/Image/ImageDescription/"
-                                    "Dimensions/")
+                dims = item.findall("./Data/Image/ImageDescription/Dimensions/")
 
                 # Get first two dims, if that fails, set X, Y
                 # Todo: Check a 1-d image
@@ -617,9 +607,7 @@ class LifFile:
                     dim1 = 1
                     dim2 = 2
 
-                dims_dict = {int(d.attrib["DimID"]):
-                             int(d.attrib["NumberOfElements"])
-                             for d in dims}
+                dims_dict = {int(d.attrib["DimID"]): int(d.attrib["NumberOfElements"]) for d in dims}
 
                 # Get the scale from each image
                 scale_dict = {}
@@ -632,27 +620,26 @@ class LifFile:
                         # other conversion factor for times needed
                         # returns scale in frames per second
                         if dim_n == 4:
-                            scale_dict[dim_n] = ((int(dims_dict[dim_n]) - 1)
-                                                 / float(len_n))
+                            scale_dict[dim_n] = (int(dims_dict[dim_n]) - 1) / float(len_n)
                         # Convert from meters to micrometers
                         else:
-                            scale_dict[dim_n] = ((int(dims_dict[dim_n]) - 1)
-                                                 / (float(len_n) * 10**6))
+                            scale_dict[dim_n] = (int(dims_dict[dim_n]) - 1) / (float(len_n) * 10**6)
                     except (AttributeError, ZeroDivisionError):
                         scale_dict[dim_n] = None
 
                 # Hack-y fix to determine if the channel dimension cones after Z
                 # Check if there even is a z dimension
                 if 3 in dims_dict.keys() and len(dims) > 2:
-                    channels = item.findall("./Data/Image/ImageDescription/"
-                                            "Channels/ChannelDescription")
+                    channels = item.findall("./Data/Image/ImageDescription/Channels/ChannelDescription")
                     channel_max = sum([int(c.attrib["BytesInc"]) for c in channels])
 
                     bytes_inc_channel = channel_max
                     cytes_inc_z = int(dims[2].attrib["BytesInc"])
 
                     channel_as_second_dim = bytes_inc_channel > cytes_inc_z
-                    channel_as_second_dim = False  # EDIT this check did not work for my example files. Disabling it for now
+                    channel_as_second_dim = (
+                        False  # EDIT this check did not work for my example files. Disabling it for now
+                    )
 
                 else:
                     channel_as_second_dim = False
@@ -687,13 +674,10 @@ class LifFile:
                 scale_t = scale_dict.get(4, None)
 
                 # Determine number of channels
-                channel_list = item.findall(
-                    "./Data/Image/ImageDescription/Channels/ChannelDescription"
-                )
+                channel_list = item.findall("./Data/Image/ImageDescription/Channels/ChannelDescription")
                 n_channels = int(len(channel_list))
                 # Iterate over each channel, get the resolution
-                bit_depth = tuple([int(c.attrib["Resolution"]) for
-                                   c in channel_list])
+                bit_depth = tuple([int(c.attrib["Resolution"]) for c in channel_list])
 
                 # Get the position data if the image is tiled
                 m_pos_list = []
@@ -720,13 +704,13 @@ class LifFile:
                     "dims_n": dims_dict,
                     "scale_n": scale_dict,
                     "path": str(path + "/"),
-                    "name": '/'.join((str(path + "/") + item.attrib["Name"]).split("/")[1:]),
+                    "name": "/".join((str(path + "/") + item.attrib["Name"]).split("/")[1:]),
                     "channels": n_channels,
                     "scale": (scale_x, scale_y, scale_z, scale_t),
                     "bit_depth": bit_depth,
                     "mosaic_position": m_pos_list,
                     "channel_as_second_dim": channel_as_second_dim,
-                    "settings": settings
+                    "settings": settings,
                     # "metadata_xml": item
                 }
 
@@ -746,10 +730,7 @@ class LifFile:
         elif isinstance(filename, io.IOBase):
             f = filename
         else:
-            raise TypeError(
-                f"expected str, bytes, os.PathLike, or io.IOBase, "
-                f"not {type(filename)}"
-            )
+            raise TypeError(f"expected str, bytes, os.PathLike, or io.IOBase, not {type(filename)}")
         f_len = _get_len(f)
 
         _check_magic(f)  # read 4 byte, check for magic bytes
@@ -788,9 +769,10 @@ class LifFile:
             except ValueError:
                 if _check_truncated(f):
                     truncation_begin = f.tell()
-                    warnings.warn("LIF file is likely truncated. Be advised, "
-                                  "it appears that some images are blank. ",
-                                  UserWarning)
+                    warnings.warn(
+                        "LIF file is likely truncated. Be advised, it appears that some images are blank. ",
+                        UserWarning,
+                    )
                     truncated = True
                     f.seek(0, 2)
 
@@ -817,22 +799,23 @@ class LifFile:
             is_image_bool_list = self._recursive_memblock_is_image(self.xml_root)
             if False in is_image_bool_list:
                 from itertools import compress
+
                 self.offsets = list(compress(self.offsets, is_image_bool_list))
 
         if len(self.image_list) != len(self.offsets) and not truncated:
-            raise ValueError("Number of images is not equal to number of "
-                             "offsets, and this file does not appear to "
-                             "be truncated. Something has gone wrong.")
+            raise ValueError(
+                "Number of images is not equal to number of "
+                "offsets, and this file does not appear to "
+                "be truncated. Something has gone wrong."
+            )
         else:
             self.num_images = len(self.image_list)
 
     def __repr__(self):
         if self.num_images == 1:
-            return repr('LifFile object with ' + str(self.num_images)
-                        + ' image')
+            return repr("LifFile object with " + str(self.num_images) + " image")
         else:
-            return repr('LifFile object with ' + str(self.num_images)
-                        + ' images')
+            return repr("LifFile object with " + str(self.num_images) + " images")
 
     def get_image(self, img_n=0):
         """
@@ -872,13 +855,14 @@ class LifFile:
 
 if __name__ == "__main__":
     import numpy as np
+
     new = LifFile("/home/richard/.local/share/saenopy/PaperData.lif")
     print([(im.info["path"], im.info["name"], im.channels, im.dims) for im in new.get_iter_image()])
     im = new.get_image(0)
     print(im.dims.z)
     print(im.channel_as_second_dim)
     print(im.channels)
-    #exit()
+    # exit()
     for z in range(0, 10):
         plt.imsave(f"tmp{z}.png", np.asarray(im.get_frame(z, 0, 1)))
     exit()

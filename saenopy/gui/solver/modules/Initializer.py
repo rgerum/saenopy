@@ -11,12 +11,12 @@ from saenopy.gui.common.code_export import get_code, export_as_string
 
 
 class Initializer(PipelineModule):
-
     def get_code(self) -> Tuple[str, str]:
         import_code = ""
 
         if self.result.time_delta is None:
             if self.result.stack_reference is not None:
+
                 @export_as_string
                 def code(filename, reference_stack1, output1, voxel_size1, result_file, crop1):  # pragma: no cover
                     # load the relaxed and the contracted stack
@@ -31,7 +31,8 @@ class Initializer(PipelineModule):
                         output_path=output1,
                         voxel_size=voxel_size1,
                         crop=crop1,
-                        load_existing=True)
+                        load_existing=True,
+                    )
                     # or if you want to explicitly load existing results files
                     # use * to load multiple result files for batch processing
                     # results = saenopy.load_results(result_file)
@@ -46,8 +47,17 @@ class Initializer(PipelineModule):
                 )
         else:
             if self.result.stack_reference is not None:
+
                 @export_as_string
-                def code(filename, reference_stack1, output1, voxel_size1, time_delta1, result_file, crop1):  # pragma: no cover
+                def code(
+                    filename,
+                    reference_stack1,
+                    output1,
+                    voxel_size1,
+                    time_delta1,
+                    result_file,
+                    crop1,
+                ):  # pragma: no cover
                     # load the relaxed and the contracted stack
                     # {z} is the placeholder for the z stack
                     # {c} is the placeholder for the channels
@@ -61,7 +71,8 @@ class Initializer(PipelineModule):
                         voxel_size=voxel_size1,
                         time_delta=time_delta1,
                         crop=crop1,
-                        load_existing=True)
+                        load_existing=True,
+                    )
                     # or if you want to explicitly load existing results files
                     # use * to load multiple result files for batch processing
                     # results = saenopy.load_results(result_file)
@@ -76,6 +87,7 @@ class Initializer(PipelineModule):
                     time_delta1=self.result.time_delta,
                 )
             else:
+
                 @export_as_string
                 def code(filename, output1, voxel_size1, time_delta1, result_file, crop1):  # pragma: no cover
                     # load the relaxed and the contracted stack
@@ -90,7 +102,8 @@ class Initializer(PipelineModule):
                         voxel_size=voxel_size1,
                         time_delta=time_delta1,
                         crop=crop1,
-                        load_existing=True)
+                        load_existing=True,
+                    )
                     # or if you want to explicitly load existing results files
                     # use * to load multiple result files for batch processing
                     # results = saenopy.load_results(result_file)

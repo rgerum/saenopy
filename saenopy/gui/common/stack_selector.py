@@ -22,7 +22,6 @@ class StackSelector(QtWidgets.QWidget):
 
         self.settings = QtCore.QSettings("Saenopy", "Saenopy")
 
-
         main_layout = QtWidgets.QVBoxLayout(self)
         main_layout.setContentsMargins(0, 0, 0, 0)
 
@@ -30,9 +29,15 @@ class StackSelector(QtWidgets.QWidget):
         if self._open_dir is None:
             self._open_dir = ""
 
-        self.input_filename = QtShortCuts.QInputFilename(main_layout, name, self._open_dir, existing=True,
-                                                         settings=self.settings, settings_key=self.name,
-                                                         file_type="images (*.tif *.jpg *.png *.lif)")
+        self.input_filename = QtShortCuts.QInputFilename(
+            main_layout,
+            name,
+            self._open_dir,
+            existing=True,
+            settings=self.settings,
+            settings_key=self.name,
+            file_type="images (*.tif *.jpg *.png *.lif)",
+        )
 
         self.input_filename.valueChanged.connect(self.file_changed)
 
@@ -60,7 +65,11 @@ class StackSelector(QtWidgets.QWidget):
             new_path = Path(new_path)
             tifffile.imsave(new_path.parent / (new_path.stem + "_relaxed.tif"), self.im)
             tifffile.imsave(new_path.parent / (new_path.stem + "_deformed.tif"), self.partner.im)
-            imageio.mimsave(new_path.parent / (new_path.stem + ".gif"), [self.partner.im, self.im], fps=2)
+            imageio.mimsave(
+                new_path.parent / (new_path.stem + ".gif"),
+                [self.partner.im, self.im],
+                fps=2,
+            )
 
     def setImage(self, im):
         self.im = im

@@ -39,14 +39,23 @@ class TabForces(TabModule):
                     self.tab.parent().plotter = self.plotter
                     layout.addWidget(self.plotter.interactor)
 
-                    self.z_slider = QTimeSlider("z", self.z_slider_value_changed, "set z position",
-                                                QtCore.Qt.Vertical).addToLayout()
+                    self.z_slider = QTimeSlider(
+                        "z",
+                        self.z_slider_value_changed,
+                        "set z position",
+                        QtCore.Qt.Vertical,
+                    ).addToLayout()
                     self.z_slider.t_slider.valueChanged.connect(
-                        lambda value: parent.shared_properties.change_property("z_slider", value, self))
+                        lambda value: parent.shared_properties.change_property("z_slider", value, self)
+                    )
                     parent.shared_properties.add_property("z_slider", self)
 
-                self.vtk_toolbar = VTK_Toolbar(self.plotter, self.update_display, center=True,
-                                               shared_properties=self.parent.shared_properties).addToLayout()
+                self.vtk_toolbar = VTK_Toolbar(
+                    self.plotter,
+                    self.update_display,
+                    center=True,
+                    shared_properties=self.parent.shared_properties,
+                ).addToLayout()
 
                 self.t_slider = QTimeSlider(connected=self.update_display).addToLayout()
                 self.tab.parent().t_slider = self.t_slider
@@ -76,8 +85,9 @@ class TabForces(TabModule):
             self.z_slider.setValue(self.result.stacks[0].shape[2] // 2)
 
             if result.stacks[0].channels:
-                self.vtk_toolbar.channel_select.setValues(np.arange(len(result.stacks[0].channels)),
-                                                          result.stacks[0].channels)
+                self.vtk_toolbar.channel_select.setValues(
+                    np.arange(len(result.stacks[0].channels)), result.stacks[0].channels
+                )
                 self.vtk_toolbar.channel_select.setVisible(True)
             else:
                 self.vtk_toolbar.channel_select.setValue(0)
@@ -96,7 +106,8 @@ class TabForces(TabModule):
             M = self.result.solvers[self.t_slider.value()]
             mesh = M.mesh
             self.plotter.interactor.setToolTip(
-                str(self.result.solve_parameters) + f"\nNodes {mesh.nodes.shape[0]}\nTets {mesh.tetrahedra.shape[0]}")
+                str(self.result.solve_parameters) + f"\nNodes {mesh.nodes.shape[0]}\nTets {mesh.tetrahedra.shape[0]}"
+            )
             center = None
             center_color = "m"
             if self.vtk_toolbar.use_center.value() == 1:
@@ -116,13 +127,23 @@ class TabForces(TabModule):
             else:
                 f = -M.mesh.forces
 
-            showVectorField(self.plotter, M.mesh, f, "forces", center=center, center_color=center_color,
-                            factor=0.15 * self.vtk_toolbar.arrow_scale.value(),
-                            colormap=self.vtk_toolbar.colormap_chooser.value(),
-                            colormap2=self.vtk_toolbar.colormap_chooser2.value(),
-                            scalebar_max=self.vtk_toolbar.getScaleMax(), show_nan=self.vtk_toolbar.use_nans.value(),
-                            display_image=display_image, show_grid=self.vtk_toolbar.show_grid.value(),
-                            stack_shape=stack_shape, log_scale=self.vtk_toolbar.use_log.value())
+            showVectorField(
+                self.plotter,
+                M.mesh,
+                f,
+                "forces",
+                center=center,
+                center_color=center_color,
+                factor=0.15 * self.vtk_toolbar.arrow_scale.value(),
+                colormap=self.vtk_toolbar.colormap_chooser.value(),
+                colormap2=self.vtk_toolbar.colormap_chooser2.value(),
+                scalebar_max=self.vtk_toolbar.getScaleMax(),
+                show_nan=self.vtk_toolbar.use_nans.value(),
+                display_image=display_image,
+                show_grid=self.vtk_toolbar.show_grid.value(),
+                stack_shape=stack_shape,
+                log_scale=self.vtk_toolbar.use_log.value(),
+            )
             if cam_pos is not None:
                 self.plotter.camera_position = cam_pos
         else:
