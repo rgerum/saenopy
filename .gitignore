@@ -21,3 +21,4 @@ poetry.lock
 .hypothesis/
 /test/tmp/
 /test/tmp2/
+.env.*

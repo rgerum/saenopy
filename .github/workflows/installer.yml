@@ -100,7 +100,7 @@ jobs:
           TAG: v1.0.7
 
   build-mac:
-    runs-on: macos-latest
+    runs-on: macos-14
 
     steps:
     - uses: actions/checkout@v4
@@ -124,15 +124,55 @@ jobs:
         poetry install --with dev
         poetry run python saenopy/add_source.py
 
+    - name: Import Apple signing certificate
+      shell: bash
+      env:
+        MACOS_CERTIFICATE: ${{ secrets.MACOS_CERTIFICATE }}
+        MACOS_CERTIFICATE_PWD: ${{ secrets.MACOS_CERTIFICATE_PWD }}
+        KEYCHAIN_PWD: ${{ secrets.KEYCHAIN_PWD }}
+      run: |
+        echo "$MACOS_CERTIFICATE" | base64 --decode > certificate.p12
+        security create-keychain -p "$KEYCHAIN_PWD" build.keychain
+        security default-keychain -s build.keychain
+        security unlock-keychain -p "$KEYCHAIN_PWD" build.keychain
+        security import certificate.p12 -k build.keychain -P "$MACOS_CERTIFICATE_PWD" -T /usr/bin/codesign
+        security set-key-partition-list -S apple-tool:,apple: -s -k "$KEYCHAIN_PWD" build.keychain
+
     - name: Build executable with PyInstaller
       shell: bash
       run: |
         poetry run pyinstaller --clean -y --dist output/saenopy_run --windowed --add-data "saenopy/img:saenopy/img" saenopy/gui/gui_master.py
-        mv output/saenopy_run/gui_master.app output/saenopy_run/saenopy_mac.app     
-        cd output/saenopy_run
-        zip -r saenopy_mac.app.zip saenopy_mac.app
-        cd ../../
-        
+        mv output/saenopy_run/gui_master.app output/saenopy_run/saenopy_mac.app
+
+    - name: Sign macOS app
+      shell: bash
+      env:
+        DEVELOPER_ID_APPLICATION: ${{ secrets.DEVELOPER_ID_APPLICATION }}
+      run: |
+        codesign --force --deep --options runtime --timestamp \
+          --entitlements .github/macos/entitlements.plist \
+          --sign "$DEVELOPER_ID_APPLICATION" \
+          output/saenopy_run/saenopy_mac.app
+        codesign --verify --deep --strict --verbose=2 output/saenopy_run/saenopy_mac.app
+
+    - name: Notarize macOS app
+      shell: bash
+      env:
+        APPLE_ID: ${{ secrets.APPLE_ID }}
+        APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+        APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+      run: |
+        ditto -c -k --keepParent output/saenopy_run/saenopy_mac.app output/saenopy_run/saenopy_mac.notary.zip
+        xcrun notarytool submit output/saenopy_run/saenopy_mac.notary.zip \
+          --apple-id "$APPLE_ID" \
+          --password "$APPLE_APP_SPECIFIC_PASSWORD" \
+          --team-id "$APPLE_TEAM_ID" \
+          --wait
+        xcrun stapler staple output/saenopy_run/saenopy_mac.app
+        xcrun stapler validate output/saenopy_run/saenopy_mac.app
+        rm output/saenopy_run/saenopy_mac.notary.zip
+        ditto -c -k --keepParent output/saenopy_run/saenopy_mac.app output/saenopy_run/saenopy_mac.app.zip
+
     - uses: actions/upload-artifact@v4
       with:
         name: saenopy_mac
