@@ -51,5 +51,9 @@ jobs:
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
           git add public/docs
+          if git diff --cached --quiet; then
+            echo "No documentation changes to deploy."
+            exit 0
+          fi
           git commit -m "Update documentation"
           git push origin main  # Change this to the appropriate branch if needed
