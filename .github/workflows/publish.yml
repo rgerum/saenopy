@@ -9,8 +9,16 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
-    - name: Build and publish to pypi
-      uses: JRubics/poetry-publish@v1.13
+    - uses: actions/checkout@v6
+    - name: Install uv
+      uses: astral-sh/setup-uv@v7
       with:
-        pypi_token: ${{ secrets.PYPI_TOKEN }}
+        enable-cache: true
+    - name: Set up Python
+      run: uv python install 3.12
+    - name: Build package
+      run: uv build
+    - name: Publish to PyPI
+      run: uv publish --token "$PYPI_TOKEN"
+      env:
+        PYPI_TOKEN: ${{ secrets.PYPI_TOKEN }}

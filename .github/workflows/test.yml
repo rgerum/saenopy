@@ -2,30 +2,34 @@ name: PyTest
 
 # Controls when the workflow will run
 on:
-  # Triggers the workflow on push or pull request events but only for the "master" branch
+  # Triggers the workflow on push or pull request events
   push:
-    branches: [ "master" ]
+    branches: [ "**" ]
   pull_request:
-    branches: [ "master" ]
+    branches: [ "**" ]
+    types: [ opened, synchronize, reopened ]
+  workflow_dispatch:
 
 jobs:
   test:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: pyvista/setup-headless-display-action@v3
         with:
           qt: true
           pyvista: false
-      - run: pipx install poetry
-      - uses: actions/setup-python@v5
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
         with:
-          python-version: '3.12'
-          cache: 'poetry'
-      - run: poetry install --with dev
+          enable-cache: true
+      - name: Set up Python
+        run: uv python install 3.12
+      - run: uv sync --locked --python 3.12 --all-extras --dev
       - run: |
-          poetry run coverage run -m pytest
-      - run: poetry run coveralls
+          uv run coverage run -m pytest --durations=10 --durations-min=1 -o faulthandler_timeout=120
+        timeout-minutes: 10
+      - run: uv run coveralls
         env:
           GITHUB_TOKEN: ${{ secrets.COVERALLS_REPO_TOKEN }}
