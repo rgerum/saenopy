@@ -22,10 +22,61 @@
 import colorsys
 import os
 
-import matplotlib as mpl
 from typing import Tuple
 import numpy as np
 from qtpy import QtCore, QtGui, QtWidgets
+
+
+def _mpl():
+    import matplotlib as mpl
+    return mpl
+
+
+def _plt():
+    import matplotlib.pyplot as plt
+    return plt
+
+
+_custom_colormaps_registered = False
+
+
+def ensure_custom_colormaps():
+    global _custom_colormaps_registered
+    if _custom_colormaps_registered:
+        return
+    _custom_colormaps_registered = True
+
+    from matplotlib.colors import LinearSegmentedColormap
+
+    mpl = _mpl()
+
+    def add_colormap(name, color1, color2):
+        r1, g1, b1 = color1
+        r2, g2, b2 = color2
+        mpl.colormaps.register(LinearSegmentedColormap(name,
+                                                       {'red': ((0, r1, r1), (1, r2, r2)),
+                                                        'green': ((0, g1, g1), (1, g2, g2)),
+                                                        'blue': ((0, b1, b1), (1, b2, b2))}))
+        mpl.colormaps.register(LinearSegmentedColormap(name + "_r",
+                                                       {'red': ((0, r2, r2), (1, r1, r1)),
+                                                        'green': ((0, g2, g2), (1, g1, g1)),
+                                                        'blue': ((0, b2, b2), (1, b1, b1))}))
+
+    try:
+        add_colormap("red", (0, 0, 0), (1, 0, 0))
+        add_colormap("orange", (0, 0, 0), (1, 0.5, 0))
+        add_colormap("yellow", (0, 0, 0), (1, 1, 0))
+        add_colormap("lime", (0, 0, 0), (0.5, 1, 0))
+        add_colormap("green", (0, 0, 0), (0, 1, 0))
+        add_colormap("mint", (0, 0, 0), (0, 1, 0.5))
+        add_colormap("cyan", (0, 0, 0), (0, 1, 1))
+        add_colormap("navy", (0, 0, 0), (0, 0.5, 1))
+        add_colormap("blue", (0, 0, 0), (0, 0, 1))
+        add_colormap("purple", (0, 0, 0), (0.5, 0, 1))
+        add_colormap("magenta", (0, 0, 0), (1, 0, 1))
+        add_colormap("grape", (0, 0, 0), (1, 0, 0.5))
+    except ValueError:
+        pass
 
 
 def setCurrentLayout(layout):
@@ -555,6 +606,7 @@ class QInputColor(QInput):
 
     def _openDialog(self):
         # get new color from color picker
+        mpl = _mpl()
         color = QtWidgets.QColorDialog.getColor(QtGui.QColor(*tuple(mpl.colors.to_rgba_array(self.value())[0] * 255)),
                                                 self.parent(), self.label.text() + " choose color")
         # if a color is set, apply it
@@ -1091,7 +1143,6 @@ for index, (color, sat, val) in enumerate(zip(colors, saturations, value)):
         QtWidgets.QColorDialog.setStandardColor(index, color_integer)  # for Qt4
 
 
-import matplotlib.pyplot as plt
 class ColorMapChoose(QtWidgets.QDialog):
     """ A dialog to select a colormap """
     result = ""
@@ -1112,6 +1163,8 @@ class ColorMapChoose(QtWidgets.QDialog):
         self.input_invert.valueChanged.connect(self.set_invert)
         button_layout.addWidget(self.button_cancel)
 
+        ensure_custom_colormaps()
+        plt = _plt()
         self.maps = plt.colormaps()
         self.buttons = []
         self.setWindowTitle("Select colormap")
@@ -1178,8 +1231,8 @@ class ColorMapChoose(QtWidgets.QDialog):
 
     def getBackground(self, color: str) -> str:
         """ convert a colormap to a gradient background """
-        import matplotlib.pyplot as plt
-        import matplotlib as mpl
+        plt = _plt()
+        mpl = _mpl()
         try:
             cmap = plt.get_cmap(color)
         except:
@@ -1206,7 +1259,8 @@ class QDragableColor(QtWidgets.QLabel):
     def __init__(self, value: str):
         """ initialize with a color """
         super().__init__(value)
-        import matplotlib.pyplot as plt
+        ensure_custom_colormaps()
+        plt = _plt()
         self.maps = plt.colormaps()
         self.setAlignment(QtCore.Qt.AlignHCenter)
         self.setColor(value, True)
@@ -1214,6 +1268,8 @@ class QDragableColor(QtWidgets.QLabel):
     def getBackground(self) -> str:
         """ get the background of the color button """
 
+        plt = _plt()
+        mpl = _mpl()
         try:
             cmap = plt.get_cmap(self.color)
         except:
@@ -1265,6 +1321,7 @@ class QDragableColor(QtWidgets.QLabel):
             self.setColor(colormap)
         else:
             # get new color from color picker
+            mpl = _mpl()
             qcolor = QtGui.QColor(*tuple(int(x * 255) for x in mpl.colors.to_rgb(self.getColor())))
             color = QtWidgets.QColorDialog.getColor(qcolor, self.parent())
             # if a color is set, apply it
@@ -1272,35 +1329,6 @@ class QDragableColor(QtWidgets.QLabel):
                 color = "#%02x%02x%02x" % color.getRgb()[:3]
                 self.setColor(color)
                 self.color_changed_by_color_picker.emit(True)
-
-
-import matplotlib as mpl
-import matplotlib.pyplot as plt
-from matplotlib.colors import LinearSegmentedColormap
-def add_colormap(name, color1, color2):
-    r1, g1, b1 = color1
-    r2, g2, b2 = color2
-    mpl.colormaps.register(LinearSegmentedColormap(name,
-                                                   {'red': ((0,r1,r1),(1,r2,r2)), 'green': ((0,g1,g1),(1,g2,g2)),
-                                                    'blue': ((0,b1,b1),(1,b2,b2))}))
-    mpl.colormaps.register(LinearSegmentedColormap(name+"_r",
-                                                   {'red': ((0,r2,r2),(1,r1,r1)), 'green': ((0,g2,g2),(1,g1,g1)),
-                                                    'blue': ((0,b2,b2),(1,b1,b1))}))
-try:
-    add_colormap("red", (0, 0, 0), (1, 0, 0))
-    add_colormap("orange", (0, 0, 0), (1, 0.5, 0))
-    add_colormap("yellow", (0, 0, 0), (1, 1, 0))
-    add_colormap("lime", (0, 0, 0), (0.5, 1, 0))
-    add_colormap("green", (0, 0, 0), (0, 1, 0))
-    add_colormap("mint", (0, 0, 0), (0, 1, 0.5))
-    add_colormap("cyan", (0, 0, 0), (0, 1, 1))
-    add_colormap("navy", (0, 0, 0), (0, 0.5, 1))
-    add_colormap("blue", (0, 0, 0), (0, 0, 1))
-    add_colormap("purple", (0, 0, 0), (0.5, 0, 1))
-    add_colormap("magenta", (0, 0, 0), (1, 0, 1))
-    add_colormap("grape", (0, 0, 0), (1, 0, 0.5))
-except:
-    print ("Did not update colormaps since colormaps with identical names already existing. ")
 
 class SuperQLabel(QtWidgets.QLabel):
     def __init__(self, *args, **kwargs):
@@ -1320,4 +1348,3 @@ class SuperQLabel(QtWidgets.QLabel):
 
             self.style().drawItemText(painter, self.rect(),
                                       self.textalignment, self.palette(), True, self.text())
-
