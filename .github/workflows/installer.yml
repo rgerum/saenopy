@@ -214,25 +214,6 @@ jobs:
           "output/saenopy_run/Saenopy-mac.dmg" \
           "output/saenopy_run/Saenopy.app"
 
-    - name: Sign macOS DMG
-      shell: bash
-      env:
-        DEVELOPER_ID_APPLICATION: ${{ secrets.DEVELOPER_ID_APPLICATION }}
-      run: |
-        codesign_with_retries() {
-          for attempt in 1 2 3 4 5; do
-            if codesign "$@"; then
-              return 0
-            fi
-            echo "codesign failed on attempt $attempt; retrying in $((attempt * 20)) seconds"
-            sleep $((attempt * 20))
-          done
-          codesign "$@"
-        }
-        codesign_with_retries --force --timestamp \
-          --sign "$DEVELOPER_ID_APPLICATION" \
-          output/saenopy_run/Saenopy-mac.dmg
-
     - name: Notarize macOS DMG
       shell: bash
       env:
