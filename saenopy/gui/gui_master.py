@@ -6,18 +6,8 @@ import traceback
 
 from qtpy import QtCore, QtWidgets, QtGui
 import multiprocessing
-# keep import for pyinstaller
-import skimage.exposure.exposure
-import skimage.filters.ridges
-import skimage.filters.thresholding
 
 from saenopy.gui.common import QtShortCuts
-from saenopy.gui.solver.gui_solver import MainWindowSolver as SolverMain
-from saenopy.gui.spheroid.gui_deformation_spheroid import MainWindow as SpheroidMain
-from saenopy.gui.orientation.gui_orientation import MainWindow as OrientationMain
-from saenopy.gui.code.gui_code import MainWindowCode
-from saenopy.gui.material_fit.gui_fit import MainWindowFit
-from saenopy.gui.tfm2d.gui_2d import MainWindow2D
 from saenopy.gui.common.resources import resource_path, resource_icon
 
 
@@ -128,9 +118,8 @@ class MainWindow(QtWidgets.QWidget):
                         InfoBox("2D TFM", lambda: self.setTab(5)).addToLayout()
                         layout2.addStretch()
                     layout.addStretch()
-                with self.tabs.createTab("Material Fit") as self.layout_code:
+                with self.tabs.createTab("Material Fit") as self.layout_fit:
                     QtShortCuts.currentLayout().setContentsMargins(0, 0, 0, 0)
-                    self.fitter = MainWindowFit().addToLayout()
 
                 with self.tabs.createTab("3D TFM") as self.layout_solver:
                     QtShortCuts.currentLayout().setContentsMargins(0, 0, 0, 0)
@@ -146,7 +135,6 @@ class MainWindow(QtWidgets.QWidget):
 
                 with self.tabs.createTab("Code") as self.layout_code:
                     QtShortCuts.currentLayout().setContentsMargins(0, 0, 0, 0)
-                    self.coder = MainWindowCode().addToLayout()
 
         #self.tabs.setCurrentIndex(self.settings.value("master_tab", 0))
         self.first_tab_change = False
@@ -159,26 +147,51 @@ class MainWindow(QtWidgets.QWidget):
     spheroid = None
     orientation = None
     pytfm2d = None
+    fitter = None
+    coder = None
+
     def changedTab(self, value):
         if self.first_tab_change is False:
             self.settings.setValue("master_tab", value)
 
+        if value == 1 and self.fitter is None:
+            profile_startup("material fit import started")
+            from saenopy.gui.material_fit.gui_fit import MainWindowFit
+            profile_startup("material fit import finished")
+            self.fitter = MainWindowFit().addToLayout(self.layout_fit)
         if value == 2 and self.solver is None:
+            profile_startup("3D TFM import started")
+            from saenopy.gui.solver.gui_solver import MainWindowSolver as SolverMain
+            profile_startup("3D TFM import finished")
             self.solver = SolverMain().addToLayout(self.layout_solver)
             self.setMinimumWidth(1600)
             self.setMinimumHeight(900)
         if value == 3 and self.spheroid is None:  # pragma: no cover
+            profile_startup("spheroid import started")
+            from saenopy.gui.spheroid.gui_deformation_spheroid import MainWindow as SpheroidMain
+            profile_startup("spheroid import finished")
             self.spheroid = SpheroidMain().addToLayout(self.layout_spheroid)
             self.setMinimumWidth(1600)
             self.setMinimumHeight(900)
         if value == 4 and self.orientation is None:  # pragma: no cover
+            profile_startup("orientation import started")
+            from saenopy.gui.orientation.gui_orientation import MainWindow as OrientationMain
+            profile_startup("orientation import finished")
             self.orientation = OrientationMain().addToLayout(self.layout_orientation)
             self.setMinimumWidth(1600)
             self.setMinimumHeight(900)
         if value == 5 and self.pytfm2d is None:  # pragma: no cover
+            profile_startup("2D TFM import started")
+            from saenopy.gui.tfm2d.gui_2d import MainWindow2D
+            profile_startup("2D TFM import finished")
             self.pytfm2d = MainWindow2D().addToLayout(self.layout_pytfm)
             self.setMinimumWidth(1600)
             self.setMinimumHeight(900)
+        if value == 6 and self.coder is None:
+            profile_startup("code editor import started")
+            from saenopy.gui.code.gui_code import MainWindowCode
+            profile_startup("code editor import finished")
+            self.coder = MainWindowCode().addToLayout(self.layout_code)
 
     def setTab(self, value):
         self.tabs.setCurrentIndex(value)
