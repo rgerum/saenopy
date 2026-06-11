@@ -11,7 +11,7 @@ _LAZY_ATTRIBUTES = {
     "subtract_reference_state": ("saenopy.solver", "subtract_reference_state"),
     "interpolate_mesh": ("saenopy.solver", "interpolate_mesh"),
     "get_stacks": ("saenopy.result_file", "get_stacks"),
-    "Result": ("saenopy.result_file", "Result"),
+    "Result": ("saenopy.solver", "Result"),
     "get_displacements_from_stacks": ("saenopy.get_deformations", "get_displacements_from_stacks"),
     "load_example": ("saenopy.examples", "load_example"),
     "render_image": ("saenopy.gui.solver.modules.exporter.Exporter", "render_image"),
@@ -22,11 +22,17 @@ _LAZY_MODULES = {
     "pyTFM": "saenopy.pyTFM",
 }
 
+_LAZY_PRELOADS = {
+    "get_stacks": "saenopy.solver",
+}
+
 __all__ = sorted([*_LAZY_ATTRIBUTES, *_LAZY_MODULES, "__version__"])
 
 
 def __getattr__(name):
     if name in _LAZY_ATTRIBUTES:
+        if name in _LAZY_PRELOADS:
+            importlib.import_module(_LAZY_PRELOADS[name])
         module_name, attribute_name = _LAZY_ATTRIBUTES[name]
         value = getattr(importlib.import_module(module_name), attribute_name)
         globals()[name] = value
