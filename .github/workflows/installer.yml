@@ -194,19 +194,15 @@ jobs:
           --apple-id "$APPLE_ID" \
           --password "$APPLE_APP_SPECIFIC_PASSWORD" \
           --team-id "$APPLE_TEAM_ID" \
+          --timeout 30m \
           --wait
         xcrun stapler staple output/saenopy_run/Saenopy.app
         xcrun stapler validate output/saenopy_run/Saenopy.app
         rm output/saenopy_run/Saenopy.notary.zip
         ditto -c -k --keepParent output/saenopy_run/Saenopy.app output/saenopy_run/Saenopy.app.zip
 
-    - name: Build and notarize macOS DMG
+    - name: Build macOS DMG
       shell: bash
-      env:
-        APPLE_ID: ${{ secrets.APPLE_ID }}
-        APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
-        APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-        DEVELOPER_ID_APPLICATION: ${{ secrets.DEVELOPER_ID_APPLICATION }}
       run: |
         create-dmg \
           --volname "Saenopy" \
@@ -217,6 +213,12 @@ jobs:
           --app-drop-link 425 190 \
           "output/saenopy_run/Saenopy-mac.dmg" \
           "output/saenopy_run/Saenopy.app"
+
+    - name: Sign macOS DMG
+      shell: bash
+      env:
+        DEVELOPER_ID_APPLICATION: ${{ secrets.DEVELOPER_ID_APPLICATION }}
+      run: |
         codesign_with_retries() {
           for attempt in 1 2 3 4 5; do
             if codesign "$@"; then
@@ -230,10 +232,19 @@ jobs:
         codesign_with_retries --force --timestamp \
           --sign "$DEVELOPER_ID_APPLICATION" \
           output/saenopy_run/Saenopy-mac.dmg
+
+    - name: Notarize macOS DMG
+      shell: bash
+      env:
+        APPLE_ID: ${{ secrets.APPLE_ID }}
+        APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+        APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+      run: |
         xcrun notarytool submit output/saenopy_run/Saenopy-mac.dmg \
           --apple-id "$APPLE_ID" \
           --password "$APPLE_APP_SPECIFIC_PASSWORD" \
           --team-id "$APPLE_TEAM_ID" \
+          --timeout 30m \
           --wait
         xcrun stapler staple output/saenopy_run/Saenopy-mac.dmg
         xcrun stapler validate output/saenopy_run/Saenopy-mac.dmg
