@@ -91,6 +91,19 @@ class SolverMesh(Mesh):
     connections: np.ndarray = None
     connections_valid = False
 
+    @classmethod
+    def from_dict(cls, data_dict):
+        if "forces_border" not in data_dict:
+            forces = data_dict.get("forces")
+            regularisation_mask = data_dict.get("regularisation_mask")
+            if forces is not None and regularisation_mask is not None:
+                data_dict["forces_border"] = forces.copy()
+                data_dict["forces_border"][regularisation_mask] = 0
+                data_dict["forces"][~regularisation_mask] = 0
+            else:
+                data_dict["forces_border"] = None
+        return super().from_dict(data_dict)
+
 class RegularisationParameterDict(TypedDict):
     step_size: float
     solver_precision: float
