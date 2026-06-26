@@ -1,6 +1,6 @@
 [project]
 name = "saenopy"
-version = "1.0.7"
+version = "1.0.8"
 description = "Semi-elastic fiber optimisation in python."
 authors = [
     { name = "rgerum", email = "14153051+rgerum@users.noreply.github.com" },
