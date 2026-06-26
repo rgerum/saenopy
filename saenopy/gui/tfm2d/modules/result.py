@@ -11,11 +11,16 @@ import traceback
 from typing import List, Tuple, TypedDict, Dict
 
 from saenopy.saveable import Saveable
-from saenopy.result_file import make_path_absolute
 from .draw import get_mask_using_gui
 
 from saenopy.pyTFM.plotting import plot_continuous_boundary_stresses
 from saenopy.pyTFM.plotting import show_quiver
+
+
+def make_path_absolute(template, output):
+    if not Path(template).is_absolute():
+        return str(Path(output).absolute() / template)
+    return str(Path(template).absolute())
 
 
 def read_tiff(image_filenames):
