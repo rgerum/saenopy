@@ -1,5 +1,7 @@
 import json
+import os
 import sys
+import time
 import traceback
 
 from qtpy import QtCore, QtWidgets, QtGui
@@ -17,6 +19,56 @@ from saenopy.gui.code.gui_code import MainWindowCode
 from saenopy.gui.material_fit.gui_fit import MainWindowFit
 from saenopy.gui.tfm2d.gui_2d import MainWindow2D
 from saenopy.gui.common.resources import resource_path, resource_icon
+
+
+PROFILE_STARTUP = os.environ.get("SAENOPY_PROFILE_STARTUP") == "1"
+PROFILE_EXIT_AFTER_SHOW = os.environ.get("SAENOPY_PROFILE_EXIT_AFTER_SHOW") == "1"
+START_TIME = time.perf_counter()
+RESULT_EXTENSIONS = (".saenopy", ".saenopy2D", ".saenopySpheroid", ".saenopyOrientation")
+
+
+def profile_startup(label):
+    if PROFILE_STARTUP:
+        print(f"[SAENOPY-STARTUP] {time.perf_counter() - START_TIME:.3f}s {label}", flush=True)
+
+
+def is_result_file(filename):
+    return filename.endswith(RESULT_EXTENSIONS)
+
+
+def is_existing_file(filename):
+    try:
+        return os.path.isfile(os.fspath(filename))
+    except TypeError:
+        return False
+
+
+def is_openable_file(filename):
+    if not is_existing_file(filename):
+        return False
+    filename = os.fspath(filename)
+    return filename.endswith(".json") or filename.endswith(".py") or is_result_file(filename)
+
+
+profile_startup("launch module imported")
+
+
+class SaenopyApplication(QtWidgets.QApplication):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.open_files = []
+        self.main_window = None
+
+    def event(self, event):
+        if event.type() == QtCore.QEvent.FileOpen:
+            path = event.file()
+            if path:
+                if self.main_window is None:
+                    self.open_files.append(path)
+                else:
+                    QtCore.QTimer.singleShot(0, lambda path=path: self.main_window.open_file(path))
+                return True
+        return super().event(event)
 
 
 class InfoBox(QtWidgets.QWidget):
@@ -114,43 +166,8 @@ class MainWindow(QtWidgets.QWidget):
         self.first_tab_change = False
 
         for file in sys.argv[1:]:
-            print(file)
-            if file.endswith(".json"):
-                try:
-                    with open(file, "r") as fp:
-                        data = json.load(fp)
-                    filename = data[0]["paths"][0]["path"]
-                    if filename.endswith(".saenopy"):
-                        self.setTab(2)
-                        self.solver.tabs.setCurrentIndex(1)
-                        self.solver.plotting_window.load(file)
-                    elif filename.endswith("saenopy2D"):
-                        self.setTab(5)
-                        self.pytfm2d.tabs.setCurrentIndex(1)
-                        self.pytfm2d.plotting_window.load(file)
-                    elif filename.endswith(".saenopySpheroid"):
-                        self.setTab(3)
-                        self.spheroid.tabs.setCurrentIndex(1)
-                        self.spheroid.plotting_window.load(file)
-                    elif filename.endswith(".saenopyOrientation"):
-                        self.setTab(4)
-                        self.orientation.tabs.setCurrentIndex(1)
-                        self.orientation.plotting_window.load(file)
-                    continue
-                except (IndexError, KeyError):
-                    continue
-            if file.endswith(".py"):
-                self.setTab(6)
-            elif file.endswith(".saenopy"):
-                self.setTab(2)
-            elif file.endswith(".saenopy2D"):
-                self.setTab(5)
-            elif file.endswith(".saenopySpheroid"):
-                self.setTab(3)
-            elif file.endswith(".saenopyOrientation"):
-                self.setTab(4)
-            else:
-                raise ValueError("Unknown file type")
+            if is_openable_file(file):
+                self.open_file(file)
 
     first_tab_change = True
     solver = None
@@ -181,24 +198,87 @@ class MainWindow(QtWidgets.QWidget):
     def setTab(self, value):
         self.tabs.setCurrentIndex(value)
 
+    def _open_analysis_session(self, file):
+        with open(file, "r") as fp:
+            data = json.load(fp)
+        filename = data[0]["paths"][0]["path"]
+        if filename.endswith(".saenopy"):
+            self.setTab(2)
+            self.solver.tabs.setCurrentIndex(1)
+            self.solver.plotting_window.load(file)
+        elif filename.endswith(".saenopy2D"):
+            self.setTab(5)
+            self.pytfm2d.tabs.setCurrentIndex(1)
+            self.pytfm2d.plotting_window.load(file)
+        elif filename.endswith(".saenopySpheroid"):
+            self.setTab(3)
+            self.spheroid.tabs.setCurrentIndex(1)
+            self.spheroid.plotting_window.load(file)
+        elif filename.endswith(".saenopyOrientation"):
+            self.setTab(4)
+            self.orientation.tabs.setCurrentIndex(1)
+            self.orientation.plotting_window.load(file)
+
+    def open_file(self, file):
+        if not is_openable_file(file):
+            return
+        file = os.fspath(file)
+        if file.endswith(".json"):
+            try:
+                self._open_analysis_session(file)
+                return
+            except (IndexError, KeyError, json.JSONDecodeError):
+                return
+        if file.endswith(".py"):
+            self.setTab(6)
+            self.coder.do_load(file)
+        elif is_result_file(file) and file.endswith(".saenopy"):
+            self.setTab(2)
+            self.solver.tabs.setCurrentIndex(1)
+            self.solver.plotting_window.add_files([file])
+        elif is_result_file(file) and file.endswith(".saenopy2D"):
+            self.setTab(5)
+            self.pytfm2d.tabs.setCurrentIndex(1)
+            self.pytfm2d.plotting_window.add_files([file])
+        elif is_result_file(file) and file.endswith(".saenopySpheroid"):
+            self.setTab(3)
+            self.spheroid.tabs.setCurrentIndex(1)
+            self.spheroid.plotting_window.add_files([file])
+        elif is_result_file(file) and file.endswith(".saenopyOrientation"):
+            self.setTab(4)
+            self.orientation.tabs.setCurrentIndex(1)
+            self.orientation.plotting_window.add_files([file])
+
 
 def main():  # pragma: no cover
-    app = QtWidgets.QApplication(sys.argv)
+    profile_startup("main entered")
+    app = SaenopyApplication(sys.argv)
+    profile_startup("QApplication created")
     if sys.platform.startswith('win'):
         import ctypes
         myappid = 'fabrylab.saenopy.master'  # arbitrary string
         ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
 
+    profile_startup("main window construction started")
     window = MainWindow()
+    app.main_window = window
+    for file in app.open_files:
+        QtCore.QTimer.singleShot(0, lambda file=file: window.open_file(file))
+    app.open_files.clear()
+    profile_startup("main window constructed")
     window.show()
-    try:
-        import pyi_splash
-        # Close the splash screen. It does not matter when the call
-        # to this function is made, the splash screen remains open until
-        # this function is called or the Python program is terminated.
-        pyi_splash.close()
-    except (ImportError, RuntimeError):
-        pass
+    profile_startup("main window shown")
+    if os.environ.get("_PYI_SPLASH_IPC"):
+        try:
+            import pyi_splash
+            # Close the splash screen. It does not matter when the call
+            # to this function is made, the splash screen remains open until
+            # this function is called or the Python program is terminated.
+            pyi_splash.close()
+        except (ImportError, RuntimeError):
+            pass
+    if PROFILE_EXIT_AFTER_SHOW:
+        QtCore.QTimer.singleShot(0, app.quit)
 
     from traceback import format_exception
     def except_hook(type_, value, tb):

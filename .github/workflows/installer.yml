@@ -105,6 +105,9 @@ jobs:
         uv sync --locked --python 3.12 --group dev
         uv run python saenopy/add_source.py
 
+    - name: Install DMG tooling
+      run: brew install create-dmg
+
     - name: Import Apple signing certificate
       shell: bash
       env:
@@ -122,19 +125,62 @@ jobs:
     - name: Build executable with PyInstaller
       shell: bash
       run: |
-        uv run pyinstaller --copy-metadata imageio --clean -y --dist output/saenopy_run --windowed --icon "saenopy/img/Icon.icns" --add-data "saenopy/img:saenopy/img" saenopy/gui/gui_master.py
-        mv output/saenopy_run/gui_master.app output/saenopy_run/saenopy_mac.app
+        uv run pyinstaller \
+          --copy-metadata imageio \
+          --clean -y \
+          --distpath output/saenopy_run \
+          --windowed \
+          --name "Saenopy" \
+          --osx-bundle-identifier "org.fabrylab.saenopy" \
+          --icon "saenopy/img/Icon.icns" \
+          --exclude-module PyQt5 \
+          --exclude-module PyQt6 \
+          --exclude-module PySide2 \
+          --exclude-module PySide6.QtWebEngineCore \
+          --exclude-module PySide6.QtWebEngineWidgets \
+          --add-data "saenopy/img:saenopy/img" \
+          saenopy/gui/gui_master.py
+
+    - name: Configure macOS app metadata
+      shell: bash
+      run: |
+        PLIST="output/saenopy_run/Saenopy.app/Contents/Info.plist"
+        /usr/libexec/PlistBuddy -c "Set :CFBundleDisplayName Saenopy" "$PLIST"
+        /usr/libexec/PlistBuddy -c "Set :CFBundleName Saenopy" "$PLIST"
+        /usr/libexec/PlistBuddy -c "Delete :CFBundleDocumentTypes" "$PLIST" || true
+        /usr/libexec/PlistBuddy -c "Add :CFBundleDocumentTypes array" "$PLIST"
+        for index in 0 1 2 3; do
+          /usr/libexec/PlistBuddy -c "Add :CFBundleDocumentTypes:$index dict" "$PLIST"
+          /usr/libexec/PlistBuddy -c "Add :CFBundleDocumentTypes:$index:CFBundleTypeName string Saenopy Result" "$PLIST"
+          /usr/libexec/PlistBuddy -c "Add :CFBundleDocumentTypes:$index:CFBundleTypeRole string Viewer" "$PLIST"
+          /usr/libexec/PlistBuddy -c "Add :CFBundleDocumentTypes:$index:LSHandlerRank string Owner" "$PLIST"
+          /usr/libexec/PlistBuddy -c "Add :CFBundleDocumentTypes:$index:CFBundleTypeExtensions array" "$PLIST"
+        done
+        /usr/libexec/PlistBuddy -c "Add :CFBundleDocumentTypes:0:CFBundleTypeExtensions:0 string saenopy" "$PLIST"
+        /usr/libexec/PlistBuddy -c "Add :CFBundleDocumentTypes:1:CFBundleTypeExtensions:0 string saenopy2D" "$PLIST"
+        /usr/libexec/PlistBuddy -c "Add :CFBundleDocumentTypes:2:CFBundleTypeExtensions:0 string saenopySpheroid" "$PLIST"
+        /usr/libexec/PlistBuddy -c "Add :CFBundleDocumentTypes:3:CFBundleTypeExtensions:0 string saenopyOrientation" "$PLIST"
 
     - name: Sign macOS app
       shell: bash
       env:
         DEVELOPER_ID_APPLICATION: ${{ secrets.DEVELOPER_ID_APPLICATION }}
       run: |
-        codesign --force --deep --options runtime --timestamp \
+        codesign_with_retries() {
+          for attempt in 1 2 3 4 5; do
+            if codesign "$@"; then
+              return 0
+            fi
+            echo "codesign failed on attempt $attempt; retrying in $((attempt * 20)) seconds"
+            sleep $((attempt * 20))
+          done
+          codesign "$@"
+        }
+        codesign_with_retries --force --deep --options runtime --timestamp \
           --entitlements .github/macos/entitlements.plist \
           --sign "$DEVELOPER_ID_APPLICATION" \
-          output/saenopy_run/saenopy_mac.app
-        codesign --verify --deep --strict --verbose=2 output/saenopy_run/saenopy_mac.app
+          output/saenopy_run/Saenopy.app
+        codesign --verify --deep --strict --verbose=2 output/saenopy_run/Saenopy.app
 
     - name: Notarize macOS app
       shell: bash
@@ -143,16 +189,54 @@ jobs:
         APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
         APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
       run: |
-        ditto -c -k --keepParent output/saenopy_run/saenopy_mac.app output/saenopy_run/saenopy_mac.notary.zip
-        xcrun notarytool submit output/saenopy_run/saenopy_mac.notary.zip \
+        ditto -c -k --keepParent output/saenopy_run/Saenopy.app output/saenopy_run/Saenopy.notary.zip
+        xcrun notarytool submit output/saenopy_run/Saenopy.notary.zip \
           --apple-id "$APPLE_ID" \
           --password "$APPLE_APP_SPECIFIC_PASSWORD" \
           --team-id "$APPLE_TEAM_ID" \
           --wait
-        xcrun stapler staple output/saenopy_run/saenopy_mac.app
-        xcrun stapler validate output/saenopy_run/saenopy_mac.app
-        rm output/saenopy_run/saenopy_mac.notary.zip
-        ditto -c -k --keepParent output/saenopy_run/saenopy_mac.app output/saenopy_run/saenopy_mac.app.zip
+        xcrun stapler staple output/saenopy_run/Saenopy.app
+        xcrun stapler validate output/saenopy_run/Saenopy.app
+        rm output/saenopy_run/Saenopy.notary.zip
+        ditto -c -k --keepParent output/saenopy_run/Saenopy.app output/saenopy_run/Saenopy.app.zip
+
+    - name: Build and notarize macOS DMG
+      shell: bash
+      env:
+        APPLE_ID: ${{ secrets.APPLE_ID }}
+        APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+        APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        DEVELOPER_ID_APPLICATION: ${{ secrets.DEVELOPER_ID_APPLICATION }}
+      run: |
+        create-dmg \
+          --volname "Saenopy" \
+          --window-pos 200 120 \
+          --window-size 600 400 \
+          --icon-size 100 \
+          --icon "Saenopy.app" 175 190 \
+          --app-drop-link 425 190 \
+          "output/saenopy_run/Saenopy-mac.dmg" \
+          "output/saenopy_run/Saenopy.app"
+        codesign_with_retries() {
+          for attempt in 1 2 3 4 5; do
+            if codesign "$@"; then
+              return 0
+            fi
+            echo "codesign failed on attempt $attempt; retrying in $((attempt * 20)) seconds"
+            sleep $((attempt * 20))
+          done
+          codesign "$@"
+        }
+        codesign_with_retries --force --timestamp \
+          --sign "$DEVELOPER_ID_APPLICATION" \
+          output/saenopy_run/Saenopy-mac.dmg
+        xcrun notarytool submit output/saenopy_run/Saenopy-mac.dmg \
+          --apple-id "$APPLE_ID" \
+          --password "$APPLE_APP_SPECIFIC_PASSWORD" \
+          --team-id "$APPLE_TEAM_ID" \
+          --wait
+        xcrun stapler staple output/saenopy_run/Saenopy-mac.dmg
+        xcrun stapler validate output/saenopy_run/Saenopy-mac.dmg
 
     - uses: actions/upload-artifact@v6
       with:
@@ -160,7 +244,7 @@ jobs:
         path: output/saenopy_run
 
     - name: Upload GitHub release assets
-      run: gh release upload $TAG output/saenopy_run/saenopy_mac.app.zip --clobber
+      run: gh release upload $TAG output/saenopy_run/Saenopy.app.zip output/saenopy_run/Saenopy-mac.dmg --clobber
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         TAG: v1.0.8
