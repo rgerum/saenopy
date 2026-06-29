@@ -10,6 +10,11 @@ from qimage2ndarray import array2qimage
 from saenopy.gui.common import QtShortCuts, QExtendedGraphicsView
 
 
+def _normalize_cursor_size(size):
+    """Return a positive integer brush size accepted by Pillow."""
+    return max(1, int(round(size)))
+
+
 class GraphicsItemEventFilter(QtWidgets.QGraphicsItem):
     def __init__(self, parent, command_object):
         super(GraphicsItemEventFilter, self).__init__(parent)
@@ -108,7 +113,7 @@ class DrawWindow(QtWidgets.QWidget):
         self.pixmap_mask.setOpacity(self.mask_opacity)
 
     def DrawLine(self, x1: float, x2: float, y1: float, y2: float, line_type: int = 1) -> None:
-        size = self.cursor_size
+        size = _normalize_cursor_size(self.cursor_size)
         if line_type == 0:
             color = 0
         else:
@@ -128,12 +133,11 @@ class DrawWindow(QtWidgets.QWidget):
         return np.asarray(self.full_image)
 
     def setCursorSize(self, size):
-        self.cursor_size = size
+        self.cursor_size = _normalize_cursor_size(size)
         self.UpdateDrawCursorDisplay()
 
     def changeCursorSize(self, size):
-        self.cursor_size += size
-        self.UpdateDrawCursorDisplay()
+        self.setCursorSize(self.cursor_size + size)
 
     def UpdateDrawCursorDisplay(self) -> None:
         # update color and size of brush cursor
