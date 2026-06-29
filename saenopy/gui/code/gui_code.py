@@ -1,4 +1,3 @@
-import sys
 import os
 from qtpy import QtCore, QtWidgets, QtGui
 import qtawesome as qta
@@ -93,10 +92,6 @@ class MainWindowCode(QtWidgets.QWidget):
         self.process_finished.connect(self.script_status_changed)
 
         self.select_tab(-1)
-
-        for arg in sys.argv[1:]:
-            if arg.endswith(".py"):
-                self.do_load(arg)
 
     def update_console(self, open_script):
         if len(self.open_scripts) and open_script == self.open_scripts[self.open_scripts_index]:

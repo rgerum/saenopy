@@ -128,7 +128,7 @@ jobs:
         uv run pyinstaller \
           --copy-metadata imageio \
           --clean -y \
-          --dist output/saenopy_run \
+          --distpath output/saenopy_run \
           --windowed \
           --name "Saenopy" \
           --osx-bundle-identifier "org.fabrylab.saenopy" \

@@ -36,6 +36,20 @@ def is_result_file(filename):
     return filename.endswith(RESULT_EXTENSIONS)
 
 
+def is_existing_file(filename):
+    try:
+        return os.path.isfile(os.fspath(filename))
+    except TypeError:
+        return False
+
+
+def is_openable_file(filename):
+    if not is_existing_file(filename):
+        return False
+    filename = os.fspath(filename)
+    return filename.endswith(".json") or filename.endswith(".py") or is_result_file(filename)
+
+
 profile_startup("launch module imported")
 
 
@@ -152,7 +166,8 @@ class MainWindow(QtWidgets.QWidget):
         self.first_tab_change = False
 
         for file in sys.argv[1:]:
-            self.open_file(file)
+            if is_openable_file(file):
+                self.open_file(file)
 
     first_tab_change = True
     solver = None
@@ -205,17 +220,18 @@ class MainWindow(QtWidgets.QWidget):
             self.orientation.plotting_window.load(file)
 
     def open_file(self, file):
-        print(file)
-        if file.startswith("--"):
+        if not is_openable_file(file):
             return
+        file = os.fspath(file)
         if file.endswith(".json"):
             try:
                 self._open_analysis_session(file)
                 return
-            except (IndexError, KeyError):
+            except (IndexError, KeyError, json.JSONDecodeError):
                 return
         if file.endswith(".py"):
             self.setTab(6)
+            self.coder.do_load(file)
         elif is_result_file(file) and file.endswith(".saenopy"):
             self.setTab(2)
             self.solver.tabs.setCurrentIndex(1)
@@ -232,8 +248,6 @@ class MainWindow(QtWidgets.QWidget):
             self.setTab(4)
             self.orientation.tabs.setCurrentIndex(1)
             self.orientation.plotting_window.add_files([file])
-        else:
-            raise ValueError("Unknown file type")
 
 
 def main():  # pragma: no cover
