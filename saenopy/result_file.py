@@ -330,6 +330,19 @@ class Result(Saveable):
 
     @classmethod
     def from_dict(cls, data_dict):  # pragma: no cover
+        def is_none_placeholder(value):
+            return value is None or (
+                isinstance(value, str) and value == "__NONE__"
+            )
+
+        def iter_solvers():
+            solvers = data_dict.get("solvers")
+            if is_none_placeholder(solvers):
+                return
+            for solver in solvers:
+                if not is_none_placeholder(solver):
+                    yield solver
+
         def apply_rename(obj_data, rename):
             if isinstance(obj_data, list):
                 return [apply_rename(o, rename) for o in obj_data]
@@ -489,9 +502,8 @@ class Result(Saveable):
 
         if data_dict["___save_version__"] < "1.6":  # pragma: no cover
              print(f"convert old version {data_dict['___save_version__']} to 1.6")
-             if data_dict["solvers"] is not None:
-                 for solver in data_dict["solvers"]:
-                     solver["regularisation_results"] = np.array(solver["regularisation_results"])
+             for solver in iter_solvers():
+                 solver["regularisation_results"] = np.array(solver["regularisation_results"])
              for stack in data_dict["stacks"]:
                  stack["image_filenames"] = np.array(stack["image_filenames"])
              if data_dict.get("stack_reference", None):
@@ -500,12 +512,11 @@ class Result(Saveable):
 
         if data_dict["___save_version__"] < "1.7":  # pragma: no cover
              print(f"convert old version {data_dict['___save_version__']} to 1.7")
-             if data_dict["solvers"] is not None:
-                 for solver in data_dict["solvers"]:
-                     solver["mesh"]["forces_border"] = solver["mesh"]["forces"].copy()
-                     solver["mesh"]["forces_border"][solver["mesh"]["regularisation_mask"]] = 0
-                     solver["mesh"]["forces"][~solver["mesh"]["regularisation_mask"]] = 0
-                     print(solver["mesh"].keys())
+             for solver in iter_solvers():
+                 solver["mesh"]["forces_border"] = solver["mesh"]["forces"].copy()
+                 solver["mesh"]["forces_border"][solver["mesh"]["regularisation_mask"]] = 0
+                 solver["mesh"]["forces"][~solver["mesh"]["regularisation_mask"]] = 0
+                 print(solver["mesh"].keys())
 
              data_dict["___save_version__"] = "1.7"
              
