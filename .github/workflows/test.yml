@@ -30,6 +30,15 @@ jobs:
       - run: |
           uv run coverage run -m pytest --durations=10 --durations-min=1 -o faulthandler_timeout=120
         timeout-minutes: 10
-      - run: uv run coveralls
+      - name: Upload coverage to Coveralls
+        run: |
+          for attempt in 1 2 3; do
+            if uv run coveralls; then
+              exit 0
+            fi
+            echo "Coveralls upload failed on attempt $attempt; retrying in $((attempt * 30)) seconds"
+            sleep $((attempt * 30))
+          done
+          echo "::warning::Coveralls upload failed after 3 attempts; continuing because tests passed."
         env:
           GITHUB_TOKEN: ${{ secrets.COVERALLS_REPO_TOKEN }}
