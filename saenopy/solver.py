@@ -1097,16 +1097,42 @@ def load_results(filename: str) -> List[Result]:
 def subtract_reference_state(mesh_piv, mode):
     U = [M.displacements_measured for M in mesh_piv]
     # correct for the different modes
-    if len(U) > 2: 
+    if len(U) > 2:
         xpos2 = U
+
+        if mode in {"cumul.", "median", "last"}:
+            U_array = np.asarray(U)
+
+            # Only keep nodes with valid 3D vectors in at least 10% of the
+            # time steps.
+            valid_steps = np.all(np.isfinite(U_array), axis=-1)
+            min_valid_steps = max(1, int(np.ceil(0.1 * len(U_array))))
+            valid_nodes = np.sum(valid_steps, axis=0) >= min_valid_steps
+
         if mode == "cumul.":
-            xpos2 = np.cumsum(U, axis=0)
+            xpos2 = np.nancumsum(U_array, axis=0)
+            xpos2[:, ~valid_nodes] = np.nan
+
         elif mode == "median":
-            xpos2 = np.cumsum(U, axis=0)
-            xpos2 -= np.nanmedian(xpos2, axis=0)
+            xpos2 = np.nancumsum(U_array, axis=0)
+            xpos2[:, ~valid_nodes] = np.nan
+
+            # Ignore invalid time steps when calculating the median.
+            median = np.full_like(xpos2[0], np.nan)
+            if np.any(valid_nodes):
+                valid_xpos2 = np.where(
+                    valid_steps[..., None], xpos2, np.nan
+                )
+                median[valid_nodes] = np.nanmedian(
+                    valid_xpos2[:, valid_nodes], axis=0
+                )
+            xpos2 -= median
+
         elif mode == "last":
-            xpos2 = np.cumsum(U, axis=0)
+            xpos2 = np.nancumsum(U_array, axis=0)
+            xpos2[:, ~valid_nodes] = np.nan
             xpos2 -= xpos2[-1]
+
         elif mode == "next":
             xpos2 = U
     else:
