@@ -1,19 +1,10 @@
 API
 ===
 
-TODO
+The spheroid module does not have a documented Python API yet — it is currently
+used through the graphical user interface.
 
-The API (application programming interface) is described here with the
-documentation of the Solver class and its methods.
+The underlying method is provided by the jointforces package, which can be
+scripted directly: https://github.com/christophmark/jointforces
 
-
-.. toctree::
-   :maxdepth: 2
-
-   ReadInData
-
-.. currentmodule:: saenopy.solver
-
-.. autoclass:: Solver
-   :members:
-
+For the Python API of the 3D TFM solver, see :doc:`../3d_tfm/api`.

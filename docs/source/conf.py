@@ -24,7 +24,6 @@ extensions = [
     'sphinx.ext.viewcode',
     'nbsphinx',
     'sphinx_gallery.gen_gallery',
-    'sphinxcontrib.jquery',  # to fix read the docs jQuery bug (https://github.com/readthedocs/sphinx_rtd_theme/issues/1452)
 ]
 
 sphinx_gallery_conf = {
@@ -39,15 +38,22 @@ sphinx_gallery_conf = {
 }
 
 templates_path = ['_templates']
-exclude_patterns = ['**.ipynb_checkpoints']
+# sphinx-gallery writes a .rst and a matching .ipynb for every example, and
+# nbsphinx registers .ipynb as a source suffix, so without this Sphinx sees two
+# candidate sources for each gallery page. The notebooks stay on disk and remain
+# downloadable from the gallery; they are just not built as pages themselves.
+exclude_patterns = [
+    '**.ipynb_checkpoints',
+    '**/auto_examples/*.ipynb',
+    # sphinx-gallery reads this as the gallery header and copies it into
+    # auto_examples; it is not a page of its own
+    '**/examples/README.rst',
+]
 
 
 
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
 
-import sphinx_rtd_theme
-
 html_theme = 'furo'
-html_theme_path = [sphinx_rtd_theme.get_html_theme_path()]
 html_static_path = ['_static']
