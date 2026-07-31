@@ -34,7 +34,6 @@ dependencies = [
 [project.optional-dependencies]
 docs = [
     "sphinx>=1.6,<7",
-    "sphinx-rtd-theme>=1.2.2,<2.0.0",
     "nbsphinx>=0.9.2,<0.10.0",
     "sphinx-gallery>=0.13.0,<0.14.0",
 ]
@@ -45,7 +44,6 @@ saenopy = "saenopy.gui.gui_master:main"
 [dependency-groups]
 docs = [
     "sphinx>=1.6,<7",
-    "sphinx-rtd-theme>=1.2.2,<2.0.0",
     "nbsphinx>=0.9.2,<0.10.0",
     "sphinx-gallery>=0.13.0,<0.14.0",
 ]

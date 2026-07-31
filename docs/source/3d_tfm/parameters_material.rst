@@ -30,32 +30,40 @@ Meaning of the parameters
 Setting only :math:`k` and omitting the other three gives a linear material,
 which is what :py:class:`~saenopy.materials.LinearMaterial` does.
 
-Measured values
----------------
+Values used in the examples
+---------------------------
+
+These are the parameter sets the bundled examples run with. They are starting
+points, not reference values for collagen in general: the parameters depend
+strongly on concentration, batch and polymerisation conditions, so for your own
+gel they have to be fitted to a rheological measurement or taken from a
+publication that characterised the same preparation.
 
 .. list-table::
    :header-rows: 1
-   :widths: 30 14 14 14 14 14
+   :widths: 34 13 13 13 13 14
 
-   * - Material
+   * - Used by
      - :math:`k`
      - :math:`d_0`
      - :math:`\lambda_s`
      - :math:`d_s`
-     - Source
-   * - Collagen I hydrogel, 1.2 mg/ml
+     - Notes
+   * - Single cell, organoid and brightfield examples
+     - 6062
+     - 0.0025
+     - 0.0804
+     - 0.034
+     - the default in most examples
+   * - Dynamical single cell example (NK cells)
      - 1449
-     - 0.00215
+     - 0.0022
      - 0.032
      - 0.055
-     - default of the spheroid lookup table
+     - described in the interface as collagen I, 1.2 mg/ml
    * - Linear material
      - Young's modulus :math:`\times` 6
      - —
      - —
      - —
-     - by definition
-
-Values for other matrices have to be taken from the literature or fitted to a
-rheological measurement of the specific gel; they depend strongly on
-concentration and polymerisation conditions.
+     - :py:class:`~saenopy.materials.LinearMaterial`, by definition
