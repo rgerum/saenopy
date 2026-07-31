@@ -223,3 +223,55 @@ for result in results:
 #
   
  
+# %%
+# The result, interactive
+# -----------------------
+#
+# The same result as the figure above, but as the reconstructed field itself
+# rather than a screenshot of it. Drag to rotate, scroll to zoom, and switch
+# between the measured and the fitted quantities.
+#
+# .. raw:: html
+#
+#     <div class="saenopy-viewer" style="height:420px;border-radius:6px;overflow:hidden"></div>
+#     <p style="margin-top:.6em;font-size:.9em">
+#       <label>Field
+#         <select class="saenopy-field" style="margin-left:.4em">
+#           <option value="measured deformations">measured deformations</option>
+#           <option value="fitted deformations" selected>fitted deformations</option>
+#           <option value="fitted forces">fitted forces</option>
+#         </select>
+#       </label>
+#     </p>
+#     <script type="importmap">
+#       {"imports": {
+#         "three": "https://unpkg.com/three@0.183.0/build/three.module.js",
+#         "three/addons/": "https://unpkg.com/three@0.183.0/examples/jsm/"
+#       }}
+#     </script>
+#     <script type="module">
+#       import { init } from "../../_static/js/saenopy_viewer.mjs";
+#       let live = null;
+#       await init({
+#         bundle: "../../_static/data/single-cell-007.sfb.gz",
+#         field: "fitted deformations",
+#         dom_node: document.querySelector(".saenopy-viewer"),
+#         height: "460px",
+#         arrow_span: 0.1,
+#         zoom: 1.5,
+#         cube: "field",
+#         cube_color: 0x64748b,
+#         background: "#0b0f14",
+#         logo_width: "0px",
+#         mouse_control: true,
+#         show_controls: false,
+#         show_colormap: true,
+#         on_ready: (params, redraw) => { live = { params, redraw }; },
+#       });
+#       document.querySelector(".saenopy-field").addEventListener("change", (e) => {
+#         if (!live) return;
+#         live.params.field = e.target.value;
+#         live.redraw();
+#       });
+#     </script>
+#
