@@ -18,17 +18,17 @@ max_dist
 
 
 ignore_cell_outline
------------
+-------------------
 By default, the cell-occupied area is excluded, and matrix alignment is calculated only in the remaining area.
 To analyze alignment across the entire field of view (e.g., relative to the x- or y-axis), set this parameter to True. Default is False.
 
 
 sigma_first_blur
------------
+----------------
 Initial slight Gaussian blur applied to the fiber image before structure analysis. Default is 0.5.
 
 angle_sections
------------
+--------------
 Angle sections around the cell in degrees, used for polarity analysis of matrix fiber orientation. Default is 5°.
 
 shell_width

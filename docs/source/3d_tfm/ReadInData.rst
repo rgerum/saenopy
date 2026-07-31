@@ -1,5 +1,5 @@
-Read Files with Pyhton
-=========
+Read Files with Python
+======================
 
 
 This is an example of how to read in and process Saenopy solver files using Python code. 

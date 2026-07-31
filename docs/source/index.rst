@@ -9,10 +9,10 @@ Welcome to the SAENOPY Documentation
 SAENOPY is a free open source 3D traction force microscopy software. Its material model is especially well suited for
 tissue-mimicking and typically highly non-linear biopolymer matrices such as collagen, fibrin, or Matrigel.
 
-It features a python package to use in scripts and an extensive graphical user interface. The userinferface also has
-integrations for spheriods, fiber alignment and 2D traction force microscopy.
+It features a python package to use in scripts and an extensive graphical user interface. The user interface also has
+integrations for spheroids, fiber alignment and 2D traction force microscopy.
 
-This migration immune cell demonstrated what scientific discoveries you can achieve with saenop:
+This migrating immune cell demonstrates what scientific discoveries you can achieve with saenopy:
 
 .. raw:: html
 
@@ -34,16 +34,14 @@ Installation
 
 Standalone
 ~~~~~~~~~~
-You can download saenopy as a standalone application:
+You can download saenopy as a standalone application. These links always resolve to the
+newest release, so they do not need to be updated here when a new version is published:
 
-Windows
-https://github.com/rgerum/saenopy/releases/download/v1.0.8/saenopy.exe
+* Windows: `saenopy.exe <https://github.com/rgerum/saenopy/releases/latest/download/saenopy.exe>`_
+* Linux: `saenopy <https://github.com/rgerum/saenopy/releases/latest/download/saenopy>`_
+* MacOS: `saenopy_mac.app.zip <https://github.com/rgerum/saenopy/releases/latest/download/saenopy_mac.app.zip>`_ (in development)
 
-Linux
-https://github.com/rgerum/saenopy/releases/download/v1.0.8/saenopy
-
-MacOS
-https://github.com/rgerum/saenopy/releases/download/v1.0.8/saenopy_mac.app.zip (In development..)
+All releases are listed on the `releases page <https://github.com/rgerum/saenopy/releases>`_.
 
 Using Python
 ~~~~~~~~~~~~
@@ -60,8 +58,8 @@ Now you can start the user interface with:
 Integrations
 ------------
 
-Aside from saenopy's main use or 3D traction force microscopy we provide in our interface
-integrations to related methods to asses cellular forces.
+Aside from saenopy's main use for 3D traction force microscopy, our interface provides
+integrations of related methods to assess cellular forces.
 
 Spheroid
 ~~~~~~~~
