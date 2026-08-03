@@ -6026,6 +6026,7 @@ async function load_add_field(scene, renderer, params) {
 async function init(initial_params) {
   const params = {
     ccs_prefix: "",
+    needs_render: true,
     scale: 1,
     // longest arrow as a fraction of the domain; overrides `scale` when set
     arrow_span: 0.1,
@@ -6134,12 +6135,18 @@ async function init(initial_params) {
     initial_params.dom_node,
     params
   );
+  window.addEventListener("resize", () => {
+    params.needs_render = true;
+  });
   add_logo(renderer.domElement.parentElement, params);
   add_drop_show(renderer.domElement.parentElement, params);
   const update_image = params.data.stacks && params.data.channels ? await add_image(scene, params) : () => {
   };
   if (params.mouse_control) {
     const controlsCam = new OrbitControls(camera, renderer.domElement);
+    controlsCam.addEventListener("change", () => {
+      params.needs_render = true;
+    });
     controlsCam.update();
     scene.controls = controlsCam;
   }
@@ -6152,6 +6159,7 @@ async function init(initial_params) {
     update_image();
     await update_field();
     update_cube();
+    params.needs_render = true;
   }
   animate(scene, renderer, camera, params, update_all);
   if (params.show_controls) {
@@ -6186,7 +6194,13 @@ async function init(initial_params) {
     gui.close();
   }
   add_drop(renderer.domElement.parentElement, params, update_all);
-  if (params.on_ready) params.on_ready(params, update_all);
+  if (params.on_ready)
+    params.on_ready(params, update_all, {
+      scene,
+      camera,
+      renderer,
+      controls: scene.controls
+    });
   return function dispose() {
     params.disposed = true;
     scene.controls?.dispose();
@@ -6252,7 +6266,11 @@ function animate(scene, renderer, camera, params, update_all) {
     );
     scene.light.position.setFromSpherical(lightpos);
   }
-  renderer.render(scene, camera);
+  if (params.animations.length > 0) params.needs_render = true;
+  if (params.needs_render) {
+    params.needs_render = false;
+    renderer.render(scene, camera);
+  }
 }
 function add_drop(dropZone, params, update_all) {
   const ccs_prefix = "saenopy_" + params.ccs_prefix;

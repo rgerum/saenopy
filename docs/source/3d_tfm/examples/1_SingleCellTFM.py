@@ -275,3 +275,74 @@ for result in results:
 #       });
 #     </script>
 #
+
+# %%
+# The result, interactive
+# -----------------------
+#
+# The same three fields as the figure above, but as the reconstructed fields
+# themselves. The three views share one camera: drag or scroll in any of them
+# and all three follow, so the panels stay comparable.
+#
+# .. raw:: html
+#
+#     <div class="saenopy-row" style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">
+#       <figure style="margin:0">
+#         <div class="saenopy-view" data-field="measured deformations"
+#              style="height:330px;border-radius:6px;overflow:hidden"></div>
+#       </figure>
+#       <figure style="margin:0">
+#         <div class="saenopy-view" data-field="fitted deformations"
+#              style="height:330px;border-radius:6px;overflow:hidden"></div>
+#       </figure>
+#       <figure style="margin:0">
+#         <div class="saenopy-view" data-field="fitted forces"
+#              style="height:330px;border-radius:6px;overflow:hidden"></div>
+#       </figure>
+#     </div>
+#     <script type="importmap">
+#       {"imports": {
+#         "three": "https://unpkg.com/three@0.183.0/build/three.module.js",
+#         "three/addons/": "https://unpkg.com/three@0.183.0/examples/jsm/"
+#       }}
+#     </script>
+#     <script type="module">
+#       import { init } from "../../_static/js/saenopy_viewer.mjs";
+#       const views = [];
+#       let syncing = false;
+#       const sync = (source) => {
+#         if (syncing) return;
+#         syncing = true;
+#         for (const v of views) {
+#           if (v === source) continue;
+#           v.camera.position.copy(source.camera.position);
+#           v.camera.quaternion.copy(source.camera.quaternion);
+#           v.controls.target.copy(source.controls.target);
+#           v.controls.update();
+#         }
+#         syncing = false;
+#       };
+#       for (const node of document.querySelectorAll(".saenopy-view")) {
+#         await init({
+#           bundle: "../../_static/data/single-cell-007.sfb.gz",
+#           field: node.dataset.field,
+#           dom_node: node,
+#           height: "300px",
+#           arrow_span: 0.1,
+#           zoom: 1.5,
+#           cube: "field",
+#           cube_color: 0x64748b,
+#           background: "#0b0f14",
+#           logo_width: "0px",
+#           mouse_control: true,
+#           show_controls: false,
+#           show_colormap: true,
+#           on_ready: (params, redraw, ctx) => {
+#             const view = { camera: ctx.camera, controls: ctx.controls };
+#             views.push(view);
+#             ctx.controls.addEventListener("change", () => sync(view));
+#           },
+#         });
+#       }
+#     </script>
+#
