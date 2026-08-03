@@ -611,7 +611,7 @@ function add_colormap_gui(parentDom, params) {
     add_tick();
   }
   let last_props = {
-    max: 0,
+    max: NaN,
     colormap: "viridis",
     title: ""
   };
@@ -5941,6 +5941,9 @@ async function add_test(scene, renderer, params) {
       }
       if (field_def?.preloaded) {
         max_length = field_def.preloaded.max * (field_def.factor || 1);
+      }
+      if (params.scale_max) {
+        max_length = params.scale_max;
       }
       if (nodes) {
         const [min_x, max_x] = get_extend(nodes, 0);

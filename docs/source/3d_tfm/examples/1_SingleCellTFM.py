@@ -239,18 +239,45 @@ for result in results:
 #
 # .. raw:: html
 #
-#     <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;font-family:inherit">
+#     <div style="display:grid;max-width:100%;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;font-family:inherit">
 #       <div>
 #         <div style="text-align:center;color:#888;font-size:1.05em;margin-bottom:.3em">Measured<br/>Deformations</div>
-#         <div class="saenopy-view" data-field="measured deformations" style="height:300px"></div>
+#         <div class="saenopy-view" data-field="measured deformations" data-max="10.8" style="height:260px;max-width:100%;overflow:hidden"></div>
+#         <div style="margin-top:.5em">
+#           <div style="text-align:center;font-size:.8em;color:#555">Deformations (µm)</div>
+#           <div style="height:12px;border:1px solid #bbb;background:linear-gradient(to right,#30123b,#4145ab,#4675ed,#39a2fc,#1bcfd4,#24eca6,#61fc6c,#a4fc3b,#d1e834,#f3c63a,#fe9b2d,#f36315,#d93806,#b11901,#7a0403)"></div>
+#           <div style="display:flex;justify-content:space-between;font-size:.75em;color:#555">
+#           <span>0.0</span>
+#           <span>5.4</span>
+#           <span>10.8</span>
+#           </div>
+#         </div>
 #       </div>
 #       <div>
 #         <div style="text-align:center;color:#888;font-size:1.05em;margin-bottom:.3em">Reconstructed<br/>Deformations</div>
-#         <div class="saenopy-view" data-field="fitted deformations" style="height:300px"></div>
+#         <div class="saenopy-view" data-field="fitted deformations" data-max="10.8" style="height:260px;max-width:100%;overflow:hidden"></div>
+#         <div style="margin-top:.5em">
+#           <div style="text-align:center;font-size:.8em;color:#555">Deformations (µm)</div>
+#           <div style="height:12px;border:1px solid #bbb;background:linear-gradient(to right,#30123b,#4145ab,#4675ed,#39a2fc,#1bcfd4,#24eca6,#61fc6c,#a4fc3b,#d1e834,#f3c63a,#fe9b2d,#f36315,#d93806,#b11901,#7a0403)"></div>
+#           <div style="display:flex;justify-content:space-between;font-size:.75em;color:#555">
+#           <span>0.0</span>
+#           <span>5.4</span>
+#           <span>10.8</span>
+#           </div>
+#         </div>
 #       </div>
 #       <div>
 #         <div style="text-align:center;color:#888;font-size:1.05em;margin-bottom:.3em">Reconstructed<br/>Forces</div>
-#         <div class="saenopy-view" data-field="fitted forces" data-log="1" style="height:300px"></div>
+#         <div class="saenopy-view" data-field="fitted forces" data-log="1" style="height:260px;max-width:100%;overflow:hidden"></div>
+#         <div style="margin-top:.5em">
+#           <div style="text-align:center;font-size:.8em;color:#555">Forces (pN, log)</div>
+#           <div style="height:12px;border:1px solid #bbb;background:linear-gradient(to right,#30123b,#4145ab,#4675ed,#39a2fc,#1bcfd4,#24eca6,#61fc6c,#a4fc3b,#d1e834,#f3c63a,#fe9b2d,#f36315,#d93806,#b11901,#7a0403)"></div>
+#           <div style="display:flex;justify-content:space-between;font-size:.75em;color:#555">
+#           <span>1</span>
+#           <span>2.8e+2</span>
+#           <span>7.7e+4</span>
+#           </div>
+#         </div>
 #       </div>
 #     </div>
 #     <script type="importmap">
@@ -280,10 +307,11 @@ for result in results:
 #           bundle: "../../_static/data/single-cell-007.sfb.gz",
 #           field: node.dataset.field,
 #           scale_mode: node.dataset.log ? "log" : "linear",
+#           scale_max: node.dataset.max ? Number(node.dataset.max) : undefined,
 #           dom_node: node,
-#           height: "300px",
+#           height: "260px",
 #           arrow_span: 0.1,
-#           zoom: 1.35,
+#           zoom: 1.9,
 #           cube: "field",
 #           cube_color: 0x000000,
 #           background: "#ffffff",
@@ -291,7 +319,7 @@ for result in results:
 #           logo_width: "0px",
 #           mouse_control: true,
 #           show_controls: false,
-#           show_colormap: true,
+#           show_colormap: false,
 #           on_ready: (params, redraw, ctx) => {
 #             const view = { camera: ctx.camera, controls: ctx.controls };
 #             views.push(view);
