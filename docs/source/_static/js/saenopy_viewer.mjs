@@ -5731,25 +5731,29 @@ var TIP_LENGTH = 0.25;
 var TIP_RADIUS = 0.1;
 var SHAFT_RADIUS = 0.05;
 var ARROW_LENGTH = 3;
-var arrowheadGeometry = new THREE4.ConeGeometry(
-  TIP_RADIUS * ARROW_LENGTH,
-  TIP_LENGTH * ARROW_LENGTH,
-  8
-);
-arrowheadGeometry.translate(0, TIP_LENGTH * ARROW_LENGTH / 2, 0);
-var shaftGeometry = new THREE4.CylinderGeometry(
-  SHAFT_RADIUS * ARROW_LENGTH,
-  SHAFT_RADIUS * ARROW_LENGTH,
-  (1 - TIP_LENGTH) * ARROW_LENGTH,
-  8
-);
-shaftGeometry.translate(0, -((1 - TIP_LENGTH) * ARROW_LENGTH) / 2, 0);
-var arrowGeometry = mergeGeometries(
-  [arrowheadGeometry, shaftGeometry],
-  false
-);
-arrowGeometry.rotateX(Math.PI / 2);
-arrowGeometry.translate(0, 0, 2);
+var arrow_geometry_cache = /* @__PURE__ */ new Map();
+function make_arrow_geometry(thickness = 1) {
+  const key = thickness.toFixed(3);
+  if (arrow_geometry_cache.has(key)) return arrow_geometry_cache.get(key);
+  const arrowheadGeometry = new THREE4.ConeGeometry(
+    TIP_RADIUS * ARROW_LENGTH * thickness,
+    TIP_LENGTH * ARROW_LENGTH,
+    8
+  );
+  arrowheadGeometry.translate(0, TIP_LENGTH * ARROW_LENGTH / 2, 0);
+  const shaftGeometry = new THREE4.CylinderGeometry(
+    SHAFT_RADIUS * ARROW_LENGTH * thickness,
+    SHAFT_RADIUS * ARROW_LENGTH * thickness,
+    (1 - TIP_LENGTH) * ARROW_LENGTH,
+    8
+  );
+  shaftGeometry.translate(0, -((1 - TIP_LENGTH) * ARROW_LENGTH) / 2, 0);
+  const geometry = mergeGeometries([arrowheadGeometry, shaftGeometry], false);
+  geometry.rotateX(Math.PI / 2);
+  geometry.translate(0, 0, 2);
+  arrow_geometry_cache.set(key, geometry);
+  return geometry;
+}
 function add_drop_show(parentDom, params) {
   const dropshow = document.createElement("div");
   const ccs_prefix = "saenopy_" + params.ccs_prefix;
@@ -5848,6 +5852,7 @@ async function add_test(scene, renderer, params) {
   const color = new THREE4.Color();
   let count = 0;
   const material = new THREE4.MeshPhongMaterial({ color: 14671839 });
+  material.transparent = true;
   let mesh = void 0;
   const dummyObject = new THREE4.Object3D();
   const light = new THREE4.HemisphereLight(16777215, 8947848, 3);
@@ -5942,9 +5947,6 @@ async function add_test(scene, renderer, params) {
       if (field_def?.preloaded) {
         max_length = field_def.preloaded.max * (field_def.factor || 1);
       }
-      if (params.scale_max) {
-        max_length = params.scale_max;
-      }
       if (nodes) {
         const [min_x, max_x] = get_extend(nodes, 0);
         const [min_y, max_y] = get_extend(nodes, 1);
@@ -5954,6 +5956,11 @@ async function add_test(scene, renderer, params) {
     }
     last_field.arrows = arrows;
     last_field.max_length = max_length;
+    if (params.scale_max) max_length = params.scale_max;
+    if (last_field.applied_max !== max_length) {
+      last_field.applied_max = max_length;
+      needs_update = true;
+    }
     let scale = params.scale;
     const domain = Math.max(
       params.extent[1] - params.extent[0],
@@ -5976,12 +5983,21 @@ async function add_test(scene, renderer, params) {
       last_field.cmap = params.cmap;
       needs_update = true;
     }
-    if (arrows.length > count) {
-      count = arrows.length;
+    const thickness = params.arrow_thickness ?? 1;
+    if (arrows.length > count || thickness !== last_field.thickness) {
+      count = Math.max(count, arrows.length);
+      last_field.thickness = thickness;
       if (mesh) scene.remove(mesh);
-      mesh = new THREE4.InstancedMesh(arrowGeometry, material, count);
+      mesh = new THREE4.InstancedMesh(
+        make_arrow_geometry(thickness),
+        material,
+        count
+      );
       scene.add(mesh);
+      needs_update = true;
     }
+    const opacity = params.arrow_opacity ?? 1;
+    if (material.opacity !== opacity) material.opacity = opacity;
     if (mesh) mesh.count = arrows.length;
     if (last_field.scale !== params.scale) {
       last_field.scale = params.scale;

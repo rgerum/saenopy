@@ -215,27 +215,13 @@ for result in results:
 # Display Results
 # ----------------------
 #
-# .. figure:: ../images/examples/single_cell_tfm/liver_fibroblast_workflow.png
-#   
-# The reconstructed force field (right) generates a reconstructed deformation field (middle)
-# that recapitulates the measured matrix deformation field (left). The overall cell contractility is 
-# calculated as all forcecomponents pointing to the force epicenter.
-#
-  
- 
-# %%
-# Display Results
-# ----------------------
-#
 # The reconstructed force field (right) generates a reconstructed deformation
 # field (middle) that recapitulates the measured matrix deformation field
 # (left). The overall cell contractility is calculated as all force components
 # pointing to the force epicenter.
 #
 # The three views share one camera, so dragging or scrolling in any of them
-# turns all three together. Arrow length is 10% of the stack size at the
-# largest value, as in the exported figures; forces are drawn on a log scale,
-# the default saenopy uses for them.
+# turns all three together. The sliders below change all three at once.
 #
 # .. raw:: html
 #
@@ -243,42 +229,54 @@ for result in results:
 #       <div>
 #         <div style="text-align:center;color:#888;font-size:1.05em;margin-bottom:.3em">Measured<br/>Deformations</div>
 #         <div class="saenopy-view" data-field="measured deformations" data-max="10.8" style="height:260px;max-width:100%;overflow:hidden"></div>
-#         <div style="margin-top:.5em">
-#           <div style="text-align:center;font-size:.8em;color:#555">Deformations (µm)</div>
-#           <div style="height:12px;border:1px solid #bbb;background:linear-gradient(to right,#30123b,#4145ab,#4675ed,#39a2fc,#1bcfd4,#24eca6,#61fc6c,#a4fc3b,#d1e834,#f3c63a,#fe9b2d,#f36315,#d93806,#b11901,#7a0403)"></div>
-#           <div style="display:flex;justify-content:space-between;font-size:.75em;color:#555">
-#           <span>0.0</span>
-#           <span>5.4</span>
-#           <span>10.8</span>
-#           </div>
-#         </div>
 #       </div>
 #       <div>
 #         <div style="text-align:center;color:#888;font-size:1.05em;margin-bottom:.3em">Reconstructed<br/>Deformations</div>
 #         <div class="saenopy-view" data-field="fitted deformations" data-max="10.8" style="height:260px;max-width:100%;overflow:hidden"></div>
-#         <div style="margin-top:.5em">
-#           <div style="text-align:center;font-size:.8em;color:#555">Deformations (µm)</div>
-#           <div style="height:12px;border:1px solid #bbb;background:linear-gradient(to right,#30123b,#4145ab,#4675ed,#39a2fc,#1bcfd4,#24eca6,#61fc6c,#a4fc3b,#d1e834,#f3c63a,#fe9b2d,#f36315,#d93806,#b11901,#7a0403)"></div>
-#           <div style="display:flex;justify-content:space-between;font-size:.75em;color:#555">
-#           <span>0.0</span>
-#           <span>5.4</span>
-#           <span>10.8</span>
-#           </div>
-#         </div>
 #       </div>
 #       <div>
 #         <div style="text-align:center;color:#888;font-size:1.05em;margin-bottom:.3em">Reconstructed<br/>Forces</div>
 #         <div class="saenopy-view" data-field="fitted forces" data-log="1" style="height:260px;max-width:100%;overflow:hidden"></div>
-#         <div style="margin-top:.5em">
-#           <div style="text-align:center;font-size:.8em;color:#555">Forces (pN, log)</div>
-#           <div style="height:12px;border:1px solid #bbb;background:linear-gradient(to right,#30123b,#4145ab,#4675ed,#39a2fc,#1bcfd4,#24eca6,#61fc6c,#a4fc3b,#d1e834,#f3c63a,#fe9b2d,#f36315,#d93806,#b11901,#7a0403)"></div>
-#           <div style="display:flex;justify-content:space-between;font-size:.75em;color:#555">
-#           <span>1</span>
-#           <span>2.8e+2</span>
-#           <span>7.7e+4</span>
-#           </div>
-#         </div>
 #       </div>
+#     </div>
+#     <div style="margin-top:1em;padding:.9em 1em;border:1px solid #ddd;border-radius:6px;background:#fafafa;font-size:.85em;display:grid;gap:.45em;max-width:100%">
+#       <strong style="font-size:1.05em">Rendering controls</strong>
+#       <label style="display:flex;align-items:center;gap:.5em">
+#         <span style="width:9em">arrow length</span>
+#         <input type="range" id="sn-span" min="0.02" max="0.30" step="0.005" value="0.1" style="flex:1">
+#         <output for="sn-span" style="width:4em;text-align:right;font-variant-numeric:tabular-nums">0.1</output>
+#       </label>
+#       <label style="display:flex;align-items:center;gap:.5em">
+#         <span style="width:9em">arrow thickness</span>
+#         <input type="range" id="sn-thick" min="0.1" max="3" step="0.05" value="1" style="flex:1">
+#         <output for="sn-thick" style="width:4em;text-align:right;font-variant-numeric:tabular-nums">1</output>
+#       </label>
+#       <label style="display:flex;align-items:center;gap:.5em">
+#         <span style="width:9em">opacity</span>
+#         <input type="range" id="sn-op" min="0.05" max="1" step="0.05" value="1" style="flex:1">
+#         <output for="sn-op" style="width:4em;text-align:right;font-variant-numeric:tabular-nums">1</output>
+#       </label>
+#       <label style="display:flex;align-items:center;gap:.5em">
+#         <span style="width:9em">scale max (µm)</span>
+#         <input type="range" id="sn-max" min="1" max="20" step="0.1" value="10.8" style="flex:1">
+#         <output for="sn-max" style="width:4em;text-align:right;font-variant-numeric:tabular-nums">10.8</output>
+#       </label>
+#       <label style="display:flex;align-items:center;gap:.5em">
+#         <span style="width:9em">zoom</span>
+#         <input type="range" id="sn-zoom" min="0.6" max="4" step="0.05" value="1.9" style="flex:1">
+#         <output for="sn-zoom" style="width:4em;text-align:right;font-variant-numeric:tabular-nums">1.9</output>
+#       </label>
+#       <label style="display:flex;align-items:center;gap:.5em">
+#         <span style="width:9em">colormap</span>
+#         <select id="sn-cmap" style="flex:1"><option>turbo</option><option>viridis</option></select>
+#         <span style="width:4em"></span>
+#       </label>
+#       <label style="display:flex;align-items:center;gap:.5em">
+#         <span style="width:9em">force scale</span>
+#         <select id="sn-mode" style="flex:1"><option value="log">log</option><option value="linear">linear</option></select>
+#         <span style="width:4em"></span>
+#       </label>
+#       <div style="color:#777">Values are applied to all three panels live. The scale max applies to the two deformation panels.</div>
 #     </div>
 #     <script type="importmap">
 #       {"imports": {
@@ -311,21 +309,44 @@ for result in results:
 #           dom_node: node,
 #           height: "260px",
 #           arrow_span: 0.1,
+#           arrow_thickness: 1,
+#           arrow_opacity: 1,
 #           zoom: 1.9,
 #           cube: "field",
 #           cube_color: 0x000000,
 #           background: "#ffffff",
-#           text_color: "#444",
 #           logo_width: "0px",
 #           mouse_control: true,
 #           show_controls: false,
 #           show_colormap: false,
 #           on_ready: (params, redraw, ctx) => {
-#             const view = { camera: ctx.camera, controls: ctx.controls };
+#             const view = { params, redraw, camera: ctx.camera,
+#                            controls: ctx.controls, isForce: !!node.dataset.log };
 #             views.push(view);
 #             ctx.controls.addEventListener("change", () => sync(view));
 #           },
 #         });
 #       }
+#       const apply = (fn) => { for (const v of views) { fn(v); v.redraw(); } };
+#       const bind = (id, fn) => {
+#         const el = document.getElementById(id);
+#         const out = document.querySelector(`output[for="${id}"]`);
+#         el.addEventListener("input", () => {
+#           if (out) out.textContent = el.value;
+#           apply((v) => fn(v, el.value));
+#         });
+#       };
+#       bind("sn-span",  (v, x) => { v.params.arrow_span = Number(x); });
+#       bind("sn-thick", (v, x) => { v.params.arrow_thickness = Number(x); });
+#       bind("sn-op",    (v, x) => { v.params.arrow_opacity = Number(x); });
+#       bind("sn-max",   (v, x) => { if (!v.isForce) v.params.scale_max = Number(x); });
+#       bind("sn-zoom",  (v, x) => {
+#         v.camera.zoom = Number(x);
+#         v.camera.updateProjectionMatrix();
+#       });
+#       document.getElementById("sn-cmap").addEventListener("change", (e) =>
+#         apply((v) => { v.params.cmap = e.target.value; }));
+#       document.getElementById("sn-mode").addEventListener("change", (e) =>
+#         apply((v) => { if (v.isForce) v.params.scale_mode = e.target.value; }));
 #     </script>
 #
