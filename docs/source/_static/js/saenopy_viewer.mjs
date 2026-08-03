@@ -643,8 +643,10 @@ function add_colormap_gui(parentDom, params) {
             left: 20px;
             width: min(300px, 100% - 40px);
             height: 20px;
-            background-color: white;   
-            color: white;         
+            background-color: transparent;
+            /* white reads on the dark landing pages, but the docs are light,
+               so the caller has to be able to change it */
+            color: ${params.text_color || "white"};
          }
          .${ccs_prefix}colorbar .${ccs_prefix}colorbar_gradient {
             width: 100%;
@@ -5725,10 +5727,23 @@ async function loadFieldBundle(url2) {
 }
 
 // components/mesh/3d_viewer.mjs
-var arrowheadGeometry = new THREE4.ConeGeometry(0.5, 1, 6);
-arrowheadGeometry.translate(0, 0.5, 0);
-var shaftGeometry = new THREE4.CylinderGeometry(0.2, 0.2, 2, 6);
-shaftGeometry.translate(0, -1, 0);
+var TIP_LENGTH = 0.25;
+var TIP_RADIUS = 0.1;
+var SHAFT_RADIUS = 0.05;
+var ARROW_LENGTH = 3;
+var arrowheadGeometry = new THREE4.ConeGeometry(
+  TIP_RADIUS * ARROW_LENGTH,
+  TIP_LENGTH * ARROW_LENGTH,
+  8
+);
+arrowheadGeometry.translate(0, TIP_LENGTH * ARROW_LENGTH / 2, 0);
+var shaftGeometry = new THREE4.CylinderGeometry(
+  SHAFT_RADIUS * ARROW_LENGTH,
+  SHAFT_RADIUS * ARROW_LENGTH,
+  (1 - TIP_LENGTH) * ARROW_LENGTH,
+  8
+);
+shaftGeometry.translate(0, -((1 - TIP_LENGTH) * ARROW_LENGTH) / 2, 0);
 var arrowGeometry = mergeGeometries(
   [arrowheadGeometry, shaftGeometry],
   false
@@ -5937,16 +5952,20 @@ async function add_test(scene, renderer, params) {
     last_field.arrows = arrows;
     last_field.max_length = max_length;
     let scale = params.scale;
-    if (params.arrow_span && max_length > 0) {
-      const domain = Math.max(
-        params.extent[1] - params.extent[0],
-        params.extent[3] - params.extent[2],
-        params.extent[5] - params.extent[4]
-      ) * 1e6;
-      scale = params.arrow_span * domain / max_length;
+    const domain = Math.max(
+      params.extent[1] - params.extent[0],
+      params.extent[3] - params.extent[2],
+      params.extent[5] - params.extent[4]
+    ) * 1e6;
+    const log_scale = params.scale_mode === "log";
+    const length_of = (magnitude) => log_scale ? Math.max(0, Math.log10(magnitude / (params.log_floor || 1e-3))) : magnitude;
+    const max_display = length_of(max_length);
+    if (params.arrow_span && max_display > 0) {
+      scale = params.arrow_span * domain / max_display;
     }
-    if (last_field.effective_scale !== scale) {
+    if (last_field.effective_scale !== scale || last_field.scale_mode !== params.scale_mode) {
       last_field.effective_scale = scale;
+      last_field.scale_mode = params.scale_mode;
       needs_update = true;
     }
     const cmap = cmaps[params.cmap];
@@ -5968,12 +5987,13 @@ async function add_test(scene, renderer, params) {
     if (needs_update) {
       for (let i = 0; i < arrows.length; i++) {
         const [position, target, scaleValue] = arrows[i];
+        const displayValue = length_of(scaleValue);
         dummyObject.position.copy(position);
         dummyObject.lookAt(target);
         dummyObject.scale.set(
-          scaleValue * scale,
-          scaleValue * scale,
-          scaleValue * scale
+          displayValue * scale,
+          displayValue * scale,
+          displayValue * scale
         );
         dummyObject.updateMatrix();
         mesh.setMatrixAt(i, dummyObject.matrix);
@@ -5982,7 +6002,10 @@ async function add_test(scene, renderer, params) {
           color.setHex(
             cmap[Math.min(
               cmap.length - 1,
-              Math.floor(scaleValue / max_length * (cmap.length - 1))
+              Math.max(
+                0,
+                Math.floor(displayValue / max_display * (cmap.length - 1))
+              )
             )]
           )
         );
