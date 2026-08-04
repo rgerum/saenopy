@@ -1,50 +1,144 @@
 <!doctype html><meta charset="utf-8"><title>orientation check</title>
-<style>body{font:14px system-ui;margin:16px;background:#fff}
-.row{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-bottom:6px}
-.v{height:260px;border:1px solid #ccc}
-h3{margin:14px 0 4px}</style>
-<h3 id="lbl"></h3>
+<style>
+body{font:14px system-ui;margin:16px;background:#fff;color:#222}
+.row{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.cap{text-align:center;color:#666;font-size:.85em;margin-bottom:.3em}
+.v{height:340px;border:1px solid #ccc;border-radius:4px;cursor:grab}
+.box{margin-top:14px;padding:12px 14px;border:1px solid #ddd;border-radius:6px;background:#fafafa;max-width:960px}
+.box label{margin-right:1.2em}
+button{padding:.3em .7em;margin-right:.4em}
+b.hit{color:#0a7}
+code{background:#eee;padding:0 .3em;border-radius:3px}
+</style>
+
+<h2 style="margin:0 0 .2em">Floor image orientation</h2>
+<p style="margin:.2em 0 1em;color:#555;max-width:70ch">
+Three cells, cell channel as the floor image, fitted forces on top. Drag any
+panel to rotate all three. In the correct orientation the bright cell sits
+under the red force hot spot in <em>every</em> panel, at every viewing angle.
+</p>
+
 <div class="row" id="r"></div>
-<p>swap <input type=checkbox id=rot> mirror1 <input type=checkbox id=fu> mirror2 <input type=checkbox id=fv>
-&nbsp;&nbsp;<button id=nextv>next variant</button> <span id=vlabel></span></p>
+
+<div class="box">
+  <div style="margin-bottom:.6em">
+    <b>orientation</b>
+    <label><input type="checkbox" id="rot"> swap axes</label>
+    <label><input type="checkbox" id="fu"> mirror 1</label>
+    <label><input type="checkbox" id="fv"> mirror 2</label>
+    <span id="vlabel" style="color:#666"></span>
+  </div>
+  <div style="margin-bottom:.6em">
+    <button id="prev">◀ prev</button><button id="next">next ▶</button>
+    <button data-v="3">A: mirror1+mirror2 <span style="color:#888">(measurement)</span></button>
+    <button data-v="5">B: swap+mirror2</button>
+  </div>
+  <div>
+    <b>view</b>
+    <button data-cam="top">from above</button>
+    <button data-cam="iso">isometric</button>
+    <button data-cam="side">from the side</button>
+    <label style="margin-left:1em"><input type="checkbox" id="spin"> spin</label>
+    <label><input type="checkbox" id="showimg" checked> floor image</label>
+  </div>
+  <div style="margin-top:.6em;color:#666">
+    Variant order: <code>swap,m1,m2</code> = 000, 001, 010, 011, 100, 101, 110, 111
+  </div>
+</div>
+
 <script type="importmap">
 {"imports":{"three":"https://unpkg.com/three@0.183.0/build/three.module.js",
- "three/addons/":"https://unpkg.com/three@0.183.0/examples/jsm/"}}
-</script>
+ "three/addons/":"https://unpkg.com/three@0.183.0/examples/jsm/"}}</script>
 <script type="module">
+import * as THREE from "three";
 import { init } from "./js/saenopy_viewer.mjs";
+
 const cells=[["004","cell-004.jpg"],["007","cell-007.jpg"],["008","cell-008.jpg"]];
-const row=document.getElementById("r"); const views=[];
-for (const [pos,img] of cells){
-  const d=document.createElement("div"); d.className="v"; row.appendChild(d);
+const row=document.getElementById("r");
+const views=[];
+let syncing=false;
+
+const sync=(src)=>{
+  if(syncing) return; syncing=true;
+  for(const v of views){
+    if(v===src) continue;
+    v.camera.position.copy(src.camera.position);
+    v.camera.quaternion.copy(src.camera.quaternion);
+    v.controls.target.copy(src.controls.target);
+    v.controls.update();
+  }
+  syncing=false;
+};
+
+for(const [pos,img] of cells){
+  const wrap=document.createElement("div");
+  wrap.innerHTML=`<div class="cap">Pos${pos}</div>`;
+  const d=document.createElement("div"); d.className="v";
+  wrap.appendChild(d); row.appendChild(wrap);
   await init({
     bundle:`./data/single-cell-${pos}.sfb.gz`, field:"fitted forces", scale_mode:"log",
-    dom_node:d, height:"260px", arrow_span:0.09, arrow_thickness:0.35, zoom:2.0,
+    dom_node:d, height:"340px", arrow_span:0.09, arrow_thickness:0.4, zoom:1.7,
     cube:"field", cube_color:0x000000, background:"#ffffff", logo_width:"0px",
-    mouse_control:false, show_controls:false, show_colormap:false,
-    floor_image:{url:`./data/${img}`, width:369.2, height:369.2, opacity:0.85},
+    mouse_control:true, show_controls:false, show_colormap:false,
+    floor_image:{url:`./data/${img}`, width:369.2, height:369.2, opacity:0.95},
     on_ready:(p,redraw,ctx)=>{
-      views.push({p,redraw,floor:ctx.floor_image,cam:ctx.camera});
-      // senkrecht von oben
-      const r0=ctx.camera.position.length();
-      ctx.camera.position.set(0,r0,0.001); ctx.camera.lookAt(0,0,0);
-      p.needs_render=true;
+      const view={p,redraw,camera:ctx.camera,controls:ctx.controls,floor:ctx.floor_image};
+      views.push(view);
+      ctx.controls.addEventListener("change",()=>sync(view));
     }});
 }
+
 const V=[[0,0,0],[0,0,1],[0,1,0],[0,1,1],[1,0,0],[1,0,1],[1,1,0],[1,1,1]];
 let idx=0;
+const cb=(id)=>document.getElementById(id);
+
 function apply(){
   const [rot,fu,fv]=V[idx];
-  document.getElementById("rot").checked=!!rot;
-  document.getElementById("fu").checked=!!fu;
-  document.getElementById("fv").checked=!!fv;
-  document.getElementById("vlabel").textContent=`variante ${idx}: swap=${rot} m1=${fu} m2=${fv}`;
-  document.getElementById("lbl").textContent=`swap=${rot} mirror1=${fu} mirror2=${fv}`;
-  for(const v of views){ const t=v.floor.material.map;
-    t.center.set(.5,.5); t.rotation=rot?Math.PI/2:0; t.repeat.set(fu?-1:1,fv?-1:1);
-    t.needsUpdate=true; v.p.needs_render=true; }
+  cb("rot").checked=!!rot; cb("fu").checked=!!fu; cb("fv").checked=!!fv;
+  cb("vlabel").textContent=`  →  variant ${idx}  (swap=${rot} m1=${fu} m2=${fv})`
+    + (idx===3?"   ← A":"") + (idx===5?"   ← B":"");
+  for(const v of views){
+    if(!v.floor) continue;
+    const t=v.floor.material.map;
+    t.center.set(.5,.5);
+    t.rotation=rot?Math.PI/2:0;
+    t.repeat.set(fu?-1:1,fv?-1:1);
+    t.needsUpdate=true;
+    v.p.needs_render=true;
+  }
 }
-document.getElementById("nextv").onclick=()=>{idx=(idx+1)%8;apply();};
+function fromBoxes(){
+  const key=[cb("rot").checked?1:0,cb("fu").checked?1:0,cb("fv").checked?1:0].join("");
+  idx=V.findIndex(v=>v.join("")===key); apply();
+}
+for(const id of ["rot","fu","fv"]) cb(id).addEventListener("change",fromBoxes);
+cb("next").onclick=()=>{idx=(idx+1)%8;apply();};
+cb("prev").onclick=()=>{idx=(idx+7)%8;apply();};
+for(const b of document.querySelectorAll("button[data-v]"))
+  b.onclick=()=>{idx=Number(b.dataset.v);apply();};
+
+function setCam(kind){
+  for(const v of views){
+    const r=v.camera.position.length();
+    if(kind==="top")  v.camera.position.set(0,r,0.001);
+    if(kind==="iso")  v.camera.position.set(r*0.6,r*0.6,r*0.53);
+    if(kind==="side") v.camera.position.set(0,r*0.08,r);
+    v.camera.lookAt(0,0,0);
+    v.controls.target.set(0,0,0);
+    v.controls.update();
+    v.p.needs_render=true;
+  }
+}
+for(const b of document.querySelectorAll("button[data-cam]"))
+  b.onclick=()=>setCam(b.dataset.cam);
+
+cb("spin").addEventListener("change",(e)=>{
+  for(const v of views) v.p.animations = e.target.checked ? [{type:"rotate",speed:8}] : [];
+});
+cb("showimg").addEventListener("change",(e)=>{
+  for(const v of views){ if(v.floor){ v.floor.visible=e.target.checked; v.p.needs_render=true; } }
+});
+
 window.setVariant=(i)=>{idx=i;apply();};
-apply();
+apply(); setCam("iso");
 </script>
