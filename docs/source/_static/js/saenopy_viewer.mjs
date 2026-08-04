@@ -5590,6 +5590,7 @@ function init_scene(dom_elem) {
     canvas,
     antialias: true
   });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
   function onWindowResize() {
     let container = canvas.parentElement;
     if (!container) return;
@@ -5753,6 +5754,26 @@ function make_arrow_geometry(thickness = 1) {
   geometry.translate(0, 0, 2);
   arrow_geometry_cache.set(key, geometry);
   return geometry;
+}
+function add_floor_image(scene, params) {
+  const spec = params.floor_image;
+  if (!spec?.url) return;
+  const geometry = new THREE4.PlaneGeometry(spec.width, spec.height);
+  const texture = new THREE4.TextureLoader().load(spec.url, () => {
+    params.needs_render = true;
+  });
+  texture.colorSpace = THREE4.SRGBColorSpace;
+  const material = new THREE4.MeshBasicMaterial({
+    map: texture,
+    side: THREE4.DoubleSide,
+    transparent: spec.opacity !== void 0,
+    opacity: spec.opacity ?? 1
+  });
+  const plane = new THREE4.Mesh(geometry, material);
+  plane.rotation.x = -Math.PI / 2;
+  plane.position.y = spec.z !== void 0 ? spec.z : params.extent[4] * 1e6;
+  scene.add(plane);
+  return plane;
 }
 function add_drop_show(parentDom, params) {
   const dropshow = document.createElement("div");
@@ -6195,6 +6216,7 @@ async function init(initial_params) {
   const update_field = params.data.fields ? await load_add_field(scene, renderer, params) : () => {
   };
   const update_cube = add_cube(scene, params);
+  const floor_image = add_floor_image(scene, params);
   const radius = params.data.fields ? params.extent[1] * 1e6 * 4 : params.data.stacks.im_shape[0] * params.data.stacks.voxel_size[0] * 2;
   set_camera(scene, camera, radius / params.zoom * 5, 30, 60);
   async function update_all() {
@@ -6241,7 +6263,8 @@ async function init(initial_params) {
       scene,
       camera,
       renderer,
-      controls: scene.controls
+      controls: scene.controls,
+      floor_image
     });
   return function dispose() {
     params.disposed = true;

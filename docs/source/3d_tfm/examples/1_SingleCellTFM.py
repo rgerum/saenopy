@@ -228,7 +228,7 @@ for result in results:
 #     <div style="display:grid;max-width:100%;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;font-family:inherit">
 #       <div>
 #         <div style="text-align:center;color:#888;font-size:1.05em;margin-bottom:.3em">Measured<br/>Deformations</div>
-#         <div class="saenopy-view" data-field="measured deformations" data-max="10.8" style="height:260px;max-width:100%;overflow:hidden"></div>
+#         <div class="saenopy-view" data-field="measured deformations" data-max="10.8" data-floor="1" style="height:260px;max-width:100%;overflow:hidden"></div>
 #       </div>
 #       <div>
 #         <div style="text-align:center;color:#888;font-size:1.05em;margin-bottom:.3em">Reconstructed<br/>Deformations</div>
@@ -243,13 +243,13 @@ for result in results:
 #       <strong style="font-size:1.05em">Rendering controls</strong>
 #       <label style="display:flex;align-items:center;gap:.5em">
 #         <span style="width:9em">arrow length</span>
-#         <input type="range" id="sn-span" min="0.02" max="0.30" step="0.005" value="0.1" style="flex:1">
-#         <output for="sn-span" style="width:4em;text-align:right;font-variant-numeric:tabular-nums">0.1</output>
+#         <input type="range" id="sn-span" min="0.02" max="0.30" step="0.005" value="0.085" style="flex:1">
+#         <output for="sn-span" style="width:4em;text-align:right;font-variant-numeric:tabular-nums">0.085</output>
 #       </label>
 #       <label style="display:flex;align-items:center;gap:.5em">
 #         <span style="width:9em">arrow thickness</span>
-#         <input type="range" id="sn-thick" min="0.1" max="3" step="0.05" value="1" style="flex:1">
-#         <output for="sn-thick" style="width:4em;text-align:right;font-variant-numeric:tabular-nums">1</output>
+#         <input type="range" id="sn-thick" min="0.1" max="3" step="0.05" value="0.1" style="flex:1">
+#         <output for="sn-thick" style="width:4em;text-align:right;font-variant-numeric:tabular-nums">0.1</output>
 #       </label>
 #       <label style="display:flex;align-items:center;gap:.5em">
 #         <span style="width:9em">opacity</span>
@@ -265,6 +265,11 @@ for result in results:
 #         <span style="width:9em">zoom</span>
 #         <input type="range" id="sn-zoom" min="0.6" max="4" step="0.05" value="1.9" style="flex:1">
 #         <output for="sn-zoom" style="width:4em;text-align:right;font-variant-numeric:tabular-nums">1.9</output>
+#       </label>
+#       <label style="display:flex;align-items:center;gap:.5em">
+#         <span style="width:9em">cell image</span>
+#         <select id="sn-floor" style="flex:1"><option value="1">on (left panel)</option><option value="0">off</option></select>
+#         <span style="width:4em"></span>
 #       </label>
 #       <label style="display:flex;align-items:center;gap:.5em">
 #         <span style="width:9em">colormap</span>
@@ -308,19 +313,23 @@ for result in results:
 #           scale_max: node.dataset.max ? Number(node.dataset.max) : undefined,
 #           dom_node: node,
 #           height: "260px",
-#           arrow_span: 0.1,
-#           arrow_thickness: 1,
+#           arrow_span: 0.085,
+#           arrow_thickness: 0.1,
 #           arrow_opacity: 1,
 #           zoom: 1.9,
 #           cube: "field",
 #           cube_color: 0x000000,
 #           background: "#ffffff",
+#           floor_image: node.dataset.floor
+#             ? { url: "../../_static/data/single-cell-007-floor.jpg",
+#                 width: 369.2, height: 369.2, opacity: 0.9 }
+#             : undefined,
 #           logo_width: "0px",
 #           mouse_control: true,
 #           show_controls: false,
 #           show_colormap: false,
 #           on_ready: (params, redraw, ctx) => {
-#             const view = { params, redraw, camera: ctx.camera,
+#             const view = { params, redraw, camera: ctx.camera, floor: ctx.floor_image,
 #                            controls: ctx.controls, isForce: !!node.dataset.log };
 #             views.push(view);
 #             ctx.controls.addEventListener("change", () => sync(view));
@@ -343,6 +352,12 @@ for result in results:
 #       bind("sn-zoom",  (v, x) => {
 #         v.camera.zoom = Number(x);
 #         v.camera.updateProjectionMatrix();
+#       });
+#       document.getElementById("sn-floor").addEventListener("change", (e) => {
+#         const on = e.target.value === "1";
+#         for (const v of views) {
+#           if (v.floor) { v.floor.visible = on; v.params.needs_render = true; }
+#         }
 #       });
 #       document.getElementById("sn-cmap").addEventListener("change", (e) =>
 #         apply((v) => { v.params.cmap = e.target.value; }));
