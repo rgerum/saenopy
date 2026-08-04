@@ -268,7 +268,7 @@ for result in results:
 #       </label>
 #       <label style="display:flex;align-items:center;gap:.5em">
 #         <span style="width:9em">cell image</span>
-#         <select id="sn-floor" style="flex:1"><option value="1">on (left panel)</option><option value="0">off</option></select>
+#         <span style="flex:1"><input type="checkbox" id="sn-floor" checked> under the left panel</span>
 #         <span style="width:4em"></span>
 #       </label>
 #       <label style="display:flex;align-items:center;gap:.5em">
@@ -290,7 +290,7 @@ for result in results:
 #       }}
 #     </script>
 #     <script type="module">
-#       import { init } from "../../_static/js/saenopy_viewer.mjs";
+#       import { init } from "../../_static/js/saenopy_viewer.mjs?v=1785852983";
 #       const views = [];
 #       let syncing = false;
 #       const sync = (source) => {
@@ -307,7 +307,7 @@ for result in results:
 #       };
 #       for (const node of document.querySelectorAll(".saenopy-view")) {
 #         await init({
-#           bundle: "../../_static/data/single-cell-007.sfb.gz",
+#           bundle: "../../_static/data/single-cell-007.sfb.gz?v=1785852983",
 #           field: node.dataset.field,
 #           scale_mode: node.dataset.log ? "log" : "linear",
 #           scale_max: node.dataset.max ? Number(node.dataset.max) : undefined,
@@ -321,7 +321,7 @@ for result in results:
 #           cube_color: 0x000000,
 #           background: "#ffffff",
 #           floor_image: node.dataset.floor
-#             ? { url: "../../_static/data/single-cell-007-floor.jpg",
+#             ? { url: "../../_static/data/single-cell-007-floor.jpg?v=1785852983",
 #                 width: 369.2, height: 369.2, opacity: 0.9 }
 #             : undefined,
 #           logo_width: "0px",
@@ -354,7 +354,7 @@ for result in results:
 #         v.camera.updateProjectionMatrix();
 #       });
 #       document.getElementById("sn-floor").addEventListener("change", (e) => {
-#         const on = e.target.value === "1";
+#         const on = e.target.checked;
 #         for (const v of views) {
 #           if (v.floor) { v.floor.visible = on; v.params.needs_render = true; }
 #         }
