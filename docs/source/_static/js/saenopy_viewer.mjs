@@ -5763,6 +5763,9 @@ function add_floor_image(scene, params) {
     params.needs_render = true;
   });
   texture.colorSpace = THREE4.SRGBColorSpace;
+  texture.center.set(0.5, 0.5);
+  if (spec.rotate90) texture.rotation = Math.PI / 2;
+  texture.repeat.set(spec.flip_u ? -1 : 1, spec.flip_v ? -1 : 1);
   const material = new THREE4.MeshBasicMaterial({
     map: texture,
     side: THREE4.DoubleSide,
