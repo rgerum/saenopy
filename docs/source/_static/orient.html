@@ -1,0 +1,50 @@
+<!doctype html><meta charset="utf-8"><title>orientation check</title>
+<style>body{font:14px system-ui;margin:16px;background:#fff}
+.row{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-bottom:6px}
+.v{height:260px;border:1px solid #ccc}
+h3{margin:14px 0 4px}</style>
+<h3 id="lbl"></h3>
+<div class="row" id="r"></div>
+<p>swap <input type=checkbox id=rot> mirror1 <input type=checkbox id=fu> mirror2 <input type=checkbox id=fv>
+&nbsp;&nbsp;<button id=nextv>next variant</button> <span id=vlabel></span></p>
+<script type="importmap">
+{"imports":{"three":"https://unpkg.com/three@0.183.0/build/three.module.js",
+ "three/addons/":"https://unpkg.com/three@0.183.0/examples/jsm/"}}
+</script>
+<script type="module">
+import { init } from "./js/saenopy_viewer.mjs";
+const cells=[["004","cell-004.jpg"],["007","cell-007.jpg"],["008","cell-008.jpg"]];
+const row=document.getElementById("r"); const views=[];
+for (const [pos,img] of cells){
+  const d=document.createElement("div"); d.className="v"; row.appendChild(d);
+  await init({
+    bundle:`./data/single-cell-${pos}.sfb.gz`, field:"fitted forces", scale_mode:"log",
+    dom_node:d, height:"260px", arrow_span:0.09, arrow_thickness:0.35, zoom:2.0,
+    cube:"field", cube_color:0x000000, background:"#ffffff", logo_width:"0px",
+    mouse_control:false, show_controls:false, show_colormap:false,
+    floor_image:{url:`./data/${img}`, width:369.2, height:369.2, opacity:0.85},
+    on_ready:(p,redraw,ctx)=>{
+      views.push({p,redraw,floor:ctx.floor_image,cam:ctx.camera});
+      // senkrecht von oben
+      const r0=ctx.camera.position.length();
+      ctx.camera.position.set(0,r0,0.001); ctx.camera.lookAt(0,0,0);
+      p.needs_render=true;
+    }});
+}
+const V=[[0,0,0],[0,0,1],[0,1,0],[0,1,1],[1,0,0],[1,0,1],[1,1,0],[1,1,1]];
+let idx=0;
+function apply(){
+  const [rot,fu,fv]=V[idx];
+  document.getElementById("rot").checked=!!rot;
+  document.getElementById("fu").checked=!!fu;
+  document.getElementById("fv").checked=!!fv;
+  document.getElementById("vlabel").textContent=`variante ${idx}: swap=${rot} m1=${fu} m2=${fv}`;
+  document.getElementById("lbl").textContent=`swap=${rot} mirror1=${fu} mirror2=${fv}`;
+  for(const v of views){ const t=v.floor.material.map;
+    t.center.set(.5,.5); t.rotation=rot?Math.PI/2:0; t.repeat.set(fu?-1:1,fv?-1:1);
+    t.needsUpdate=true; v.p.needs_render=true; }
+}
+document.getElementById("nextv").onclick=()=>{idx=(idx+1)%8;apply();};
+window.setVariant=(i)=>{idx=i;apply();};
+apply();
+</script>

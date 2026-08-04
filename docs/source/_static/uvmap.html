@@ -1,0 +1,36 @@
+<!doctype html><meta charset="utf-8"><title>uv map</title><body style="font:13px monospace">
+<div id="v" style="width:300px;height:300px"></div><pre id="out"></pre>
+<script type="importmap">
+{"imports":{"three":"https://unpkg.com/three@0.183.0/build/three.module.js",
+ "three/addons/":"https://unpkg.com/three@0.183.0/examples/jsm/"}}</script>
+<script type="module">
+import * as THREE from "three";
+import { init } from "./js/saenopy_viewer.mjs";
+const log=[];
+await init({bundle:"./data/single-cell-007.sfb.gz",field:"fitted forces",
+  dom_node:document.getElementById("v"),height:"300px",arrow_span:0.09,zoom:2,
+  cube:"field",cube_color:0x000000,background:"#fff",logo_width:"0px",
+  mouse_control:false,show_controls:false,show_colormap:false,
+  floor_image:{url:"./data/cell-007.jpg",width:369.2,height:369.2},
+  on_ready:(p,redraw,ctx)=>{
+    const plane=ctx.floor_image;
+    const geo=plane.geometry;
+    const pos=geo.attributes.position, uv=geo.attributes.uv;
+    const tex=plane.material.map; tex.updateMatrix();
+    const M=tex.matrix;
+    log.push("ecke |   welt(X,Y,Z)        | daten(x,y) um | uv roh   | uv nach textur-matrix | pixel(row,col)");
+    for(let i=0;i<pos.count;i++){
+      const v=new THREE.Vector3().fromBufferAttribute(pos,i);
+      plane.localToWorld(v);
+      const dx=-v.z, dy=-v.x;                       // welt -> daten (convert_pos umgekehrt)
+      const u0=uv.getX(i), v0=uv.getY(i);
+      const t=new THREE.Vector2(u0,v0).applyMatrix3(M);
+      // flipY=true: zeile 0 liegt bei v=1
+      const row=(1-t.y), col=t.x;
+      log.push(`  ${i}  | (${v.x.toFixed(0).padStart(5)},${v.y.toFixed(0).padStart(4)},${v.z.toFixed(0).padStart(5)}) | `+
+               `(${dx.toFixed(0).padStart(5)},${dy.toFixed(0).padStart(5)}) | (${u0},${v0}) | (${t.x.toFixed(2)},${t.y.toFixed(2)}) | (${row.toFixed(2)},${col.toFixed(2)})`);
+    }
+    document.getElementById("out").textContent=log.join("\n");
+    window.__uvdone=log.join("\n");
+  }});
+</script>
