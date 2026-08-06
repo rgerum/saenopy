@@ -272,15 +272,6 @@ for result in results:
 #         <span style="width:4em"></span>
 #       </label>
 #       <label style="display:flex;align-items:center;gap:.5em">
-#         <span style="width:9em">image orientation</span>
-#         <span style="flex:1">
-#           <label><input type="checkbox" id="sn-rot" checked> swap axes</label>
-#           <label style="margin-left:1em"><input type="checkbox" id="sn-fu"> mirror 1</label>
-#           <label style="margin-left:1em"><input type="checkbox" id="sn-fv" checked> mirror 2</label>
-#         </span>
-#         <span style="width:4em"></span>
-#       </label>
-#       <label style="display:flex;align-items:center;gap:.5em">
 #         <span style="width:9em">colormap</span>
 #         <select id="sn-cmap" style="flex:1"><option>turbo</option><option>viridis</option></select>
 #         <span style="width:4em"></span>
@@ -299,7 +290,7 @@ for result in results:
 #       }}
 #     </script>
 #     <script type="module">
-#       import { init } from "../../_static/js/saenopy_viewer.mjs?v=1785854242";
+#       import { init } from "../../_static/js/saenopy_viewer.mjs?v=1786049224";
 #       const views = [];
 #       let syncing = false;
 #       const sync = (source) => {
@@ -316,7 +307,7 @@ for result in results:
 #       };
 #       for (const node of document.querySelectorAll(".saenopy-view")) {
 #         await init({
-#           bundle: "../../_static/data/single-cell-007.sfb.gz?v=1785854242",
+#           bundle: "../../_static/data/single-cell-007.sfb.gz?v=1786049224",
 #           field: node.dataset.field,
 #           scale_mode: node.dataset.log ? "log" : "linear",
 #           scale_max: node.dataset.max ? Number(node.dataset.max) : undefined,
@@ -330,9 +321,8 @@ for result in results:
 #           cube_color: 0x000000,
 #           background: "#ffffff",
 #           floor_image: node.dataset.floor
-#             ? { url: "../../_static/data/single-cell-007-floor.jpg?v=1785854242",
-#                 width: 369.2, height: 369.2, opacity: 0.9,
-#                 rotate90: true, flip_u: false, flip_v: true }
+#             ? { url: "../../_static/data/single-cell-007-floor.jpg?v=1786049224",
+#                 width: 369.2, height: 369.2, opacity: 0.9 }
 #             : undefined,
 #           logo_width: "0px",
 #           mouse_control: true,
@@ -369,22 +359,6 @@ for result in results:
 #           if (v.floor) { v.floor.visible = on; v.params.needs_render = true; }
 #         }
 #       });
-#       const orient = () => {
-#         const rot = document.getElementById("sn-rot").checked;
-#         const fu = document.getElementById("sn-fu").checked;
-#         const fv = document.getElementById("sn-fv").checked;
-#         for (const v of views) {
-#           if (!v.floor) continue;
-#           const t = v.floor.material.map;
-#           t.center.set(0.5, 0.5);
-#           t.rotation = rot ? Math.PI / 2 : 0;
-#           t.repeat.set(fu ? -1 : 1, fv ? -1 : 1);
-#           t.needsUpdate = true;
-#           v.params.needs_render = true;
-#         }
-#       };
-#       for (const id of ["sn-rot", "sn-fu", "sn-fv"])
-#         document.getElementById(id).addEventListener("change", orient);
 #       document.getElementById("sn-cmap").addEventListener("change", (e) =>
 #         apply((v) => { v.params.cmap = e.target.value; }));
 #       document.getElementById("sn-mode").addEventListener("change", (e) =>
