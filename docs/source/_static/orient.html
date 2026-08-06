@@ -44,6 +44,44 @@ under the red force hot spot in <em>every</em> panel, at every viewing angle.
   <div style="margin-top:.6em;color:#666">
     Variant order: <code>swap,m1,m2</code> = 000, 001, 010, 011, 100, 101, 110, 111
   </div>
+  <div style="margin-top:.8em;border-top:1px solid #e0e0e0;padding-top:.7em">
+    <b>arrows</b>
+    <div style="display:grid;gap:.35em;margin-top:.4em;max-width:620px">
+      <label style="display:flex;align-items:center;gap:.6em">
+        <span style="width:8.5em">length</span>
+        <input type="range" id="s-span" min="0.02" max="0.25" step="0.005" value="0.09" style="flex:1">
+        <output id="o-span" style="width:3.5em;text-align:right;font-variant-numeric:tabular-nums">0.09</output>
+      </label>
+      <label style="display:flex;align-items:center;gap:.6em">
+        <span style="width:8.5em">thickness</span>
+        <input type="range" id="s-thick" min="0.05" max="1.5" step="0.05" value="0.4" style="flex:1">
+        <output id="o-thick" style="width:3.5em;text-align:right;font-variant-numeric:tabular-nums">0.4</output>
+      </label>
+      <label style="display:flex;align-items:center;gap:.6em">
+        <span style="width:8.5em">arrow opacity</span>
+        <input type="range" id="s-op" min="0.05" max="1" step="0.05" value="1" style="flex:1">
+        <output id="o-op" style="width:3.5em;text-align:right;font-variant-numeric:tabular-nums">1</output>
+      </label>
+      <label style="display:flex;align-items:center;gap:.6em">
+        <span style="width:8.5em">image opacity</span>
+        <input type="range" id="s-img" min="0.1" max="1" step="0.05" value="0.95" style="flex:1">
+        <output id="o-img" style="width:3.5em;text-align:right;font-variant-numeric:tabular-nums">0.95</output>
+      </label>
+      <label style="display:flex;align-items:center;gap:.6em">
+        <span style="width:8.5em">field</span>
+        <select id="s-field" style="flex:1">
+          <option value="fitted forces">fitted forces</option>
+          <option value="fitted deformations">fitted deformations</option>
+          <option value="measured deformations">measured deformations</option>
+        </select>
+        <span style="width:3.5em"></span>
+      </label>
+      <div style="color:#666">
+        Turn arrow opacity and thickness down to see the cell through the field.
+      </div>
+    </div>
+  </div>
+
 </div>
 
 <script type="importmap">
@@ -137,6 +175,27 @@ cb("spin").addEventListener("change",(e)=>{
 });
 cb("showimg").addEventListener("change",(e)=>{
   for(const v of views){ if(v.floor){ v.floor.visible=e.target.checked; v.p.needs_render=true; } }
+});
+
+
+const bind=(id,out,fn)=>{
+  const el=cb(id), o=cb(out);
+  el.addEventListener("input",()=>{
+    o.textContent=el.value;
+    for(const v of views){ fn(v, Number(el.value)); v.p.needs_render=true; v.redraw(); }
+  });
+};
+bind("s-span","o-span",(v,x)=>{ v.p.arrow_span=x; });
+bind("s-thick","o-thick",(v,x)=>{ v.p.arrow_thickness=x; });
+bind("s-op","o-op",(v,x)=>{ v.p.arrow_opacity=x; });
+bind("s-img","o-img",(v,x)=>{ if(v.floor) v.floor.material.opacity=x; });
+cb("s-field").addEventListener("change",(e)=>{
+  for(const v of views){
+    if(!v.p.data.fields[e.target.value]) continue;
+    v.p.field=e.target.value;
+    v.p.scale_mode = e.target.value==="fitted forces" ? "log" : "linear";
+    v.redraw();
+  }
 });
 
 window.setVariant=(i)=>{idx=i;apply();};
