@@ -1,3 +1,4 @@
+import copy
 import glob
 import re
 from pathlib import Path
@@ -282,23 +283,45 @@ class PivParametersDict(TypedDict):
     signal_to_noise: float
     drift_correction: bool
 
-class MeshParametersDict(TypedDict):
+class MeshParametersDict(TypedDict, total=False):
     reference_stack: str
     element_size: float
     mesh_size: Union[Tuple[float, float, float], str]
-    
+    # --- robust deformation-outlier filter (added in save version 1.8) ---
+    # Optional: official old files (< 1.8) do not contain these; they are filled
+    # with defaults on load. Removes spike outliers from the interpolated
+    # target field once, before the fit (see saenopy.deformation_filter).
+    outlier_filter: bool          # enable the robust normalized-median outlier removal
+    outlier_thresh: float         # normalized-median threshold (higher = more permissive)
+    outlier_k: int                # nearest neighbours for the local statistic
+    outlier_min_mult: float       # absolute floor = min_mult * field-median |u|
+
 class MaterialParametersDict(TypedDict):
     k: float
     d_0: float
     lambda_s: float
     d_s: float
 
-class SolveParametersDict(TypedDict):
+class SolveParametersDict(TypedDict, total=False):
     alpha: float
     step_size: float
     max_iterations: int
     rel_conv_crit: float
     prev_t_as_start: bool
+    # Surface mode always uses geometry-normalized alpha.
+    surface: bool
+    seg_channel: int              # channel used for the cell segmentation
+    seg_threshold_method: str     # "li" | "otsu" | "yen"
+    seg_threshold_factor: float   # factor multiplied onto the automatic threshold
+    seg_dilate_layers: int        # mesh-node shells added to the detected surface
+    # Geometry-only alpha normalization (added in save version 1.8).
+    physical_normalization: bool
+    alpha_reference_element_size_um: float
+    scaling_exponent: float
+    surface_min_iterations: int
+    exclude_cell_interior: bool
+    cg_maxiter_factor: int
+    solver_precision: float
     
     
 
@@ -310,7 +333,7 @@ class Result(Saveable):
                            'solve_parameters', 'solvers',
                            '___save_name__', '___save_version__']
     ___save_name__ = "Result"
-    ___save_version__ = "1.7"
+    ___save_version__ = "1.8"
     output: str = None
     state: bool = False
 
@@ -343,7 +366,15 @@ class Result(Saveable):
                 if not is_none_placeholder(solver):
                     yield solver
 
+        def version():
+            return tuple(int(part) for part in str(data_dict["___save_version__"]).split("."))
+
+        if version() > (1, 8):
+            raise ValueError("This .saenopy file needs a newer Saenopy version.")
+
         def apply_rename(obj_data, rename):
+            if obj_data is None or (isinstance(obj_data, str) and obj_data == "__NONE__"):
+                return obj_data
             if isinstance(obj_data, list):
                 return [apply_rename(o, rename) for o in obj_data]
 
@@ -351,11 +382,15 @@ class Result(Saveable):
             for r in rename:
                 if r["new"] is not None:
                     if isinstance(r["old"], Callable):
-                        obj_data[r["new"]] = r["old"](obj_data)
+                        obj_data[r["new"]] = copy.deepcopy(r["old"](obj_data))
                     elif r["old"] in obj_data:
-                        obj_data[r["new"]] = obj_data[r["old"]]
+                        # Old Saenopy versions derived material and solve
+                        # parameters from one shared ``solve_parameter``
+                        # dictionary. Copy here so the later delete phase
+                        # cannot remove fields from both migrated objects.
+                        obj_data[r["new"]] = copy.deepcopy(obj_data[r["old"]])
                     elif "default" in r:
-                        obj_data[r["new"]] = r["default"]
+                        obj_data[r["new"]] = copy.deepcopy(r["default"])
                     else:
                         raise ValueError(f"File does not contain parameter {r['old']} and {r['new']} does not have a "
                                          f"default value.")
@@ -363,6 +398,8 @@ class Result(Saveable):
                     apply_rename(obj_data[r["new"]], r.get("renames_child", None))
 
         def apply_delete(obj_data, rename):
+            if obj_data is None or (isinstance(obj_data, str) and obj_data == "__NONE__"):
+                return obj_data
             if isinstance(obj_data, list):
                 return [apply_delete(o, rename) for o in obj_data]
 
@@ -372,12 +409,12 @@ class Result(Saveable):
                 if r.get("renames_child", None) is not None:
                     apply_delete(obj_data[r["new"]], r.get("renames_child", None))
 
-        if data_dict["___save_version__"] < "1.1":
+        if version() < (1, 1):
             if len(data_dict["stack"]) == 2:
                 data_dict["stack_reference"] = data_dict["stack"][0]
                 data_dict["stack"] = [data_dict["stack"][1]]
 
-        if data_dict["___save_version__"] < "1.2":  # pragma: no cover
+        if version() < (1, 2):  # pragma: no cover
             print(f"convert old version {data_dict['___save_version__']} to 1.2")
             renames = [
                 dict(old="stack", new="stack", renames_child=[
@@ -470,7 +507,7 @@ class Result(Saveable):
             apply_delete(data_dict, renames)
 
             data_dict["___save_version__"] = "1.2"
-        if data_dict["___save_version__"] < "1.3":  # pragma: no cover
+        if version() < (1, 3):  # pragma: no cover
             print(f"convert old version {data_dict['___save_version__']} to 1.3")
             renames = [
                 dict(old="stack", new="stacks"),
@@ -480,7 +517,7 @@ class Result(Saveable):
             apply_delete(data_dict, renames)
 
             data_dict["___save_version__"] = "1.3"
-        if data_dict["___save_version__"] < "1.4":  # pragma: no cover
+        if version() < (1, 4):  # pragma: no cover
             print(f"convert old version {data_dict['___save_version__']} to 1.4")
             renames = [
                 dict(old="solvers", new="solvers", renames_child=[
@@ -494,32 +531,66 @@ class Result(Saveable):
 
             data_dict["___save_version__"] = "1.4"
        
-        if data_dict["___save_version__"] < "1.5":  # pragma: no cover
+        if version() < (1, 5):  # pragma: no cover
              print(f"convert old version {data_dict['___save_version__']} to 1.5")
              if data_dict["solve_parameters"] is not None:
                  data_dict["solve_parameters"]["prev_t_as_start"] = False
              data_dict["___save_version__"] = "1.5"
 
-        if data_dict["___save_version__"] < "1.6":  # pragma: no cover
+        if version() < (1, 6):  # pragma: no cover
              print(f"convert old version {data_dict['___save_version__']} to 1.6")
              for solver in iter_solvers():
                  solver["regularisation_results"] = np.array(solver["regularisation_results"])
              for stack in data_dict["stacks"]:
                  stack["image_filenames"] = np.array(stack["image_filenames"])
-             if data_dict.get("stack_reference", None):
+             if isinstance(data_dict.get("stack_reference"), dict):
                  data_dict["stack_reference"]["image_filenames"] = np.array(data_dict["stack_reference"]["image_filenames"])
              data_dict["___save_version__"] = "1.6"
 
-        if data_dict["___save_version__"] < "1.7":  # pragma: no cover
+        if version() < (1, 7):  # pragma: no cover
              print(f"convert old version {data_dict['___save_version__']} to 1.7")
              for solver in iter_solvers():
+                 if is_none_placeholder(solver["mesh"]["forces"]) or is_none_placeholder(solver["mesh"]["regularisation_mask"]):
+                     solver["mesh"]["forces_border"] = None
+                     continue
                  solver["mesh"]["forces_border"] = solver["mesh"]["forces"].copy()
                  solver["mesh"]["forces_border"][solver["mesh"]["regularisation_mask"]] = 0
                  solver["mesh"]["forces"][~solver["mesh"]["regularisation_mask"]] = 0
                  print(solver["mesh"].keys())
 
              data_dict["___save_version__"] = "1.7"
-             
+
+        # 1.8: current fork metadata. Official 1.7 Classic files receive
+        # conservative defaults so their original objective is preserved.
+        if version() < (1, 8):  # pragma: no cover
+            from saenopy import deformation_filter as df
+            from saenopy import surface_regularization as sr
+            from saenopy import physical_regularization as pr
+            sp = data_dict.get("solve_parameters")
+            if isinstance(sp, dict):
+                defaults = dict(
+                    surface=False,
+                    physical_normalization=False,
+                    alpha_reference_element_size_um=pr.DEFAULT_REFERENCE_ELEMENT_SIZE_UM,
+                    scaling_exponent=pr.DEFAULT_SCALING_EXPONENT,
+                    seg_channel=1,
+                    seg_threshold_method=sr.DEFAULT_THRESHOLD_METHOD,
+                    seg_threshold_factor=sr.DEFAULT_THRESHOLD_FACTOR,
+                    seg_dilate_layers=1,
+                    surface_min_iterations=sr.DEFAULT_MIN_ITERATIONS,
+                    exclude_cell_interior=False)
+                for key, value in defaults.items():
+                    sp.setdefault(key, value)
+            mp = data_dict.get("mesh_parameters")
+            if isinstance(mp, dict):
+                for key, value in dict(
+                        outlier_filter=False,
+                        outlier_thresh=df.DEFAULT_OUTLIER_THRESH,
+                        outlier_k=df.DEFAULT_OUTLIER_K,
+                        outlier_min_mult=df.DEFAULT_OUTLIER_MIN_MULT).items():
+                    mp.setdefault(key, value)
+            data_dict["___save_version__"] = "1.8"
+
         return super().from_dict(data_dict)
 
     def reset_piv(self, keep_state=False):
@@ -542,7 +613,8 @@ class Result(Saveable):
                 M = Solver()
                 M.set_nodes(solver.mesh.nodes)
                 M.set_tetrahedra(solver.mesh.tetrahedra)
-                M.set_target_displacements(solver.mesh.displacements_target, solver.mesh.displacements_target_mask)
+                M.set_target_displacements(solver.mesh.displacements_target, solver.mesh.regularisation_mask.copy())
+                M.mesh.displacements_target_mask = solver.mesh.displacements_target_mask.copy()
 
                 self.solvers[i] = M
 
@@ -604,7 +676,7 @@ class Result(Saveable):
                 stack.paths_absolute()
             if self.stack_reference is not None:
                 self.stack_reference.paths_absolute()
-            self.template = make_path_absolute(self.template, Path(self.output).parent)
+            self.template = make_path_absolute(self.template, Path(self.output).parent if self.output else Path.cwd())
 
             self.output = filename
             for stack in self.stacks:

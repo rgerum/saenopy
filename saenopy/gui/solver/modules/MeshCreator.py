@@ -94,6 +94,24 @@ class MeshCreator(PipelineModule):
                     self.input_mesh_size = MeshSizeWidget().addToLayout()
 
                     with QtShortCuts.QHBoxLayout():
+                        self.input_outlier_filter = QtShortCuts.QInputBool(
+                            None, "remove deformation outliers", True,
+                            tooltip="robust normalized-median filter: drop spike outliers "
+                                    "from the interpolated deformation field before the force "
+                                    "fit (recommended; works for both classic and surface mode)")
+                        self.input_outlier_thresh = QtShortCuts.QInputNumber(
+                            None, "outlier thresh.", 4.0, step=0.5, float=True,
+                            tooltip="At 4, reject a displacement vector if its distance from the "
+                                    "component-wise median of its 12 nearest neighbours exceeds "
+                                    "4 times (the neighbours' median distance from that median + 0.3 µm). "
+                                    "The deviation must also exceed max(0.3 µm, half the median "
+                                    "neighbour displacement magnitude). This is not 4 times the "
+                                    "median displacement or 4 standard deviations. Higher values "
+                                    "reject fewer displacement measurements; mesh nodes remain.")
+                        self.input_outlier_filter.valueChanged.connect(
+                            lambda: self.input_outlier_thresh.setDisabled(not self.input_outlier_filter.value()))
+
+                    with QtShortCuts.QHBoxLayout():
                         self.input_button = QtWidgets.QPushButton("interpolate mesh").addToLayout()
                         self.input_button.clicked.connect(self.start_process)
                         self.input_button_text = QtWidgets.QLabel().addToLayout()
@@ -107,6 +125,8 @@ class MeshCreator(PipelineModule):
             "reference_stack": self.input_reference,
             "element_size": self.input_element_size,
             "mesh_size": self.input_mesh_size,
+            "outlier_filter": self.input_outlier_filter,
+            "outlier_thresh": self.input_outlier_thresh,
         })
 
     def cancel_process(self):

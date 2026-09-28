@@ -28,7 +28,9 @@ class ParameterMapping:
             return
         # if the results instance does not have the parameter dictionary yet, create it
         if getattr(result, self.params_name + "_tmp", None) is None:
-            setattr(result, self.params_name + "_tmp", {})
+            # Preserve non-widget settings (normalization reference, iteration
+            # floor, etc.) when processing or exporting a loaded result.
+            setattr(result, self.params_name + "_tmp", dict(getattr(result, self.params_name) or {}))
 
         # set the widgets to the value if the value exits
         params = getattr(result, self.params_name)

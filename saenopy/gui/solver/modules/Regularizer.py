@@ -32,9 +32,27 @@ class CancelSignal:
     cancel = False
 
 
+from saenopy.reconstruction import segment_with_params
+from .live_fit import solver_snapshot
+
+
+def segmentation_preview_mesh(body, voxel_size):
+    """Measured voxel interface for display only, without artificial edge caps."""
+    from skimage.measure import marching_cubes
+    body = np.asarray(body, dtype=bool)
+    if body.ndim != 3 or not body.any() or body.all():
+        raise ValueError("no cell/gel interface: segmentation is empty or fills the entire image; adjust threshold")
+    spacing = np.asarray(voxel_size, dtype=float)[[1, 0, 2]]
+    vertices, faces, _, _ = marching_cubes(body.astype(np.float32), .5, spacing=tuple(spacing))
+    vertices -= (np.asarray(body.shape) - 1) / 2 * spacing
+    touches_edge = any(np.any(np.take(body, [0, -1], axis=axis)) for axis in range(3))
+    return vertices, faces, touches_edge
+
+
 class Regularizer(PipelineModule):
     pipeline_name = "fit forces"
     iteration_finished = QtCore.Signal(object, object, int, int)
+    live_field_ready = QtCore.Signal(object, int, object)
 
     pipeline_allow_cancel = True
     pipeline_button_name = "calculate forces"
@@ -56,13 +74,58 @@ class Regularizer(PipelineModule):
 
                     with QtShortCuts.QGroupBox(None, "Regularisation Parameters") as self.material_parameters:
                         self.input_previous_t_as_start = QtShortCuts.QInputBool(None, "use previous time steps deformation field", True,
-                                                                tooltip="wether to use the previous time steps deformation field as a starting value for the next regularisation")
+                                                                 tooltip="wether to use the previous time steps deformation field as a starting value for the next regularisation")
                         with QtShortCuts.QHBoxLayout(None) as layout:
-                            self.input_alpha = QtShortCuts.QInputString(None, "alpha", "1e10", type="exp", tooltip="the strength of the regularisation (higher values mean weaker forces)")
+                            self.input_alpha = QtShortCuts.QInputString(
+                                None, "alpha", "1e10", type="exp",
+                                tooltip="Regularization penalty relative to the displacement fit. "
+                                        "Mesh normalization is enabled. This is the single alpha used "
+                                        "for both Classic and Surface and is referenced to a 14 um mesh.")
                             self.input_step_size = QtShortCuts.QInputString(None, "step size", "0.33", type=float, tooltip="the step with of the iteration algorithm")
                         with QtShortCuts.QHBoxLayout(None) as layout:
                             self.input_imax = QtShortCuts.QInputNumber(None, "max iterations", 100, float=False, tooltip="the maximum number of iterations after which to abort the iteration algorithm")
                             self.input_conv_crit = QtShortCuts.QInputString(None, "rel. conv. crit.", 0.01, type=float, tooltip="the convergence criterion of the iteration algorithm")
+
+                    with QtShortCuts.QGroupBox(None, "Surface Regularisation") as (self.surface_parameters, surface_layout):
+                        surface_layout.setSizeConstraint(QtWidgets.QLayout.SetMinimumSize)
+                        surface_layout.setSpacing(8)
+                        self.input_surface = QtShortCuts.QInputBool(
+                            None, "surface regularization", False,
+                            tooltip="Regularize traction on the segmented cell surface and suppress forces "
+                                    "in the surrounding gel. Surface always uses geometry normalization "
+                                    "and the single 'alpha' above.")
+                        with QtShortCuts.QHBoxLayout(None) as layout:
+                            # populated from the loaded stack's channels in setResult(),
+                            # exactly like the channel selector in the 3D viewer toolbar
+                            self.input_seg_channel = QtShortCuts.QInputChoice(
+                                None, "cell channel", 0, values=[0], value_names=["0"],
+                                tooltip="Channel showing the cell / cell stain (used for the segmentation).")
+                        with QtShortCuts.QHBoxLayout(None):
+                            self.input_thr_method = QtShortCuts.QInputChoice(
+                                None, "threshold method", "li", values=["li", "otsu", "yen"],
+                                tooltip="Method for the automatic segmentation threshold.")
+                        with QtShortCuts.QHBoxLayout(None) as layout:
+                            self.input_thr_factor = QtShortCuts.QInputString(
+                                None, "threshold factor", "0.6", type=float,
+                                tooltip="Multiplied onto the automatic threshold (which is in raw intensity units). "
+                                        "Lower = include dimmer parts of the cell, higher = only the bright core. "
+                                        "Use 'preview segmentation' to see the effect.")
+                            self.input_thr_factor.line_edit.setMinimumWidth(90)
+                        with QtShortCuts.QHBoxLayout(None) as layout:
+                            self.input_dilate_layers = QtShortCuts.QInputNumber(
+                                None, "surface dilation", 1, min=0, float=False,
+                                tooltip="Number of mesh-node shells added to the detected surface.")
+                            self.input_dilate_layers.spin_box.setMinimumWidth(90)
+                        # preview: segment with the CURRENT parameters and show the resulting
+                        # surface nodes in the Forces view, WITHOUT computing forces
+                        with QtShortCuts.QHBoxLayout(None) as layout:
+                            self.input_button_preview = QtShortCuts.QPushButton(
+                                None, "preview segmentation", self.preview_segmentation,
+                                tooltip="Segment the cell with the current channel/threshold for the current "
+                                        "time step and show the surface nodes in the Forces view - without "
+                                        "running the force reconstruction. Use it to tune the parameters.")
+                        self.input_button_preview_text = QtWidgets.QLabel().addToLayout()
+                        self.input_button_preview_text.setWordWrap(True)
 
                     with QtShortCuts.QHBoxLayout():
                         self.input_button = QtShortCuts.QPushButton(None, "calculate forces", self.start_process,
@@ -92,11 +155,71 @@ class Regularizer(PipelineModule):
             "max_iterations": self.input_imax,
             "rel_conv_crit": self.input_conv_crit,
             "prev_t_as_start": self.input_previous_t_as_start,
+            # --- surface-restricted regularization (missing keys in older result
+            # files fall back to these widgets' defaults -> backward compatible) ---
+            "surface": self.input_surface,
+            "seg_channel": self.input_seg_channel,
+            "seg_threshold_method": self.input_thr_method,
+            "seg_threshold_factor": self.input_thr_factor,
+            "seg_dilate_layers": self.input_dilate_layers,
         })
 
+        self.parent.tasks_changed.connect(self._update_preview_controls)
+        self._update_preview_controls()
         self.initialize_plot()
         self.iteration_finished.connect(self.iteration_callback)
+        self.live_field_ready.connect(self.show_live_field)
         self.iteration_finished.emit(None, np.ones([10, 3]), 0, None)
+
+    def _preview_blocked(self):
+        return (self.parent.has_scheduled_tasks()
+                or self.get_result_state(self.result) in
+                (StateEnum.scheduled, StateEnum.running, StateEnum.cancelling))
+
+    def _update_preview_controls(self):
+        self.input_button_preview.setEnabled(
+            self.check_available(self.result) and not self._preview_blocked())
+
+    def state_changed(self, result):
+        if result is not None and self.get_result_state(result) not in (
+                StateEnum.scheduled, StateEnum.running, StateEnum.cancelling):
+            result._live_fit_active = False
+            result._live_fit_solvers = {}
+        super().state_changed(result)
+        self._update_preview_controls()
+        for viewer in (self.parent.tab4, self.parent.tab5):
+            viewer.resultChanged(result)
+        if result is self.result and self.get_result_state(result) == StateEnum.cancelling:
+            for mapping in self.parameter_mappings:
+                mapping.setDisabled(True)
+
+    def start_process(self, x=None, result=None):
+        target = result if result is not None else self.result
+        if target is not None:
+            for mapping in self.parameter_mappings:
+                mapping.ensure_tmp_params_initialized(target)
+            # GUI fits always normalize; raw Classic remains a Python option.
+            target.solve_parameters_tmp["physical_normalization"] = True
+            if self.get_result_state(target) not in (
+                    StateEnum.scheduled, StateEnum.running, StateEnum.cancelling):
+                target._live_fit_solvers = {
+                    i: solver_snapshot(s) for i, s in enumerate(target.solvers or []) if s is not None}
+                target._live_fit_active = True
+                # Enable both viewers before the worker starts; select Forces.
+                for viewer in (self.parent.tab4, self.parent.tab5):
+                    viewer.resultChanged(target)
+                if target is self.result:
+                    self.parent.tabs.setCurrentWidget(self.parent.tab5.tab.parent())
+        return super().start_process(x, result)
+
+    def show_live_field(self, result, frame, snapshot):
+        # This slot runs on the GUI thread. Finished/failed jobs discard any
+        # late queued snapshot and return to the final saved solver fields.
+        if not getattr(result, "_live_fit_active", False):
+            return
+        result._live_fit_solvers[frame] = snapshot
+        for viewer in (self.parent.tab4, self.parent.tab5):
+            viewer.resultChanged(result)
 
     def cancel_process(self):
         self.set_result_state(self.result, StateEnum.cancelling)
@@ -111,6 +234,57 @@ class Regularizer(PipelineModule):
             self.result.reset_regularisation_results()
             self.set_result_state(self.result, StateEnum.idle)
             self.parent.result_changed.emit(self.result)
+
+    def preview_segmentation(self):
+        """Segment the cell with the CURRENT channel/threshold for the time step that
+        is currently shown and display the resulting surface nodes in the Forces view
+        -- WITHOUT running the force reconstruction. Lets the user tune the
+        segmentation parameters and see the effect immediately."""
+        if self.result is None or getattr(self.result, "solvers", None) is None:
+            return
+        if self._preview_blocked():
+            self.input_button_preview_text.setText("preview unavailable while tasks are pending")
+            return
+        from saenopy import surface_regularization as sr
+        try:
+            i = self.parent.t_slider.value()
+            M = self.result.solvers[i]
+            if M is None or M.mesh is None or M.mesh.nodes is None:
+                self.input_button_preview_text.setText("no solver mesh yet")
+                return
+            params = {
+                "seg_channel": self.input_seg_channel.value(),
+                "seg_threshold_method": self.input_thr_method.value(),
+                "seg_threshold_factor": self.input_thr_factor.value(),
+                "seg_dilate_layers": self.input_dilate_layers.value(),
+            }
+            self.input_button_preview_text.setText("segmenting ...")
+            # Repaint only: processing arbitrary events here could start a fit
+            # while this preview is still modifying its solver's surface mask.
+            self.input_button_preview_text.repaint()
+            stack, image, body, shell, used = segment_with_params(self.result, i, params)
+            vertices, faces, touches_edge = segmentation_preview_mesh(body, stack.voxel_size)
+            element_size = float(self.result.mesh_parameters["element_size"])
+            mask = sr.surface_node_mask(
+                M.mesh.nodes, shell, element_size,
+                dilate_layers=int(params["seg_dilate_layers"]))
+            mask &= M.mesh.regularisation_mask & M.mesh.movable
+            if not mask.any():
+                raise ValueError("no active surface nodes; check segmentation and mesh size")
+            sr.set_surface_regularization(M, mask)
+            # Transient display data, not a solver constraint or saved file field.
+            M.mesh._segmentation_preview = (vertices, faces)
+            status = "touches image edge; not capped" if touches_edge else "inside image bounds"
+            self.input_button_preview_text.setText(
+                f"threshold {used:.1f} → {int(mask.sum())} surface nodes "
+                f"({mask.mean() * 100:.1f}%)\n{status}")
+            viewer = self.parent.tab5
+            viewer.vtk_toolbar.use_surface.setValue(True)
+            self.parent.result_changed.emit(self.result)
+            self.parent.tabs.setCurrentWidget(viewer.tab.parent())
+            viewer.update_display()
+        except Exception as err:  # keep the GUI alive on a bad channel/threshold
+            self.input_button_preview_text.setText(f"segmentation failed: {err}")
 
     def check_available(self, result: Result):
         if result is None or result.solvers is None:
@@ -195,36 +369,24 @@ class Regularizer(PipelineModule):
 
         i = 0
         for i in range(len(result.solvers)):
-            # if the current is evaluated
-            if getattr(result.solvers[i], "regularisation_results", None) is not None:
-                # and the next one is evaluated
-                if i < len(result.solvers) - 1 and getattr(result.solvers[i+1], "regularisation_results", None) is not None:
-                    # then skip
-                    continue
+            # Fit recomputes segmentation; do not show a stale preview surface.
+            result.solvers[i].mesh._segmentation_preview = None
             self.parent.signal_process_status_update.emit(f"{i}/{len(result.solvers)} fitting forces", f"{Path(result.output).name}")
 
-            print(f"Current Timstep: {i}")
-            M = result.solvers[i]
+            from saenopy.reconstruction import fit_result
 
-            if i > 0 and solve_parameters["prev_t_as_start"]:
-                M.mesh.displacements[:] = result.solvers[i-1].mesh.displacements.copy()
-            if len(result.solvers) == 1 and solve_parameters["prev_t_as_start"]:
-                M.mesh.displacements[:] = M.mesh.displacements_target.copy()
-                M.mesh.displacements[np.isnan(M.mesh.displacements[:])] = 0
+            last_display = 0.0
+            def callback(M, relrec, iteration, imax):
+                nonlocal last_display
+                self.iteration_finished.emit(result, np.asarray(relrec).copy(), iteration, imax)
+                now = time.monotonic()
+                if now - last_display >= 1.0 or iteration == imax:
+                    self.live_field_ready.emit(result, i, solver_snapshot(M))
+                    last_display = now
 
-            def callback(M, relrec, i, imax):
-                self.iteration_finished.emit(result, relrec, i, imax)
-
-            M.set_material_model(saenopy.materials.SemiAffineFiberMaterial(
-                               material_parameters["k"],
-                               material_parameters["d_0"] if material_parameters["d_0"] != "None" else None,
-                               material_parameters["lambda_s"] if material_parameters["lambda_s"] != "None" else None,
-                               material_parameters["d_s"] if material_parameters["d_s"] != "None" else None,
-                               ))
-
-            M.solve_regularized(step_size=solve_parameters["step_size"], max_iterations=solve_parameters["max_iterations"],
-                                alpha=solve_parameters["alpha"], rel_conv_crit=solve_parameters["rel_conv_crit"],
-                                callback=callback, verbose=True, cancel_signal=self.cancel_p)
+            fit_result(result, i, parameters=solve_parameters,
+                       material_parameters=material_parameters, callback=callback,
+                       cancel_signal=self.cancel_p, verbose=True)
 
             # clear the cache of the solver
             result.clear_cache(i)
@@ -238,11 +400,25 @@ class Regularizer(PipelineModule):
                                                       f"{Path(result.output).name}")
 
     def setResult(self, result: Result):
+        # Populate choices before ParameterMapping applies the saved channel.
+        # Otherwise loading channel 1 into the initial [0] selector silently
+        # leaves the preview on channel 0 while the fit still uses channel 1.
+        try:
+            channels = result.stacks[0].channels if (result and result.stacks) else None
+            if channels:
+                self.input_seg_channel.setValues(list(np.arange(len(channels))),
+                                                 [str(c) for c in channels])
+        except (AttributeError, IndexError, TypeError):
+            pass
         super().setResult(result)
+        if result is not None:
+            # Only edit parameters for the NEXT fit, not the stored result.
+            result.solve_parameters_tmp["physical_normalization"] = True
+        self._update_preview_controls()
         self.update_plot()
 
     def update_plot(self):
-        if self.result.solvers is None or len(self.result.solvers) == 0:
+        if self.result is None or self.result.solvers is None or len(self.result.solvers) == 0:
             return
         relrec = getattr(self.result.solvers[self.parent.t_slider.value()], "relrec", None)
         if relrec is None:
@@ -258,39 +434,28 @@ class Regularizer(PipelineModule):
 
         @export_as_string
         def code(my_reg_params1, my_reg_params2):  # pragma: no cover
-            # define the parameters to generate the solver mesh and interpolate the piv mesh onto it
+            from saenopy.reconstruction import fit_result
             material_parameters = my_reg_params1
             solve_parameters = my_reg_params2
-
-            # iterate over all the results objects
             for result in results:
-                result.material_parameters = material_parameters
-                result.solve_parameters = solve_parameters
-                for index, M in enumerate(result.solvers):
-                    # optionally copy the displacement field from the previous time step as a starting value
-                    if index > 0 and solve_parameters["prev_t_as_start"]:
-                        M.mesh.displacements[:] = result.solvers[index - 1].mesh.displacements.copy()
-
-                    # set the material model
-                    M.set_material_model(saenopy.materials.SemiAffineFiberMaterial(
-                        material_parameters["k"],
-                        material_parameters["d_0"],
-                        material_parameters["lambda_s"],
-                        material_parameters["d_s"],
-                    ))
-                    # find the regularized force solution
-                    M.solve_regularized(alpha=solve_parameters["alpha"], step_size=solve_parameters["step_size"],
-                                        max_iterations=solve_parameters["max_iterations"], rel_conv_crit=solve_parameters["rel_conv_crit"],
-                                        verbose=True)
-                    # save the forces
-                    result.save()
-                    # clear the cache of the solver
+                for index in range(len(result.solvers)):
+                    fit_result(result, index, parameters=solve_parameters,
+                               material_parameters=material_parameters, verbose=True)
                     result.clear_cache(index)
+                    result.save()
 
         # params with convert text Nones to real Nones
+        export_solve_parameters = {
+            key: value for key, value in self.result.solve_parameters_tmp.items()
+            if key not in {"surface_area_method"}
+        }
+        export_solve_parameters["physical_normalization"] = True
+        from saenopy.solver import DEFAULT_CG_MAXITER_FACTOR
+        export_solve_parameters.setdefault("cg_maxiter_factor", DEFAULT_CG_MAXITER_FACTOR)
+        export_solve_parameters.setdefault("solver_precision", 1e-18)
         data = {
             "my_reg_params1": {k: None if v == "None" else v for k, v in self.result.material_parameters_tmp.items()},
-            "my_reg_params2": {k: None if v == "None" else v for k, v in self.result.solve_parameters_tmp.items()},
+            "my_reg_params2": {k: None if v == "None" else v for k, v in export_solve_parameters.items()},
         }
 
         code = get_code(code, data)

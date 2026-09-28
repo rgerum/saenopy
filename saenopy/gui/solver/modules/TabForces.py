@@ -10,6 +10,7 @@ from saenopy.gui.common.TabModule import TabModule
 from .VTK_Toolbar import VTK_Toolbar
 from .showVectorField import showVectorField, getVectorFieldImage
 from .DeformationDetector import CamPos
+from .live_fit import displayed_solver, live_fit_available
 
 import matplotlib.ticker as ticker
 
@@ -56,10 +57,18 @@ class TabForces(TabModule):
         self.update_display()
 
     def checkTabEnabled(self, result: Result) -> bool:
+        if live_fit_available(result, self.t_slider.value()):
+            return True
         try:
             if self.result is not None and self.result.solvers is not None:
                 relrec = getattr(self.result.solvers[self.t_slider.value()], "relrec", None)
                 if relrec is not None:
+                    return True
+                # also enable the tab when only a segmentation preview exists (a
+                # cell_boundary_mask but no forces yet) -> lets the user tune the
+                # segmentation parameters before running the reconstruction
+                M = self.result.solvers[self.t_slider.value()]
+                if M is not None and getattr(M.mesh, "cell_boundary_mask", None) is not None:
                     return True
             return getattr(self.result.solvers[0], "regularisation_results", None) is not None
         except (AttributeError, IndexError, TypeError):
@@ -93,36 +102,57 @@ class TabForces(TabModule):
             if self.plotter.camera_position is not None and CamPos.cam_pos_initialized is True:
                 cam_pos = self.plotter.camera_position
             CamPos.cam_pos_initialized = True
-            M = self.result.solvers[self.t_slider.value()]
+            M = displayed_solver(self.result, self.t_slider.value())
             mesh = M.mesh
             self.plotter.interactor.setToolTip(
                 str(self.result.solve_parameters) + f"\nNodes {mesh.nodes.shape[0]}\nTets {mesh.tetrahedra.shape[0]}")
             center = None
             center_color = "m"
-            if self.vtk_toolbar.use_center.value() == 1:
-                center = M.get_center(mode="Force")
-                center_color = "m"
-            if self.vtk_toolbar.use_center.value() == 2:
-                center = M.get_center(mode="Deformation")
-                center_color = "c"
+            choice = self.vtk_toolbar.use_center.value()
+            try:
+                if choice == 1 and np.any(mesh.forces):
+                    center = M.get_center(mode="Force")
+                if choice == 2 and np.any(mesh.displacements):
+                    center = M.get_center(mode="Deformation")
+                    center_color = "c"
+            except np.linalg.LinAlgError:
+                # The initial field may not define a unique centre yet.
+                center = None
             display_image = getVectorFieldImage(self)
             if len(self.result.stacks):
                 stack_shape = np.array(self.result.stacks[0].shape[:3]) * np.array(self.result.stacks[0].voxel_size)
             else:
                 stack_shape = None
 
-            if M.mesh.regularisation_mask is not None:
-                f = -M.mesh.forces * M.mesh.regularisation_mask[:, None]
-            else:
-                f = -M.mesh.forces
+            # Are there any forces yet? If not we are in "segmentation preview" mode:
+            # only the segmented surface is shown (drawing a zero vector field would
+            # divide by zero when the glyphs are auto-scaled).
+            has_forces = False
+            if M.mesh.forces is not None:
+                fmag = np.linalg.norm(M.mesh.forces, axis=1)
+                has_forces = bool(np.any(np.isfinite(fmag)) and np.nanmax(fmag) > 0)
 
-            showVectorField(self.plotter, M.mesh, f, "forces", center=center, center_color=center_color,
-                            factor=0.15 * self.vtk_toolbar.arrow_scale.value(),
-                            colormap=self.vtk_toolbar.colormap_chooser.value(),
-                            colormap2=self.vtk_toolbar.colormap_chooser2.value(),
-                            scalebar_max=self.vtk_toolbar.getScaleMax(), show_nan=self.vtk_toolbar.use_nans.value(),
-                            display_image=display_image, show_grid=self.vtk_toolbar.show_grid.value(),
-                            stack_shape=stack_shape, log_scale=self.vtk_toolbar.use_log.value())
+            show_surface = self.vtk_toolbar.use_surface.value()
+            if has_forces:
+                if M.mesh.regularisation_mask is not None:
+                    f = -M.mesh.forces * M.mesh.regularisation_mask[:, None]
+                else:
+                    f = -M.mesh.forces
+
+                showVectorField(self.plotter, M.mesh, f, "forces", center=center, center_color=center_color,
+                                factor=0.15 * self.vtk_toolbar.arrow_scale.value(),
+                                colormap=self.vtk_toolbar.colormap_chooser.value(),
+                                colormap2=self.vtk_toolbar.colormap_chooser2.value(),
+                                scalebar_max=self.vtk_toolbar.getScaleMax(), show_nan=self.vtk_toolbar.use_nans.value(),
+                                display_image=display_image, show_grid=self.vtk_toolbar.show_grid.value(),
+                                stack_shape=stack_shape, log_scale=self.vtk_toolbar.use_log.value(),
+                                show_surface=show_surface)
+            else:
+                # preview only: no forces yet -> still show the segmented surface nodes
+                # (field=None draws no arrows, show_surface draws the cyan dots)
+                showVectorField(self.plotter, M.mesh, None, "forces",
+                                show_grid=self.vtk_toolbar.show_grid.value(),
+                                stack_shape=stack_shape, show_surface=show_surface)
             if cam_pos is not None:
                 self.plotter.camera_position = cam_pos
         else:

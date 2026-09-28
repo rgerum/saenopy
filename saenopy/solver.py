@@ -17,6 +17,12 @@ from saenopy.mesh import Mesh, check_tetrahedra_scalar_field, check_node_scalar_
 from saenopy.saveable import Saveable
 from typing import List
 
+# INNER CG BUDGET: 1 restores the old cap; 4 permits up to four times
+# 25*round(N_nodes**(1/3)) iterations. Convergence stops CG earlier. This does
+# not change the outer iteration count, step size, alpha or physical objective.
+# Prefer solve_regularized(cg_maxiter_factor=...) for per-run overrides.
+DEFAULT_CG_MAXITER_FACTOR = 4
+
 class Field:
     def __init__(self, validators, default):
         self.validators = validators
@@ -651,15 +657,15 @@ class Solver(Saveable):
         displacement = np.asarray(displacement)
         assert displacement.shape == (self.mesh.number_nodes, 3)
         self.mesh.displacements_target = displacement
-        # only use displacements that are not nan
-        self.mesh.displacements_target_mask = np.any(~np.isnan(displacement), axis=1)
+        # All three components must be finite for a valid vector target.
+        self.mesh.displacements_target_mask = np.all(np.isfinite(displacement), axis=1)
         # regularisation mask
         if reg_mask is not None:
             assert reg_mask.shape == (self.mesh.number_nodes,), f"reg_mask should have the shape {(self.mesh.number_nodes,)} but has {reg_mask.shape}."
             assert reg_mask.dtype == bool, f"reg_mask should have the type bool but has {reg_mask.dtype}."
             self.mesh.regularisation_mask = reg_mask
         else:
-            self.mesh.regularisation_mask = np.ones_like(displacement[:, 0]).astype(np.bool)
+            self.mesh.regularisation_mask = np.ones_like(displacement[:, 0], dtype=bool)
 
     def _update_local_regularization_weigth(self, method: str):
 
@@ -704,8 +710,8 @@ class Solver(Saveable):
         self.localweight[index & self.mesh.movable] = 1e-10
 
         if self.mesh.cell_boundary_mask is not None:
-            self.localweight[:] = 0.03*100
-            self.localweight[self.mesh.cell_boundary_mask] = 0.003*0.001
+            self.localweight[:] = 0.03 * 100
+            self.localweight[self.mesh.cell_boundary_mask] = 0.003 * 0.001
 
         self.localweight[~self.mesh.regularisation_mask] = 0
 
@@ -753,7 +759,8 @@ class Solver(Saveable):
 
     def solve_regularized(self, step_size: float = 0.33, solver_precision: float = 1e-18, max_iterations: int = 300,
                           i_min: int = 12, rel_conv_crit: float = 0.01, alpha: float = 1e10, method: str = "huber",
-                          relrecname: str = None, verbose: bool = False, callback: callable = None, cancel_signal= None):
+                          relrecname: str = None, verbose: bool = False, callback: callable = None, cancel_signal= None,
+                          cg_maxiter_factor: int = DEFAULT_CG_MAXITER_FACTOR):
         """
         Fit the provided displacements. Displacements can be provided with
         :py:meth:`~.Solver.setTargetDisplacements`.
@@ -763,7 +770,12 @@ class Solver(Saveable):
         step_size : float, optional
              How much of the displacement of each conjugate gradient step to apply. Default 0.33
         solver_precision : float, optional
-            The tolerance for the conjugate gradient step. Will be multiplied by the number of nodes. Default 1e-18.
+            Squared relative CG tolerance, multiplied by the number of nodes.
+            The relative residual target is sqrt(N * solver_precision). Default 1e-18.
+        cg_maxiter_factor : int, optional
+            Inner CG iteration cap multiplier (default 4); 1 restores the old
+            budget. Unconverged inner steps warn and cannot trigger early outer
+            convergence. The finite outer max_iterations remains a hard limit.
         max_iterations : int, optional
             The maximal number of iterations for the regularisation. Default 300
         i_min : int, optional
@@ -787,6 +799,11 @@ class Solver(Saveable):
         callback : callable, optional
             A function to call after each iteration (e.g. for a live plot of the convergence)
         """
+        if (not np.isfinite(cg_maxiter_factor) or int(cg_maxiter_factor) != cg_maxiter_factor
+                or cg_maxiter_factor < 1):
+            raise ValueError("cg_maxiter_factor must be a positive integer")
+        if not np.isfinite(solver_precision) or solver_precision <= 0:
+            raise ValueError("solver_precision must be finite and positive")
         self.regularisation_parameters = {
             "step_size": step_size,
             "solver_precision": solver_precision,
@@ -794,7 +811,12 @@ class Solver(Saveable):
             "rel_conv_crit": rel_conv_crit,
             "alpha": alpha,
             "method": method,
+            "cg_maxiter_factor": int(cg_maxiter_factor),
         }
+        self._regularization_cancel_signal = cancel_signal
+        self._cg_diagnostics = []
+        self.last_cg_info = None
+        self._cg_warned = False
 
         # set the verbosity level
         self.verbose = verbose
@@ -815,6 +837,8 @@ class Solver(Saveable):
         self._update_glo_f_and_k()
 
         # log and store values (if a target file was provided)
+        if hasattr(self, "physical_data_weights"):
+            self._update_local_regularization_weigth(method)
         relrec = []
         self.relrec = relrec
         if callback is not None:
@@ -826,7 +850,7 @@ class Solver(Saveable):
         # start the iteration
         for i in range(int(max_iterations)):
             # compute the weight matrix
-            if method != "normal":
+            if method != "normal" or hasattr(self, "physical_data_weights"):
                 self._update_local_regularization_weigth(method)
 
             # compute A and b for the linear equation that solves the regularisation problem
@@ -855,14 +879,23 @@ class Solver(Saveable):
                 Lstd = np.std(last_Ls)       #  Use Coefficient of Variation; in saeno there was the additional factor  "/ np.sqrt(5)" behind 
 
                 # if the iterations converge, stop the iteration
-                if Lstd / Lmean < rel_conv_crit:
+                inner_converged = self.last_cg_info is None or self.last_cg_info["converged"]
+                if Lstd / Lmean < rel_conv_crit and inner_converged:
                     break
 
             if cancel_signal is not None and getattr(cancel_signal, "cancel", False):
-                self.regularisation_results = relrec
-                return relrec
+                # Finalize the same force/border split even for a cancelled fit.
+                break
 
         self.regularisation_results = np.asarray(relrec)
+        # Plain lists remain JSON-compatible for sweep provenance and are saved
+        # with existing solver metadata; no new required file-format fields.
+        self.regularisation_parameters.update(
+            cg_iterations=[info["iterations"] for info in self._cg_diagnostics],
+            cg_relative_residuals=[info["relative_residual"] for info in self._cg_diagnostics],
+            cg_converged=[info["converged"] for info in self._cg_diagnostics],
+            cg_relative_tolerance=float(np.sqrt(self.mesh.number_nodes * solver_precision)),
+            cg_unconverged_steps=sum(not info["converged"] for info in self._cg_diagnostics))
         self.mesh.forces_border = self.mesh.forces.copy()
         self.mesh.forces_border[self.mesh.regularisation_mask] = 0
         self.mesh.forces[~self.mesh.regularisation_mask] = 0
@@ -873,9 +906,28 @@ class Solver(Saveable):
         Solve the displacements from the current stiffness tensor using conjugate gradient.
         """
 
-        # solve the conjugate gradient which solves the equation A x = b for x
-        # where A is (I - KAK) (K: stiffness matrix, A: weight matrix) and b is (u_meas - u - KAf)
-        uu = cg(self.A, self.b.flatten(), maxiter=25*int(pow(self.mesh.number_nodes, 0.33333) + 0.5), tol=self.mesh.number_nodes * solver_precision).reshape((self.mesh.number_nodes, 3))
+        # Solve A*du=b, A=I+K*D*K. The old mesh-dependent cap is retained as
+        # the reference; increase cg_maxiter_factor, not step_size, to allow
+        # more accurate inner solves without changing the physical objective.
+        base_limit = 25 * int(pow(self.mesh.number_nodes, 0.33333) + 0.5)
+        factor = self.regularisation_parameters.get("cg_maxiter_factor", DEFAULT_CG_MAXITER_FACTOR)
+        uu, info = cg(self.A, self.b.flatten(), maxiter=base_limit * factor,
+                      tol=self.mesh.number_nodes * solver_precision, return_info=True,
+                      cancel_signal=getattr(self, "_regularization_cancel_signal", None))
+        self.last_cg_info = info
+        self._cg_diagnostics.append(info)
+        if info["reason"] == "cancelled":
+            return 0.0  # Do not apply a partially solved step after cancellation.
+        if not info["converged"] and not self._cg_warned:
+            import warnings
+            warnings.warn(
+                f"Inner CG reached its cap ({info['maxiter']} iterations): relative residual "
+                f"{info['relative_residual']:.3g}, target {info['relative_tolerance']:.3g}. "
+                "Continuing with an approximate step; this step cannot trigger early outer "
+                "convergence. Inspect saved CG diagnostics or increase cg_maxiter_factor.",
+                RuntimeWarning, stacklevel=2)
+            self._cg_warned = True
+        uu = uu.reshape((self.mesh.number_nodes, 3))
 
         # add the new displacements to the stored displacements
         self.mesh.displacements += uu * step_size
@@ -1203,6 +1255,19 @@ def interpolate_mesh(mesh: PivMesh, xpos2: np.ndarray, params: dict) -> Solver:
 
     R = (mesh.nodes - np.min(mesh.nodes, axis=0)) - (np.max(mesh.nodes, axis=0) - np.min(mesh.nodes, axis=0)) / 2
     U_target = saenopy.get_deformations.interpolate_different_mesh(R, xpos2, points)
+
+    # robust outlier removal on the interpolated target field (before the fit): a single
+    # huge PIV spike would otherwise be fitted by a wrong localized force. Applied once
+    # here so it benefits both the classic and the surface-restricted regularization.
+    if params.get("outlier_filter", False):
+        from saenopy import deformation_filter as df
+        U_target, outlier = df.filter_target_outliers(
+            points, U_target,
+            k=int(params.get("outlier_k", df.DEFAULT_OUTLIER_K)),
+            thresh=float(params.get("outlier_thresh", df.DEFAULT_OUTLIER_THRESH)),
+            min_mult=float(params.get("outlier_min_mult", df.DEFAULT_OUTLIER_MIN_MULT)),
+            verbose=True)
+        print(f"  [outlier filter] removed {int(outlier.sum())} deformation outliers")
 
     border_idx = get_nodes_with_one_face(cells)
     inside_mask = np.ones(points.shape[0], dtype=bool)

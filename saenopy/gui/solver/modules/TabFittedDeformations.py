@@ -9,6 +9,7 @@ from .VTK_Toolbar import VTK_Toolbar
 from .showVectorField import showVectorField2
 from .DeformationDetector import CamPos
 from saenopy.gui.common.TabModule import TabModule
+from .live_fit import displayed_solver, live_fit_available
 
 
 class TabFittedDeformations(TabModule):
@@ -41,6 +42,8 @@ class TabFittedDeformations(TabModule):
         self.update_display()
 
     def checkTabEnabled(self, result: Result) -> bool:
+        if live_fit_available(result, self.t_slider.value()):
+            return True
         try:
             return getattr(self.result.solvers[0], "regularisation_results", None) is not None
         except (AttributeError, IndexError, TypeError):
@@ -73,7 +76,7 @@ class TabFittedDeformations(TabModule):
             if self.plotter.camera_position is not None and CamPos.cam_pos_initialized is True:
                 cam_pos = self.plotter.camera_position
             CamPos.cam_pos_initialized = True
-            M = self.result.solvers[self.t_slider.value()]
+            M = displayed_solver(self.result, self.t_slider.value())
             mesh = M.mesh
             self.plotter.interactor.setToolTip(str(self.result.solve_parameters) + f"\nNodes {mesh.nodes.shape[0]}\nTets {mesh.tetrahedra.shape[0]}")
             showVectorField2(self, mesh, "displacements")

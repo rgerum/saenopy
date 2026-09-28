@@ -112,6 +112,16 @@ class VTK_Toolbar(QtWidgets.QWidget):
                 resource_icon("nan1.ico"),
             ], group=False, tooltip="Display nodes which do not have values associated as gray dots.")
 
+            # toggle for the surface-regularization nodes (cyan), a button just like
+            # the NaN one right next to it
+            self.use_surface = QtShortCuts.QInputBool(
+                None, "seg.", value=False, group=False,
+                tooltip="Display the segmented cell-surface nodes (on which the surface "
+                          "regularization allows traction) as cyan spheres. Preview also shows "
+                          "the measured voxel surface transparently; gaps between the spheres "
+                          "alone do not mean the segmentation is open. No artificial caps are added.")
+            self.use_surface.valueChanged.connect(self.update_display)
+
             if self.is_force_plot:
                 self.use_log = QtShortCuts.QInputBool(None, "log", value=True, tooltip="Display arrow length and color in logarithmic scale.")
                 self.use_log.valueChanged.connect(self.update_display)
