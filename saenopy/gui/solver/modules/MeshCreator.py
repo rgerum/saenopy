@@ -232,6 +232,8 @@ class MeshCreator(PipelineModule):
                 displacement_list = saenopy.subtract_reference_state(result.mesh_piv, mesh_parameters["reference_stack"])
                 # set the parameters
                 result.mesh_parameters = mesh_parameters
+                # Allocate solver slots and discard fits on the previous mesh.
+                result.reset_solver()
                 # iterate over all stack pairs
                 for i in range(len(result.mesh_piv)):
                     # and create the interpolated solver mesh

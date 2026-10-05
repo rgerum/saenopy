@@ -116,10 +116,10 @@ def fit_result(result, index=0, *, parameters=None, material_parameters=None,
         sr.drop_targets(solver, geometry["inside"])
     if surface:
         sr.set_surface_regularization(solver, geometry["mask"])
-    kwargs = dict(step_size=float(params.get("step_size", 0.33)),
+    kwargs = dict(step_size=float(params.get("step_size", 0.2)),
                   cg_maxiter_factor=params["cg_maxiter_factor"],
                   solver_precision=float(params["solver_precision"]),
-                  max_iterations=int(params.get("max_iterations", 100)),
+                  max_iterations=int(params.get("max_iterations", 300)),
                   rel_conv_crit=float(params.get("rel_conv_crit", 0.01)),
                   callback=callback, cancel_signal=cancel_signal, verbose=verbose)
     if surface:

@@ -757,7 +757,7 @@ class Solver(Saveable):
         if relrecname is not None:
             np.savetxt(relrecname, relrec)
 
-    def solve_regularized(self, step_size: float = 0.33, solver_precision: float = 1e-18, max_iterations: int = 300,
+    def solve_regularized(self, step_size: float = 0.2, solver_precision: float = 1e-18, max_iterations: int = 300,
                           i_min: int = 12, rel_conv_crit: float = 0.01, alpha: float = 1e10, method: str = "huber",
                           relrecname: str = None, verbose: bool = False, callback: callable = None, cancel_signal= None,
                           cg_maxiter_factor: int = DEFAULT_CG_MAXITER_FACTOR):
@@ -768,7 +768,7 @@ class Solver(Saveable):
         Parameters
         ----------
         step_size : float, optional
-             How much of the displacement of each conjugate gradient step to apply. Default 0.33
+             How much of the displacement of each conjugate gradient step to apply. Default 0.2
         solver_precision : float, optional
             Squared relative CG tolerance, multiplied by the number of nodes.
             The relative residual target is sqrt(N * solver_precision). Default 1e-18.
@@ -901,7 +901,7 @@ class Solver(Saveable):
         self.mesh.forces[~self.mesh.regularisation_mask] = 0
         return relrec
 
-    def _solve_regularization_cg(self, step_size: float = 0.33, solver_precision: float = 1e-18):
+    def _solve_regularization_cg(self, step_size: float = 0.2, solver_precision: float = 1e-18):
         """
         Solve the displacements from the current stiffness tensor using conjugate gradient.
         """

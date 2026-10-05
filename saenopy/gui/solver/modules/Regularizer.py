@@ -81,51 +81,69 @@ class Regularizer(PipelineModule):
                                 tooltip="Regularization penalty relative to the displacement fit. "
                                         "Mesh normalization is enabled. This is the single alpha used "
                                         "for both Classic and Surface and is referenced to a 14 um mesh.")
-                            self.input_step_size = QtShortCuts.QInputString(None, "step size", "0.33", type=float, tooltip="the step with of the iteration algorithm")
+                            self.input_step_size = QtShortCuts.QInputString(None, "step size", "0.2", type=float, tooltip="Fraction of each displacement update to apply. Default 0.2.")
                         with QtShortCuts.QHBoxLayout(None) as layout:
-                            self.input_imax = QtShortCuts.QInputNumber(None, "max iterations", 100, float=False, tooltip="the maximum number of iterations after which to abort the iteration algorithm")
+                            self.input_imax = QtShortCuts.QInputNumber(None, "max iterations", 300, float=False, tooltip="the maximum number of iterations after which to abort the iteration algorithm")
                             self.input_conv_crit = QtShortCuts.QInputString(None, "rel. conv. crit.", 0.01, type=float, tooltip="the convergence criterion of the iteration algorithm")
 
                     with QtShortCuts.QGroupBox(None, "Surface Regularisation") as (self.surface_parameters, surface_layout):
                         surface_layout.setSizeConstraint(QtWidgets.QLayout.SetMinimumSize)
-                        surface_layout.setSpacing(8)
+                        surface_layout.setContentsMargins(9, 6, 9, 8)
+                        surface_layout.setSpacing(4)
                         self.input_surface = QtShortCuts.QInputBool(
                             None, "surface regularization", False,
                             tooltip="Regularize traction on the segmented cell surface and suppress forces "
                                     "in the surrounding gel. Surface always uses geometry normalization "
                                     "and the single 'alpha' above.")
-                        with QtShortCuts.QHBoxLayout(None) as layout:
-                            # populated from the loaded stack's channels in setResult(),
-                            # exactly like the channel selector in the 3D viewer toolbar
-                            self.input_seg_channel = QtShortCuts.QInputChoice(
-                                None, "cell channel", 0, values=[0], value_names=["0"],
-                                tooltip="Channel showing the cell / cell stain (used for the segmentation).")
-                        with QtShortCuts.QHBoxLayout(None):
-                            self.input_thr_method = QtShortCuts.QInputChoice(
-                                None, "threshold method", "li", values=["li", "otsu", "yen"],
-                                tooltip="Method for the automatic segmentation threshold.")
-                        with QtShortCuts.QHBoxLayout(None) as layout:
-                            self.input_thr_factor = QtShortCuts.QInputString(
-                                None, "threshold factor", "0.6", type=float,
-                                tooltip="Multiplied onto the automatic threshold (which is in raw intensity units). "
-                                        "Lower = include dimmer parts of the cell, higher = only the bright core. "
-                                        "Use 'preview segmentation' to see the effect.")
-                            self.input_thr_factor.line_edit.setMinimumWidth(90)
-                        with QtShortCuts.QHBoxLayout(None) as layout:
-                            self.input_dilate_layers = QtShortCuts.QInputNumber(
-                                None, "surface dilation", 1, min=0, float=False,
-                                tooltip="Number of mesh-node shells added to the detected surface.")
-                            self.input_dilate_layers.spin_box.setMinimumWidth(90)
-                        # preview: segment with the CURRENT parameters and show the resulting
-                        # surface nodes in the Forces view, WITHOUT computing forces
-                        with QtShortCuts.QHBoxLayout(None) as layout:
-                            self.input_button_preview = QtShortCuts.QPushButton(
-                                None, "preview segmentation", self.preview_segmentation,
-                                tooltip="Segment the cell with the current channel/threshold for the current "
-                                        "time step and show the surface nodes in the Forces view - without "
-                                        "running the force reconstruction. Use it to tune the parameters.")
+                        # Populated from the loaded stack's channels in setResult().
+                        self.input_seg_channel = QtShortCuts.QInputChoice(
+                            None, "cell channel", 0, values=[0], value_names=["0"],
+                            tooltip="Channel showing the cell / cell stain (used for the segmentation).")
+                        self.input_seg_channel.combobox.setSizeAdjustPolicy(QtWidgets.QComboBox.AdjustToContents)
+                        self.input_thr_method = QtShortCuts.QInputChoice(
+                            None, "threshold method", "li", values=["li", "otsu", "yen"],
+                            tooltip="Method for the automatic segmentation threshold.")
+                        self.input_thr_factor = QtShortCuts.QInputString(
+                            None, "threshold factor", "0.6", type=float,
+                            tooltip="Multiplied onto the automatic threshold (which is in raw intensity units). "
+                                    "Lower = include dimmer parts of the cell, higher = only the bright core. "
+                                    "Use 'preview segmentation' to see the effect.")
+                        self.input_thr_factor.line_edit.setMinimumWidth(90)
+                        self.input_dilate_layers = QtShortCuts.QInputNumber(
+                            None, "surface dilation", 1, min=0, float=False,
+                            tooltip="Number of mesh-node shells added to the detected surface.")
+                        self.input_dilate_layers.spin_box.setMinimumWidth(90)
+                        self.input_button_preview = QtShortCuts.QPushButton(
+                            None, "preview segmentation", self.preview_segmentation,
+                            tooltip="Segment the cell with the current channel/threshold for the current "
+                                    "time step and show the surface nodes in the Forces view - without "
+                                    "running the force reconstruction. Use it to tune the parameters.")
+
+                        # QtShortCuts initially inserts controls into the current layout.
+                        # Pair them in a form which wraps at narrow widths / larger fonts,
+                        # instead of squeezing labels or reducing input heights.
+                        surface_form = QtWidgets.QFormLayout()
+                        surface_form.setContentsMargins(0, 0, 0, 0)
+                        surface_form.setHorizontalSpacing(12)
+                        surface_form.setVerticalSpacing(4)
+                        surface_form.setRowWrapPolicy(QtWidgets.QFormLayout.WrapLongRows)
+                        surface_form.setFieldGrowthPolicy(QtWidgets.QFormLayout.AllNonFixedFieldsGrow)
+                        for left, right in (
+                                (self.input_surface, self.input_button_preview),
+                                (self.input_seg_channel, self.input_dilate_layers),
+                                (self.input_thr_method, self.input_thr_factor)):
+                            for control in (left, right):
+                                if hasattr(control, "label"):
+                                    control.label.setSizePolicy(
+                                        QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Preferred)
+                                    control.layout().setSizeConstraint(QtWidgets.QLayout.SetMinimumSize)
+                            surface_layout.removeWidget(left)
+                            surface_layout.removeWidget(right)
+                            surface_form.addRow(left, right)
+                        surface_layout.addLayout(surface_form)
                         self.input_button_preview_text = QtWidgets.QLabel().addToLayout()
                         self.input_button_preview_text.setWordWrap(True)
+                        self.input_button_preview_text.hide()
 
                     with QtShortCuts.QHBoxLayout():
                         self.input_button = QtShortCuts.QPushButton(None, "calculate forces", self.start_process,
@@ -242,6 +260,7 @@ class Regularizer(PipelineModule):
         segmentation parameters and see the effect immediately."""
         if self.result is None or getattr(self.result, "solvers", None) is None:
             return
+        self.input_button_preview_text.show()
         if self._preview_blocked():
             self.input_button_preview_text.setText("preview unavailable while tasks are pending")
             return

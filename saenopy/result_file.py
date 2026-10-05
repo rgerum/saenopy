@@ -637,10 +637,19 @@ class Result(Saveable):
         self.time_delta = time_delta
         self.template = template
 
-        self.reset_piv()
-        self.solvers = [None] * (len(self.mesh_piv))
-
         super().__init__(**kwargs)
+
+        # Loaded stacks and the optional reference must be known before counting
+        # pairs. Initializing earlier left a new single reference pair with no
+        # result slots. Also repair missing slots in archives saved that way,
+        # without resetting any PIV meshes or solvers already present.
+        count = max(0, len(self.stacks) - (self.stack_reference is None))
+        for name in ("mesh_piv", "solvers"):
+            values = getattr(self, name)
+            if values is None:
+                setattr(self, name, [None] * count)
+            elif len(values) < count:
+                setattr(self, name, list(values) + [None] * (count - len(values)))
 
         # add a reference to this instance to the stacks, so they know the path
         if output is not None:

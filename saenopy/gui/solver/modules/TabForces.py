@@ -10,7 +10,7 @@ from saenopy.gui.common.TabModule import TabModule
 from .VTK_Toolbar import VTK_Toolbar
 from .showVectorField import showVectorField, getVectorFieldImage
 from .DeformationDetector import CamPos
-from .live_fit import displayed_solver, live_fit_available
+from .live_fit import displayed_solver, live_fit_available, fit_status_label
 
 import matplotlib.ticker as ticker
 
@@ -25,6 +25,7 @@ class OmitLast30PercentLocator(ticker.AutoLocator):
 
 
 class TabForces(TabModule):
+    field_description = "The fitted regularized forces."
     pipeline_name = "fit forces"
     iteration_finished = QtCore.Signal(object, object, int, int)
 
@@ -33,7 +34,8 @@ class TabForces(TabModule):
 
         with self.parent.tabs.createTab("Forces") as self.tab:
             with QtShortCuts.QVBoxLayout() as layout:
-                self.label_tab = QtWidgets.QLabel("The fitted regularized forces.").addToLayout()
+                self.label_tab = QtWidgets.QLabel(self.field_description).addToLayout()
+                self.label_tab.setWordWrap(True)
 
                 with QtShortCuts.QHBoxLayout() as layout:
                     self.plotter = QtInteractor(None, auto_update=False)  # , theme=pv.themes.DocumentTheme())
@@ -78,8 +80,17 @@ class TabForces(TabModule):
         if name == "z_slider":
             self.z_slider.setValue(value)
 
+    def update_fit_status(self):
+        self.label_tab.setText(fit_status_label(self.result, self.field_description))
+
+    def resultChanged(self, result: Result):
+        if result is self.result:
+            self.update_fit_status()
+        super().resultChanged(result)
+
     def setResult(self, result: Result):
         super().setResult(result)
+        self.update_fit_status()
         if result and result.stacks and result.stacks[0]:
             self.z_slider.setRange(0, result.stacks[0].shape[2] - 1)
             self.z_slider.setValue(self.result.stacks[0].shape[2] // 2)

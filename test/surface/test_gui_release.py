@@ -132,10 +132,18 @@ def test_official_file_in_gui_and_full_code_export(tmp_path, monkeypatch):
         rows = [regularizer.input_surface, regularizer.input_seg_channel,
                 regularizer.input_thr_method, regularizer.input_thr_factor,
                 regularizer.input_dilate_layers, regularizer.input_button_preview]
-        for first, second in zip(rows, rows[1:]):
-            top = first.mapTo(regularizer, QtCore.QPoint(0, 0)).y()
-            next_top = second.mapTo(regularizer, QtCore.QPoint(0, 0)).y()
-            assert top + first.height() <= next_top
+        # The compact form may share or wrap rows, but must never clip
+        # labels, overlap controls or place them outside the Surface group.
+        group = regularizer.surface_parameters
+        rectangles = []
+        for control in rows:
+            rect = QtCore.QRect(control.mapTo(group, QtCore.QPoint()), control.size())
+            assert group.rect().contains(rect)
+            assert all(not rect.intersects(other) for other in rectangles)
+            rectangles.append(rect)
+            if hasattr(control, "label"):
+                label = control.label
+                assert label.width() >= label.fontMetrics().horizontalAdvance(label.text())
         assert regularizer.grab().save(str(tmp_path / "regularizer_controls_large_font.png"))
 
         # Scheduled, running and cancelling fits block even direct handler calls.
