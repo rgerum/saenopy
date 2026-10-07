@@ -28,7 +28,7 @@ def live_fit_available(result, frame):
                 and getattr(result, "_live_fit_solvers", {}).get(frame) is not None)
 
 
-def fit_status_label(result, description):
+def fit_status_label(result, description, frame=0):
     """Describe the displayed fit without calling an intermediate field final."""
     state = getattr(result, "solve_parameters_state", "")
     status = {"scheduled": "queued...", "running": "in progress...",
@@ -38,6 +38,12 @@ def fit_status_label(result, description):
         # Snapshots are enabled just before a new fit is queued, including
         # when restarting a result whose previous state was finished/failed.
         status = "in progress..."
+    if status is None:
+        solvers = getattr(result, "solvers", None) or []
+        if 0 <= frame < len(solvers):
+            params = getattr(solvers[frame], "regularisation_parameters", None) or {}
+            if params.get("cancelled", False):
+                status = "fit cancelled; partial result"
     if status:
         return f"{description} <b>({status})</b>"
     return description

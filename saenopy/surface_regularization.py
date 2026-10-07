@@ -21,6 +21,7 @@ from __future__ import annotations
 import numpy as np
 
 DEFAULT_MIN_ITERATIONS = 60
+DEFAULT_SEG_CHANNEL = 0
 
 
 # ---------------------------------------------------------------------------

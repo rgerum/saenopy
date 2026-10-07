@@ -573,7 +573,7 @@ class Result(Saveable):
                     physical_normalization=False,
                     alpha_reference_element_size_um=pr.DEFAULT_REFERENCE_ELEMENT_SIZE_UM,
                     scaling_exponent=pr.DEFAULT_SCALING_EXPONENT,
-                    seg_channel=1,
+                    seg_channel=sr.DEFAULT_SEG_CHANNEL,
                     seg_threshold_method=sr.DEFAULT_THRESHOLD_METHOD,
                     seg_threshold_factor=sr.DEFAULT_THRESHOLD_FACTOR,
                     seg_dilate_layers=1,

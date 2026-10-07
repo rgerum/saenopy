@@ -56,7 +56,7 @@ class TabFittedDeformations(TabModule):
             self.z_slider.setValue(value)
 
     def update_fit_status(self):
-        self.label_tab.setText(fit_status_label(self.result, self.field_description))
+        self.label_tab.setText(fit_status_label(self.result, self.field_description, self.t_slider.value()))
 
     def resultChanged(self, result: Result):
         if result is self.result:
@@ -78,6 +78,7 @@ class TabFittedDeformations(TabModule):
                 self.vtk_toolbar.channel_select.setVisible(False)
 
     def update_display(self):
+        self.update_fit_status()
         if self.current_tab_selected is False:
             self.current_result_plotted = False
             return

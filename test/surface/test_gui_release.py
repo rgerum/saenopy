@@ -29,6 +29,8 @@ def test_official_file_in_gui_and_full_code_export(tmp_path, monkeypatch):
 
     window = TestWindow()
     regularizer = window.sub_module_regularize
+    from saenopy.surface_regularization import DEFAULT_SEG_CHANNEL
+    assert regularizer.input_seg_channel.value() == DEFAULT_SEG_CHANNEL == 0
     assert regularizer.input_thr_factor.value() == pytest.approx(0.6)
     assert not hasattr(regularizer, "input_physical_normalization")
     assert regularizer.input_dilate_layers.spin_box.minimumWidth() >= 90

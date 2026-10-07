@@ -33,6 +33,7 @@ class CancelSignal:
 
 
 from saenopy.reconstruction import segment_with_params
+from saenopy.surface_regularization import DEFAULT_SEG_CHANNEL
 from .live_fit import solver_snapshot
 
 
@@ -97,7 +98,7 @@ class Regularizer(PipelineModule):
                                     "and the single 'alpha' above.")
                         # Populated from the loaded stack's channels in setResult().
                         self.input_seg_channel = QtShortCuts.QInputChoice(
-                            None, "cell channel", 0, values=[0], value_names=["0"],
+                            None, "cell channel", DEFAULT_SEG_CHANNEL, values=[0], value_names=["0"],
                             tooltip="Channel showing the cell / cell stain (used for the segmentation).")
                         self.input_seg_channel.combobox.setSizeAdjustPolicy(QtWidgets.QComboBox.AdjustToContents)
                         self.input_thr_method = QtShortCuts.QInputChoice(
@@ -320,7 +321,8 @@ class Regularizer(PipelineModule):
         count = 0
         for solver in result.solvers:
             relrec = getattr(solver, "regularisation_results", None)
-            if relrec is None:
+            params = getattr(solver, "regularisation_parameters", None) or {}
+            if relrec is None or params.get("cancelled", False):
                 break
             count += 1
         if count < max_count:
@@ -388,6 +390,12 @@ class Regularizer(PipelineModule):
 
         i = 0
         for i in range(len(result.solvers)):
+            if self.cancel_p.cancel:
+                return "Terminated"
+            solver = result.solvers[i]
+            cancelled = (solver.regularisation_parameters or {}).get("cancelled", False)
+            if solver.regularisation_results is not None and not cancelled:
+                continue
             # Fit recomputes segmentation; do not show a stale preview surface.
             result.solvers[i].mesh._segmentation_preview = None
             self.parent.signal_process_status_update.emit(f"{i}/{len(result.solvers)} fitting forces", f"{Path(result.output).name}")
@@ -395,17 +403,20 @@ class Regularizer(PipelineModule):
             from saenopy.reconstruction import fit_result
 
             last_display = 0.0
-            def callback(M, relrec, iteration, imax):
+            def callback(M, relrec, iteration, imax, frame=i):
                 nonlocal last_display
                 self.iteration_finished.emit(result, np.asarray(relrec).copy(), iteration, imax)
                 now = time.monotonic()
-                if now - last_display >= 1.0 or iteration == imax:
-                    self.live_field_ready.emit(result, i, solver_snapshot(M))
+                if now - last_display >= 1.0:
+                    self.live_field_ready.emit(result, frame, solver_snapshot(M))
                     last_display = now
 
-            fit_result(result, i, parameters=solve_parameters,
+            solver = fit_result(result, i, parameters=solve_parameters,
                        material_parameters=material_parameters, callback=callback,
-                       cancel_signal=self.cancel_p, verbose=True)
+                       cancel_signal=self.cancel_p, verbose=True, resume=cancelled)
+            # Always publish the final field, even after early convergence or
+            # cancellation within the one-second display throttle.
+            self.live_field_ready.emit(result, i, solver_snapshot(solver))
 
             # clear the cache of the solver
             result.clear_cache(i)

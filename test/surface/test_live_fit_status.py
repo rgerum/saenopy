@@ -79,6 +79,28 @@ def test_status_follows_gui_fit_lifecycle(tmp_path, monkeypatch):
                     assert text in viewer.label_tab.text()
                 else:
                     assert viewer.label_tab.text() == viewer.field_description
+
+        # A saved cancelled last frame stays resumable, and each viewer labels
+        # the selected partial frame even while its tab is hidden.
+        import copy
+        import numpy as np
+        from test_release import example_result
+        partial = example_result()
+        partial.solvers.append(copy.deepcopy(partial.solvers[0]))
+        for solver in partial.solvers:
+            solver.regularisation_results = np.ones((2, 3))
+            solver.regularisation_parameters = {}
+        partial.solvers[1].regularisation_parameters["cancelled"] = True
+        regularizer.setResult(partial)
+        assert regularizer.input_button.isEnabled()
+        assert regularizer.input_button.text() == "continue"
+        for viewer in viewers:
+            viewer.setResult(partial)
+            viewer.t_slider.setRange(0, 1)
+            viewer.t_slider.setValue(1)
+            assert "fit cancelled; partial result" in viewer.label_tab.text()
+            viewer.t_slider.setValue(0)
+            assert viewer.label_tab.text() == viewer.field_description
     finally:
         # Drain queued matplotlib draws before deleting their Qt canvases.
         for _ in range(3):

@@ -11,7 +11,7 @@ from .materials import SemiAffineFiberMaterial
 def segment_with_params(result, index, params):
     """Return stack, YXZ image, body, shell coordinates and threshold."""
     stack = result.stacks[index]
-    channel = int(params.get("seg_channel", 1))
+    channel = int(params.get("seg_channel", sr.DEFAULT_SEG_CHANNEL))
     image = np.asarray(stack[:, :, 0, :, channel])
     threshold = sr.auto_threshold(
         image, method=params.get("seg_threshold_method", sr.DEFAULT_THRESHOLD_METHOD),
@@ -70,12 +70,15 @@ def prepare_surface(result, index=0, parameters=None, *, include_piv=False):
 
 def fit_result(result, index=0, *, parameters=None, material_parameters=None,
                prepared_surface=None, callback=None, cancel_signal=None,
-               verbose=False):
+               verbose=False, resume=False):
     """Fit one existing interpolated solver; does not save or clear its cache.
 
     Missing ``physical_normalization`` retains the legacy behavior. New GUI
     analyses set it explicitly. For a fair A/B fit, set
     ``exclude_cell_interior=True`` in BOTH modes and reuse ``prepared_surface``.
+    ``resume=True`` retains the current displacement field, bypassing
+    ``prev_t_as_start``. It starts a new iteration budget and diagnostic history
+    from that field; it does not restore an interrupted inner CG solve.
     """
     params = dict(result.solve_parameters or {})
     params.update(parameters or {})
@@ -101,7 +104,7 @@ def fit_result(result, index=0, *, parameters=None, material_parameters=None,
         np.isfinite(solver.mesh.displacements_target), axis=1)
     solver.set_material_model(SemiAffineFiberMaterial(
         material["k"], material["d_0"], material["lambda_s"], material["d_s"]))
-    if params.get("prev_t_as_start", False):
+    if params.get("prev_t_as_start", False) and not resume:
         if index > 0:
             previous = result.solvers[index - 1].mesh
             if not np.array_equal(previous.nodes, solver.mesh.nodes):

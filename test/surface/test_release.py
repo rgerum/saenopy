@@ -263,7 +263,8 @@ def test_cancelled_surface_fit_preserves_border_split():
     pr.solve_regularized(solver, 1e8, 14, surface_mask=np.array([True, True, False, False]),
                          surface_area_m2=2e-10, max_iterations=10,
                          cancel_signal=SimpleNamespace(cancel=True))
-    assert len(solver.regularisation_results) == 2
+    assert len(solver.regularisation_results) == 1
+    assert solver.regularisation_parameters["cancelled"] is True
     assert np.all(solver.mesh.forces[~solver.mesh.regularisation_mask] == 0)
     assert np.all(solver.mesh.forces_border[solver.mesh.regularisation_mask] == 0)
 

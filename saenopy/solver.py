@@ -849,6 +849,8 @@ class Solver(Saveable):
             print("check before relax !")
         # start the iteration
         for i in range(int(max_iterations)):
+            if cancel_signal is not None and getattr(cancel_signal, "cancel", False):
+                break
             # compute the weight matrix
             if method != "normal" or hasattr(self, "physical_data_weights"):
                 self._update_local_regularization_weigth(method)
@@ -871,6 +873,10 @@ class Solver(Saveable):
             if callback is not None:
                 callback(self, relrec, i, max_iterations)
 
+            if cancel_signal is not None and getattr(cancel_signal, "cancel", False):
+                # Finalize the same force/border split even for a cancelled fit.
+                break
+
             # if we have passed i_min iterations we calculate average and std of the last 6 iteration
             if i > i_min:
                 # calculate the average energy over the last 6 iterations
@@ -883,14 +889,11 @@ class Solver(Saveable):
                 if Lstd / Lmean < rel_conv_crit and inner_converged:
                     break
 
-            if cancel_signal is not None and getattr(cancel_signal, "cancel", False):
-                # Finalize the same force/border split even for a cancelled fit.
-                break
-
         self.regularisation_results = np.asarray(relrec)
         # Plain lists remain JSON-compatible for sweep provenance and are saved
         # with existing solver metadata; no new required file-format fields.
         self.regularisation_parameters.update(
+            cancelled=bool(cancel_signal is not None and getattr(cancel_signal, "cancel", False)),
             cg_iterations=[info["iterations"] for info in self._cg_diagnostics],
             cg_relative_residuals=[info["relative_residual"] for info in self._cg_diagnostics],
             cg_converged=[info["converged"] for info in self._cg_diagnostics],
