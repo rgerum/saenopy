@@ -76,7 +76,7 @@ class Saveable:
                     value = attr
                     if attr is None:
                         value = "__NONE__"
-                    elif getattr(attribute[0], "to_dict", None):
+                    elif getattr(attr, "to_dict", None):
                         value = getattr(attr, "to_dict")()         
                     my_list.append(value)
                 data[param] = my_list
@@ -90,6 +90,7 @@ class Saveable:
 
     def save(self, filename: str, file_format=None):
         from pathlib import Path
+        filename = str(filename)
         if file_format is None:
             file_format = Path(filename).suffix
 
@@ -98,14 +99,24 @@ class Saveable:
         if file_format == ".h5py" or file_format == ".h5":  # pragma: no cover
             return dict_to_h5(filename, flatten_dict(data))
         elif file_format == ".npz" or file_format == ".saenopy" or file_format == ".saenopy2D" or file_format == ".saenopySpheroid" or file_format == ".saenopyOrientation":
-            np.savez(filename, **data)
-            try: # numpy 2.0
-                np.lib._npyio_impl._savez(filename, [], flatten_dict(data), True, allow_pickle=False)
-            except AttributeError:
-                np.lib.npyio._savez(filename, [], flatten_dict(data), True, allow_pickle=False)
-            import shutil
-            if file_format == ".saenopy" or file_format == ".saenopy2D" or file_format == ".saenopySpheroid" or file_format == ".saenopyOrientation":
-                shutil.move(filename+".npz", filename)
+            # Write the complete archive next to its destination, then replace
+            # atomically. A failed save must not truncate a user's previous file.
+            import os
+            import tempfile
+            flattened = flatten_dict(data)
+            for key, value in flattened.items():
+                if np.asarray(value).dtype.hasobject:
+                    raise ValueError(f"Cannot save object array at {key}")
+            temporary = None
+            try:
+                with tempfile.NamedTemporaryFile(dir=Path(filename).parent,
+                                                 suffix=".npz", delete=False) as handle:
+                    temporary = handle.name
+                    np.savez_compressed(handle, **flattened)
+                os.replace(temporary, filename)
+            finally:
+                if temporary is not None and os.path.exists(temporary):
+                    os.unlink(temporary)
         else:
             raise ValueError("format not supported")
 
@@ -139,9 +150,8 @@ class Saveable:
             data = h5py.File(filename, "a")
             result = cls.from_dict(unflatten_dict_h5(data))
         elif file_format == ".npz" or file_format == ".saenopy" or file_format == ".saenopy2D" or file_format == ".saenopySpheroid" or file_format == ".saenopyOrientation":
-            data = np.load(filename, allow_pickle=False)
-
-            result = cls.from_dict(unflatten_dict(data))
+            with np.load(filename, allow_pickle=False) as data:
+                result = cls.from_dict(unflatten_dict(data))
         else:
             raise ValueError("Unknown format")
         if getattr(result, 'on_load', None) is not None:

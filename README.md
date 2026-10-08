@@ -49,6 +49,8 @@ Or by executing the script “gui_master.py” in your python interpreter.
 ## Getting started
 To get started you can have a look at our collection of [example datasets](https://saenopy.readthedocs.io/en/latest/3d_tfm/auto_examples/index.html).
 
+Standard bulk regularisation does not require a cell stain. Optional surface regularisation uses a segmented cell stain to distinguish cell-surface and bulk forces; see the [regularisation parameters](https://saenopy.readthedocs.io/en/latest/3d_tfm/parameters_regularisation.html).
+
 ## Preprint
 If you want to cite saenopy you can reference our article:
 
