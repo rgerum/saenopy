@@ -27,8 +27,12 @@ iteration earlier.
 
 rel. conv. crit.
 ----------------
-The relative convergence criterion. If the standard deviation of the energy of the last 6 iterations divided my the mean
-does not exceed this value, the fitting procedure is considered converged and iterations are stopped.
+The relative convergence criterion for the practical outer stop. The recorded
+data error and weighted force penalty are checked separately over the last 20
+updates. Both relative standard deviations must be below this value for five
+consecutive checks; a failed check resets the count. With ``alpha=0``, only the
+data error is checked. This plateau stop does not certify stability of the
+complete force field.
 
 prev_t_as_start
 ---------------
