@@ -19,6 +19,7 @@ equal optimal alpha or equal reconstructed contractility is not guaranteed.
 """
 from __future__ import annotations
 import numpy as np
+from time import monotonic
 
 DEFAULT_MIN_ITERATIONS = 60
 DEFAULT_SEG_CHANNEL = 0
@@ -29,6 +30,47 @@ DEFAULT_SEG_CHANNEL = 0
 # ---------------------------------------------------------------------------
 DEFAULT_THRESHOLD_METHOD = "li"     # "li" | "otsu" | "yen"
 DEFAULT_THRESHOLD_FACTOR = 0.6
+LI_MAX_ITERATIONS = 64
+LI_TIMEOUT_SECONDS = 30.0
+
+
+class SegmentationError(ValueError):
+    """Segmentation failed; no new mask should be used for reconstruction."""
+
+
+def _threshold_li_bounded(image):
+    """Li with float32-aware convergence and cooperative iteration/time limits.
+
+    skimage's default tolerance can be below float32 rounding noise, causing
+    cycles on smoothed stacks. Keep the stopping accuracy relative to image
+    contrast, with a floor for rounding at its absolute intensity scale.
+    The deadline is checked at callbacks, not a hard interrupt of NumPy work.
+    Unconverged thresholds are deliberately never returned.
+    """
+    from skimage.filters import threshold_li
+    started = monotonic()
+    lo, hi = float(image.min()), float(image.max())
+    tolerance = max((hi - lo) * 1e-6,
+                    32 * np.finfo(image.dtype).eps * max(abs(lo), abs(hi)),
+                    np.finfo(image.dtype).tiny)
+    callbacks = 0
+
+    def check(value):
+        nonlocal callbacks
+        if not np.isfinite(value):
+            raise SegmentationError("Li produced a non-finite threshold; no new mask created.")
+        if monotonic() - started >= LI_TIMEOUT_SECONDS:
+            raise SegmentationError(
+                "Li threshold timed out; no new mask created. Check the cell channel "
+                "or try Otsu/Yen.")
+        # The first callback reports the initial guess, not an iteration.
+        if callbacks >= LI_MAX_ITERATIONS:
+            raise SegmentationError(
+                "Li threshold did not converge within the iteration limit; no new "
+                "mask created. Check the cell channel or try Otsu/Yen.")
+        callbacks += 1
+
+    return threshold_li(image, tolerance=tolerance, iter_callback=check)
 
 
 def auto_threshold(image, method=DEFAULT_THRESHOLD_METHOD,
@@ -39,9 +81,16 @@ def auto_threshold(image, method=DEFAULT_THRESHOLD_METHOD,
     segmentation against the cell image; no factor is suitable for every stain.
     """
     from scipy.ndimage import gaussian_filter
-    from skimage.filters import threshold_otsu, threshold_yen, threshold_li
-    fn = {"otsu": threshold_otsu, "yen": threshold_yen, "li": threshold_li}[method]
-    sm = gaussian_filter(np.asarray(image).astype(np.float32), sigma=smooth, truncate=2.0)
+    from skimage.filters import threshold_otsu, threshold_yen
+    fn = {"otsu": threshold_otsu, "yen": threshold_yen, "li": _threshold_li_bounded}[method]
+    image = np.asarray(image, dtype=np.float32)
+    if image.size == 0 or not np.all(np.isfinite(image)):
+        raise SegmentationError("Cell channel must contain finite image data.")
+    if not np.isfinite(factor) or factor <= 0:
+        raise SegmentationError("Threshold factor must be positive and finite.")
+    sm = gaussian_filter(image, sigma=smooth, truncate=2.0)
+    if sm.min() == sm.max():
+        raise SegmentationError("Cell channel has no intensity contrast; no new mask created.")
     return float(fn(sm)) * float(factor)
 
 

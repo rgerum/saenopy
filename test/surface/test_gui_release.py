@@ -107,6 +107,19 @@ def test_official_file_in_gui_and_full_code_export(tmp_path, monkeypatch):
         assert window.tabs.isTabEnabled(window.tabs.currentIndex())
         assert "segmentation failed" not in regularizer.input_button_preview_text.text()
         assert result.solvers[0].mesh._segmentation_preview is not None
+        # Failed threshold calculation must retain and label the previous
+        # preview, without applying partial geometry to the solver.
+        previous_preview = result.solvers[0].mesh._segmentation_preview
+        previous_mask = result.solvers[0].mesh.cell_boundary_mask.copy()
+        def fail_segment(*args, **kwargs):
+            raise sr.SegmentationError("Li threshold timed out; no new mask created.")
+        monkeypatch.setattr(module, "segment_with_params", fail_segment)
+        regularizer.preview_segmentation()
+        assert "timed out" in regularizer.input_button_preview_text.text()
+        assert "unchanged" in regularizer.input_button_preview_text.text()
+        assert result.solvers[0].mesh._segmentation_preview is previous_preview
+        np.testing.assert_array_equal(result.solvers[0].mesh.cell_boundary_mask, previous_mask)
+        monkeypatch.setattr(module, "segment_with_params", fake_segment)
         window.show()
         app.processEvents()
         spin = regularizer.input_dilate_layers.spin_box

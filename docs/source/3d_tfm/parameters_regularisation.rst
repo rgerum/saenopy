@@ -50,6 +50,14 @@ touching the image boundary is treated as an observed open interface, without
 inventing end caps. Calculating forces recomputes segmentation from the current
 settings even if no preview was requested.
 
+Li uses a floating-point-aware convergence tolerance. If it does not converge,
+it raises an error after at most 64 iterations or 30 seconds of threshold
+calculation. The time limit is checked between iterations; image loading,
+smoothing and subsequent morphology are outside this limit. No unconverged
+threshold or new mask is returned. The GUI displays the error and retains any
+previous preview, explicitly labelled as unchanged. Check the selected cell
+channel or try Otsu/Yen. The preview still runs synchronously in the GUI.
+
 New GUI fits use mesh-normalised alpha, referenced to a 14 micrometre mesh.
 Classic uses volume-density Huber weights; Surface uses area-weighted L2 traction
 and a finite bulk penalty. With active nodal volumes :math:`V_i`, measured cell

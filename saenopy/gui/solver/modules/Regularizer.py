@@ -103,7 +103,9 @@ class Regularizer(PipelineModule):
                         self.input_seg_channel.combobox.setSizeAdjustPolicy(QtWidgets.QComboBox.AdjustToContents)
                         self.input_thr_method = QtShortCuts.QInputChoice(
                             None, "threshold method", "li", values=["li", "otsu", "yen"],
-                            tooltip="Method for the automatic segmentation threshold.")
+                            tooltip="Method for the automatic segmentation threshold. Li stops on "
+                                    "non-convergence (64 iterations or 30 s, checked between iterations); "
+                                    "no new mask is created on failure.")
                         self.input_thr_factor = QtShortCuts.QInputString(
                             None, "threshold factor", "0.6", type=float,
                             tooltip="Multiplied onto the automatic threshold (which is in raw intensity units). "
@@ -304,7 +306,8 @@ class Regularizer(PipelineModule):
             self.parent.tabs.setCurrentWidget(viewer.tab.parent())
             viewer.update_display()
         except Exception as err:  # keep the GUI alive on a bad channel/threshold
-            self.input_button_preview_text.setText(f"segmentation failed: {err}")
+            self.input_button_preview_text.setText(
+                f"segmentation failed: {err}\nPrevious preview, if any, is unchanged.")
 
     def check_available(self, result: Result):
         if result is None or result.solvers is None:
