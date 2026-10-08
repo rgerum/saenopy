@@ -73,16 +73,33 @@ For an existing result with an interpolated mesh, the shared Python entry point 
     fit_result(result, index=0, parameters=dict(
         surface=True, physical_normalization=True, alpha=1e10,
         seg_channel=1, seg_threshold_method="li", seg_threshold_factor=0.6,
-        seg_dilate_layers=1, max_iterations=200, cg_maxiter_factor=4))
+        seg_dilate_layers=1, max_iterations=200, cg_maxiter_factor=16))
     result.save("surface.saenopy")
 
 Use ``surface=False`` for Classic; ``physical_normalization=False`` additionally
 selects the unnormalised Classic control in Python. The GUI's **save Python code**
 exports the current settings and calls the same reconstruction function.
 
-The inner conjugate-gradient iteration budget defaults to four times the previous
-cap (``cg_maxiter_factor=4``), but still stops earlier when converged. This does not
-increase the nonlinear outer step size. Unconverged inner solves are reported;
-more outer iterations alone do not establish convergence.
+The inner conjugate-gradient iteration budget defaults to ``cg_maxiter_factor=16``:
+four times the previous default of 4. CG still stops earlier when its unchanged
+residual tolerance is met. The nonlinear outer step remains 0.2. Explicit settings,
+including a saved ``cg_maxiter_factor=4``, remain in effect; pass 16 explicitly to
+use the new budget when refitting such a result. Unconverged inner solves retain
+their warnings and saved diagnostics.
+
+The practical outer stop checks the relative standard deviation of the recorded
+data error and weighted force penalty separately over the last 20 updates. Both
+must stay below ``rel_conv_crit`` (default 0.01) for five consecutive checks; a
+failed check resets the count. The initial state is excluded, so the earliest
+stop is update 24, subject to ``i_min``. An identically zero term is stable;
+with ``alpha=0`` only the data error is checked. A nonpositive ``rel_conv_crit``
+disables this stop, and ``max_iterations`` remains a hard upper limit.
+
+This sustained objective plateau can stop despite an approximate inner solve.
+It is not a certificate of stationarity or stability of the complete force field.
+The solver saves ``objective_plateau_reached``, ``convergence_window`` and
+``convergence_patience`` alongside the inner CG diagnostics. Larger CG budgets
+do not guarantee shorter total run time, and fewer outer iterations alone do
+not establish better force reconstruction.
 
 

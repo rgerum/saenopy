@@ -5,6 +5,8 @@ import numpy as np
 import pytest
 from saenopy.conjugate_gradient import cg
 from saenopy import Solver, Result
+from saenopy.materials import SemiAffineFiberMaterial
+from saenopy.solver import DEFAULT_CG_MAXITER_FACTOR
 from saenopy.reconstruction import fit_result
 from test_release import example_result
 
@@ -57,7 +59,7 @@ def test_solver_multiplier_and_warning_only_once(monkeypatch):
 
 
 @pytest.mark.parametrize("converged", [True, False])
-def test_outer_plateau_cannot_hide_inaccurate_inner_steps(monkeypatch, converged):
+def test_objective_plateau_keeps_inner_diagnostics(monkeypatch, converged):
     result = example_result()
     def fake(self, *args):
         self.last_cg_info = dict(iterations=50, relative_residual=0. if converged else .1,
@@ -65,9 +67,115 @@ def test_outer_plateau_cannot_hide_inaccurate_inner_steps(monkeypatch, converged
         self._cg_diagnostics.append(self.last_cg_info)
         return 0.
     monkeypatch.setattr(Solver, "_solve_regularization_cg", fake)
-    fit_result(result, parameters=dict(max_iterations=20, rel_conv_crit=.01))
-    count = len(result.solvers[0].regularisation_results) - 1
-    assert count < 20 if converged else count == 20
+    fit_result(result, parameters=dict(max_iterations=60, rel_conv_crit=.01))
+    solver = result.solvers[0]
+    assert len(solver.regularisation_results) - 1 == 24
+    info = solver.regularisation_parameters
+    assert info['objective_plateau_reached']
+    assert info['cg_converged'] == [converged] * 24
+    assert info['cg_unconverged_steps'] == (0 if converged else 24)
+
+
+def _replay_terms(monkeypatch, data, force=None, **parameters):
+    """Exercise the actual outer loop; substitute observations, not its stop rule."""
+    solver = example_result().solvers[0]
+    solver.set_material_model(SemiAffineFiberMaterial(k=1000))
+    force = np.ones_like(data) if force is None else force
+    def record(records, alpha, filename=None):
+        i = len(records)
+        records.append((data[i]+alpha*force[i], data[i], force[i]))
+    monkeypatch.setattr(solver, '_record_regularization_status', record)
+    monkeypatch.setattr(solver, '_solve_regularization_cg', lambda *args: 0.)
+    solver.solve_regularized(max_iterations=len(data)-1, **parameters)
+    return solver
+
+
+@pytest.mark.parametrize('changing_term', ['data', 'force'])
+def test_intermediate_plateau_resets_both_terms(monkeypatch, changing_term):
+    data, force = np.ones(81), np.ones(81)
+    (data if changing_term == 'data' else force)[23:] = 2.
+    solver = _replay_terms(monkeypatch, data, force)
+    assert len(solver.relrec)-1 == 46
+    assert solver.regularisation_parameters['objective_plateau_reached']
+
+
+def test_flat_data_cannot_hide_changing_force_penalty(monkeypatch):
+    solver = _replay_terms(monkeypatch, np.ones(81), np.geomspace(1.,100.,81))
+    assert len(solver.relrec)-1 == 80
+    assert not solver.regularisation_parameters['objective_plateau_reached']
+
+
+@pytest.mark.parametrize('bad_value', [np.nan, np.inf, -1.])
+def test_invalid_term_resets_confirmation(monkeypatch, bad_value):
+    force = np.ones(81); force[23] = bad_value
+    with np.errstate(invalid='ignore'):
+        solver = _replay_terms(monkeypatch, np.ones(81), force)
+    assert len(solver.relrec)-1 == 47
+
+
+@pytest.mark.parametrize('data,force', [(0.,0.),(1.,0.),(0.,1.)])
+def test_identically_zero_term_is_stable(monkeypatch, data, force):
+    solver = _replay_terms(monkeypatch, np.full(61,data), np.full(61,force))
+    assert len(solver.relrec)-1 == 24
+
+
+def test_unregularized_fit_only_checks_data(monkeypatch):
+    solver = _replay_terms(monkeypatch, np.ones(61), np.geomspace(1.,100.,61), alpha=0)
+    assert len(solver.relrec)-1 == 24
+
+
+@pytest.mark.parametrize('limit', [1,19,20,23])
+def test_short_fit_retains_hard_limit(monkeypatch, limit):
+    solver = _replay_terms(monkeypatch, np.ones(limit+1))
+    assert len(solver.relrec)-1 == limit
+    assert not solver.regularisation_parameters['objective_plateau_reached']
+
+
+@pytest.mark.parametrize('threshold', [0.,-1.])
+def test_nonpositive_threshold_disables_stop(monkeypatch, threshold):
+    solver = _replay_terms(monkeypatch, np.ones(61), rel_conv_crit=threshold)
+    assert len(solver.relrec)-1 == 60
+
+
+def test_minimum_iterations_and_cancellation(monkeypatch):
+    solver = _replay_terms(monkeypatch, np.ones(81), i_min=50)
+    assert len(solver.relrec)-1 == 56
+    cancel = SimpleNamespace(cancel=False)
+    def callback(solver, records, *args):
+        if len(records)==24: cancel.cancel=True
+    solver = _replay_terms(monkeypatch, np.ones(81), cancel_signal=cancel, callback=callback)
+    assert len(solver.relrec)-1 == 23
+    assert solver.regularisation_parameters['cancelled']
+    assert not solver.regularisation_parameters['objective_plateau_reached']
+
+
+def test_new_default_and_saved_override_reach_inner_solver(monkeypatch):
+    import saenopy.solver as module
+    caps=[]; tolerances=[]
+    def fake(A,b,maxiter,tol,**kwargs):
+        caps.append(maxiter); tolerances.append(tol)
+        return np.zeros_like(b), dict(iterations=0,maxiter=maxiter,relative_residual=0.,
+            relative_tolerance=np.sqrt(tol),converged=True,reason='converged')
+    monkeypatch.setattr(module,'cg',fake)
+    fresh=example_result(); fit_result(fresh)
+    assert DEFAULT_CG_MAXITER_FACTOR == 16
+    assert fresh.solve_parameters['cg_maxiter_factor'] == 16
+    saved=example_result(); saved.solve_parameters['cg_maxiter_factor']=4; fit_result(saved)
+    assert saved.solve_parameters['cg_maxiter_factor'] == 4
+    assert caps == [800,800,200,200]
+    assert tolerances == [4e-18]*4
+
+
+@pytest.mark.parametrize('saved_factor,expected', [(None,16),(4,4)])
+def test_gui_export_default_and_saved_override(saved_factor, expected):
+    from saenopy.gui.solver.modules.Regularizer import Regularizer
+    parameters = {} if saved_factor is None else dict(cg_maxiter_factor=saved_factor)
+    result = SimpleNamespace(solve_parameters_tmp=parameters.copy(), material_parameters_tmp=dict(k=1000))
+    imports, code = Regularizer.get_code(SimpleNamespace(result=result))
+    compile(imports+code, '<exported reconstruction>', 'exec')
+    assert f"'cg_maxiter_factor': {expected}" in code
+    assert "'solver_precision': 1e-18" in code
+    assert result.solve_parameters_tmp == parameters
 
 
 def test_settings_and_diagnostics_roundtrip(tmp_path):
@@ -84,6 +192,9 @@ def test_settings_and_diagnostics_roundtrip(tmp_path):
     assert loaded.solve_parameters["cg_maxiter_factor"] == 2
     assert loaded.solvers[0].regularisation_parameters["cg_iterations"] == info["cg_iterations"]
     assert loaded.solvers[0].regularisation_parameters["cg_converged"] == info["cg_converged"]
+    assert loaded.solvers[0].regularisation_parameters['convergence_window'] == 20
+    assert loaded.solvers[0].regularisation_parameters['convergence_patience'] == 5
+    assert not loaded.solvers[0].regularisation_parameters['objective_plateau_reached']
 
 
 @pytest.mark.parametrize("value", [0, -1, 1.5, np.nan, np.inf])

@@ -21,7 +21,7 @@ from typing import List
 # 25*round(N_nodes**(1/3)) iterations. Convergence stops CG earlier. This does
 # not change the outer iteration count, step size, alpha or physical objective.
 # Prefer solve_regularized(cg_maxiter_factor=...) for per-run overrides.
-DEFAULT_CG_MAXITER_FACTOR = 4
+DEFAULT_CG_MAXITER_FACTOR = 16
 
 class Field:
     def __init__(self, validators, default):
@@ -773,16 +773,19 @@ class Solver(Saveable):
             Squared relative CG tolerance, multiplied by the number of nodes.
             The relative residual target is sqrt(N * solver_precision). Default 1e-18.
         cg_maxiter_factor : int, optional
-            Inner CG iteration cap multiplier (default 4); 1 restores the old
-            budget. Unconverged inner steps warn and cannot trigger early outer
-            convergence. The finite outer max_iterations remains a hard limit.
+            Inner CG iteration cap multiplier (default 16, four times the previous
+            default of 4). The residual tolerance is unchanged. Approximate inner
+            steps warn and retain diagnostics; max_iterations remains a hard limit.
         max_iterations : int, optional
             The maximal number of iterations for the regularisation. Default 300
         i_min : int, optional
             The minimal number of iterations for the relaxation. Minimum value is 6. Default is 12.
         rel_conv_crit :  float, optional
-            If the relative standard deviation of the last 6 energy values is below this threshold, finish the iteration.
-            Default 0.01
+            Stop when the data error and weighted force penalty each have a relative
+            standard deviation below this threshold over 20 values, for 5 consecutive
+            checks. Default 0.01; nonpositive values disable this stop. An identically
+            zero term is stable; alpha=0 checks only the data error. This practical
+            objective plateau does not certify inner or full force-field convergence.
         alpha :  float, optional
             The regularisation parameter. How much to weight the suppression of forces against the fitting of the measured
             displacement. Default 3e9
@@ -847,6 +850,9 @@ class Solver(Saveable):
 
         if self.verbose:
             print("check before relax !")
+        convergence_window = 20
+        convergence_patience = 5
+        stable_iterations = 0
         # start the iteration
         for i in range(int(max_iterations)):
             if cancel_signal is not None and getattr(cancel_signal, "cancel", False):
@@ -877,16 +883,16 @@ class Solver(Saveable):
                 # Finalize the same force/border split even for a cancelled fit.
                 break
 
-            # if we have passed i_min iterations we calculate average and std of the last 6 iteration
-            if i > i_min:
-                # calculate the average energy over the last 6 iterations
-                last_Ls = np.array(relrec)[:-6:-1, 1]
-                Lmean = np.mean(last_Ls)
-                Lstd = np.std(last_Ls)       #  Use Coefficient of Variation; in saeno there was the additional factor  "/ np.sqrt(5)" behind 
-
-                # if the iterations converge, stop the iteration
-                inner_converged = self.last_cg_info is None or self.last_cg_info["converged"]
-                if Lstd / Lmean < rel_conv_crit and inner_converged:
+            # A flat data error alone can hide a changing force penalty.
+            # Keep the historical coefficient of variation, but confirm both terms.
+            if i > i_min and len(relrec) > convergence_window and rel_conv_crit > 0:
+                last_terms = np.asarray(relrec[-convergence_window:])[:, 1:2 if alpha == 0 else 3]
+                means = np.mean(last_terms, axis=0)
+                stds = np.std(last_terms, axis=0)
+                stable = (np.isfinite(last_terms).all() and (last_terms >= 0).all()
+                          and np.all((stds < rel_conv_crit * means) | (means == 0)))
+                stable_iterations = stable_iterations + 1 if stable else 0
+                if stable_iterations >= convergence_patience:
                     break
 
         self.regularisation_results = np.asarray(relrec)
@@ -894,6 +900,9 @@ class Solver(Saveable):
         # with existing solver metadata; no new required file-format fields.
         self.regularisation_parameters.update(
             cancelled=bool(cancel_signal is not None and getattr(cancel_signal, "cancel", False)),
+            convergence_window=convergence_window,
+            convergence_patience=convergence_patience,
+            objective_plateau_reached=stable_iterations >= convergence_patience,
             cg_iterations=[info["iterations"] for info in self._cg_diagnostics],
             cg_relative_residuals=[info["relative_residual"] for info in self._cg_diagnostics],
             cg_converged=[info["converged"] for info in self._cg_diagnostics],
@@ -926,8 +935,8 @@ class Solver(Saveable):
             warnings.warn(
                 f"Inner CG reached its cap ({info['maxiter']} iterations): relative residual "
                 f"{info['relative_residual']:.3g}, target {info['relative_tolerance']:.3g}. "
-                "Continuing with an approximate step; this step cannot trigger early outer "
-                "convergence. Inspect saved CG diagnostics or increase cg_maxiter_factor.",
+                "Continuing with an approximate step; an objective-plateau stop does not "
+                "certify inner convergence. Inspect saved CG diagnostics or increase cg_maxiter_factor.",
                 RuntimeWarning, stacklevel=2)
             self._cg_warned = True
         uu = uu.reshape((self.mesh.number_nodes, 3))

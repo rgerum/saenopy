@@ -76,7 +76,7 @@ def test_official_file_in_gui_and_full_code_export(tmp_path, monkeypatch):
         assert "get_stacks" in code
         assert "surface_alpha" not in code
         assert "'physical_normalization': True" in code
-        assert "'cg_maxiter_factor': 4" in code
+        assert "'cg_maxiter_factor': 16" in code
         assert "'solver_precision': 1e-18" in code
 
         # Preview uses the current inputs and opens the enabled Forces view.
