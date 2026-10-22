@@ -158,15 +158,15 @@ def test_new_default_and_saved_override_reach_inner_solver(monkeypatch):
             relative_tolerance=np.sqrt(tol),converged=True,reason='converged')
     monkeypatch.setattr(module,'cg',fake)
     fresh=example_result(); fit_result(fresh)
-    assert DEFAULT_CG_MAXITER_FACTOR == 16
-    assert fresh.solve_parameters['cg_maxiter_factor'] == 16
+    assert DEFAULT_CG_MAXITER_FACTOR == 8
+    assert fresh.solve_parameters['cg_maxiter_factor'] == 8
     saved=example_result(); saved.solve_parameters['cg_maxiter_factor']=4; fit_result(saved)
     assert saved.solve_parameters['cg_maxiter_factor'] == 4
-    assert caps == [800,800,200,200]
+    assert caps == [400,400,200,200]
     assert tolerances == [4e-18]*4
 
 
-@pytest.mark.parametrize('saved_factor,expected', [(None,16),(4,4)])
+@pytest.mark.parametrize('saved_factor,expected', [(None,8),(4,4)])
 def test_gui_export_default_and_saved_override(saved_factor, expected):
     from saenopy.gui.solver.modules.Regularizer import Regularizer
     parameters = {} if saved_factor is None else dict(cg_maxiter_factor=saved_factor)

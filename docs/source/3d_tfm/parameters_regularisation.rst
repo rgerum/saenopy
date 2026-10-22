@@ -87,17 +87,18 @@ For an existing result with an interpolated mesh, the shared Python entry point 
     fit_result(result, index=0, parameters=dict(
         surface=True, physical_normalization=True, alpha=1e10,
         seg_channel=1, seg_threshold_method="li", seg_threshold_factor=0.6,
-        seg_dilate_layers=1, max_iterations=200, cg_maxiter_factor=16))
+        seg_dilate_layers=1, max_iterations=200, cg_maxiter_factor=8))
     result.save("surface.saenopy")
 
 Use ``surface=False`` for Classic; ``physical_normalization=False`` additionally
 selects the unnormalised Classic control in Python. The GUI's **save Python code**
 exports the current settings and calls the same reconstruction function.
 
-The inner conjugate-gradient iteration budget defaults to ``cg_maxiter_factor=16``:
-four times the previous default of 4. CG still stops earlier when its unchanged
-residual tolerance is met. The nonlinear outer step remains 0.2. Explicit settings,
-including a saved ``cg_maxiter_factor=4``, remain in effect; pass 16 explicitly to
+The inner conjugate-gradient iteration budget defaults to ``cg_maxiter_factor=8``:
+half the previous default of 16, and eight times the original Saenopy cap.
+CG still stops earlier when its unchanged residual tolerance is met.
+The nonlinear outer step remains 0.2. Explicit settings,
+including a saved ``cg_maxiter_factor=16``, remain in effect; pass 8 explicitly to
 use the new budget when refitting such a result. Unconverged inner solves retain
 their warnings and saved diagnostics.
 

@@ -21,7 +21,7 @@ from typing import List
 # 25*round(N_nodes**(1/3)) iterations. Convergence stops CG earlier. This does
 # not change the outer iteration count, step size, alpha or physical objective.
 # Prefer solve_regularized(cg_maxiter_factor=...) for per-run overrides.
-DEFAULT_CG_MAXITER_FACTOR = 16
+DEFAULT_CG_MAXITER_FACTOR = 8
 
 class Field:
     def __init__(self, validators, default):
@@ -773,8 +773,8 @@ class Solver(Saveable):
             Squared relative CG tolerance, multiplied by the number of nodes.
             The relative residual target is sqrt(N * solver_precision). Default 1e-18.
         cg_maxiter_factor : int, optional
-            Inner CG iteration cap multiplier (default 16, four times the previous
-            default of 4). The residual tolerance is unchanged. Approximate inner
+            Inner CG iteration cap multiplier (default 8, half the previous
+            default of 16). The residual tolerance is unchanged. Approximate inner
             steps warn and retain diagnostics; max_iterations remains a hard limit.
         max_iterations : int, optional
             The maximal number of iterations for the regularisation. Default 300
