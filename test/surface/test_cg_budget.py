@@ -69,11 +69,11 @@ def test_objective_plateau_keeps_inner_diagnostics(monkeypatch, converged):
     monkeypatch.setattr(Solver, "_solve_regularization_cg", fake)
     fit_result(result, parameters=dict(max_iterations=60, rel_conv_crit=.01))
     solver = result.solvers[0]
-    assert len(solver.regularisation_results) - 1 == 24
+    assert len(solver.regularisation_results) - 1 == 15
     info = solver.regularisation_parameters
     assert info['objective_plateau_reached']
-    assert info['cg_converged'] == [converged] * 24
-    assert info['cg_unconverged_steps'] == (0 if converged else 24)
+    assert info['cg_converged'] == [converged] * 15
+    assert info['cg_unconverged_steps'] == (0 if converged else 15)
 
 
 def _replay_terms(monkeypatch, data, force=None, **parameters):
@@ -91,11 +91,11 @@ def _replay_terms(monkeypatch, data, force=None, **parameters):
 
 
 @pytest.mark.parametrize('changing_term', ['data', 'force'])
-def test_intermediate_plateau_resets_both_terms(monkeypatch, changing_term):
+def test_step_change_must_leave_window_for_both_terms(monkeypatch, changing_term):
     data, force = np.ones(81), np.ones(81)
-    (data if changing_term == 'data' else force)[23:] = 2.
+    (data if changing_term == 'data' else force)[14:] = 2.
     solver = _replay_terms(monkeypatch, data, force)
-    assert len(solver.relrec)-1 == 46
+    assert len(solver.relrec)-1 == 28
     assert solver.regularisation_parameters['objective_plateau_reached']
 
 
@@ -106,25 +106,25 @@ def test_flat_data_cannot_hide_changing_force_penalty(monkeypatch):
 
 
 @pytest.mark.parametrize('bad_value', [np.nan, np.inf, -1.])
-def test_invalid_term_resets_confirmation(monkeypatch, bad_value):
-    force = np.ones(81); force[23] = bad_value
+def test_invalid_term_prevents_stop_until_outside_window(monkeypatch, bad_value):
+    force = np.ones(81); force[14] = bad_value
     with np.errstate(invalid='ignore'):
         solver = _replay_terms(monkeypatch, np.ones(81), force)
-    assert len(solver.relrec)-1 == 47
+    assert len(solver.relrec)-1 == 29
 
 
 @pytest.mark.parametrize('data,force', [(0.,0.),(1.,0.),(0.,1.)])
 def test_identically_zero_term_is_stable(monkeypatch, data, force):
     solver = _replay_terms(monkeypatch, np.full(61,data), np.full(61,force))
-    assert len(solver.relrec)-1 == 24
+    assert len(solver.relrec)-1 == 15
 
 
 def test_unregularized_fit_only_checks_data(monkeypatch):
     solver = _replay_terms(monkeypatch, np.ones(61), np.geomspace(1.,100.,61), alpha=0)
-    assert len(solver.relrec)-1 == 24
+    assert len(solver.relrec)-1 == 15
 
 
-@pytest.mark.parametrize('limit', [1,19,20,23])
+@pytest.mark.parametrize('limit', [1,12,13,14])
 def test_short_fit_retains_hard_limit(monkeypatch, limit):
     solver = _replay_terms(monkeypatch, np.ones(limit+1))
     assert len(solver.relrec)-1 == limit
@@ -139,12 +139,12 @@ def test_nonpositive_threshold_disables_stop(monkeypatch, threshold):
 
 def test_minimum_iterations_and_cancellation(monkeypatch):
     solver = _replay_terms(monkeypatch, np.ones(81), i_min=50)
-    assert len(solver.relrec)-1 == 56
+    assert len(solver.relrec)-1 == 52
     cancel = SimpleNamespace(cancel=False)
     def callback(solver, records, *args):
-        if len(records)==24: cancel.cancel=True
+        if len(records)==15: cancel.cancel=True
     solver = _replay_terms(monkeypatch, np.ones(81), cancel_signal=cancel, callback=callback)
-    assert len(solver.relrec)-1 == 23
+    assert len(solver.relrec)-1 == 14
     assert solver.regularisation_parameters['cancelled']
     assert not solver.regularisation_parameters['objective_plateau_reached']
 
@@ -192,8 +192,8 @@ def test_settings_and_diagnostics_roundtrip(tmp_path):
     assert loaded.solve_parameters["cg_maxiter_factor"] == 2
     assert loaded.solvers[0].regularisation_parameters["cg_iterations"] == info["cg_iterations"]
     assert loaded.solvers[0].regularisation_parameters["cg_converged"] == info["cg_converged"]
-    assert loaded.solvers[0].regularisation_parameters['convergence_window'] == 20
-    assert loaded.solvers[0].regularisation_parameters['convergence_patience'] == 5
+    assert loaded.solvers[0].regularisation_parameters['convergence_window'] == 15
+    assert loaded.solvers[0].regularisation_parameters['convergence_patience'] == 1
     assert not loaded.solvers[0].regularisation_parameters['objective_plateau_reached']
 
 
@@ -202,3 +202,10 @@ def test_invalid_budget(value):
     result = example_result()
     with pytest.raises(ValueError, match="cg_maxiter_factor"):
         fit_result(result, parameters=dict(cg_maxiter_factor=value))
+
+
+def test_small_nonzero_force_has_no_implicit_absolute_tolerance(monkeypatch):
+    force = np.tile([1e-30, 2e-30], 41)[:81]
+    solver = _replay_terms(monkeypatch, np.ones(81), force)
+    assert len(solver.relrec)-1 == 80
+    assert not solver.regularisation_parameters['objective_plateau_reached']

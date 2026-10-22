@@ -782,7 +782,7 @@ class Solver(Saveable):
             The minimal number of iterations for the relaxation. Minimum value is 6. Default is 12.
         rel_conv_crit :  float, optional
             Stop when the data error and weighted force penalty each have a relative
-            standard deviation below this threshold over 20 values, for 5 consecutive
+            standard deviation below this threshold over 15 values, without extra
             checks. Default 0.01; nonpositive values disable this stop. An identically
             zero term is stable; alpha=0 checks only the data error. This practical
             objective plateau does not certify inner or full force-field convergence.
@@ -850,8 +850,8 @@ class Solver(Saveable):
 
         if self.verbose:
             print("check before relax !")
-        convergence_window = 20
-        convergence_patience = 5
+        convergence_window = 15
+        convergence_patience = 1
         stable_iterations = 0
         # start the iteration
         for i in range(int(max_iterations)):
@@ -1266,20 +1266,24 @@ def interpolate_mesh(mesh: PivMesh, xpos2: np.ndarray, params: dict) -> Solver:
                                                              [0, 0, 0], params.get("thinning_factor", 0))
 
     R = (mesh.nodes - np.min(mesh.nodes, axis=0)) - (np.max(mesh.nodes, axis=0) - np.min(mesh.nodes, axis=0)) / 2
-    U_target = saenopy.get_deformations.interpolate_different_mesh(R, xpos2, points)
-
-    # robust outlier removal on the interpolated target field (before the fit): a single
-    # huge PIV spike would otherwise be fitted by a wrong localized force. Applied once
-    # here so it benefits both the classic and the surface-restricted regularization.
-    if params.get("outlier_filter", False):
+    # Filter a copy on the original PIV grid after reference correction. Keep the
+    # stored measurements intact so a later threshold change starts from raw data.
+    source = xpos2
+    filter_enabled = params.get("outlier_filter", False)
+    if filter_enabled:
         from saenopy import deformation_filter as df
-        U_target, outlier = df.filter_target_outliers(
-            points, U_target,
-            k=int(params.get("outlier_k", df.DEFAULT_OUTLIER_K)),
+        source, outlier = df.filter_target_outliers(
+            R, source,
             thresh=float(params.get("outlier_thresh", df.DEFAULT_OUTLIER_THRESH)),
             min_mult=float(params.get("outlier_min_mult", df.DEFAULT_OUTLIER_MIN_MULT)),
+            min_abs_um=float(params.get("outlier_min_abs_um", df.DEFAULT_OUTLIER_MIN_ABS_UM)),
+            eps_um=float(params.get("outlier_eps_um", 0.3)),
+            componentwise=True,
             verbose=True)
-        print(f"  [outlier filter] removed {int(outlier.sum())} deformation outliers")
+        print(f"  [outlier filter] removed {int(outlier.sum())} PIV vectors before interpolation")
+
+    # Retain Saenopy's existing linear interpolation with nearest fallback.
+    U_target = saenopy.get_deformations.interpolate_different_mesh(R, source, points)
 
     border_idx = get_nodes_with_one_face(cells)
     inside_mask = np.ones(points.shape[0], dtype=bool)

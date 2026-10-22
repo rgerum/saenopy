@@ -236,3 +236,47 @@ def test_official_file_in_gui_and_full_code_export(tmp_path, monkeypatch):
         window.deleteLater()
         QtWidgets.QApplication.sendPostedEvents(None, QtCore.QEvent.DeferredDelete)
         app.processEvents()
+
+
+def test_cell_channel_default_preserves_saved_and_edited_choices(tmp_path, monkeypatch):
+    from types import SimpleNamespace
+    from qtpy import QtCore, QtWidgets
+    from pyvistaqt import QtInteractor
+    from saenopy import Result
+    from saenopy.gui.solver.modules.BatchEvaluate import BatchEvaluate
+
+    monkeypatch.setattr(QtInteractor, "render", lambda self: None)
+    app = QtWidgets.QApplication.instance() or QtWidgets.QApplication([])
+    QtCore.QSettings.setDefaultFormat(QtCore.QSettings.IniFormat)
+    QtCore.QSettings.setPath(QtCore.QSettings.IniFormat, QtCore.QSettings.UserScope, str(tmp_path))
+
+    class TestWindow(BatchEvaluate):
+        settings_key = "saenopy_cell_channel_default_test"
+
+    window = TestWindow()
+    regularizer = window.sub_module_regularize
+    try:
+        # Switch repeatedly between datasets: choose by position, not channel name,
+        # and never inherit the previous dataset's selection.
+        for channels, saved, expected in [
+            (["00", "01"], {}, 1), (["00"], {}, 0),
+            (["fibres", "cells", "nuclei"], {}, 1),
+            (["00", "01"], {"seg_channel": 0}, 0),
+            (["00", "01", "02"], {"seg_channel": 2}, 2),
+        ]:
+            result = Result()
+            result.stacks = [SimpleNamespace(channels=channels)]
+            result.solve_parameters = saved.copy()
+            regularizer.setResult(result)
+            assert regularizer.input_seg_channel.value() == expected
+            assert result.solve_parameters_tmp["seg_channel"] == expected
+            assert result.solve_parameters == saved
+            regularizer.input_seg_channel.setValue(0, send_signal=True)
+            regularizer.setResult(Result())
+            regularizer.setResult(result)
+            assert regularizer.input_seg_channel.value() == 0
+            assert result.solve_parameters_tmp["seg_channel"] == 0
+            assert result.solve_parameters == saved
+    finally:
+        window.close()
+        app.processEvents()

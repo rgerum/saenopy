@@ -441,6 +441,9 @@ class Regularizer(PipelineModule):
             if channels:
                 self.input_seg_channel.setValues(list(np.arange(len(channels))),
                                                  [str(c) for c in channels])
+                # Prefer the first additional channel (usually the cell stain).
+                # ParameterMapping restores saved or edited choices below.
+                self.input_seg_channel.setValue(1 if len(channels) > 1 else 0)
         except (AttributeError, IndexError, TypeError):
             pass
         super().setResult(result)

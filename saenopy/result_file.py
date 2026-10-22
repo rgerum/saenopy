@@ -289,12 +289,14 @@ class MeshParametersDict(TypedDict, total=False):
     mesh_size: Union[Tuple[float, float, float], str]
     # --- robust deformation-outlier filter (added in save version 1.8) ---
     # Optional: official old files (< 1.8) do not contain these; they are filled
-    # with defaults on load. Removes spike outliers from the interpolated
-    # target field once, before the fit (see saenopy.deformation_filter).
+    # with defaults on load. New mesh calculations filter reference-corrected
+    # PIV vectors once, before interpolation (see saenopy.deformation_filter).
     outlier_filter: bool          # enable the robust normalized-median outlier removal
     outlier_thresh: float         # normalized-median threshold (higher = more permissive)
-    outlier_k: int                # nearest neighbours for the local statistic
-    outlier_min_mult: float       # absolute floor = min_mult * field-median |u|
+    outlier_k: int                # legacy vector API only; component filter uses a fixed 5x5x5 window
+    outlier_min_mult: float       # relative floor = min_mult * local median |u_component|
+    outlier_min_abs_um: float     # optional absolute residual floor; default 0.3 um
+    outlier_eps_um: float         # optional additive scatter regulariser; default 0.3 um
 
 class MaterialParametersDict(TypedDict):
     k: float

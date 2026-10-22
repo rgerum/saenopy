@@ -96,18 +96,21 @@ class MeshCreator(PipelineModule):
                     with QtShortCuts.QHBoxLayout():
                         self.input_outlier_filter = QtShortCuts.QInputBool(
                             None, "remove deformation outliers", True,
-                            tooltip="robust normalized-median filter: drop spike outliers "
-                                    "from the interpolated deformation field before the force "
-                                    "fit (recommended; works for both classic and surface mode)")
+                            tooltip="Check x, y and z separately on the PIV grid before interpolation. "
+                                    "If any component is an outlier, exclude the whole vector. "
+                                    "Interpolation retains the usual nearest fallback where linear "
+                                    "interpolation is missing; an invalid nearest vector stays NaN.")
                         self.input_outlier_thresh = QtShortCuts.QInputNumber(
                             None, "outlier thresh.", 4.0, step=0.5, float=True,
-                            tooltip="At 4, reject a displacement vector if its distance from the "
-                                    "component-wise median of its 12 nearest neighbours exceeds "
-                                    "4 times (the neighbours' median distance from that median + 0.3 µm). "
-                                    "The deviation must also exceed max(0.3 µm, half the median "
-                                    "neighbour displacement magnitude). This is not 4 times the "
-                                    "median displacement or 4 standard deviations. Higher values "
-                                    "reject fewer displacement measurements; mesh nodes remain.")
+                            tooltip="For each PIV component, compare its signed value with the median "
+                                    "in a centered 5x5x5 node window (up to 124 neighbours, excluding itself). "
+                                    "At edges use only existing nodes; omit invalid vectors. "
+                                    "Use all available valid neighbours, without expanding the window. "
+                                    "With no valid neighbours leave the vector unchanged. "
+                                    "Reject the whole vector if any component deviation exceeds both "
+                                    "threshold * (local median absolute deviation + noise regularisation) "
+                                    "and the local amplitude floor. Absolute terms default to 0.3 µm. "
+                                    "Smaller thresholds reject more vectors; this is not a z-score.")
                         self.input_outlier_filter.valueChanged.connect(
                             lambda: self.input_outlier_thresh.setDisabled(not self.input_outlier_filter.value()))
 

@@ -28,9 +28,9 @@ iteration earlier.
 rel. conv. crit.
 ----------------
 The relative convergence criterion for the practical outer stop. The recorded
-data error and weighted force penalty are checked separately over the last 20
-updates. Both relative standard deviations must be below this value for five
-consecutive checks; a failed check resets the count. With ``alpha=0``, only the
+data error and weighted force penalty are checked separately over the last 15
+updates. Both relative standard deviations must be below this value in the same
+check; no additional confirmations are required. With ``alpha=0``, only the
 data error is checked. This plateau stop does not certify stability of the
 complete force field.
 
@@ -46,9 +46,11 @@ Standard bulk regularisation does not require a cell stain. The optional surface
 mode uses a segmented cell stain to penalise surface traction and suppress bulk
 forces. Both modes retain the existing exclusion of outer boundary forces.
 
-Select the cell channel and check **preview segmentation**. The selected threshold
-method (Li by default; Otsu and Yen are alternatives) is applied to a Gaussian-smoothed
-image, then multiplied by the threshold factor (default 0.6). The method is not
+For new GUI analyses, the cell channel defaults to the first additional channel
+when available, otherwise the sole channel. Saved and manually selected channels
+are preserved. Verify the cell stain and check **preview segmentation**. The selected
+threshold method (Li by default; Otsu and Yen are alternatives) is applied to a
+Gaussian-smoothed image, then multiplied by the threshold factor (default 0.6). The method is not
 selected automatically. Surface dilation adds mesh-node shells. A segmentation
 touching the image boundary is treated as an observed open interface, without
 inventing end caps. Calculating forces recomputes segmentation from the current
@@ -100,17 +102,18 @@ use the new budget when refitting such a result. Unconverged inner solves retain
 their warnings and saved diagnostics.
 
 The practical outer stop checks the relative standard deviation of the recorded
-data error and weighted force penalty separately over the last 20 updates. Both
-must stay below ``rel_conv_crit`` (default 0.01) for five consecutive checks; a
-failed check resets the count. The initial state is excluded, so the earliest
-stop is update 24, subject to ``i_min``. An identically zero term is stable;
+data error and weighted force penalty separately over the last 15 updates. Both
+must be below ``rel_conv_crit`` (default 0.01) in the same check, without additional
+confirmations. The initial state is excluded, so the earliest stop is update 15,
+subject to ``i_min``. Surface retains its default minimum of 60, which allows
+the first check at update 62. An identically zero term is stable;
 with ``alpha=0`` only the data error is checked. A nonpositive ``rel_conv_crit``
 disables this stop, and ``max_iterations`` remains a hard upper limit.
 
-This sustained objective plateau can stop despite an approximate inner solve.
+This objective plateau can stop despite an approximate inner solve.
 It is not a certificate of stationarity or stability of the complete force field.
 The solver saves ``objective_plateau_reached``, ``convergence_window`` and
-``convergence_patience`` alongside the inner CG diagnostics. Larger CG budgets
+``convergence_patience`` (1, meaning no extra confirmations) alongside the inner CG diagnostics. Larger CG budgets
 do not guarantee shorter total run time, and fewer outer iterations alone do
 not establish better force reconstruction.
 
