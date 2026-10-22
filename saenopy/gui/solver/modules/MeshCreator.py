@@ -94,6 +94,27 @@ class MeshCreator(PipelineModule):
                     self.input_mesh_size = MeshSizeWidget().addToLayout()
 
                     with QtShortCuts.QHBoxLayout():
+                        self.input_outlier_filter = QtShortCuts.QInputBool(
+                            None, "remove deformation outliers", True,
+                            tooltip="Check x, y and z separately on the PIV grid before interpolation. "
+                                    "If any component is an outlier, exclude the whole vector. "
+                                    "Interpolation retains the usual nearest fallback where linear "
+                                    "interpolation is missing; an invalid nearest vector stays NaN.")
+                        self.input_outlier_thresh = QtShortCuts.QInputNumber(
+                            None, "outlier thresh.", 4.0, step=0.5, float=True,
+                            tooltip="For each PIV component, compare its signed value with the median "
+                                    "in a centered 5x5x5 node window (up to 124 neighbours, excluding itself). "
+                                    "At edges use only existing nodes; omit invalid vectors. "
+                                    "Use all available valid neighbours, without expanding the window. "
+                                    "With no valid neighbours leave the vector unchanged. "
+                                    "Reject the whole vector if any component deviation exceeds both "
+                                    "threshold * (local median absolute deviation + noise regularisation) "
+                                    "and the local amplitude floor. Absolute terms default to 0.3 µm. "
+                                    "Smaller thresholds reject more vectors; this is not a z-score.")
+                        self.input_outlier_filter.valueChanged.connect(
+                            lambda: self.input_outlier_thresh.setDisabled(not self.input_outlier_filter.value()))
+
+                    with QtShortCuts.QHBoxLayout():
                         self.input_button = QtWidgets.QPushButton("interpolate mesh").addToLayout()
                         self.input_button.clicked.connect(self.start_process)
                         self.input_button_text = QtWidgets.QLabel().addToLayout()
@@ -107,6 +128,8 @@ class MeshCreator(PipelineModule):
             "reference_stack": self.input_reference,
             "element_size": self.input_element_size,
             "mesh_size": self.input_mesh_size,
+            "outlier_filter": self.input_outlier_filter,
+            "outlier_thresh": self.input_outlier_thresh,
         })
 
     def cancel_process(self):
@@ -212,6 +235,8 @@ class MeshCreator(PipelineModule):
                 displacement_list = saenopy.subtract_reference_state(result.mesh_piv, mesh_parameters["reference_stack"])
                 # set the parameters
                 result.mesh_parameters = mesh_parameters
+                # Allocate solver slots and discard fits on the previous mesh.
+                result.reset_solver()
                 # iterate over all stack pairs
                 for i in range(len(result.mesh_piv)):
                     # and create the interpolated solver mesh

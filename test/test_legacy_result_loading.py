@@ -33,7 +33,7 @@ def test_load_v14_result_with_empty_solver_placeholder():
 
     result = Result.from_dict(data)
 
-    assert result.___save_version__ == "1.7"
+    assert result.___save_version__ == Result.___save_version__
     assert result.mesh_piv == [None]
     assert result.solvers == [None]
     assert all(

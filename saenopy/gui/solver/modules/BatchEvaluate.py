@@ -33,6 +33,7 @@ class BatchEvaluate(BatchEvaluateBase):
     file_extension = ".saenopy"
 
     result_params = ["piv_parameters", "mesh_parameters", "material_parameters", "solve_parameters"]
+    scroll_parameters = True
 
     def add_modules(self):
         layout0 = QtShortCuts.currentLayout()

@@ -29,6 +29,7 @@ class TabModule(QtWidgets.QWidget):
     def resultChanged(self, result: Result):
         """ called when the contents of result changed. Only update view if it is the currently displayed one. """
         if result is self.result:
+            self.current_result_plotted = False
             if self.tab is not None:
                 for i in range(self.parent.tabs.count()):
                     if self.parent.tabs.widget(i) == self.tab.parent():
