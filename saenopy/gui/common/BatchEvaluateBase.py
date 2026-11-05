@@ -130,6 +130,20 @@ class BatchEvaluateBase(QtWidgets.QWidget):
                         if getattr(self, "sub_module_export", None):
                             self.button_export = QtShortCuts.QPushButton(None, "export images", lambda x: self.sub_module_export.show_window())
 
+                if getattr(self, "scroll_parameters", False):
+                    # Keep input rows at their natural height on small/high-DPI
+                    # screens. Other analysis interfaces retain their layout.
+                    panel = layout0.parentWidget()
+                    panel.setMaximumWidth(16777215)
+                    layout0.setSizeConstraint(QtWidgets.QLayout.SetMinAndMaxSize)
+                    self.parameter_scroll = QtWidgets.QScrollArea()
+                    self.parameter_scroll.setWidgetResizable(True)
+                    self.parameter_scroll.setFrameShape(QtWidgets.QFrame.NoFrame)
+                    self.parameter_scroll.setMinimumWidth(360)
+                    self.parameter_scroll.setMaximumWidth(600)
+                    lay.replaceWidget(lay.indexOf(panel), self.parameter_scroll)
+                    self.parameter_scroll.setWidget(panel)
+
         self.data = []
         self.list.setData(self.data)
 
@@ -252,7 +266,7 @@ class BatchEvaluateBase(QtWidgets.QWidget):
                 run_code += code2 +"\n"
             run_code = import_code + "\n\n" + run_code
             #print(run_code)
-            with open(new_path, "w") as fp:
+            with open(new_path, "w", encoding="utf-8") as fp:
                 fp.write(run_code)
 
     def run_all(self):

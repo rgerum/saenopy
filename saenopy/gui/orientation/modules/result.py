@@ -16,14 +16,17 @@ from saenopy.saveable import Saveable
 from saenopy.result_file import make_path_absolute, make_path_relative
 
 
-class SegmentationParametersDict(TypedDict):
+class SegmentationParametersDict(TypedDict, total=False):
     thresh: float
     gauss1: float
     gauss2: float
     invert: bool
+    mask_sigma: float
+    mask_threshold: float
+    mask_invert: bool
 
 
-class OrientationParametersDict(TypedDict):
+class OrientationParametersDict(TypedDict, total=False):
     sigma_tensor: float
     sigma_tensor_type: str
     edge: int
@@ -33,6 +36,14 @@ class OrientationParametersDict(TypedDict):
     angle_sections: int
     shell_width: float
     shell_width_type: str
+    plotting: bool
+    SaveNumpy: bool
+    reference_x: Union[float, None]
+    reference_y: Union[float, None]
+    line_x1: Union[float, None]
+    line_y1: Union[float, None]
+    line_x2: Union[float, None]
+    line_y2: Union[float, None]
 
 
 class Segmentation(TypedDict):
@@ -52,7 +63,7 @@ GlobalResult = TypedDict("GlobalResult", {
     'Orientation': float,
     'Orientation (weighted by coherency)': float,
     'Orientation (weighted by intensity and coherency)': float,
-})
+}, total=False)
 
 class DistanceResult(TypedDict):
     pass
@@ -60,6 +71,13 @@ class DistanceResult(TypedDict):
 DistanceResult = TypedDict('DistanceResult', {
     'Shell_mid (px)': float,
     'Shell_mid (µm)': float,
+    'Shell_start (px)': float,
+    'Shell_end (px)': float,
+    'Point alignment (shell)': float,
+    'Point angular deviation (shell)': float,
+    'Point coherency (shell)': float,
+    'Valid pixels': int,
+    'Coherency pixels': int,
     'Intensity (accumulated)': float,
     'Intensity (individual)': float,
     'Intensity Norm (individual)': float,
@@ -78,11 +96,11 @@ DistanceResult = TypedDict('DistanceResult', {
     'Angle disttocenter (individual)': float,
     'Orientation disttocenter (accumulated)': float,
     'Orientation disttocenter (individual)': float,
-})
+}, total=False)  # Cell and point profiles contain different sets of columns.
 
 
 class ResultOrientation(Saveable):
-    __save_parameters__ = ['image_cell', 'image_fiber', 'pixel_size', 'output',
+    __save_parameters__ = ['analysis_mode', 'validity_mask', 'angle_to_y_map', 'axis_histogram', 'image_cell', 'image_fiber', 'pixel_size', 'output',
                            'segmentation_parameters', 'orientation_parameters',
                            'segmentation',
                            'orientation_map',
@@ -94,7 +112,13 @@ class ResultOrientation(Saveable):
                            "results_distance",
                            '___save_name__', '___save_version__']
     ___save_name__ = "ResultOrientation"
-    ___save_version__ = "1.0"
+    ___save_version__ = "1.1"
+
+    # Missing fields in version 1.0 files are filled explicitly in from_dict.
+    analysis_mode: str = "full"
+    validity_mask: np.ndarray = None
+    angle_to_y_map: np.ndarray = None
+    axis_histogram: np.ndarray = None
 
     image_cell: str = None
     image_fiber: str = None
@@ -126,24 +150,53 @@ class ResultOrientation(Saveable):
 
         super().__init__(**kwargs)
 
+    @classmethod
+    def from_dict(cls, data_dict):
+        data_dict = data_dict.copy()
+        # Older RGB previews stored (height, width, channels), although the
+        # result's shape describes spatial dimensions only.
+        shape = data_dict.get("shape")
+        if isinstance(shape, (tuple, list, np.ndarray)) and np.ndim(shape) == 1 and len(shape) == 3:
+            data_dict["shape"] = tuple(shape[:2])
+        for name, default in (("analysis_mode", "full"), ("validity_mask", None),
+                              ("angle_to_y_map", None), ("axis_histogram", None)):
+            data_dict.setdefault(name, default)
+        if data_dict.get("___save_version__") == "1.0":
+            data_dict["___save_version__"] = "1.1"
+        return super().from_dict(data_dict)
+
     def save(self, file_name=None):
         if file_name is None:
             file_name = self.output
-        Path(self.output).parent.mkdir(exist_ok=True, parents=True)
+        Path(file_name).parent.mkdir(exist_ok=True, parents=True)
         super().save(file_name)
 
     def on_load(self, filename: str):
         self.output = str(Path(filename))
 
     def get_absolute_path_cell(self):
-        return make_path_absolute(self.image_cell, Path(self.output).parent)
+        return None if self.image_cell is None else make_path_absolute(self.image_cell, Path(self.output).parent)
 
     def get_absolute_path_fiber(self):
         return make_path_absolute(self.image_fiber, Path(self.output).parent)
 
+    @property
+    def uses_mask(self):
+        return self.analysis_mode == "axis_orientation_masked" or (
+            self.analysis_mode in ("point_orientation", "line_orientation") and self.image_cell is not None)
+
+    @property
+    def mask_source(self):
+        """Infer the mask source from saved paths, including older result files."""
+        if not self.uses_mask:
+            return None if self.analysis_mode == "full" else "whole_image"
+        fiber = os.path.normcase(os.path.abspath(self.get_absolute_path_fiber()))
+        cell = self.get_absolute_path_cell()
+        return "same_image" if cell is not None and os.path.normcase(os.path.abspath(cell)) == fiber else "separate_image"
+
     def get_image(self, index, corrected=True):
         try:
-            if index == 0:
+            if index == 0 and self.image_cell is not None:
                 im = read_tiff(self.get_absolute_path_cell())
             else:
                 im = read_tiff(self.get_absolute_path_fiber())
@@ -157,13 +210,13 @@ class ResultOrientation(Saveable):
             im[:, :, 0] = 255
             im[:, :, 2] = 255
         if self.shape is None:
-            self.shape = im.shape
+            self.shape = im.shape[:2]
         return im
 
     def get_data_structure(self):
         if self.shape is None:
             self.get_image(0)
-        return {
+        data = {
             "dimensions": 2,
             "z_slices_count": 1,
             "im_shape": [self.shape[0], self.shape[1], 1],
@@ -190,15 +243,37 @@ class ResultOrientation(Saveable):
                 "coherence": {
                     "measure": "normalized_strength",
                     "unit": "",
-                    "name": "orientation_x_axis",
+                    "name": "coherence",
                     "colormap": "turbo",
                     "lim": [0, 1],
                 },
             },
         }
 
+        data["maps"]["orientation_y_axis"] = dict(data["maps"]["orientation_x_axis"], name="orientation_y_axis")
+        if self.analysis_mode != "full":
+            data["maps"].pop("orientation_cell_center")
+            for axis in ("x", "y"):
+                data["maps"][f"alignment_{axis}_axis"] = {
+                    "measure": "orientation", "unit": "", "name": f"alignment_{axis}_axis",
+                    "colormap": "coolwarm", "lim": [-1, 1]}
+        if self.analysis_mode == "point_orientation":
+            data["maps"]["orientation_point"] = {
+                "measure": "orientation", "unit": "", "name": "orientation_point",
+                "colormap": "coolwarm", "lim": [-1, 1]}
+        if self.analysis_mode == "line_orientation":
+            data["maps"]["orientation_line"] = {
+                "measure": "orientation", "unit": "", "name": "orientation_line",
+                "colormap": "coolwarm", "lim": [-1, 1]}
+            data["maps"]["angle_line"] = dict(data["maps"]["orientation_x_axis"], name="angle_line")
+        if self.image_cell is None:
+            data["channels"] = ["fibers"]
+        elif self.uses_mask:
+            data["channels"] = ["mask", "fibers"]
+        return data
+
     def get_image_data(self, time_point, channel="default", use_reference=False):
-        if channel == "cells":
+        if channel in ("cells", "mask"):
             im = self.get_image(0)
         elif channel == "fibers":
             im = self.get_image(1)
@@ -206,30 +281,84 @@ class ResultOrientation(Saveable):
             raise ValueError("unknown channel")
         if self.orientation_parameters is not None:
             edge = self.orientation_parameters["edge"]
-            im = im[edge:-edge, edge:-edge]
+            if edge:
+                im = im[edge:-edge, edge:-edge]
         if len(im.shape) == 2:
             return im[:, :, None, None]
         return im[:, :, :, None]
 
     def get_map_data(self, name):
+        if name == "orientation_line":
+            return self.orientation_map if self.analysis_mode == "line_orientation" else None
+        if name == "angle_line":
+            if self.analysis_mode != "line_orientation" or self.angle_to_x_map is None:
+                return None
+            angle = (self.results_total or [{}])[0].get("Reference line angle (deg)")
+            if angle is None:
+                return None
+            # Derive from the saved reference, never from a pending new line.
+            values = (self.angle_to_x_map - angle + 90) % 180 - 90
+            return np.where(self.validity_mask, values, np.nan) if self.validity_mask is not None else values
+        if name == "orientation_point":
+            return self.orientation_map if self.analysis_mode == "point_orientation" else None
         if name == "orientation_cell_center":
-            return self.orientation_map
+            return self.orientation_map if self.analysis_mode == "full" else None
         if name == "orientation_x_axis":
-            return self.angle_to_x_map
-        if name == "coherence":
-            return self.coherence_map
+            values = self.angle_to_x_map
+        elif name == "orientation_y_axis":
+            values = self.angle_to_y_map
+            if values is None and self.angle_to_x_map is not None:
+                values = (self.angle_to_x_map + 180) % 180 - 90
+        elif name == "coherence":
+            values = self.coherence_map
+        elif name in ("alignment_x_axis", "alignment_y_axis"):
+            if self.angle_to_x_map is None:
+                return None
+            values = 1 - np.abs(self.angle_to_x_map) / 45
+            if name == "alignment_y_axis":
+                values = -values
+        else:
+            return None
+        if values is not None and self.analysis_mode != "full" and self.validity_mask is not None:
+            values = np.where(self.validity_mask, values, np.nan)
+        return values
+
+
+def matching_image_files(pattern):
+    """Find supported image files, checking headers without loading their pixels."""
+    from PIL import Image, UnidentifiedImageError
+    paths = []
+    for name in sorted(glob.glob(str(pattern))) if pattern else []:
+        path = Path(name)
+        if not path.is_file() or path.suffix.lower() not in (".tif", ".tiff", ".png", ".jpg", ".jpeg"):
+            continue
+        try:
+            with Image.open(path) as image:
+                if min(image.size) <= 0:
+                    continue
+        except (OSError, ValueError, UnidentifiedImageError):
+            continue
+        paths.append(str(path))
+    return paths
 
 
 def get_orientation_files(output_path, fiber_list_string, cell_list_string, pixel_size,
                     exist_overwrite_callback=None,
-                    load_existing=False):
+                    load_existing=False, analysis_mode="full"):
+    if analysis_mode not in ("full", "axis_orientation_only", "axis_orientation_masked", "point_orientation", "line_orientation"):
+        raise ValueError("Unknown orientation analysis mode")
+    if not np.isfinite(pixel_size) or pixel_size <= 0:
+        raise ValueError("pixel_size must be positive and finite")
     output_base = Path(fiber_list_string).parent
     while "*" in str(output_base):
         output_base = Path(output_base).parent
 
-    fiber_list_string = sorted(glob.glob(str(fiber_list_string)))
+    fiber_list_string = matching_image_files(fiber_list_string)
     output_path = str(output_path)
-    cell_list_string = sorted(glob.glob(str(cell_list_string)))
+    if analysis_mode == "axis_orientation_only" or (analysis_mode in ("point_orientation", "line_orientation") and cell_list_string is None):
+        cell_list_string = [None] * len(fiber_list_string)
+    else:
+        cell_list_string = matching_image_files(cell_list_string)
 
     if len(fiber_list_string) == 0:
         raise ValueError("no fiber image selected")
@@ -266,8 +395,9 @@ def get_orientation_files(output_path, fiber_list_string, cell_list_string, pixe
 
         data = ResultOrientation(
             output=str(output),
-            image_fiber=str(im0),
-            image_cell=str(im1),
+            image_fiber=str(Path(im0).resolve()),
+            image_cell=None if im1 is None else str(Path(im1).resolve()),
+            analysis_mode=analysis_mode,
             pixel_size=float(pixel_size),
         )
         data.save()

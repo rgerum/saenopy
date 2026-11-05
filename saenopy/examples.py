@@ -58,6 +58,11 @@ def load_example(name, target_folder=None, progress_callback=None, evaluated=Fal
 
     if evaluated:
         evaluated_folder = Path(target_folder) / Path(Path(url).name).stem / "example_output"
+        if example.get("evaluated_included", False):
+            files = [evaluated_folder / file for file in example["url_evaluated_file"]]
+            if not all(file.is_file() for file in files):
+                raise FileNotFoundError(f"The example package is incomplete: missing evaluated results in {evaluated_folder}")
+            return files
         if not (evaluated_folder / example["url_evaluated_file"][0]).exists():
             download_files(example["url_evaluated"], evaluated_folder, progress_callback=progress_callback)
         return [evaluated_folder / file for file in example["url_evaluated_file"]]
@@ -200,16 +205,128 @@ def get_examples_spheroid():
 def get_examples_orientation():
     example_path = Path(appdirs.user_data_dir("saenopy", "rgerum"))
     image_path = Path(resource_path("thumbnails"))
+    fibroblast_url = "https://github.com/rgerum/saenopy/releases/download/v0.7.4/Orientation_FibroblastActin.zip"
+    collagen_url = "https://github.com/rgerum/saenopy/releases/download/v0.7.4/Orientation_EmptyCollagen.zip"
+    biological_url = "https://github.com/rgerum/saenopy/releases/download/v0.7.4/Orientation_BiologicalExamples.zip"
     return {
         "CellFibers": {
-            "desc": "Evaluate matrix fiber allignment around cells in collagen.",
+            "title": "Cell-relative orientation",
+            "desc": "Collagen alignment around a stained cell as a marker of contractility.",
             "img": image_path / "CellFibers.png",
-            "pixel_size": 0.201,
+            "pixel_size": 0.318,
             "input_cell": example_path / 'Orientation_CellsCollagen/data/Cell_*/C004.tif',
             "input_fiber": example_path / 'Orientation_CellsCollagen/data/Cell_*/C003.tif',
             "output_path": example_path / 'Orientation_CellsCollagen/eval',
             "url": "https://github.com/rgerum/saenopy/releases/download/v0.7.4/Orientation_CellsCollagen.zip",
             #"url_evaluated": "https://github.com/rgerum/saenopy/releases/download/v0.7.4/MCF7-time-lapse_evaluated.zip",
             #"url_evaluated_file": ["KO/04_bf_before.saenopy2D", "KO/05_bf_before.saenopy2D", "WT/03_bf_before.saenopy2D", "WT/10_bf_before.saenopy2D"],
+        },
+        "FibroblastActin": {
+            "title": "General orientation — same-image mask",
+            "desc": "Actin fiber orientation within the cell area selected from the same phalloidin image.",
+            "img": image_path / "Orientation_FibroblastActin.png",
+            "pixel_size": 0.48,
+            "input_fiber": example_path / "Orientation_FibroblastActin/data/field_*/phalloidin.tif",
+            "input_cell": example_path / "Orientation_FibroblastActin/data/field_*/phalloidin.tif",
+            "output_path": example_path / "Orientation_FibroblastActin/eval",
+            "variants": [
+                {"name": "phalloidin_mask", "analysis_mode": "axis_orientation_masked"},
+            ],
+            "orientation_parameters": {"sigma_tensor": 3., "sigma_tensor_type": "µm", "edge": 10,
+                                       "sigma_first_blur": .5, "SaveNumpy": False, "plotting": False},
+            "segmentation_parameters": {"mask_sigma": 5., "mask_threshold": .25, "mask_invert": False},
+            "url": fibroblast_url,
+            "url_evaluated": fibroblast_url,
+            "evaluated_included": True,
+            "url_evaluated_file": [f"phalloidin_mask/field_{i:02d}/phalloidin.saenopyOrientation" for i in (1, 2)],
+        },
+        "EmptyCollagen": {
+            "title": "General orientation — whole image",
+            "desc": "Collagen fiber orientation across an image without a cell reference or mask.",
+            "img": image_path / "Orientation_EmptyCollagen.png",
+            "pixel_size": 0.249,
+            "input_fiber": example_path / "Orientation_EmptyCollagen/data/field_*/collagen.tif",
+            "input_cell": None,
+            "analysis_mode": "axis_orientation_only",
+            "output_path": example_path / "Orientation_EmptyCollagen/eval",
+            "orientation_parameters": {"sigma_tensor": 3., "sigma_tensor_type": "µm", "edge": 40,
+                                       "sigma_first_blur": 1., "SaveNumpy": False, "plotting": False},
+            "url": collagen_url,
+            "url_evaluated": collagen_url,
+            "evaluated_included": True,
+            "url_evaluated_file": [f"field_{i:02d}/collagen.saenopyOrientation" for i in (1, 2)],
+        },
+        "ActininMask": {
+            "title": "General orientation — second-image mask",
+            "desc": "The alpha-actinin channel selects cardiomyocyte regions in a culture with fibroblasts. Measure the orientation of phalloidin-labeled actin within this second-image mask.",
+            "img": image_path / "Orientation_ActininMask.png",
+            "pixel_size": 1 / 6.411017,
+            "input_fiber": example_path / "Orientation_BiologicalExamples/BiologicalExamples/cardiomyocyte_05/phalloidin.tif",
+            "input_cell": example_path / "Orientation_BiologicalExamples/BiologicalExamples/cardiomyocyte_05/actinin.tif",
+            "analysis_mode": "axis_orientation_masked",
+            "output_path": example_path / "Orientation_BiologicalExamples/eval_cardiomyocyte",
+            "orientation_parameters": {"sigma_tensor": 8., "sigma_tensor_type": "pixel", "edge": 15,
+                                       "sigma_first_blur": .5, "SaveNumpy": False, "plotting": False},
+            "segmentation_parameters": {"mask_sigma": 8., "mask_threshold": .65, "mask_invert": False},
+            "url": biological_url, "url_evaluated": biological_url, "evaluated_included": True,
+            "url_evaluated_file": ["cardiomyocyte/cardiomyocyte.saenopyOrientation"],
+        },
+        "SpheroidPoint": {
+            "title": "Orientation towards a point — spheroid",
+            "desc": "Orientation of peripheral cell structures towards the spheroid center. PNG-derived grayscale example; scale estimated from the embedded bar.",
+            "img": image_path / "Orientation_SpheroidPoint.png",
+            "pixel_size": 1.,
+            "input_fiber": example_path / "Orientation_BiologicalExamples/BiologicalExamples/spheroid/orientation.tif",
+            "input_cell": example_path / "Orientation_BiologicalExamples/BiologicalExamples/spheroid/selection.tif",
+            "analysis_mode": "point_orientation",
+            "output_path": example_path / "Orientation_BiologicalExamples/eval_spheroid",
+            "orientation_parameters": {"sigma_tensor": 6., "sigma_tensor_type": "pixel", "edge": 15,
+                                       "reference_x": 1200., "reference_y": 910.,
+                                       "sigma_first_blur": .5, "SaveNumpy": False, "plotting": False},
+            "segmentation_parameters": {"mask_sigma": 0., "mask_threshold": .5, "mask_invert": False},
+            "url": biological_url, "url_evaluated": biological_url, "evaluated_included": True,
+            "url_evaluated_file": ["spheroid/spheroid.saenopyOrientation"],
+        },
+        "PointReference": {
+            "title": "Orientation towards a point",
+            "desc": "Choose a point in a collagen image and measure radial fiber alignment towards it.",
+            "img": image_path / "Orientation_PointReference.png",
+            "pixel_size": 0.318,
+            "input_fiber": example_path / "Orientation_CellsCollagen/data/Cell_1/C003.tif",
+            "input_cell": None,
+            "analysis_mode": "point_orientation",
+            "output_path": example_path / "Orientation_CellsCollagen/eval_point",
+            "orientation_parameters": {"sigma_tensor": 7., "sigma_tensor_type": "µm", "edge": 40,
+                                       "sigma_first_blur": .5, "SaveNumpy": False, "plotting": False},
+            "url": "https://github.com/rgerum/saenopy/releases/download/v0.7.4/Orientation_CellsCollagen.zip",
+        },
+        "CardiomyocyteLine": {
+            "title": "Orientation relative to a line — cardiomyocytes",
+            "desc": "Click two points along the cardiomyocytes to define a reference line. Analyze phalloidin orientation throughout the image, without a mask.",
+            "img": image_path / "Orientation_CardiomyocyteLine.png",
+            "pixel_size": 1 / 6.411017,
+            "input_fiber": example_path / "Orientation_BiologicalExamples/BiologicalExamples/cardiomyocyte_line/orientation.tif",
+            "input_cell": None,
+            "analysis_mode": "line_orientation",
+            "output_path": example_path / "Orientation_BiologicalExamples/eval_cardiomyocyte_line",
+            "orientation_parameters": {"sigma_tensor": 8., "sigma_tensor_type": "pixel", "edge": 15,
+                                       "line_x1": 69., "line_y1": 469., "line_x2": 655., "line_y2": 255.,
+                                       "sigma_first_blur": .5, "SaveNumpy": False, "plotting": False},
+            "segmentation_parameters": {},
+            "url": biological_url, "url_evaluated": biological_url, "evaluated_included": True,
+            "url_evaluated_file": ["cardiomyocyte_line/cardiomyocyte_line.saenopyOrientation"],
+        },
+        "LineReference": {
+            "title": "Orientation relative to a line",
+            "desc": "Click two points in a collagen image and measure fiber alignment relative to that line.",
+            "img": image_path / "Orientation_LineReference.png",
+            "pixel_size": 0.318,
+            "input_fiber": example_path / "Orientation_CellsCollagen/data/Cell_1/C003.tif",
+            "input_cell": None,
+            "analysis_mode": "line_orientation",
+            "output_path": example_path / "Orientation_CellsCollagen/eval_line",
+            "orientation_parameters": {"sigma_tensor": 7., "sigma_tensor_type": "µm", "edge": 40,
+                                       "sigma_first_blur": .5, "SaveNumpy": False, "plotting": False},
+            "url": "https://github.com/rgerum/saenopy/releases/download/v0.7.4/Orientation_CellsCollagen.zip",
         },
     }

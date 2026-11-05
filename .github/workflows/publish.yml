@@ -8,6 +8,8 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
     - uses: actions/checkout@v6
     - name: Install uv
@@ -16,6 +18,8 @@ jobs:
         enable-cache: true
     - name: Set up Python
       run: uv python install 3.12
+    - name: Check dependency lockfile
+      run: uv lock --check
     - name: Build package
       run: uv build
     - name: Publish to PyPI

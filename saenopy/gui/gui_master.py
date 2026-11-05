@@ -188,8 +188,10 @@ class MainWindow(QtWidgets.QWidget):
             self.setMinimumHeight(900)
         if value == 4 and self.orientation is None:  # pragma: no cover
             self.orientation = OrientationMain().addToLayout(self.layout_orientation)
-            self.setMinimumWidth(1600)
-            self.setMinimumHeight(900)
+        if value == 4:
+            self.setMinimumSize(900, 600)
+        elif value in (2, 3, 5):
+            self.setMinimumSize(1600, 900)
         if value == 5 and self.pytfm2d is None:  # pragma: no cover
             self.pytfm2d = MainWindow2D().addToLayout(self.layout_pytfm)
             self.setMinimumWidth(1600)

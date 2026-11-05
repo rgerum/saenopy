@@ -1,5 +1,5 @@
 version = 1
-revision = 1
+revision = 3
 requires-python = ">=3.10, <3.13"
 resolution-markers = [
     "python_full_version >= '3.12' and sys_platform == 'win32'",
@@ -390,7 +390,7 @@ wheels = [
 
 [[package]]
 name = "compactionanalyzer"
-version = "1.0.7"
+version = "1.0.8"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "matplotlib" },
@@ -400,15 +400,15 @@ dependencies = [
     { name = "openpyxl" },
     { name = "pandas", version = "2.3.3", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
     { name = "pandas", version = "3.0.3", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
-    { name = "pyyml" },
+    { name = "pyyaml" },
     { name = "roipoly" },
     { name = "scikit-image", version = "0.25.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
     { name = "scikit-image", version = "0.26.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
     { name = "tqdm" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/b6/c4/46c894e414751af8d470ca12b7399f118b5ffb27c918939dc2f02b5ba5e4/compactionanalyzer-1.0.7.tar.gz", hash = "sha256:a56a6b24780ec90419ce1cc0bc18846091606119def46ec25309362760472d77", size = 64661 }
+sdist = { url = "https://files.pythonhosted.org/packages/af/10/f52ea0bc650def251211dacab4b8eec63a7026531aa11d17808e01df8a03/compactionanalyzer-1.0.8.tar.gz", hash = "sha256:252473ddaef05e3e754268f42d6c0be335a184c0b5620a5f9125549591d0b70a", size = 100091 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/09/1b/6329c5dddf02f9f3d135cdb52bc2e0a6ee3663ca76883ccc661db00f1f65/CompactionAnalyzer-1.0.7-py3-none-any.whl", hash = "sha256:8f387832234d32db3a3e96e5e06f3a832c433af08e86ae36b6e34deffaa8a2d4", size = 61900 },
+    { url = "https://files.pythonhosted.org/packages/a4/bf/c6107ad2b5f7f17a64d96446cf8c33ad3cf601795eec0ce887653ad948ba/compactionanalyzer-1.0.8-py3-none-any.whl", hash = "sha256:6c8ccd7f3706ccd6928d47ab603d8b6dd7931bfcee9dc56cbbc9168c686b21c1", size = 77386 },
 ]
 
 [[package]]
@@ -1468,6 +1468,10 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/e4/34/8aefdd0be9cfd00a44509251ba864f5caf2991e36772e61c408007e7f417/kiwisolver-1.5.0-cp312-cp312-musllinux_1_2_x86_64.whl", hash = "sha256:1d9daea4ea6b9be74fe2f01f7fbade8d6ffab263e781274cffca0dba9be9eec9", size = 2294947 },
     { url = "https://files.pythonhosted.org/packages/ad/cf/0348374369ca588f8fe9c338fae49fa4e16eeb10ffb3d012f23a54578a9e/kiwisolver-1.5.0-cp312-cp312-win_amd64.whl", hash = "sha256:f18c2d9782259a6dc132fdc7a63c168cbc74b35284b6d75c673958982a378384", size = 73569 },
     { url = "https://files.pythonhosted.org/packages/28/26/192b26196e2316e2bd29deef67e37cdf9870d9af8e085e521afff0fed526/kiwisolver-1.5.0-cp312-cp312-win_arm64.whl", hash = "sha256:f7c7553b13f69c1b29a5bde08ddc6d9d0c8bfb84f9ed01c30db25944aeb852a7", size = 64997 },
+    { url = "https://files.pythonhosted.org/packages/1c/fa/2910df836372d8761bb6eff7d8bdcb1613b5c2e03f260efe7abe34d388a7/kiwisolver-1.5.0-graalpy312-graalpy250_312_native-macosx_10_13_x86_64.whl", hash = "sha256:5ae8e62c147495b01a0f4765c878e9bfdf843412446a247e28df59936e99e797", size = 130262 },
+    { url = "https://files.pythonhosted.org/packages/0f/41/c5f71f9f00aabcc71fee8b7475e3f64747282580c2fe748961ba29b18385/kiwisolver-1.5.0-graalpy312-graalpy250_312_native-macosx_11_0_arm64.whl", hash = "sha256:f6764a4ccab3078db14a632420930f6186058750df066b8ea2a7106df91d3203", size = 138036 },
+    { url = "https://files.pythonhosted.org/packages/fa/06/7399a607f434119c6e1fdc8ec89a8d51ccccadf3341dee4ead6bd14caaf5/kiwisolver-1.5.0-graalpy312-graalpy250_312_native-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:c31c13da98624f957b0fb1b5bae5383b2333c2c3f6793d9825dd5ce79b525cb7", size = 194295 },
+    { url = "https://files.pythonhosted.org/packages/b5/91/53255615acd2a1eaca307ede3c90eb550bae9c94581f8c00081b6b1c8f44/kiwisolver-1.5.0-graalpy312-graalpy250_312_native-win_amd64.whl", hash = "sha256:1f1489f769582498610e015a8ef2d36f28f505ab3096d0e16b4858a9ec214f57", size = 75987 },
     { url = "https://files.pythonhosted.org/packages/17/6f/6fd4f690a40c2582fa34b97d2678f718acf3706b91d270c65ecb455d0a06/kiwisolver-1.5.0-pp310-pypy310_pp73-macosx_10_15_x86_64.whl", hash = "sha256:295d9ffe712caa9f8a3081de8d32fc60191b4b51c76f02f951fd8407253528f4", size = 59606 },
     { url = "https://files.pythonhosted.org/packages/82/a0/2355d5e3b338f13ce63f361abb181e3b6ea5fffdb73f739b3e80efa76159/kiwisolver-1.5.0-pp310-pypy310_pp73-macosx_11_0_arm64.whl", hash = "sha256:51e8c4084897de9f05898c2c2a39af6318044ae969d46ff7a34ed3f96274adca", size = 57537 },
     { url = "https://files.pythonhosted.org/packages/c8/b9/1d50e610ecadebe205b71d6728fd224ce0e0ca6aba7b9cbe1da049203ac5/kiwisolver-1.5.0-pp310-pypy310_pp73-manylinux2014_x86_64.manylinux_2_17_x86_64.whl", hash = "sha256:b83af57bdddef03c01a9138034c6ff03181a3028d9a1003b301eb1a55e161a3f", size = 79888 },
@@ -2760,7 +2764,7 @@ wheels = [
 
 [[package]]
 name = "saenopy"
-version = "1.0.8"
+version = "1.0.9"
 source = { editable = "." }
 dependencies = [
     { name = "appdirs" },
@@ -2813,7 +2817,7 @@ docs = [
 [package.metadata]
 requires-dist = [
     { name = "appdirs", specifier = ">=1.4.4,<2.0.0" },
-    { name = "compactionanalyzer", specifier = ">=1.0.7,<2.0.0" },
+    { name = "compactionanalyzer", specifier = ">=1.0.8,<2.0.0" },
     { name = "furo", marker = "extra == 'docs'", specifier = ">=2024.8.6,<2025.0.0" },
     { name = "h5py", specifier = ">=3.8.0,<4.0.0" },
     { name = "imagecodecs", specifier = ">=2024.9.22,<2025.0.0" },
