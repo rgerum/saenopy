@@ -9,11 +9,11 @@ from qtpy import QtCore, QtWidgets, QtGui
 from saenopy.gui.common import QtShortCuts
 
 from saenopy.gui.common.gui_classes import CheckAbleGroup
-from saenopy.gui.common.PipelineModule import PipelineModule
+from saenopy.gui.common.PipelineModule import PipelineModule, StateEnum
 from saenopy.gui.common.code_export import get_code
 
 class DeformationDetector(PipelineModule):
-    pipeline_name = "find deformations"
+    pipeline_name = "find orientations"
     use_thread = False
     progress_signal = QtCore.Signal(int, str)
     result: ResultOrientation = None
@@ -46,7 +46,7 @@ class DeformationDetector(PipelineModule):
                                                                  settings_key="orientation/max_dist",
                                                                  tooltip="Optional: specify the maximal distance around the cell center",
                                                                  none_value=None)
-                        QtWidgets.QLabel("px").addToLayout()
+                        self.max_dist_unit = QtWidgets.QLabel("px").addToLayout()
 
                     self.ignore_cell = QtShortCuts.QInputBool(None, "ignore_cell_outline", False, settings=self.settings,
                                                                  settings_key="orientation/ignore_cell_outline",)
@@ -60,7 +60,7 @@ class DeformationDetector(PipelineModule):
                         self.angle_sections = QtShortCuts.QInputString(None, "angle_sections", "5", type=int,
                                                                        settings=self.settings,
                                                                        settings_key="orientation/angle_sections")
-                        QtWidgets.QLabel("deg").addToLayout()
+                        self.angle_unit = QtWidgets.QLabel("deg").addToLayout()
 
                     with QtShortCuts.QHBoxLayout():
                         self.shell_width = QtShortCuts.QInputString(None, "shell_width", "5", type=float,
@@ -70,7 +70,9 @@ class DeformationDetector(PipelineModule):
                                                                          settings=self.settings,
                                                                          settings_key="orientation/shell_width_type")
 
-                    self.input_button = QtShortCuts.QPushButton(None, "detect deformations", self.start_process)
+                    self.save_numpy = QtShortCuts.QInputBool(None, "save NumPy arrays + CSV", True)
+                    self.save_plots = QtShortCuts.QInputBool(None, "save plots", True)
+                    self.input_button = QtShortCuts.QPushButton(None, "find orientations", self.start_process)
 
         self.setParameterMapping("orientation_parameters", {
             "sigma_tensor": self.sigma_tensor,
@@ -82,92 +84,83 @@ class DeformationDetector(PipelineModule):
             "angle_sections": self.angle_sections,
             "shell_width": self.shell_width,
             "shell_width_type": self.shell_width_type,
+            "SaveNumpy": self.save_numpy,
+            "plotting": self.save_plots,
         })
 
         #self.progress_signal.connect(self.progress_callback)
 
     def check_available(self, result: ResultOrientation) -> bool:
+        if result is None:
+            return False
+        if result.analysis_mode == "point_orientation":
+            p = getattr(result, "orientation_parameters_tmp", None) or result.orientation_parameters or {}
+            return all(p.get(key) is not None for key in ("reference_x", "reference_y"))
+        if result.analysis_mode == "line_orientation":
+            from .ReferenceOverlay import parameter_line
+            from CompactionAnalyzer.plotting import line_reference_angle
+            p = getattr(result, "orientation_parameters_tmp", None) or result.orientation_parameters or {}
+            try:
+                line_reference_angle(parameter_line(p), result.shape)
+            except ValueError:
+                return False
         return True
 
+    def state_changed(self, result):
+        super().state_changed(result)
+        if result is self.result and self.get_result_state(result) in (StateEnum.finished, StateEnum.failed):
+            self.input_button.setText("find orientations")
+            self.input_button.setEnabled(self.check_available(result))
+
+    def setResult(self, result):
+        super().setResult(result)
+        full = result is None or result.analysis_mode == "full"
+        for widget in (self.max_dist, self.max_dist_unit, self.ignore_cell, self.angle_sections,
+                       self.angle_unit):
+            widget.setVisible(full)
+        point = result is not None and result.analysis_mode == "point_orientation"
+        self.shell_width.setVisible(full or point)
+        self.shell_width_type.setVisible(full or point)
+        self.shell_width.setToolTip("Width of concentric rings around the selected point." if point
+                                   else "Width of distance shells around the cell outline.")
+        axis = result is not None and result.analysis_mode.startswith("axis_")
+        self.save_numpy.setVisible(axis)
+        self.save_plots.setVisible(axis)
+
     def process(self, result: ResultOrientation, orientation_parameters: OrientationParametersDict):
-        segmentation_parameters = result.segmentation_parameters
-        sigma_tensor = orientation_parameters["sigma_tensor"]
-        if orientation_parameters["sigma_tensor_type"] == "µm":
-            sigma_tensor /= result.pixel_size
-        shell_width = orientation_parameters["shell_width"]
-        if orientation_parameters["shell_width_type"] == "µm":
-            shell_width /= result.pixel_size
+        from .analysis import analyze_orientation
+        # Also initialize these when only "find orientations" was clicked.
+        mapping = self.parent.sub_module_segmentation.parameter_mappings[0]
+        mapping.ensure_tmp_params_initialized(result)
+        analyze_orientation(result, orientation_parameters, result.segmentation_parameters_tmp)
 
-        from CompactionAnalyzer.CompactionFunctions import StuctureAnalysisMain
-        angle_no_reference, orientation_dev, ori, min_evex, excel_total, excel_angles, excel_distance = StuctureAnalysisMain(fiber_list=[result.get_absolute_path_fiber()],
-                             cell_list=[result.get_absolute_path_cell()],
-                             out_list=[result.output[:-len(".saenopyOrientation")]],
-                             scale=result.pixel_size,
-                             sigma_tensor=sigma_tensor,
-                             edge=orientation_parameters["edge"],
-                             max_dist=orientation_parameters["max_dist"],
-                             ignore_cell_outline=orientation_parameters["ignore_cell_outline"],
-                             segmention_thres=segmentation_parameters["thresh"],
-                             seg_gaus1=segmentation_parameters["gauss1"],
-                             seg_gaus2=segmentation_parameters["gauss2"],
-                             seg_invert=segmentation_parameters["invert"],
-                             sigma_first_blur=orientation_parameters["sigma_first_blur"],
-                             angle_sections=orientation_parameters["angle_sections"],
-                             shell_width=shell_width,
-                             SaveNumpy=False,
-                             SaveExcel=False,
-                             mode_saenopy=True,
-                             plotting=False,
-                             )
-
-        result.orientation_map = orientation_dev#np.load(Path(result.output).parent / Path(result.output).stem / "NumpyArrays" / "OrientationMap.npy")
-        result.coherence_map = ori
-        result.angle_to_x_map = angle_no_reference
-        result.orientation_vectors = min_evex
-        #return angle_no_reference, orientation_dev, ori, min_evec, excel_total, excel_angles, excel_distance
-        result.results_total = excel_total.to_dict(orient="records")
-        result.results_distance = excel_distance.to_dict(orient="records")
-
-        result.save()
+    def process_thread(self, result, params):
+        # The base worker sets parameters before calculating. A failed point
+        # rerun must not relabel its previous maps with a new point/edge crop.
+        previous = result.orientation_parameters
+        super().process_thread(result, params)
+        if result.analysis_mode in ("point_orientation", "line_orientation") and self.get_result_state(result) == StateEnum.failed:
+            result.orientation_parameters = previous
+            self.parent.result_changed.emit(result)
 
     def get_code(self) -> Tuple[str, str]:
-        import_code = "from saenopy.gui.spheroid.modules.result import get_stacks_spheroid\nimport jointforces as jf\n"
-
-        def code(filename, output1, pixel_size1, result_file, piv_parameters1):  # pragma: no cover
-            # load the relaxed and the contracted stack
-            # {t} is the placeholder for the time points
-            # use * to load multiple stacks for batch processing
-            # load_existing=True allows to load an existing file of these stacks if it already exists
-            results = get_stacks_spheroid(
-                filename,
-                output_path=output1,
-                pixel_size=pixel_size1,
-                load_existing=True)
-            # or if you want to explicitly load existing results files
-            # use * to load multiple result files for batch processing
-            # results = saenopy.load_results(result_file)
-
-            for result in results:
-                result.piv_parameters = piv_parameters1
-                jf.piv.compute_displacement_series_gui(result,
-                                                       n_max=result.piv_parameters["n_max"],
-                                                       n_min=result.piv_parameters["n_min"],
-                                                       continous_segmentation=result.piv_parameters["continuous_segmentation"],
-                                                       thres_segmentation=result.piv_parameters["thresh_segmentation"],
-                                                       window_size=result.piv_parameters["window_size"],
-                                                       )
-                result.save()
-
-        data = dict(
-            filename=self.result.get_absolute_path(),
-            output1=str(Path(self.result.output).parent),
-            pixel_size1=self.result.pixel_size,
-            result_file=str(self.result.output),
-            piv_parameters1=self.result.piv_parameters,
-        )
-
-        code = get_code(code, data)
-        return import_code, code
+        if self.result is None:
+            return "", ""
+        from pprint import pformat
+        for mapping in self.parameter_mappings + self.parent.sub_module_segmentation.parameter_mappings:
+            mapping.ensure_tmp_params_initialized(self.result)
+        result = self.result
+        imports = ("from saenopy.gui.orientation.modules.result import ResultOrientation\n"
+                   "from saenopy.gui.orientation.modules.analysis import analyze_orientation\n")
+        # Use repr for Windows paths and pformat for the actual GUI parameters.
+        code = (f"result = ResultOrientation(output={str(result.output)!r},\n"
+                f"    image_fiber={str(result.get_absolute_path_fiber())!r},\n"
+                f"    image_cell={None if result.image_cell is None else str(result.get_absolute_path_cell())!r},\n"
+                f"    pixel_size={result.pixel_size!r}, analysis_mode={result.analysis_mode!r})\n"
+                f"orientation_parameters = {pformat(result.orientation_parameters_tmp)}\n"
+                f"segmentation_parameters = {pformat(result.segmentation_parameters_tmp)}\n"
+                "analyze_orientation(result, orientation_parameters, segmentation_parameters)\n")
+        return imports, code
 
     def sigma_tensor_button_clicked(self):
         parent = self

@@ -18,10 +18,8 @@ def get_code(code, data):
 
     for key, value in data.items():
         if isinstance(value, str):
-            if "\\" in value:
-                code = code.replace(key, "r'" + value + "'")
-            else:
-                code = code.replace(key, "'" + value + "'")
+            # repr also handles apostrophes and Windows trailing backslashes.
+            code = code.replace(key, repr(value))
         else:
             code = code.replace(key, str(value))
     return code

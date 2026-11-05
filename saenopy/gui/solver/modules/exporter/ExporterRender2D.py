@@ -115,7 +115,7 @@ def render_map(params, result, pil_image, im_scale, aa_scale, display_image, ret
     if alpha is None:
         alpha = 0.5
 
-    nan_mask = np.isnan(map_im)[:, :, None]
+    nan_mask = np.isnan(map_im)
 
     pil_image = pil_image.convert("RGBA")
 
@@ -123,10 +123,14 @@ def render_map(params, result, pil_image, im_scale, aa_scale, display_image, ret
     map_im = map_im / (vmax-vmin)
     map_im = plt.get_cmap(cmap)(map_im)
 
-    map_im = (map_im*255).astype(np.uint8)
-    map_im = np.where(nan_mask, np.asarray(pil_image), map_im)
-
-    map_im = Image.fromarray(map_im, mode="RGBA")
+    map_im = Image.fromarray((map_im*255).astype(np.uint8))
+    nan_mask = Image.fromarray(nan_mask)
+    # Match the exported image size after image scaling/antialiasing. Resize
+    # colors and validity together without averaging across angular wraparound.
+    if map_im.size != pil_image.size:
+        map_im = map_im.resize(pil_image.size, Image.Resampling.NEAREST)
+        nan_mask = nan_mask.resize(pil_image.size, Image.Resampling.NEAREST)
+    map_im = Image.composite(pil_image, map_im, nan_mask)
 
     # Composite the overlay on top of the base image
     pil_image = Image.blend(pil_image, map_im, alpha).convert("RGB")

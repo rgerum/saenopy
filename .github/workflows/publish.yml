@@ -16,6 +16,8 @@ jobs:
         enable-cache: true
     - name: Set up Python
       run: uv python install 3.12
+    - name: Resolve required CompactionAnalyzer release
+      run: uv lock --upgrade-package compactionanalyzer
     - name: Build package
       run: uv build
     - name: Publish to PyPI

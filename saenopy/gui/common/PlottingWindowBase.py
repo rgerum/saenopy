@@ -309,7 +309,6 @@ class PlottingWindowBase(QtWidgets.QWidget):
             return None
         res = pd.concat(results)
         #res["t"] = res["index"] * self.dt.value() / 60
-        res.to_csv("tmp_pandas.csv")
         return res
 
     def replot(self):
@@ -534,6 +533,6 @@ class PlottingWindowBase(QtWidgets.QWidget):
                 csv_file = str(dialog.inputText.value()).replace(".py", "_data.csv")
                 res.to_csv(csv_file, columns=columns)
                 code += "# load the data from file\n"
-                code += f"res = pd.read_csv('{csv_file}')\n\n"
+                code += f"res = pd.read_csv({csv_file!r})\n\n"
             code += self.export_data[0]
             fp.write(code.encode("utf8"))
