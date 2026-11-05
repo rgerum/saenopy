@@ -43,7 +43,7 @@ of the full workflow's cell-segmentation parameters.
 * ``mask_sigma``: Gaussian blur of the raw, edge-cropped second channel, in
   pixels (default 5).
 * ``mask_threshold``: factor inside ``threshold_otsu(filtered * factor)``
-  (default 0.6). Select pixels with ``filtered > threshold``. This retains the
+  (default 0.5). Select pixels with ``filtered > threshold``. This retains the
   original actinin-reader calculation, including histogram discretization.
 * ``mask_invert``: select the complement (dark regions), default False.
 
