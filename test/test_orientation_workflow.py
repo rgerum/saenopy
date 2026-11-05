@@ -653,14 +653,23 @@ def test_mask_preview_preserves_saved_parameters(window, make_result):
     assert Path(result.output).read_bytes() == before
 
 
-def test_detection_can_rerun_after_parameter_changes(window, make_result, monkeypatch):
+def test_detection_can_rerun_after_parameter_changes(window, make_result):
+    from saenopy.gui.orientation.modules.result import ResultOrientation
     result = make_result("axis_orientation_only")
     batch = window.deformations
     batch.add_data(result)
     detector = batch.sub_module_deformation
-    calls = []
-    monkeypatch.setattr(detector,"process", lambda *a, **kw: calls.append(kw))
-    detector.process_thread(result,{"orientation_parameters":dict(result.orientation_parameters)})
-    assert len(calls) == 1
-    assert detector.input_button.isEnabled()
-    assert detector.input_button.text() == "find orientations"
+    previous_map = result.orientation_map.copy()
+    for edge in (4, 8):
+        parameters = dict(result.orientation_parameters, edge=edge, sigma_first_blur=.5,
+                          SaveNumpy=False, plotting=False)
+        detector.process_thread(result, {"orientation_parameters": parameters})
+        assert detector.get_result_state(result) != "failed"
+        assert result.orientation_map.shape == (80 - 2*edge, 120 - 2*edge)
+        assert result.orientation_map.shape != previous_map.shape or not np.allclose(result.orientation_map, previous_map)
+        loaded = ResultOrientation.load(result.output)
+        assert loaded.orientation_parameters["edge"] == edge
+        np.testing.assert_allclose(loaded.orientation_map, result.orientation_map)
+        assert detector.input_button.isEnabled()
+        assert detector.input_button.text() == "find orientations"
+        previous_map = result.orientation_map.copy()
