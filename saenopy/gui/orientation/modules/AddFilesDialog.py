@@ -1,6 +1,5 @@
 # Setting the Qt bindings for QtPy
 import os
-import glob
 
 from qtpy import QtCore, QtWidgets, QtGui
 from saenopy.gui.common import QtShortCuts
@@ -9,6 +8,7 @@ from saenopy.gui.common.AddFilesDialog import AddFilesDialog
 from .AnalysisModeSelector import AnalysisModeSelector
 from .MaskSourceSelector import MaskSourceSelector
 from .AxisSelector import AxisSelector
+from .result import matching_image_files
 
 
 class AddFilesDialog(AddFilesDialog):
@@ -99,8 +99,8 @@ class AddFilesDialog(AddFilesDialog):
                                            "the mask image only selects the area. The lists are paired in sorted filename order.")
                     if mode in ("point_orientation", "line_orientation") and source != "whole_image":
                         self.label.setText(self.label.text() + " The mask selects the area; it does not change the reference.")
-                    fiber = glob.glob(self.fiberText.value()) if self.fiberText.value() else []
-                    cells = glob.glob(self.cellText.value()) if self.cellText.value() else []
+                    fiber = matching_image_files(self.fiberText.value())
+                    cells = matching_image_files(self.cellText.value())
                     valid = bool(fiber) and (not needs_second_image or len(fiber) == len(cells)) and bool(self.outputText.value())
                     region = "whole image" if whole_image else ("mask from each orientation image" if mode != "full" and source == "same_image" else f"{len(cells)} cell/mask images")
                     if mode == "point_orientation":

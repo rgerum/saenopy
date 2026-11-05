@@ -35,6 +35,7 @@ def test_api_gui_archive_and_legacy_parity(window,tmp_path,monkeypatch):
     loaded.save()
     before=Path(result.output).read_bytes()
     monkeypatch.setattr('CompactionAnalyzer.analyze_image',lambda *a,**k:pytest.fail('No reanalysis on load'))
+    monkeypatch.setattr('CompactionAnalyzer.CompactionFunctions.analyze_local',lambda *a,**k:pytest.fail('No tensor reanalysis on load'))
     legacy=PlottingWindow.load_file(None,result.output)
     np.testing.assert_allclose(legacy.resulting_distance_data['Point alignment (shell)'],expected['mean_alignment_point'],atol=1e-12)
     assert Path(result.output).read_bytes()==before
@@ -48,6 +49,11 @@ def test_api_gui_archive_and_legacy_parity(window,tmp_path,monkeypatch):
 def test_group_single_units_export_and_global_bar(window,tmp_path,monkeypatch):
     first=measurement(tmp_path,'one')
     second=measurement(tmp_path,'two')
+    for row in second.results_distance:
+        row['Point alignment (shell)'] = .2
+        row['Point angular deviation (shell)'] = 36.
+        row['Point coherency (shell)'] = .4
+    second.save()
     plotter=window.plotting_window
     plotter.add_files([first.output,second.output])
     keys=plotter.point_distance_metrics
@@ -63,13 +69,16 @@ def test_group_single_units_export_and_global_bar(window,tmp_path,monkeypatch):
         curve=plotter.canvas.axes.lines[0]
         rows=plotter.data_folders[0][2][0][2].resulting_distance_data
         _,column,_=plotter.metrics[metric]
-        np.testing.assert_allclose(curve.get_ydata(),rows[column],atol=1e-12)
+        second_rows=plotter.data_folders[0][2][1][2].resulting_distance_data
+        np.testing.assert_allclose(curve.get_ydata(),(rows[column]+second_rows[column])/2,atol=1e-12)
         np.testing.assert_allclose(curve.get_xdata(),rows['Shell_mid (µm)'])
         plotter.distance_unit.setValue('pixel',send_signal=True)
         np.testing.assert_allclose(plotter.canvas.axes.lines[0].get_xdata(),rows['Shell_mid (px)'])
-        plotter.list2.setCurrentRow(0)
+        plotter.list2.setCurrentRow(1)
         plotter.run2()
-        assert plotter.export_data[1][0].filename.nunique()==1
+        selected=plotter.export_data[1][0]
+        assert selected.filename.unique().tolist()==[second.output]
+        np.testing.assert_allclose(selected[column],second_rows[column],atol=1e-12)
         plotter.plot_groups()
         assert plotter.export_data[1][0].filename.nunique()==2
         # Execute the actual exported Python plot, using the CSV round-trip

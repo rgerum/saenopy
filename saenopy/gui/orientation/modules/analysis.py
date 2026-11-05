@@ -1,11 +1,22 @@
 """Analysis shared by the GUI and its exported Python scripts."""
 import inspect
+import copy
+from pathlib import Path
 import numpy as np
 from CompactionAnalyzer.CompactionFunctions import StuctureAnalysisMain
 
 
-def analyze_orientation(result, orientation_parameters, segmentation_parameters=None):
-    """Update one ResultOrientation using the shared CompactionAnalyzer calculations."""
+def analyze_orientation(result, orientation_parameters, segmentation_parameters=None, *, save=True):
+    """Publish new maps and settings together after calculation and saving succeed."""
+    candidate = copy.copy(result)
+    _analyze_orientation(candidate, orientation_parameters, segmentation_parameters)
+    if save:
+        candidate.save()
+    result.__dict__.update(candidate.__dict__)
+    return result
+
+
+def _analyze_orientation(result, orientation_parameters, segmentation_parameters=None):
     parameters = orientation_parameters.copy()
     segmentation = dict(segmentation_parameters or {})
     sigma = parameters["sigma_tensor"]
@@ -13,7 +24,7 @@ def analyze_orientation(result, orientation_parameters, segmentation_parameters=
         sigma /= result.pixel_size
     common = dict(fiber_list=[result.get_absolute_path_fiber()],
                   cell_list=None if result.image_cell is None else [result.get_absolute_path_cell()],
-                  out_list=[result.output[:-len(".saenopyOrientation")]],
+                  out_list=[str(Path(result.output).with_suffix(""))],
                   scale=result.pixel_size, sigma_tensor=sigma, edge=parameters["edge"],
                   sigma_first_blur=parameters["sigma_first_blur"], mode_saenopy=True)
     if result.analysis_mode == "full":
@@ -44,8 +55,11 @@ def analyze_orientation(result, orientation_parameters, segmentation_parameters=
         result.orientation_parameters = parameters
         result.validity_mask = None
         result.validity_mask = selection_mask(result)
-        stats, result.axis_histogram = axis_statistics(result)
-        result.results_total[0].update(stats)
+        statistics = axis_statistics(result)
+        result.axis_histogram = None
+        if statistics is not None:
+            stats, result.axis_histogram = statistics
+            result.results_total[0].update(stats)
     elif result.analysis_mode in ("point_orientation", "line_orientation"):
         from CompactionAnalyzer import analyze_image
         from CompactionAnalyzer.plotting import line_reference_angle
@@ -120,5 +134,4 @@ def analyze_orientation(result, orientation_parameters, segmentation_parameters=
         result.mask_preview = None  # Display the mask from this completed run.
     result.orientation_parameters = parameters
     result.segmentation_parameters = segmentation
-    result.save()
     return result

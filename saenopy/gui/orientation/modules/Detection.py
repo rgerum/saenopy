@@ -95,7 +95,12 @@ class DeformationDetector(PipelineModule):
             return False
         if result.analysis_mode == "point_orientation":
             p = getattr(result, "orientation_parameters_tmp", None) or result.orientation_parameters or {}
-            return all(p.get(key) is not None for key in ("reference_x", "reference_y"))
+            try:
+                x, y = float(p.get("reference_x")), float(p.get("reference_y"))
+                shape = result.shape or result.get_image(1).shape[:2]
+                return bool(np.isfinite([x, y]).all() and 0 <= x < shape[1] and 0 <= y < shape[0])
+            except (TypeError, ValueError, OSError):
+                return False
         if result.analysis_mode == "line_orientation":
             from .ReferenceOverlay import parameter_line
             from CompactionAnalyzer.plotting import line_reference_angle
@@ -132,15 +137,17 @@ class DeformationDetector(PipelineModule):
         # Also initialize these when only "find orientations" was clicked.
         mapping = self.parent.sub_module_segmentation.parameter_mappings[0]
         mapping.ensure_tmp_params_initialized(result)
-        analyze_orientation(result, orientation_parameters, result.segmentation_parameters_tmp)
+        # The pipeline worker saves once after this calculation succeeds.
+        analyze_orientation(result, orientation_parameters, result.segmentation_parameters_tmp, save=False)
 
     def process_thread(self, result, params):
-        # The base worker sets parameters before calculating. A failed point
-        # rerun must not relabel its previous maps with a new point/edge crop.
-        previous = result.orientation_parameters
+        # Preserve completed results if calculation, statistics or saving fails.
+        fields = result.__save_parameters__ + ["mask_preview", "mask_preview_edge", "segmentation_preview"]
+        previous = {name: getattr(result, name, None) for name in fields}
         super().process_thread(result, params)
-        if result.analysis_mode in ("point_orientation", "line_orientation") and self.get_result_state(result) == StateEnum.failed:
-            result.orientation_parameters = previous
+        if self.get_result_state(result) == StateEnum.failed:
+            for name, value in previous.items():
+                setattr(result, name, value)
             self.parent.result_changed.emit(result)
 
     def get_code(self) -> Tuple[str, str]:

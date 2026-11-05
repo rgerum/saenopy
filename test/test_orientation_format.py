@@ -170,7 +170,9 @@ def test_mixed_modes_have_common_and_reference_specific_statistics(window, archi
         plot.type.setValue(metric, send_signal=True)
         if metric.startswith('angle histogram'):
             data = plot.get_histogram_data()
+            assert not data.empty
             assert np.isfinite(data.fraction).all()
+            np.testing.assert_allclose(data.groupby(['group', 'filename']).fraction.sum(), 1.)
 
 
 @pytest.mark.parametrize('scale', [.5, 1., 2.])

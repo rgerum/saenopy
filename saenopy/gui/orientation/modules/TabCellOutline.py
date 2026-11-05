@@ -170,7 +170,12 @@ class TabCellOutline(TabModule):
             self.reference_overlay.show(line, im.shape)
             if line is not None:
                 from CompactionAnalyzer.plotting import line_reference_angle
-                angle = line_reference_angle(line, im.shape)
+                try:
+                    angle = line_reference_angle(line, im.shape)
+                except ValueError:
+                    self.reference_overlay.show(None, im.shape)
+                    self.point_status.setText("Choose two distinct points inside this image before running the analysis.")
+                    return
                 calculated = np.array_equal(line, calculated_line(self.result))
                 self.point_status.setText(f"Line: ({line[0,0]:g}, {line[0,1]:g}) to ({line[1,0]:g}, {line[1,1]:g}) px; {angle:.1f}° to X" +
                     (" — analyzed reference" if calculated else " — run find orientations to apply"))

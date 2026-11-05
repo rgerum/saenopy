@@ -169,8 +169,12 @@ class SegmentationDetector(PipelineModule):
         self._preview_worker = None
         if target is self.result and revision == self._preview_revision and self.preview_is_available():
             if error:
+                target.mask_preview = None
+                target.mask_preview_edge = 0
+                target.segmentation_preview = None
                 self.preview_status.setText("Preview unavailable — adjust the threshold or blur.")
                 self.preview_status.setToolTip(error)
+                self.parent.tab1.update_display()
             else:
                 if target.analysis_mode == "full":
                     target.segmentation_preview = preview["segmentation"]

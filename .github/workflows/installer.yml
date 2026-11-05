@@ -20,6 +20,8 @@ jobs:
 
     steps:
     - uses: actions/checkout@v6
+      with:
+        ref: ${{ inputs.release_tag || github.ref }}
 
     - name: Install uv
       uses: astral-sh/setup-uv@v7
@@ -34,7 +36,7 @@ jobs:
     - name: install dependencies
       shell: bash
       run: |
-        uv sync --upgrade-package compactionanalyzer --python "$(which python)" --group dev
+        uv sync --locked --python "$(which python)" --group dev
         uv run python saenopy/add_source.py
 
     - name: build exe with pyinstaller
@@ -62,6 +64,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.release_tag || github.ref }}
 
       - name: Install uv
         uses: astral-sh/setup-uv@v7
@@ -74,7 +78,7 @@ jobs:
       - name: install dependencies
         shell: bash
         run: |
-          uv sync --upgrade-package compactionanalyzer --python 3.12 --group dev
+          uv sync --locked --python 3.12 --group dev
           uv run python saenopy/add_source.py
 
       - name: build exe with pyinstaller
@@ -100,6 +104,8 @@ jobs:
 
     steps:
     - uses: actions/checkout@v6
+      with:
+        ref: ${{ inputs.release_tag || github.ref }}
 
     - name: Install uv
       uses: astral-sh/setup-uv@v7
@@ -112,7 +118,7 @@ jobs:
     - name: Install dependencies
       shell: bash
       run: |
-        uv sync --upgrade-package compactionanalyzer --python 3.12 --group dev
+        uv sync --locked --python 3.12 --group dev
         uv run python saenopy/add_source.py
 
     - name: Install DMG tooling

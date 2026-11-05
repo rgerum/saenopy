@@ -319,9 +319,27 @@ class ResultOrientation(Saveable):
                 values = -values
         else:
             return None
-        if values is not None and self.analysis_mode in ("axis_orientation_masked", "point_orientation", "line_orientation") and self.validity_mask is not None:
+        if values is not None and self.analysis_mode != "full" and self.validity_mask is not None:
             values = np.where(self.validity_mask, values, np.nan)
         return values
+
+
+def matching_image_files(pattern):
+    """Find supported image files, checking headers without loading their pixels."""
+    from PIL import Image, UnidentifiedImageError
+    paths = []
+    for name in sorted(glob.glob(str(pattern))) if pattern else []:
+        path = Path(name)
+        if not path.is_file() or path.suffix.lower() not in (".tif", ".tiff", ".png", ".jpg", ".jpeg"):
+            continue
+        try:
+            with Image.open(path) as image:
+                if min(image.size) <= 0:
+                    continue
+        except (OSError, ValueError, UnidentifiedImageError):
+            continue
+        paths.append(str(path))
+    return paths
 
 
 def get_orientation_files(output_path, fiber_list_string, cell_list_string, pixel_size,
@@ -335,12 +353,12 @@ def get_orientation_files(output_path, fiber_list_string, cell_list_string, pixe
     while "*" in str(output_base):
         output_base = Path(output_base).parent
 
-    fiber_list_string = sorted(glob.glob(str(fiber_list_string)))
+    fiber_list_string = matching_image_files(fiber_list_string)
     output_path = str(output_path)
     if analysis_mode == "axis_orientation_only" or (analysis_mode in ("point_orientation", "line_orientation") and cell_list_string is None):
         cell_list_string = [None] * len(fiber_list_string)
     else:
-        cell_list_string = sorted(glob.glob(str(cell_list_string)))
+        cell_list_string = matching_image_files(cell_list_string)
 
     if len(fiber_list_string) == 0:
         raise ValueError("no fiber image selected")
@@ -377,8 +395,8 @@ def get_orientation_files(output_path, fiber_list_string, cell_list_string, pixe
 
         data = ResultOrientation(
             output=str(output),
-            image_fiber=str(im0),
-            image_cell=None if im1 is None else str(im1),
+            image_fiber=str(Path(im0).resolve()),
+            image_cell=None if im1 is None else str(Path(im1).resolve()),
             analysis_mode=analysis_mode,
             pixel_size=float(pixel_size),
         )

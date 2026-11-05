@@ -314,7 +314,6 @@ class PlottingWindow(PlottingWindowBase):
         (self.button_run if single else self.button_run2).setChecked(True)
         metric, ylabel = self.get_label()
         unit = self.distance_unit.value()
-        distance_column = "Shell_mid (px)" if unit == "pixel" else "Shell_mid (µm)"
         frames, widths, colors = [], [], {}
         for group_index, (group, checked, files, color) in enumerate(self.data_folders):
             if not checked or (single and group_index != self.list.currentRow()):
@@ -329,7 +328,7 @@ class PlottingWindow(PlottingWindowBase):
                 data = data.copy()
                 width = data["Shell_end (px)"].iloc[0]-data["Shell_start (px)"].iloc[0]
                 widths.append(width if unit == "pixel" else width*result.pixel_size)
-                data["distance"] = data[distance_column].round(9)
+                data["ring"] = np.rint(data["Shell_start (px)"] / width).astype(int)
                 data["group"] = group
                 frames.append(data)
                 colors[group] = color
@@ -341,6 +340,9 @@ class PlottingWindow(PlottingWindowBase):
             self.metric_note.setText("Grouped point courses need matching shell widths in the selected distance unit. Adjust shell_width and rerun find orientations.")
             self.canvas.draw()
             return
+        for frame in frames:
+            # Matching rings share one distance, including nearly equal calibrations.
+            frame["distance"] = (frame["ring"] + .5) * widths[0]
         data = pd.concat(frames, ignore_index=True)
         limits = (-1, 1) if self.type.value() == "point alignment over distance" else (
             (0, 90) if self.type.value() == "point angular deviation over distance" else (0, 1))
@@ -352,11 +354,13 @@ class PlottingWindow(PlottingWindowBase):
         @export_as_string
         def plot(res, shell_metric, shell_ylabel, shell_xlabel, shell_colors, shell_limits):
             for group, rows in res.groupby("group", sort=False):
-                stats = rows.groupby("distance")[shell_metric].agg(["mean", "sem", "count"])
+                rings = rows.groupby("ring")
+                stats = rings[shell_metric].agg(["mean", "sem", "count"])
+                distance = rings["distance"].first()
                 counts = stats.loc[stats["count"] > 0, "count"]
                 n = str(int(counts.max())) if counts.min() == counts.max() else f"{int(counts.min())}–{int(counts.max())}"
-                plt.plot(stats.index, stats["mean"], color=shell_colors[group], label=f"{group} (n={n} images/ring)")
-                plt.fill_between(stats.index, stats["mean"]-stats["sem"], stats["mean"]+stats["sem"],
+                plt.plot(distance, stats["mean"], color=shell_colors[group], label=f"{group} (n={n} images/ring)")
+                plt.fill_between(distance, stats["mean"]-stats["sem"], stats["mean"]+stats["sem"],
                                  color=shell_colors[group], alpha=.2)
             plt.xlabel(shell_xlabel)
             plt.ylabel(shell_ylabel)
@@ -368,7 +372,7 @@ class PlottingWindow(PlottingWindowBase):
             self.canvas.draw()
 
         count_column = "Coherency pixels" if self.type.value() == "point coherency over distance" else "Valid pixels"
-        columns = ["distance", "group", "filename", metric, count_column]
+        columns = ["ring", "distance", "group", "filename", metric, count_column]
         code = execute(plot, data[columns], shell_metric=metric, shell_ylabel=ylabel,
                        shell_xlabel=xlabel, shell_colors=colors, shell_limits=limits)
         self.export_data = [code, [data, columns]]

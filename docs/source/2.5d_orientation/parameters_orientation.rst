@@ -35,9 +35,9 @@ shell_width
 -----------
 Distance shells around the cell for analyzing intensity and orientation propagation over distance. Default is 5 µm.
 
-Axis validity mask
-------------------
-These controls are shown only for masked axis measurements. They are independent
+Validity mask
+-------------
+These controls apply to masked axis, point and line measurements. They are independent
 of the full workflow's cell-segmentation parameters.
 
 * ``mask_sigma``: Gaussian blur of the raw, edge-cropped second channel, in

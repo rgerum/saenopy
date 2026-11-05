@@ -54,6 +54,9 @@ def test_reference_mask_import_preview_analysis_reload(window,tmp_path,monkeypat
     loaded=ResultOrientation.load(result.output)
     assert loaded.mask_source==source
     assert loaded.orientation_map.shape==(108,140)
+    if source == 'separate_image':
+        assert loaded.validity_mask.any()
+        assert not loaded.validity_mask.all()
     assert np.isnan(loaded.orientation_map[~loaded.validity_mask]).all()
     batch.set_current_result.emit(loaded)
     batch.tabs.setCurrentWidget(batch.tab1.tab.parent())

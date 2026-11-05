@@ -17,7 +17,9 @@ PROFILE_COLUMNS = {
 
 
 def shell_width_pixels(parameters, pixel_size):
-    width = parameters.get('shell_width', 5.)
+    width = float(parameters.get('shell_width', 5.))
+    if not np.isfinite(width) or width <= 0:
+        raise ValueError('shell_width must be positive and finite')
     unit = parameters.get('shell_width_type', 'µm')
     if unit not in ('pixel', 'µm'):
         raise ValueError('shell_width_type must be pixel or µm')

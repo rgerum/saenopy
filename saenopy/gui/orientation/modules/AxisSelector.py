@@ -95,9 +95,14 @@ class AxisSelector(QtWidgets.QWidget):
             QPushButton:checked { color: palette(highlighted-text); font-weight: 600; }
             QPushButton:focus { border: 1px dotted palette(text); }
         """)
-        self.set_choices(choices or [("x", "X axis"), ("y", "Y axis")], value)
+        self.set_choices([("x", "X axis"), ("y", "Y axis")] if choices is None else choices, value)
 
     def set_choices(self, choices, value=None):
+        choices = list(choices)
+        if len(choices) < 2 or len({key for key, _ in choices}) != len(choices):
+            raise ValueError("A reference switch requires at least two distinct choices")
+        if value is not None and value not in {key for key, _ in choices}:
+            raise ValueError("The selected reference must be one of the choices")
         for button in self.buttons.values():
             self.group.removeButton(button)
             self.track_layout.removeWidget(button)
