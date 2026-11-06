@@ -1,7 +1,7 @@
 SAENOPY: 3D Traction Force Microscopy with Python
 =======
 
-[![DOC](https://readthedocs.org/projects/saenopy/badge/)](https://saenopy.readthedocs.io)
+[![DOC](https://app.readthedocs.org/projects/saenopy/badge/?version=latest)](https://saenopy.readthedocs.io/en/latest/)
 [![Coverage Status](https://coveralls.io/repos/github/rgerum/saenopy/badge.svg?branch=master)](https://coveralls.io/github/rgerum/saenopy?branch=master)
 [![PyTest](https://github.com/rgerum/saenopy/actions/workflows/test.yml/badge.svg)](https://github.com/rgerum/saenopy/actions/workflows/test.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
@@ -23,15 +23,9 @@ Check out our [Documentation](https://saenopy.readthedocs.io) on how to install 
 ### Standalone
 To use saenopy without a complicated installation you can use our standalone binaries to get started right away.
 
-Windows
-https://github.com/rgerum/saenopy/releases/download/v1.0.9/saenopy.exe
+**Saenopy 1.0.9:** [Windows (EXE)](https://github.com/rgerum/saenopy/releases/download/v1.0.9/saenopy.exe) · [Linux](https://github.com/rgerum/saenopy/releases/download/v1.0.9/saenopy) · [macOS (ZIP)](https://github.com/rgerum/saenopy/releases/download/v1.0.9/Saenopy.app.zip)
 
-Linux
-https://github.com/rgerum/saenopy/releases/download/v1.0.9/saenopy
-
-MacOS
-https://github.com/rgerum/saenopy/releases/download/v1.0.9/Saenopy.app.zip (in development..)
-
+[All releases](https://github.com/rgerum/saenopy/releases)
 
 ### Using Python
 
