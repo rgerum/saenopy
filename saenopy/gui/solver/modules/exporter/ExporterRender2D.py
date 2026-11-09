@@ -11,6 +11,11 @@ from saenopy.gui.solver.modules.exporter.ExportRenderCommon import get_time_text
 
 default_data = {'use2D': True, 'image': {'logo_size': 0, 'scale': 1.0, 'antialiase': True, 'scale_overlay': 1.0}, 'camera': {'elevation': 35.0, 'azimuth': 45.0, 'distance': 0, 'offset_x': 0, 'offset_y': 0, 'roll': 0}, 'theme': 'dark', 'show_grid': True, 'use_nans': False, 'arrows': 'deformation', 'averaging_size': 1.0, 'deformation_arrows': {'autoscale': True, 'scale_max': 10.0, 'colormap': 'turbo', 'arrow_scale': 1.0, 'arrow_opacity': 1.0, 'skip': 1}, 'force_arrows': {'autoscale': True, 'scale_max': 1000.0, 'use_center': False, 'use_log': True, 'colormap': 'turbo', 'arrow_scale': 1.0, 'arrow_opacity': 1.0, 'skip': 1}, 'maps': 'None', 'maps_cmap': 'turbo', 'maps_alpha': 0.5, 'stack': {'image': True, 'channel': 'cells', 'z_proj': False, 'use_contrast_enhance': True, 'contrast_enhance': None, 'colormap': 'gray', 'z': 0, 'use_reference_stack': False, 'alpha': 1.0, 'channel_B': '', 'colormap_B': 'gray', 'alpha_B': 1.0}, 'scalebar': {'hide': False, 'length': 0.0, 'width': 5.0, 'xpos': 15.0, 'ypos': 10.0, 'fontsize': 18.0}, 'colorbar': {'hide': False, 'length': 150.0, 'width': 10.0, 'xpos': 15.0, 'ypos': 10.0, 'fontsize': 18.0}, '2D_arrows': {'width': 2.0, 'headlength': 5.0, 'headheight': 5.0}, 'crop': {'x': (913, 1113), 'y': (893, 1093), 'z': (0, 1)}, 'channel0': {'show': False, 'skip': 1, 'sigma_sato': 2, 'sigma_gauss': 0, 'percentiles': (0, 1), 'range': (0, 1), 'alpha': (0.1, 0.5, 1), 'cmap': 'pink'}, 'channel1': {'show': False, 'skip': 1, 'sigma_sato': 0, 'sigma_gauss': 7, 'percentiles': (0, 1), 'range': (0, 1), 'alpha': (0.1, 0.5, 1), 'cmap': 'Greens', 'channel': 1}, 'channel_thresh': 1.0, 'time': {'t': 0, 'format': '%d:%H:%M', 'start': 0.0, 'display': True, 'fontsize': 18}}
 
+# Old parameter files retain their original arrow geometry. New GUI exports
+# explicitly enable the compact preset and save these settings with the export.
+default_data["2D_arrows"].update(compact=False, max_length=60.0, width_percent=0.2)
+
+
 def update_dict(new_dict, old_dict, key):
     if isinstance(old_dict[key], dict):
         for key2 in old_dict[key].keys():
@@ -50,12 +55,30 @@ def render_2d(params, result, exporter=None):
 
 
 def render_2d_image(params, result, exporter):
+    # Arrow/label edits do not change the background. Keep only the most recent
+    # image on this exporter, and copy it before drawing overlays in-place.
+    image_state = (params["time"]["t"], params["stack"],
+                   params["image"]["scale"], params["image"]["antialiase"])
+    if exporter is not None:
+        cached = getattr(exporter, "_image_2d_cache", None)
+        if cached is not None and cached[0] is result and cached[1] == image_state:
+            pil_image, display_image, im_scale, aa_scale = cached[2]
+            return pil_image.copy(), display_image, im_scale, aa_scale
+    rendered = _render_2d_image(params, result, exporter)
+    if exporter is not None and rendered[0] is not None:
+        exporter._image_2d_cache = (result, deepcopy(image_state), rendered)
+        return rendered[0].copy(), *rendered[1:]
+    return rendered
+
+
+def _render_2d_image(params, result, exporter):
     display_image = getVectorFieldImage(result, params, use_fixed_contrast_if_available=True, use_2D=True, exporter=exporter)
     if display_image is None:
         return None, None, 1, 1
     if params["stack"].get("channel_B", "") != "":
-        params["stack"]["channel"] = params["stack"]["channel_B"]
-        display_imageB = getVectorFieldImage(result, params, use_fixed_contrast_if_available=True, exporter=exporter)
+        params_b = deepcopy(params)
+        params_b["stack"]["channel"] = params["stack"]["channel_B"]
+        display_imageB = getVectorFieldImage(result, params_b, use_fixed_contrast_if_available=True, exporter=exporter)
     else:
         display_imageB = None
 
@@ -225,6 +248,13 @@ def render_2d_arrows(params, result, pil_image, im_scale, aa_scale, display_imag
         else:
             length = np.linalg.norm(field, axis=1)
             angle = np.arctan2(field[:, 1], field[:, 0])
+            # The 3D projection already applies skip in both grid directions.
+            # Apply the same spatial subsampling to native 2D vector fields.
+            if skip > 1:
+                _, ix = np.unique(R[:, 0], return_inverse=True)
+                _, iy = np.unique(R[:, 1], return_inverse=True)
+                selected = (ix % skip == 0) & (iy % skip == 0)
+                R, length, angle = R[selected], length[selected], angle[selected]
             field = pd.DataFrame(np.hstack((length[:, None], angle[:, None])), columns=["length", "angle"])
         # safety check if all arrows where filtered out
         if R.shape[0] != 0:
@@ -237,11 +267,20 @@ def render_2d_arrows(params, result, pil_image, im_scale, aa_scale, display_imag
             # make colors uint8
             colors = (colors * 255).astype(np.uint8)
 
-            pil_image = add_quiver(pil_image, R, field.length * field_to_pixel_factor, field.angle, colors,
-                                   scale=im_scale * aa_scale,
-                                   width=params["2D_arrows"]["width"],
-                                   headlength=params["2D_arrows"]["headlength"],
-                                   headheight=params["2D_arrows"]["headheight"])
+            arrow_settings = params["2D_arrows"]
+            lengths = field.length.to_numpy() * field_to_pixel_factor
+            geometry = dict(width=arrow_settings["width"],
+                            headlength=arrow_settings["headlength"],
+                            headheight=arrow_settings["headheight"])
+            if arrow_settings.get("compact", False):
+                # Cap only the displayed length, in original image pixels.
+                # Colors above still encode the full, unmodified field magnitude.
+                lengths = np.minimum(lengths, arrow_settings.get("max_length", 60.0))
+                width = display_image[0].shape[1] * arrow_settings.get("width_percent", 0.2) / 100
+                geometry = dict(width=width, headlength=3.5 * width,
+                                headheight=3.0 * width, headaxislength=3.1 * width)
+            pil_image = add_quiver(pil_image, R, lengths, field.angle, colors,
+                                   scale=im_scale * aa_scale, **geometry)
     if return_scale:
         return pil_image, {"scale_max": scale_max, "colormap": colormap, "scalebar_unit": scalebar_unit}
     return pil_image
@@ -502,8 +541,9 @@ def add_scalebar(pil_image, scale, image_scale, width, xpos, ypos, fontsize, pix
 
 
 
-def getarrow(length, angle, scale=1, width=2, headlength=5, headheight=5, offset=None):
-    length *= scale
+def getarrow(length, angle, scale=1, width=2, headlength=5, headheight=5, offset=None,
+             headaxislength=None):
+    length = np.asarray(length) * scale
     width *= scale
     headlength *= scale
     headheight *= scale
@@ -511,15 +551,21 @@ def getarrow(length, angle, scale=1, width=2, headlength=5, headheight=5, offset
     headlength = headlength*np.ones(len(length))
     headheight = headheight*np.ones(len(length))
     width = width*np.ones(len(length))
+    head_axis = headlength.copy() if headaxislength is None else np.full(len(length), headaxislength * scale)
     index_small = length < headlength
     if np.any(index_small):
-        headheight[index_small] = headheight[index_small] * length[index_small] / headlength[index_small]
+        fraction = length[index_small] / headlength[index_small]
+        headheight[index_small] *= fraction
+        head_axis[index_small] *= fraction
         headlength[index_small] = length[index_small]
-        width[index_small] = headheight[index_small]
+        if headaxislength is None:
+            width[index_small] = headheight[index_small]
+        else:
+            width[index_small] *= fraction
 
     # generate the arrow points
-    arrow = [(0, width / 2), (length - headlength, width / 2), (length - headlength, headheight / 2), (length, 0),
-            (length - headlength, -headheight / 2), (length - headlength, -width / 2), (0, -width / 2)]
+    arrow = [(0, width / 2), (length - head_axis, width / 2), (length - headlength, headheight / 2), (length, 0),
+            (length - headlength, -headheight / 2), (length - head_axis, -width / 2), (0, -width / 2)]
     # and distribute them for each point
     arrows = np.zeros([length.shape[0], 7, 2])
     for p in range(7):
@@ -537,13 +583,16 @@ def getarrow(length, angle, scale=1, width=2, headlength=5, headheight=5, offset
     return arrows
 
 
-def add_quiver(pil_image, R, lengths, angles, colors, scale=1, width=2, headlength=5, headheight=5):
+def add_quiver(pil_image, R, lengths, angles, colors, scale=1, width=2, headlength=5, headheight=5,
+               headaxislength=None):
     # get the arrows
-    arrows = getarrow(lengths, angles, scale=scale, width=width, headlength=headlength, headheight=headheight, offset=R*scale)
+    arrows = getarrow(lengths, angles, scale=scale, width=width, headlength=headlength,
+                      headheight=headheight, offset=R*scale, headaxislength=headaxislength)
 
     # draw the arrows
     image = ImageDraw.ImageDraw(pil_image, "RGBA")
-    for a, c in zip(arrows, colors):
+    valid = np.isfinite(arrows).all(axis=(1, 2))
+    for a, c in zip(arrows[valid], colors[valid]):
         image.polygon(list(a.flatten()), fill=tuple(c), outline=tuple(c))
 
     return pil_image
