@@ -102,17 +102,27 @@ class Saveable:
             # Write the complete archive next to its destination, then replace
             # atomically. A failed save must not truncate a user's previous file.
             import os
-            import tempfile
+            import stat
+            import uuid
             flattened = flatten_dict(data)
             for key, value in flattened.items():
                 if np.asarray(value).dtype.hasobject:
                     raise ValueError(f"Cannot save object array at {key}")
             temporary = None
             try:
-                with tempfile.NamedTemporaryFile(dir=Path(filename).parent,
-                                                 suffix=".npz", delete=False) as handle:
-                    temporary = handle.name
+                try:
+                    existing_mode = stat.S_IMODE(os.stat(filename).st_mode)
+                except FileNotFoundError:
+                    existing_mode = None
+                candidate = Path(filename).with_name(f".{Path(filename).name}.{uuid.uuid4().hex}.npz")
+                flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_BINARY", 0)
+                # os.open applies the process umask without changing it globally.
+                descriptor = os.open(candidate, flags, 0o666)
+                temporary = candidate
+                with os.fdopen(descriptor, "wb") as handle:
                     np.savez_compressed(handle, **flattened)
+                if existing_mode is not None:
+                    os.chmod(temporary, existing_mode)
                 os.replace(temporary, filename)
             finally:
                 if temporary is not None and os.path.exists(temporary):

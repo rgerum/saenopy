@@ -34,10 +34,10 @@ class TabCoherence(TabModule):
 
     def checkTabEnabled(self, result: ResultOrientation) -> bool:
         # whether the tab should be enabled for this Result object
-        return self.result.orientation_map is not None
+        return result is not None and result.coherence_map is not None
 
     def update_display(self, *, plotter=None):
-        if self.result is None:
+        if not self.checkTabEnabled(self.result):
             return
         im = render_2d({
             "image": {
@@ -48,12 +48,12 @@ class TabCoherence(TabModule):
             },
             "stack": {
                 "image": 1,
-                "channel": "cells",
+                "channel": "cells" if self.result.analysis_mode == "full" else "fibers",
                 "colormap": "gray",
                 "alpha": 1,
                 "channel_B": "fibers",
                 "colormap_B": "gray",
-                "alpha_B": 1,
+                "alpha_B": 1 if self.result.analysis_mode == "full" else 0,
                 "use_reference_stack": False,
                 "contrast_enhance": None,
                 "z_proj": False,

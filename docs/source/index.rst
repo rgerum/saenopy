@@ -39,7 +39,7 @@ newest release, so they do not need to be updated here when a new version is pub
 
 * Windows: `saenopy.exe <https://github.com/rgerum/saenopy/releases/latest/download/saenopy.exe>`_
 * Linux: `saenopy <https://github.com/rgerum/saenopy/releases/latest/download/saenopy>`_
-* MacOS: `saenopy_mac.app.zip <https://github.com/rgerum/saenopy/releases/latest/download/saenopy_mac.app.zip>`_ (in development)
+* macOS: `Saenopy.app.zip <https://github.com/rgerum/saenopy/releases/latest/download/Saenopy.app.zip>`_
 
 All releases are listed on the `releases page <https://github.com/rgerum/saenopy/releases>`_.
 

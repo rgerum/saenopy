@@ -25,7 +25,29 @@ class BatchEvaluate(BatchEvaluateBase):
     file_extension = ".saenopyOrientation"
     result: ResultOrientation = None
 
+    analysis_workflow = "full"
+    analysis_mode = "full"
+    scroll_parameters = True
+
     result_params = ["segmentation_parameters", "orientation_parameters"]
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        # QSplitter.replaceWidget leaves the new scroll area hidden in Qt5.
+        # Keep this adjustment local to the orientation interface.
+        self.parameter_scroll.show()
+        self.tabs.setMinimumWidth(250)
+        self.parameter_scroll.setMinimumWidth(260)
+        if not self.data:  # Command-line result files may already be loaded.
+            self.sub_module_segmentation.setResult(None)
+            self.sub_module_deformation.setResult(None)
+        self.set_current_result.connect(self.update_mode_tabs)
+        row = self.list.currentRow()
+        self.update_mode_tabs(self.data[row][2] if 0 <= row < len(self.data) else None)
+
+    def update_mode_tabs(self, result):
+        mode = result.analysis_mode if result is not None else self.analysis_mode
+        self.tabs.setTabVisible(self.tabs.indexOf(self.tab2.tab.parent()), True)
 
     def add_modules(self):
         layout0 = QtShortCuts.currentLayout()
@@ -71,16 +93,20 @@ class BatchEvaluate(BatchEvaluateBase):
 
         # create a new measurement object
         if dialog.mode == "new":
+            self.analysis_mode = dialog.selected_analysis_mode()
+            self.axis_mask_source = dialog.mask_source.value()
+            self.analysis_workflow = {"full": "full", "point_orientation": "point", "line_orientation": "point"}.get(self.analysis_mode, "axis")
             # if there was a bf stack selected
             fiberText = dialog.fiberText.value()
 
             # the active selected stack
-            cellText = dialog.cellText.value()
+            cellText = dialog.selected_cell_pattern()
 
             try:
                 results = get_orientation_files(dialog.outputText.value(),
                     fiberText, cellText, pixel_size=dialog.pixel_size.value(),
                    exist_overwrite_callback=do_overwrite,
+                   analysis_mode=dialog.selected_analysis_mode(),
                 )
             except Exception as err:
                 # notify the user if errors occured
@@ -101,13 +127,8 @@ class BatchEvaluate(BatchEvaluateBase):
             example = get_examples_orientation()[dialog.mode_data]
 
             # generate a stack with the examples data
-            results = get_orientation_files(
-                fiber_list_string=str(example["input_fiber"]),
-                cell_list_string = str(example["input_cell"]),
-                output_path = str(example["output_path"]),
-                pixel_size = example["pixel_size"],
-                exist_overwrite_callback=do_overwrite,
-            )
+            from .example_data import get_orientation_example_files
+            results = get_orientation_example_files(example, do_overwrite)
             # load all the measurement objects
             for data in results:
                 #if getattr(data, "is_read", False) is False:
