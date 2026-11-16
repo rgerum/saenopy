@@ -451,23 +451,20 @@ def add_colorbar(pil_image,
     #tick_positions = locator.tick_values(min_v, max_v)
     tick_positions = np.linspace(min_v, max_v, tick_count)
 
-    max_value = tick_positions[-1]
+    max_value = max(abs(min_v), abs(max_v))
     factor = 1
-    power = 0
-    if unit is not None:
-        if max_value:
-            power = int(np.floor(np.log10(max_value)/3)*3)
-            factor = 10**power
-        base_factor = 0
-        factor_prefix = {6: "M", 3: "k", -3: "m", -6: "µ", -9: "n", -12: "p"}
-        if unit.startswith("p"):
-            unit = unit[1:]
-            base_power = -12
-            unit = factor_prefix[power+base_power]+unit
-        if unit.startswith("µ") or unit.startswith("u"):
-            unit = unit[1:]
-            base_power = -6
-            unit = factor_prefix[power + base_power]+unit
+    physical_units = {"pN": ("N", -12), "µm": ("m", -6),
+                      "um": ("m", -6), "m": ("m", 0)}
+    if unit in physical_units and np.isfinite(max_value) and max_value > 0:
+        base_unit, base_power = physical_units[unit]
+        power = int(np.floor(np.log10(max_value) / 3) * 3)
+        factor_prefix = {6: "M", 3: "k", 0: "", -3: "m", -6: "µ", -9: "n", -12: "p"}
+        prefix = factor_prefix.get(power + base_power)
+        if prefix is not None:
+            factor = 10.0 ** power
+            unit = prefix + base_unit
+        # Outside this prefix range, retain the input unit and use scientific
+        # notation. Pixel, dimensionless and logarithmic values stay unscaled.
 
     for i, pos in enumerate(tick_positions):
         x0 = offset_x + (bar_width - tick_width - 1) / (tick_count - 1) * i
@@ -475,7 +472,7 @@ def add_colorbar(pil_image,
 
         image.rectangle([x0, y0-tick_height, x0+tick_width, y0], fill=color)
 
-        text = "%d" % (pos/factor)
+        text = "%g" % (pos/factor)
         length_number = image.textlength(text, font=font)
         height_number = image.textbbox((0, 0), text, font=font)[3]
 

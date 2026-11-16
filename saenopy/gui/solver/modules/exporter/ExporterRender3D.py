@@ -168,6 +168,8 @@ def render_3d_arrows(params, result, plotter):
     skip = params_arrows["skip"]
     arrow_opacity = params_arrows["arrow_opacity"]
     disp_params = {"colormap": colormap, "scalebar_unit": "µm"}
+    if name == "forces":
+        disp_params["scalebar_unit"] = "log10(F/pN)" if params_arrows["use_log"] else "pN"
     plotter.disp_params = disp_params
 
     if field is not None:
@@ -220,7 +222,7 @@ def render_3d_arrows(params, result, plotter):
         if name == "displacements_measured" or name == "displacements_target" or name == "displacements":
             title = "Deformations (µm)"
         elif name == "forces":
-            title = "Forces (pN)"
+            title = f"Forces ({disp_params['scalebar_unit']})"
 
         # show the nan points
         if show_nan:
