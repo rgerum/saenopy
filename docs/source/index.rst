@@ -34,14 +34,23 @@ Installation
 
 Standalone
 ~~~~~~~~~~
-You can download saenopy as a standalone application. These links always resolve to the
-newest release, so they do not need to be updated here when a new version is published:
+You can download saenopy as a standalone application. These links follow GitHub's
+**latest stable release** automatically once its binaries are available, so they do
+not need to be updated here for each version. They do not select a development
+branch or a prerelease:
 
 * Windows: `saenopy.exe <https://github.com/rgerum/saenopy/releases/latest/download/saenopy.exe>`_
 * Linux: `saenopy <https://github.com/rgerum/saenopy/releases/latest/download/saenopy>`_
 * macOS: `Saenopy.app.zip <https://github.com/rgerum/saenopy/releases/latest/download/Saenopy.app.zip>`_
 
 All releases are listed on the `releases page <https://github.com/rgerum/saenopy/releases>`_.
+
+**Surface development builds:**
+`Builds of the Surface branch <https://github.com/rgerum/saenopy/actions/workflows/installer.yml?query=branch%3Aadd_surfaceregularization_and_meshnormalization>`_.
+Choose the newest successful run with an available ``saenopy_windows`` artifact
+and extract its ZIP to run ``saenopy.exe``. These are experimental builds.
+Artifact downloads require GitHub sign-in and expire; this build list is separate
+from the stable download links above.
 
 Using Python
 ~~~~~~~~~~~~
