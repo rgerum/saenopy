@@ -303,7 +303,7 @@ if __name__ == '__main__':  # pragma: no cover
         source = open(sys.argv[2]).read()
         code = compile(source, sys.argv[1], 'exec')
         exec(code)
-        exit(0)
+        sys.exit(0)
 
     for arg in sys.argv:
         if arg == "--demo":
