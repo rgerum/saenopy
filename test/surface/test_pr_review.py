@@ -33,7 +33,11 @@ def test_legacy_channel_migration_preserves_explicit_selection(explicit_channel)
     if explicit_channel is not None:
         data["solve_parameters"]["seg_channel"] = explicit_channel
     loaded = Result.from_dict(data)
-    assert loaded.solve_parameters["seg_channel"] == (0 if explicit_channel is None else explicit_channel)
+    if explicit_channel is None:
+        # Missing is distinct from a deliberate choice of matrix channel 0.
+        assert "seg_channel" not in loaded.solve_parameters
+    else:
+        assert loaded.solve_parameters["seg_channel"] == explicit_channel
 
 
 @pytest.mark.parametrize("stop_after,max_iterations", [(0, 3), (1, 3), (3, 3), (14, 20)])
@@ -153,6 +157,7 @@ def test_continue_keeps_completed_frames_and_publishes_final_snapshots(monkeypat
                           iteration_finished=no_op, live_field_ready=SimpleNamespace(emit=display))
 
     def fit(result, index, callback, resume, **kwargs):
+        assert kwargs["parameters"]["cg_maxiter_factor"] == 2
         calls.append((index, resume))
         if index == 2:
             # While frame 2 is running, the viewer must already show frame 1's
@@ -169,6 +174,7 @@ def test_continue_keeps_completed_frames_and_publishes_final_snapshots(monkeypat
 
     monkeypatch.setattr(reconstruction, "fit_result", fit)
     monkeypatch.setattr("saenopy.gui.solver.modules.Regularizer.time.monotonic", lambda: 10.)
+    result.solve_parameters["cg_maxiter_factor"] = 16
     Regularizer.process(gui, result, result.material_parameters, result.solve_parameters)
     assert calls == [(1, True), (2, False)]
     assert cleared == [1, 2] and len(saved) == 2
