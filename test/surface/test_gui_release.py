@@ -76,7 +76,7 @@ def test_official_file_in_gui_and_full_code_export(tmp_path, monkeypatch):
         assert "get_stacks" in code
         assert "surface_alpha" not in code
         assert "'physical_normalization': True" in code
-        assert "'cg_maxiter_factor': 8" in code
+        assert "'cg_maxiter_factor': 2" in code
         assert "'solver_precision': 1e-18" in code
 
         # Preview uses the current inputs and opens the enabled Forces view.
@@ -277,6 +277,52 @@ def test_cell_channel_default_preserves_saved_and_edited_choices(tmp_path, monke
             assert regularizer.input_seg_channel.value() == 0
             assert result.solve_parameters_tmp["seg_channel"] == 0
             assert result.solve_parameters == saved
+        # An official legacy file did not select a segmentation channel.
+        # Loading it must not fabricate channel 0 as a saved user choice.
+        legacy_data = Result().to_dict()
+        legacy_data["___save_version__"] = "1.7"
+        legacy_data["solve_parameters"] = {"alpha": 1e10}
+        legacy = Result.from_dict(legacy_data)
+        legacy.stacks = [SimpleNamespace(channels=["matrix", "nuclei"])]
+        regularizer.setResult(legacy)
+        assert regularizer.input_seg_channel.value() == 1
+        assert "seg_channel" not in legacy.solve_parameters
+        # Batch processing also initializes an unselected dataset by its own channels.
+        batch_result = Result()
+        batch_result.stacks = [SimpleNamespace(channels=["matrix", "cells"])]
+        regularizer._prepare_gui_parameters(batch_result)
+        assert batch_result.solve_parameters_tmp["seg_channel"] == 1
+    finally:
+        window.close()
+        app.processEvents()
+
+
+def test_gui_uses_internal_cg_without_rewriting_stored_results(tmp_path, monkeypatch):
+    from qtpy import QtCore, QtWidgets
+    from pyvistaqt import QtInteractor
+    from saenopy import Result
+    from saenopy.gui.solver.modules.BatchEvaluate import BatchEvaluate
+    monkeypatch.setattr(QtInteractor, "render", lambda self: None)
+    app = QtWidgets.QApplication.instance() or QtWidgets.QApplication([])
+    QtCore.QSettings.setDefaultFormat(QtCore.QSettings.IniFormat)
+    QtCore.QSettings.setPath(QtCore.QSettings.IniFormat, QtCore.QSettings.UserScope, str(tmp_path))
+    window = BatchEvaluate()
+    control = window.sub_module_regularize
+    try:
+        assert not hasattr(control, "input_cg_maxiter_factor")
+        for saved in [{"cg_maxiter_factor": 16}, {}, {"cg_maxiter_factor": 8}, {}]:
+            result = Result()
+            result.solve_parameters = saved.copy()
+            control.setResult(result)
+            assert result.solve_parameters_tmp["cg_maxiter_factor"] == 2
+            assert result.solve_parameters == saved
+            control.setResult(Result())
+            control.setResult(result)
+            assert result.solve_parameters_tmp["cg_maxiter_factor"] == 2
+            assert result.solve_parameters == saved
+            imports, code = control.get_code()
+            assert "'cg_maxiter_factor': 2" in code
+            compile(imports + code, '<internal-cg-export>', 'exec')
     finally:
         window.close()
         app.processEvents()

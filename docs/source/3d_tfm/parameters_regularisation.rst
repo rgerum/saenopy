@@ -34,6 +34,15 @@ check; no additional confirmations are required. With ``alpha=0``, only the
 data error is checked. This plateau stop does not certify stability of the
 complete force field.
 
+Fit status
+----------
+The GUI and saved ``stop_reason`` distinguish an objective plateau, the maximum
+iteration budget, and user cancellation. A plateau of the objective terms does
+not certify stability of the complete force field; an iteration limit is not
+convergence. Interrupted CG steps are discarded and the last accepted field is
+retained. The experimental time and stagnation controls have been removed.
+Historical exit reasons can still be displayed when loading older results.
+
 prev_t_as_start
 ---------------
 Optional for time lapse series: If enabled, the deformation field of the previous time step is used as the starting point 
@@ -55,6 +64,21 @@ selected automatically. Surface dilation adds mesh-node shells. A segmentation
 touching the image boundary is treated as an observed open interface, without
 inventing end caps. Calculating forces recomputes segmentation from the current
 settings even if no preview was requested.
+
+In a time series each frame is segmented independently. Channel, smoothing,
+threshold method and factor are shared across the series; the automatic absolute
+intensity threshold, mask and measured surface area are recomputed per frame.
+``prev_t_as_start`` transfers displacements only, never the segmentation.
+The selected channel must be present in the same position throughout the series.
+
+**Surface smoothing** above zero specifies a Gaussian sigma in micrometres,
+accounting for anisotropic voxel sizes. Enclosed XY holes are filled internally;
+paths connected to image edges remain open and no missing Z caps are invented.
+Zero retains the historical two-pixel blur. Changing smoothing changes the image
+intensity distribution and therefore its automatic threshold; check the preview
+again rather than applying a universal factor correction. The reviewed HE74
+nuclear example uses 12 micrometres and Li factor 1.0. These are sample-specific
+settings, not general defaults.
 
 Li uses a floating-point-aware convergence tolerance. If it does not converge,
 it raises an error after at most 64 iterations or 30 seconds of threshold
@@ -87,19 +111,21 @@ For an existing result with an interpolated mesh, the shared Python entry point 
     fit_result(result, index=0, parameters=dict(
         surface=True, physical_normalization=True, alpha=1e10,
         seg_channel=1, seg_threshold_method="li", seg_threshold_factor=0.6,
-        seg_dilate_layers=1, max_iterations=200, cg_maxiter_factor=8))
+        seg_dilate_layers=1, max_iterations=200, cg_maxiter_factor=2))
     result.save("surface.saenopy")
 
 Use ``surface=False`` for Classic; ``physical_normalization=False`` additionally
 selects the unnormalised Classic control in Python. The GUI's **save Python code**
 exports the current settings and calls the same reconstruction function.
 
-The inner conjugate-gradient iteration budget defaults to ``cg_maxiter_factor=8``:
-half the previous default of 16, and eight times the original Saenopy cap.
+The inner conjugate-gradient iteration budget defaults to ``cg_maxiter_factor=2``:
+twice the original Saenopy cap. The GUI uses this internal setting without a
+separate budget control, including new fits of files saved with higher budgets.
 CG still stops earlier when its unchanged residual tolerance is met.
-The nonlinear outer step remains 0.2. Explicit settings,
-including a saved ``cg_maxiter_factor=16``, remain in effect; pass 8 explicitly to
-use the new budget when refitting such a result. Unconverged inner solves retain
+The nonlinear outer step defaults to 0.2 and remains editable. The Python API
+retains explicit budget settings for numerical comparisons; GUI code export
+records the internal budget explicitly. Loading a file does not change its
+saved force field or stored fit parameters. Unconverged inner solves retain
 their warnings and saved diagnostics.
 
 The practical outer stop checks the relative standard deviation of the recorded

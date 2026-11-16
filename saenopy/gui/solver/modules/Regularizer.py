@@ -9,6 +9,7 @@ from pathlib import Path
 import saenopy
 import saenopy.multigrid_helper
 from saenopy import Result
+from saenopy.solver import DEFAULT_CG_MAXITER_FACTOR
 import saenopy.get_deformations
 import saenopy.materials
 from saenopy.gui.common import QtShortCuts
@@ -33,7 +34,7 @@ class CancelSignal:
 
 
 from saenopy.reconstruction import segment_with_params
-from saenopy.surface_regularization import DEFAULT_SEG_CHANNEL
+from saenopy.surface_regularization import DEFAULT_SEG_CHANNEL, DEFAULT_SMOOTHING_SIGMA_UM
 from .live_fit import solver_snapshot
 
 
@@ -85,7 +86,10 @@ class Regularizer(PipelineModule):
                             self.input_step_size = QtShortCuts.QInputString(None, "step size", "0.2", type=float, tooltip="Fraction of each displacement update to apply. Default 0.2.")
                         with QtShortCuts.QHBoxLayout(None) as layout:
                             self.input_imax = QtShortCuts.QInputNumber(None, "max iterations", 300, float=False, tooltip="the maximum number of iterations after which to abort the iteration algorithm")
-                            self.input_conv_crit = QtShortCuts.QInputString(None, "rel. conv. crit.", 0.01, type=float, tooltip="the convergence criterion of the iteration algorithm")
+                            self.input_conv_crit = QtShortCuts.QInputString(None, "rel. conv. crit.", 0.01, type=float, tooltip="Stop when the displacement error and weighted force penalty each have a relative "
+                                        "standard deviation below this value over the last 15 updates. "
+                                        "Default 0.01; 0 disables this stop. A flat objective does not "
+                                        "guarantee a stable complete force field.")
 
                     with QtShortCuts.QGroupBox(None, "Surface Regularisation") as (self.surface_parameters, surface_layout):
                         surface_layout.setSizeConstraint(QtWidgets.QLayout.SetMinimumSize)
@@ -99,7 +103,9 @@ class Regularizer(PipelineModule):
                         # Populated from the loaded stack's channels in setResult().
                         self.input_seg_channel = QtShortCuts.QInputChoice(
                             None, "cell channel", DEFAULT_SEG_CHANNEL, values=[0], value_names=["0"],
-                            tooltip="Channel showing the cell / cell stain (used for the segmentation).")
+                            tooltip="Channel showing the cell / cell stain. For new analyses, the first "
+                                    "channel after the matrix channel is selected when available. "
+                                    "The selected channel is segmented separately at each time step.")
                         self.input_seg_channel.combobox.setSizeAdjustPolicy(QtWidgets.QComboBox.AdjustToContents)
                         self.input_thr_method = QtShortCuts.QInputChoice(
                             None, "threshold method", "li", values=["li", "otsu", "yen"],
@@ -108,17 +114,33 @@ class Regularizer(PipelineModule):
                                     "no new mask is created on failure.")
                         self.input_thr_factor = QtShortCuts.QInputString(
                             None, "threshold factor", "0.6", type=float,
-                            tooltip="Multiplied onto the automatic threshold (which is in raw intensity units). "
+                            tooltip="Multiplied onto the automatic threshold of the smoothed image. "
+                                    "The automatic threshold is recalculated separately at each time step; "
+                                    "the factor stays the same. "
                                     "Lower = include dimmer parts of the cell, higher = only the bright core. "
                                     "Use 'preview segmentation' to see the effect.")
                         self.input_thr_factor.line_edit.setMinimumWidth(90)
+                        self.input_smoothing_sigma_um = QtShortCuts.QInputNumber(
+                            None, "surface smoothing", DEFAULT_SMOOTHING_SIGMA_UM, min=0, float=True,
+                            decimals=2, unit="µm", step=0.5,
+                            tooltip="0 = standard segmentation with the historical 2-pixel blur. "
+                                    "Above 0: Gaussian width in µm, accounting for unequal voxel sizes; "
+                                    "closed inner contours are filled automatically in each XY slice. "
+                                    "Open regions connected to XY image edges stay open; no missing Z "
+                                    "surface or end caps are added. Larger values can connect nuclear "
+                                    "signals but shift boundaries and change the automatic threshold: "
+                                    "check the preview after changing smoothing. Surface dilation "
+                                    "below only expands FEM-node selection, not the image envelope.")
+                        self.input_smoothing_sigma_um.spin_box.setMinimumWidth(90)
+                        self.input_smoothing_sigma_um.spin_box.setSpecialValueText("standard (2 px)")
                         self.input_dilate_layers = QtShortCuts.QInputNumber(
                             None, "surface dilation", 1, min=0, float=False,
-                            tooltip="Number of mesh-node shells added to the detected surface.")
+                            tooltip="Number of FEM mesh-node shells added around the already segmented "
+                                    "surface. This does not blur the image or fill holes in the cell body.")
                         self.input_dilate_layers.spin_box.setMinimumWidth(90)
                         self.input_button_preview = QtShortCuts.QPushButton(
                             None, "preview segmentation", self.preview_segmentation,
-                            tooltip="Segment the cell with the current channel/threshold for the current "
+                            tooltip="Segment the cell with the current channel, blur, threshold and hole filling for the current "
                                     "time step and show the surface nodes in the Forces view - without "
                                     "running the force reconstruction. Use it to tune the parameters.")
 
@@ -143,6 +165,8 @@ class Regularizer(PipelineModule):
                             surface_layout.removeWidget(left)
                             surface_layout.removeWidget(right)
                             surface_form.addRow(left, right)
+                        surface_layout.removeWidget(self.input_smoothing_sigma_um)
+                        surface_form.insertRow(2, self.input_smoothing_sigma_um)
                         surface_layout.addLayout(surface_form)
                         self.input_button_preview_text = QtWidgets.QLabel().addToLayout()
                         self.input_button_preview_text.setWordWrap(True)
@@ -161,6 +185,9 @@ class Regularizer(PipelineModule):
 
                     self.canvas = MatplotlibWidget(self)
                     self.parent.results_pane.addWidget(QtWidgets.QLabel("convergence of force fit"))
+                    self.fit_status_text = QtWidgets.QLabel()
+                    self.fit_status_text.setWordWrap(True)
+                    self.parent.results_pane.addWidget(self.fit_status_text)
                     self.parent.results_pane.addWidget(self.canvas, 1)
                     #NavigationToolbar(self.canvas, self).addToLayout()
 
@@ -183,6 +210,7 @@ class Regularizer(PipelineModule):
             "seg_threshold_method": self.input_thr_method,
             "seg_threshold_factor": self.input_thr_factor,
             "seg_dilate_layers": self.input_dilate_layers,
+            "seg_smoothing_sigma_um": self.input_smoothing_sigma_um,
         })
 
         self.parent.tasks_changed.connect(self._update_preview_controls)
@@ -198,8 +226,9 @@ class Regularizer(PipelineModule):
                 (StateEnum.scheduled, StateEnum.running, StateEnum.cancelling))
 
     def _update_preview_controls(self):
-        self.input_button_preview.setEnabled(
-            self.check_available(self.result) and not self._preview_blocked())
+        available = self.check_available(self.result) and not self._preview_blocked()
+        self.input_button_preview.setEnabled(available)
+        self.input_smoothing_sigma_um.setEnabled(available)
 
     def state_changed(self, result):
         if result is not None and self.get_result_state(result) not in (
@@ -217,6 +246,7 @@ class Regularizer(PipelineModule):
     def start_process(self, x=None, result=None):
         target = result if result is not None else self.result
         if target is not None:
+            self._prepare_gui_parameters(target)
             for mapping in self.parameter_mappings:
                 mapping.ensure_tmp_params_initialized(target)
             # GUI fits always normalize; raw Classic remains a Python option.
@@ -279,6 +309,7 @@ class Regularizer(PipelineModule):
                 "seg_threshold_method": self.input_thr_method.value(),
                 "seg_threshold_factor": self.input_thr_factor.value(),
                 "seg_dilate_layers": self.input_dilate_layers.value(),
+                "seg_smoothing_sigma_um": self.input_smoothing_sigma_um.value(),
             }
             self.input_button_preview_text.setText("segmenting ...")
             # Repaint only: processing arbitrary events here could start a fit
@@ -381,6 +412,9 @@ class Regularizer(PipelineModule):
 
     def process(self, result: Result, material_parameters: dict, solve_parameters: dict):
         self.cancel_p = CancelSignal()
+        # GUI fits use the internal budget, including refits of older files.
+        # Explicit alternative budgets remain available through the Python API.
+        solve_parameters = dict(solve_parameters, cg_maxiter_factor=DEFAULT_CG_MAXITER_FACTOR)
         # demo run
         if os.environ.get("DEMO") == "true":
             imax = 100
@@ -432,7 +466,21 @@ class Regularizer(PipelineModule):
         self.parent.signal_process_status_update.emit(f"{i+1}/{len(result.solvers)} fitting forces",
                                                       f"{Path(result.output).name}")
 
+    @staticmethod
+    def _prepare_gui_parameters(result):
+        if getattr(result, "solve_parameters_tmp", None) is None:
+            result.solve_parameters_tmp = dict(result.solve_parameters or {})
+        params = result.solve_parameters_tmp
+        params["cg_maxiter_factor"] = DEFAULT_CG_MAXITER_FACTOR
+        params.setdefault("seg_smoothing_sigma_um", DEFAULT_SMOOTHING_SIGMA_UM)
+        channels = (getattr(result.stacks[0], "channels", None) or []) if result.stacks else []
+        params.setdefault("seg_channel", 1 if len(channels) > 1 else 0)
+
     def setResult(self, result: Result):
+        # Missing opt-in keys must not inherit enabled controls from a previously
+        # selected dataset. Keep stored parameters untouched until the next fit.
+        if result is not None:
+            self._prepare_gui_parameters(result)
         # Populate choices before ParameterMapping applies the saved channel.
         # Otherwise loading channel 1 into the initial [0] selector silently
         # leaves the preview on channel 0 while the fit still uses channel 1.
@@ -454,6 +502,7 @@ class Regularizer(PipelineModule):
         self.update_plot()
 
     def update_plot(self):
+        self.update_stop_status()
         if self.result is None or self.result.solvers is None or len(self.result.solvers) == 0:
             return
         relrec = getattr(self.result.solvers[self.parent.t_slider.value()], "relrec", None)
@@ -463,6 +512,31 @@ class Regularizer(PipelineModule):
             self.iteration_callback(self.result, relrec)
         else:
             self.plot_empty()
+
+    def resultChanged(self, result):
+        super().resultChanged(result)
+        if result is self.result:
+            self.update_stop_status()
+
+    def update_stop_status(self):
+        self.fit_status_text.clear()
+        if self.result is None or not self.result.solvers:
+            return
+        index = min(self.parent.t_slider.value(), len(self.result.solvers) - 1)
+        solver = self.result.solvers[index]
+        params = getattr(solver, "regularisation_parameters", None) or {}
+        reason = params.get("stop_reason")
+        messages = {
+            "stagnation": "Stopped: stagnation. Force convergence is not confirmed; inspect the field and data fit.",
+            "time_limit": "Stopped: time budget reached. Force convergence is not confirmed.",
+            "max_iterations": "Stopped: iteration budget reached. Force convergence is not confirmed.",
+            "objective_plateau": "Objective plateau reached. This does not certify full force-field convergence.",
+            "zero_target": "Exactly zero target at the undeformed reference: no inverse updates needed.",
+            "cancelled": "Cancelled: showing the last accepted field.",
+        }
+        self.fit_status_text.setText(messages.get(reason, ""))
+        self.fit_status_text.setStyleSheet(
+            "color: #a46100;" if reason in ("stagnation", "time_limit", "max_iterations") else "")
 
     def get_code(self) -> Tuple[str, str]:
         import_code = "import saenopy\n"
@@ -486,9 +560,10 @@ class Regularizer(PipelineModule):
             if key not in {"surface_area_method"}
         }
         export_solve_parameters["physical_normalization"] = True
-        from saenopy.solver import DEFAULT_CG_MAXITER_FACTOR
-        export_solve_parameters.setdefault("cg_maxiter_factor", DEFAULT_CG_MAXITER_FACTOR)
+        export_solve_parameters["cg_maxiter_factor"] = DEFAULT_CG_MAXITER_FACTOR
         export_solve_parameters.setdefault("solver_precision", 1e-18)
+        export_solve_parameters.pop("stop_on_stagnation", None)
+        export_solve_parameters.pop("max_time_seconds", None)
         data = {
             "my_reg_params1": {k: None if v == "None" else v for k, v in self.result.material_parameters_tmp.items()},
             "my_reg_params2": {k: None if v == "None" else v for k, v in export_solve_parameters.items()},

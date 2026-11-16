@@ -9,14 +9,52 @@ from .materials import SemiAffineFiberMaterial
 
 
 def segment_with_params(result, index, params):
-    """Return stack, YXZ image, body, shell coordinates and threshold."""
+    """Segment this frame, recomputing its threshold after smoothing.
+
+    Time series share settings, not masks or absolute intensity thresholds.
+    """
     stack = result.stacks[index]
-    channel = int(params.get("seg_channel", sr.DEFAULT_SEG_CHANNEL))
-    image = np.asarray(stack[:, :, 0, :, channel])
+    selection = params.get("seg_channel", sr.DEFAULT_SEG_CHANNEL)
+    try:
+        channel = int(selection)
+        if float(selection) != channel or channel < 0:
+            raise ValueError
+    except (TypeError, ValueError, OverflowError) as exc:
+        raise sr.SegmentationError("Cell channel must be a nonnegative integer index.") from exc
+    # Check channel metadata for the whole series before any expensive image work.
+    # A shared dropdown selection must refer to the same stain at every frame.
+    expected_channels = getattr(result.stacks[0], "channels", None)
+    for frame, current in enumerate(result.stacks):
+        channels = getattr(current, "channels", None)
+        if channels is not None:
+            if channel >= len(channels):
+                raise sr.SegmentationError(
+                    f"Cell channel index {channel} is missing at time step {frame + 1}. "
+                    "Select a channel available throughout the series.")
+            if expected_channels is not None and channels[channel] != expected_channels[channel]:
+                raise sr.SegmentationError(
+                    f"Cell channel index {channel} refers to a different channel at time step {frame + 1}. "
+                    "Use the same channel order throughout the series.")
+    try:
+        image = np.asarray(stack[:, :, 0, :, channel])
+    except IndexError as exc:
+        raise sr.SegmentationError(
+            f"Cell channel index {channel} is unavailable at time step {index + 1}.") from exc
+    smooth = 2.0  # Exact historical pixel sigma unless explicitly enabled.
+    try:
+        sigma_um = float(params.get("seg_smoothing_sigma_um", sr.DEFAULT_SMOOTHING_SIGMA_UM))
+    except (TypeError, ValueError) as exc:
+        raise sr.SegmentationError("Surface smoothing must be numeric (µm).") from exc
+    if not np.isfinite(sigma_um) or sigma_um < 0:
+        raise sr.SegmentationError("Surface smoothing must be finite and nonnegative (µm).")
+    if sigma_um > 0:
+        smooth = sr.smoothing_sigma_voxels(sigma_um, stack.voxel_size)
     threshold = sr.auto_threshold(
         image, method=params.get("seg_threshold_method", sr.DEFAULT_THRESHOLD_METHOD),
-        factor=float(params.get("seg_threshold_factor", sr.DEFAULT_THRESHOLD_FACTOR)))
-    body, shell = sr.segment_cell(image, stack.voxel_size, threshold=threshold)
+        factor=float(params.get("seg_threshold_factor", sr.DEFAULT_THRESHOLD_FACTOR)), smooth=smooth)
+    body, shell = sr.segment_cell(
+        image, stack.voxel_size, threshold=threshold, smooth=smooth,
+        fill_xy_holes=sigma_um > 0)
     return stack, image, body, shell, threshold
 
 
@@ -92,6 +130,9 @@ def fit_result(result, index=0, *, parameters=None, material_parameters=None,
     from .solver import DEFAULT_CG_MAXITER_FACTOR
     params.setdefault("cg_maxiter_factor", DEFAULT_CG_MAXITER_FACTOR)
     params.setdefault("solver_precision", 1e-18)
+    # Remove unreleased experimental controls when refitting saved V9/V10 results.
+    params.pop("stop_on_stagnation", None)
+    params.pop("max_time_seconds", None)
     material = dict(result.material_parameters or {})
     material.update(material_parameters or {})
     material = {key: None if value == "None" else value for key, value in material.items()}

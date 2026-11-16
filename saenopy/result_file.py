@@ -316,6 +316,7 @@ class SolveParametersDict(TypedDict, total=False):
     seg_threshold_method: str     # "li" | "otsu" | "yen"
     seg_threshold_factor: float   # factor multiplied onto the automatic threshold
     seg_dilate_layers: int        # mesh-node shells added to the detected surface
+    seg_smoothing_sigma_um: float # 0/missing: legacy 2-pixel blur; >0: physical sigma plus enclosed XY filling
     # Geometry-only alpha normalization (added in save version 1.8).
     physical_normalization: bool
     alpha_reference_element_size_um: float
@@ -570,12 +571,13 @@ class Result(Saveable):
             from saenopy import physical_regularization as pr
             sp = data_dict.get("solve_parameters")
             if isinstance(sp, dict):
+                # Keep an absent seg_channel absent: the GUI chooses the first
+                # non-matrix channel. An explicit saved 0 is a user choice.
                 defaults = dict(
                     surface=False,
                     physical_normalization=False,
                     alpha_reference_element_size_um=pr.DEFAULT_REFERENCE_ELEMENT_SIZE_UM,
                     scaling_exponent=pr.DEFAULT_SCALING_EXPONENT,
-                    seg_channel=sr.DEFAULT_SEG_CHANNEL,
                     seg_threshold_method=sr.DEFAULT_THRESHOLD_METHOD,
                     seg_threshold_factor=sr.DEFAULT_THRESHOLD_FACTOR,
                     seg_dilate_layers=1,
