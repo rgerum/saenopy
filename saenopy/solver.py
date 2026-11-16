@@ -17,11 +17,11 @@ from saenopy.mesh import Mesh, check_tetrahedra_scalar_field, check_node_scalar_
 from saenopy.saveable import Saveable
 from typing import List
 
-# INNER CG BUDGET: 1 restores the old cap; 4 permits up to four times
+# INNER CG BUDGET: 1 restores the old cap; the default 2 permits twice
 # 25*round(N_nodes**(1/3)) iterations. Convergence stops CG earlier. This does
 # not change the outer iteration count, step size, alpha or physical objective.
 # Prefer solve_regularized(cg_maxiter_factor=...) for per-run overrides.
-DEFAULT_CG_MAXITER_FACTOR = 8
+DEFAULT_CG_MAXITER_FACTOR = 2
 
 class Field:
     def __init__(self, validators, default):
@@ -773,8 +773,8 @@ class Solver(Saveable):
             Squared relative CG tolerance, multiplied by the number of nodes.
             The relative residual target is sqrt(N * solver_precision). Default 1e-18.
         cg_maxiter_factor : int, optional
-            Inner CG iteration cap multiplier (default 8, half the previous
-            default of 16). The residual tolerance is unchanged. Approximate inner
+            Inner CG iteration cap multiplier (default 2, twice the original
+            Saenopy cap). The residual tolerance is unchanged. Approximate inner
             steps warn and retain diagnostics; max_iterations remains a hard limit.
         max_iterations : int, optional
             The maximal number of iterations for the regularisation. Default 300
@@ -807,6 +807,7 @@ class Solver(Saveable):
             raise ValueError("cg_maxiter_factor must be a positive integer")
         if not np.isfinite(solver_precision) or solver_precision <= 0:
             raise ValueError("solver_precision must be finite and positive")
+        started = time.monotonic()
         self.regularisation_parameters = {
             "step_size": step_size,
             "solver_precision": solver_precision,
@@ -853,9 +854,11 @@ class Solver(Saveable):
         convergence_window = 15
         convergence_patience = 1
         stable_iterations = 0
+        stop_reason = "max_iterations"
         # start the iteration
         for i in range(int(max_iterations)):
             if cancel_signal is not None and getattr(cancel_signal, "cancel", False):
+                stop_reason = "cancelled"
                 break
             # compute the weight matrix
             if method != "normal" or hasattr(self, "physical_data_weights"):
@@ -866,6 +869,9 @@ class Solver(Saveable):
 
             # get and apply the displacements that solve the regularisation term
             uu = self._solve_regularization_cg(step_size, solver_precision)
+            if self.last_cg_info is not None and self.last_cg_info.get("reason") == "cancelled":
+                stop_reason = "cancelled"
+                break  # Keep the last accepted field; no partial CG step.
 
             # update the forces on each tetrahedron and the global stiffness tensor
             self._update_glo_f_and_k()
@@ -881,6 +887,7 @@ class Solver(Saveable):
 
             if cancel_signal is not None and getattr(cancel_signal, "cancel", False):
                 # Finalize the same force/border split even for a cancelled fit.
+                stop_reason = "cancelled"
                 break
 
             # A flat data error alone can hide a changing force penalty.
@@ -893,6 +900,7 @@ class Solver(Saveable):
                           and np.all((stds < rel_conv_crit * means) | (means == 0)))
                 stable_iterations = stable_iterations + 1 if stable else 0
                 if stable_iterations >= convergence_patience:
+                    stop_reason = "objective_plateau"
                     break
 
         self.regularisation_results = np.asarray(relrec)
@@ -900,6 +908,8 @@ class Solver(Saveable):
         # with existing solver metadata; no new required file-format fields.
         self.regularisation_parameters.update(
             cancelled=bool(cancel_signal is not None and getattr(cancel_signal, "cancel", False)),
+            stop_reason=stop_reason,
+            elapsed_seconds=float(time.monotonic() - started),
             convergence_window=convergence_window,
             convergence_patience=convergence_patience,
             objective_plateau_reached=stable_iterations >= convergence_patience,
