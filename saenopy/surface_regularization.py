@@ -23,6 +23,7 @@ from time import monotonic
 
 DEFAULT_MIN_ITERATIONS = 60
 DEFAULT_SEG_CHANNEL = 0
+DEFAULT_SMOOTHING_SIGMA_UM = 0.0  # 0 selects the historical 2-pixel segmentation.
 
 
 # ---------------------------------------------------------------------------
@@ -94,10 +95,45 @@ def auto_threshold(image, method=DEFAULT_THRESHOLD_METHOD,
     return float(fn(sm)) * float(factor)
 
 
+def smoothing_sigma_voxels(sigma_um, voxel_size):
+    """Convert isotropic physical sigma (µm) from XYZ voxel sizes to YXZ pixels.
+
+    Only opt-in physical smoothing calls this helper. The historical scalar
+    sigma of two pixels is deliberately retained when that option is disabled.
+    """
+    try:
+        sigma = float(sigma_um)
+        voxel = np.asarray(voxel_size, dtype=float)
+    except (TypeError, ValueError) as exc:
+        raise SegmentationError("Smoothing sigma and voxel sizes must be numeric.") from exc
+    if not np.isfinite(sigma) or sigma < 0:
+        raise SegmentationError("Smoothing sigma must be finite and nonnegative (µm).")
+    if voxel.shape != (3,) or not np.all(np.isfinite(voxel)) or np.any(voxel <= 0):
+        raise SegmentationError("Physical smoothing needs three positive finite XYZ voxel sizes (µm).")
+    return tuple(sigma / voxel[[1, 0, 2]])
+
+
+def fill_enclosed_xy_holes(body):
+    """Fill enclosed background in each observed XY plane, without Z padding.
+
+    Four-connected background paths to any XY edge remain open (SciPy's default
+    hole connectivity, also used by the research envelope). This does not
+    bridge open contours, extrapolate missing slices or add artificial end caps.
+    """
+    from scipy.ndimage import binary_fill_holes
+    body = np.asarray(body, dtype=bool)
+    if body.ndim != 3:
+        raise SegmentationError("XY hole filling requires a 3D YXZ body.")
+    filled = body.copy()
+    for iz in range(body.shape[2]):
+        filled[:, :, iz] = binary_fill_holes(body[:, :, iz])
+    return filled
+
+
 def segment_cell(image, voxel_size, threshold="auto", smooth=2.0, close_radius=1,
                  largest_component=True, fill=True,
                  threshold_method=DEFAULT_THRESHOLD_METHOD,
-                 threshold_factor=DEFAULT_THRESHOLD_FACTOR):
+                 threshold_factor=DEFAULT_THRESHOLD_FACTOR, fill_xy_holes=False):
     """Segment a filled cell body and its surface shell from a 3D stack.
 
     Parameters
@@ -110,11 +146,15 @@ def segment_cell(image, voxel_size, threshold="auto", smooth=2.0, close_radius=1
         Absolute intensity threshold, or ``"auto"`` to use
         ``threshold_factor * <threshold_method>(image)`` (see :func:`auto_threshold`).
     threshold_method, threshold_factor : used when ``threshold == "auto"``.
-    smooth, close_radius : pre-smoothing sigma / morphological closing radius
+    smooth, close_radius : pre-smoothing sigma in pixels / morphological closing radius
         (closing is expensive on big stacks; 1 is usually enough, raise it to 2-3
         for hollow objects whose bright rim needs bridging).
+        ``smooth`` may also be a YXZ tuple, e.g. from :func:`smoothing_sigma_voxels`.
     largest_component : keep only the biggest connected component (rejects debris).
     fill : fill interior holes so the body is solid.
+    fill_xy_holes : additionally fill enclosed holes in individual XY planes.
+        Off by default. Useful for a hollow nuclear envelope; paths to XY edges
+        remain unfilled and no missing Z surface is invented.
 
     Returns
     -------
@@ -142,6 +182,13 @@ def segment_cell(image, voxel_size, threshold="auto", smooth=2.0, close_radius=1
             vol = lab == sizes.argmax()
     if fill:
         vol = binary_fill_holes(vol)
+    if fill_xy_holes:
+        vol = fill_enclosed_xy_holes(vol)
+        if largest_component:
+            lab, n = label(vol)
+            if n > 1:
+                sizes = np.bincount(lab.ravel()); sizes[0] = 0
+                vol = lab == sizes.argmax()
     shell = vol & ~erosion(vol)
 
     # Only allocate coordinates for the shell, not six full-volume arrays.
