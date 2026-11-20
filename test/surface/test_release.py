@@ -317,7 +317,8 @@ def test_new_surface_roundtrip_can_be_refitted(tmp_path):
     assert loaded.solvers[0].regularisation_parameters["surface_area_m2"] == 2e-10
 
 
-def test_original_classic_matches_supplied_upstream():
+@pytest.mark.parametrize("step_size", [0.20, 0.33])
+def test_original_classic_matches_supplied_upstream(step_size):
     import importlib.util
     from pathlib import Path
     import os
@@ -327,6 +328,14 @@ def test_original_classic_matches_supplied_upstream():
     spec = importlib.util.spec_from_file_location("upstream_solver_check", upstream)
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
+    # Use the supplied checkout's CG too; importing only solver.py would bind it
+    # to the fork's modified conjugate_gradient module through its normal import.
+    cg_path = upstream.with_name("conjugate_gradient.py")
+    assert cg_path.is_file(), "upstream checkout must also contain conjugate_gradient.py"
+    cg_spec = importlib.util.spec_from_file_location("upstream_cg_check", cg_path)
+    cg_module = importlib.util.module_from_spec(cg_spec)
+    cg_spec.loader.exec_module(cg_module)
+    module.cg = cg_module.cg
     fork_result = example_result()
     original = module.Solver()
     mesh = fork_result.solvers[0].mesh
@@ -334,11 +343,19 @@ def test_original_classic_matches_supplied_upstream():
     original.set_tetrahedra(mesh.tetrahedra.copy())
     original.set_target_displacements(mesh.displacements_target.copy(), mesh.regularisation_mask.copy())
     original.set_material_model(SemiAffineFiberMaterial(1000, None, None, None))
-    original.solve_regularized(alpha=1e8, max_iterations=5)
-    fit_result(fork_result, parameters=dict(surface=False, physical_normalization=False,
-                                           max_iterations=5, cg_maxiter_factor=1))
+    # This checks legacy Classic behavior with normalization OFF. Normalized
+    # Classic and Surface results are deliberately not required to match master.
+    # Defaults differ, so compare five updates with identical numerical settings.
+    common = dict(alpha=1e8, step_size=step_size, solver_precision=1e-18,
+                  max_iterations=5, rel_conv_crit=0.0)
+    original.solve_regularized(**common, method="huber", i_min=12)
+    fit_result(fork_result, parameters=dict(common, surface=False, physical_normalization=False,
+                                           cg_maxiter_factor=1, prev_t_as_start=False))
+    assert fork_result.solvers[0].regularisation_parameters["method"] == "huber"
     for name in ("displacements", "forces", "forces_border", "regularisation_mask"):
         np.testing.assert_allclose(getattr(fork_result.solvers[0].mesh, name), getattr(original.mesh, name), rtol=1e-12, atol=1e-25)
+    np.testing.assert_allclose(fork_result.solvers[0].regularisation_results,
+                               original.regularisation_results, rtol=1e-12, atol=1e-25)
 
 
 def test_surface_and_bulk_counts_use_same_reference_volume():

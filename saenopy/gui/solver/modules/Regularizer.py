@@ -203,8 +203,8 @@ class Regularizer(PipelineModule):
             "max_iterations": self.input_imax,
             "rel_conv_crit": self.input_conv_crit,
             "prev_t_as_start": self.input_previous_t_as_start,
-            # --- surface-restricted regularization (missing keys in older result
-            # files fall back to these widgets' defaults -> backward compatible) ---
+            # Missing Surface mode is explicitly initialized as Classic in
+            # _prepare_gui_parameters(), independently of the previous dataset.
             "surface": self.input_surface,
             "seg_channel": self.input_seg_channel,
             "seg_threshold_method": self.input_thr_method,
@@ -471,6 +471,7 @@ class Regularizer(PipelineModule):
         if getattr(result, "solve_parameters_tmp", None) is None:
             result.solve_parameters_tmp = dict(result.solve_parameters or {})
         params = result.solve_parameters_tmp
+        params.setdefault("surface", (result.solve_parameters or {}).get("surface", False))
         params["cg_maxiter_factor"] = DEFAULT_CG_MAXITER_FACTOR
         params.setdefault("seg_smoothing_sigma_um", DEFAULT_SMOOTHING_SIGMA_UM)
         channels = (getattr(result.stacks[0], "channels", None) or []) if result.stacks else []

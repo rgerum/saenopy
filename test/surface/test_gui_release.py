@@ -238,6 +238,70 @@ def test_official_file_in_gui_and_full_code_export(tmp_path, monkeypatch):
         app.processEvents()
 
 
+def test_missing_surface_mode_does_not_inherit_previous_dataset(tmp_path, monkeypatch):
+    from qtpy import QtCore, QtWidgets
+    from pyvistaqt import QtInteractor
+    from saenopy import Result
+    from saenopy.gui.solver.modules.BatchEvaluate import BatchEvaluate
+
+    monkeypatch.setattr(QtInteractor, "render", lambda self: None)
+    app = QtWidgets.QApplication.instance() or QtWidgets.QApplication([])
+    QtCore.QSettings.setDefaultFormat(QtCore.QSettings.IniFormat)
+    QtCore.QSettings.setPath(QtCore.QSettings.IniFormat, QtCore.QSettings.UserScope, str(tmp_path))
+
+    class TestWindow(BatchEvaluate):
+        settings_key = "saenopy_surface_mode_default_test"
+
+    window = TestWindow()
+    control = window.sub_module_regularize
+    surface_result = Result()
+    surface_result.solve_parameters = {"surface": True}
+    try:
+        for saved in (None, {}, {"alpha": 1e10}, {"surface": False}, {"surface": True}):
+            control.setResult(surface_result)
+            assert control.input_surface.value() is True
+            result = Result()
+            result.solve_parameters = None if saved is None else saved.copy()
+            control.setResult(result)
+            expected = bool(saved and saved.get("surface", False))
+            assert control.input_surface.value() is expected
+            assert result.solve_parameters_tmp["surface"] is expected
+            assert result.solve_parameters == saved
+            imports, code = control.get_code()
+            assert f"'surface': {expected}" in code
+            compile(imports + code, "<surface-mode-export>", "exec")
+
+            # Edits belong to this dataset and survive selecting another one.
+            control.input_surface.setValue(not expected, send_signal=True)
+            control.setResult(surface_result)
+            control.setResult(result)
+            assert control.input_surface.value() is (not expected)
+            assert bool(result.solve_parameters_tmp["surface"]) is (not expected)
+            assert result.solve_parameters == saved
+
+        # A partial temporary dictionary must still respect a saved mode.
+        for saved_mode in (False, True):
+            result = Result()
+            result.solve_parameters = {"surface": saved_mode}
+            result.solve_parameters_tmp = {"alpha": 1e9}
+            control.setResult(result)
+            assert control.input_surface.value() is saved_mode
+            assert result.solve_parameters_tmp["alpha"] == 1e9
+
+        # An unselected batch dataset must not inherit the visible Surface mode.
+        control.setResult(surface_result)
+        batch_result = Result()
+        queued = []
+        monkeypatch.setattr(window, "addTask", lambda *args: queued.append(args))
+        control.start_process(result=batch_result)
+        assert queued[0][2]["solve_parameters"]["surface"] is False
+        assert batch_result.solve_parameters is None
+        assert control.input_surface.value() is True
+    finally:
+        window.close()
+        app.processEvents()
+
+
 def test_cell_channel_default_preserves_saved_and_edited_choices(tmp_path, monkeypatch):
     from types import SimpleNamespace
     from qtpy import QtCore, QtWidgets

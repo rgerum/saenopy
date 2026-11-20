@@ -28,6 +28,7 @@ from types import MethodType
 
 import numpy as np
 import scipy.sparse as ssp
+from scipy.sparse.linalg import LinearOperator
 from scipy.spatial import cKDTree
 
 
@@ -396,9 +397,19 @@ def _install_weighted_objective(solver, data_weights: np.ndarray, update_functio
         KA = self.K_glo.multiply(coefficient[None, :])
         target = self.mesh.displacements_target_mask & self.mesh.movable
         q = data_weights * target
-        self.I = ssp.diags(np.repeat(q, 3), format="csr")
-        self.KAK = KA @ self.K_glo
-        self.A = self.I + self.KAK
+        qflat = np.repeat(q, 3)
+        self.I = ssp.diags(qflat, format="csr")
+        # Same native Q + K D K, without assembling the larger product K D K.
+        # Freeze the operands so later mechanics/weight updates cannot change A.
+        K = self.K_glo.copy()
+
+        def multiply(vector):
+            # LinearOperator also accepts column vectors; avoid n-by-n broadcasting.
+            vector = np.asarray(vector).reshape(-1)
+            return qflat * vector + K @ (coefficient * (K @ vector))
+
+        self.A = LinearOperator(K.shape, matvec=multiply, dtype=float)
+        self.KAK = None
         self.b = (KA @ self.mesh.forces.ravel()).reshape(self.mesh.forces.shape)
         residual = self.mesh.displacements_target - self.mesh.displacements
         residual[~target] = 0.0

@@ -128,6 +128,18 @@ records the internal budget explicitly. Loading a file does not change its
 saved force field or stored fit parameters. Unconverged inner solves retain
 their warnings and saved diagnostics.
 
+Geometry-normalised Classic and Surface evaluate the regularisation matrix
+products with a matrix-free operator. Instead of forming the sparse product
+:math:`A = Q + K D K`, each CG multiplication evaluates
+:math:`Av = Qv + K(D(Kv))`. Here :math:`Q` contains the data weights,
+:math:`D` the current force weights including alpha, and :math:`K` is the
+existing stiffness matrix, which is still assembled. This avoids building the
+larger product matrix; it does not change the force derivative, right-hand
+side, CG budget, outer step or weighting rules. No additional GUI setting is
+required. Floating-point evaluation order changes, so a finite CG budget can
+produce different numerical trajectories and reconstructed fields. The
+unnormalised Classic control retains the explicit matrix implementation.
+
 The practical outer stop checks the relative standard deviation of the recorded
 data error and weighted force penalty separately over the last 15 updates. Both
 must be below ``rel_conv_crit`` (default 0.01) in the same check, without additional
