@@ -38,6 +38,10 @@ class ImageSource(Saveable):
 
 def _load_stacks(filename, voxel_size):
     from .result_file import get_channel_placeholder, process_line
+    voxel_size = np.asarray(voxel_size, dtype=float)
+    if voxel_size.shape != (3,) or not np.all(np.isfinite(voxel_size)) or np.any(voxel_size <= 0):
+        raise ValueError("Voxel size must contain three positive finite XYZ values (µm).")
+    voxel_size = tuple(voxel_size)
     # Keep the existing Leica reader and its selected channel/time semantics.
     if filename.endswith(".lif"):
         entries = process_line(filename, ".")
@@ -45,13 +49,17 @@ def _load_stacks(filename, voxel_size):
             raise ValueError("Select images for exactly one measurement.")
         entry = entries[0]
         if "times" in entry:
-            return [Stack(entry["filename"].replace(".lif", f"{{t:{t}}}.lif"), voxel_size)
-                    for t in entry["times"]]
-        time = re.search(r"\{t:(\d+)\}", filename)
-        template = entry["filename"]
-        if time:
-            template = template.replace(".lif", f"{{t:{time[1]}}}.lif")
-        return [Stack(template, voxel_size)]
+            stacks = [Stack(entry["filename"].replace(".lif", f"{{t:{t}}}.lif"), voxel_size)
+                      for t in entry["times"]]
+        else:
+            time = re.search(r"\{t:(\d+)\}", filename)
+            template = entry["filename"]
+            if time:
+                template = template.replace(".lif", f"{{t:{time[1]}}}.lif")
+            stacks = [Stack(template, voxel_size)]
+        for stack in stacks:
+            stack.channels = stack.channels[:1]
+        return stacks
     pattern, selected_channel = get_channel_placeholder(filename)
     table, _ = format_glob(pattern)
     if table.empty:
@@ -87,6 +95,22 @@ def _load_stacks(filename, voxel_size):
     return stacks
 
 
+def load_2d_deformation_masks(filename, voxel_size):
+    """Load 2D image-file masks for ``interpolate_mesh(ignore_mask_2d=...)``.
+
+    Return a list of single-plane Stacks: one for a plain image path, or one
+    per naturally sorted ``{t}`` time point. Voxel size is XYZ in micrometres,
+    usually ``result.stacks[0].voxel_size``. Nonzero pixels exclude complete Z
+    columns of target deformations; the mask and matrix share their centre.
+    Reuse ``masks[0]`` for every frame, or pass ``masks[i]`` for a time series.
+    This loader does not modify or save a Result.
+    """
+    stacks = _load_stacks(str(Path(filename).absolute()), voxel_size)
+    if any(stack.shape[2] != 1 for stack in stacks):
+        raise ValueError("Custom masks must be 2D: select one plane per time point; it applies through all Z.")
+    return stacks
+
+
 def add_image_source(result, filename, *, voxel_size=None, name=None,
                      kind="surface", time_mode="single"):
     """Attach a 3D surface stack or 2D exclusion mask to a Result.
@@ -103,11 +127,10 @@ def add_image_source(result, filename, *, voxel_size=None, name=None,
         raise ValueError("Choose kind='surface' or 'mask' and time_mode='single' or 'series'.")
     if not result.stacks:
         raise ValueError("Load the matrix images first.")
-    voxel = np.asarray(result.stacks[0].voxel_size if voxel_size is None else voxel_size, dtype=float)
-    if voxel.shape != (3,) or not np.all(np.isfinite(voxel)) or np.any(voxel <= 0):
-        raise ValueError("Voxel size must contain three positive finite XYZ values (µm).")
+    voxel = result.stacks[0].voxel_size if voxel_size is None else voxel_size
     filename = str(Path(filename).absolute())
-    stacks = _load_stacks(filename, voxel)
+    stacks = (load_2d_deformation_masks(filename, voxel) if kind == "mask"
+              else _load_stacks(filename, voxel))
     expected = {len(result.stacks)}
     if kind == "mask":
         expected.add(len(result.mesh_piv))
@@ -117,11 +140,6 @@ def add_image_source(result, filename, *, voxel_size=None, name=None,
         raise ValueError(f"Image series has {len(stacks)} time points; expected "
                          + " or ".join(map(str, sorted(expected))) + ".")
     for stack in stacks:
-        stack.channels = stack.channels[:1]
-        if stack.image_filenames is not None:
-            stack.image_filenames = stack.image_filenames[:, :1]
-        if kind == "mask" and stack.shape[2] != 1:
-            raise ValueError("Custom masks must be 2D: select one plane per time point; it applies through all Z.")
         if kind == "surface" and stack.shape[2] < 2:
             raise ValueError("Surface segmentation needs a 3D stack; select the Z slices.")
     source = ImageSource(name=name or Path(filename).name, kind=kind,

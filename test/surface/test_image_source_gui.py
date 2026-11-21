@@ -80,7 +80,7 @@ def test_saved_sources_restore_in_controls_and_lock_during_tasks(app, tmp_path, 
     from qtpy import QtCore, QtGui, QtWidgets
     from pyvistaqt import QtInteractor
     import qtawesome
-    from saenopy import add_image_source
+    from saenopy import add_image_source, get_custom_mask
     from saenopy.gui.common.PipelineModule import StateEnum
     from saenopy.gui.solver.modules.BatchEvaluate import BatchEvaluate
     monkeypatch.setattr(QtInteractor, "render", lambda self: None)
@@ -99,12 +99,27 @@ def test_saved_sources_restore_in_controls_and_lock_during_tasks(app, tmp_path, 
         mesh.setResult(result)
         assert regularizer.input_seg_channel.value() == cell_key
         assert mesh.input_custom_mask.value() == mask_key
+        assert mesh.input_use_custom_mask.isChecked()
+        assert not mesh.input_custom_mask.isHidden()
         assert regularizer.input_seg_channel.valueName() == "Cell zoom"
         assert mesh.input_custom_mask.valueName() == "Exclude bead"
         window.show()
         app.processEvents()
         assert regularizer.grab().save(str(tmp_path / "surface_controls.png"))
         assert mesh.grab().save(str(tmp_path / "mask_controls.png"))
+        mesh.input_use_custom_mask.setChecked(False)
+        assert mesh.input_custom_mask.isHidden()
+        assert result.mesh_parameters_tmp["custom_mask"] is None
+        # Disabling affects the next interpolation, not the recorded result.
+        assert result.mesh_parameters["custom_mask"] == mask_key
+        assert get_custom_mask(result, 0, result.mesh_parameters_tmp) is None
+        assert mesh.grab().save(str(tmp_path / "mask_controls_collapsed.png"))
+        mesh.input_use_custom_mask.setChecked(True)
+        assert not mesh.input_custom_mask.isHidden()
+        assert mesh.input_custom_mask.isEnabled()
+        assert result.mesh_parameters_tmp["custom_mask"] is None
+        mesh.input_custom_mask.setValue(mask_key, send_signal=True)
+        assert result.mesh_parameters_tmp["custom_mask"] == mask_key
         for state in (StateEnum.scheduled, StateEnum.running, StateEnum.cancelling):
             regularizer.set_result_state(result, state)
             mesh.set_result_state(result, state)
@@ -112,12 +127,14 @@ def test_saved_sources_restore_in_controls_and_lock_during_tasks(app, tmp_path, 
             mesh.state_changed(result)
             assert not regularizer.input_seg_channel.isEnabled()
             assert not mesh.input_custom_mask.isEnabled()
+            assert not mesh.input_use_custom_mask.isEnabled()
         regularizer.set_result_state(result, StateEnum.idle)
         mesh.set_result_state(result, StateEnum.idle)
         monkeypatch.setattr(window, "has_scheduled_tasks", lambda: True)
         window.tasks_changed.emit()
         assert not regularizer.input_seg_channel.isEnabled()
         assert not mesh.input_custom_mask.isEnabled()
+        assert not mesh.input_use_custom_mask.isEnabled()
         regularizer.add_local_images()
         mesh.add_custom_mask()
         assert len(result.image_sources) == 2
@@ -130,6 +147,10 @@ def test_saved_sources_restore_in_controls_and_lock_during_tasks(app, tmp_path, 
         mesh.setResult(fresh)
         assert regularizer.input_seg_channel.value() == 0
         assert mesh.input_custom_mask.value() is None
+        assert not mesh.input_use_custom_mask.isChecked()
+        assert mesh.input_custom_mask.isHidden()
+        assert not mesh.input_custom_mask.isEnabled()
+        assert fresh.mesh_parameters_tmp["custom_mask"] is None
     finally:
         for plotter in window.findChildren(QtInteractor):
             plotter.close()

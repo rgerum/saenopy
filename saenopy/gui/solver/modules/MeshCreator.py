@@ -95,12 +95,17 @@ class MeshCreator(PipelineModule):
 
                     self.input_mesh_size = MeshSizeWidget().addToLayout()
 
+                    self.input_use_custom_mask = QtWidgets.QCheckBox("use 2D exclusion mask").addToLayout()
+                    self.input_use_custom_mask.setToolTip(
+                        "Optionally ignore target deformations using a 2D image mask.")
                     self.input_custom_mask = ImageSourceChoice(
-                        None, "ignore target deformations", None,
+                        None, "mask image", None,
                         [None, ImageSourceChoice.ADD], ["none", "Add custom mask…"],
                         tooltip="Nonzero pixels of a 2D mask exclude target deformations through all Z. "
                                 "Reset and re-interpolate the mesh to apply a changed selection.")
                     self.input_custom_mask.add_requested.connect(self.add_custom_mask)
+                    self.input_use_custom_mask.toggled.connect(self._toggle_custom_mask)
+                    self.input_custom_mask.hide()
 
                     with QtShortCuts.QHBoxLayout():
                         self.input_outlier_filter = QtShortCuts.QInputBool(
@@ -150,7 +155,15 @@ class MeshCreator(PipelineModule):
                 (StateEnum.scheduled, StateEnum.running, StateEnum.cancelling))
 
     def _update_mask_controls(self):
-        self.input_custom_mask.setEnabled(not self._mask_blocked())
+        available = not self._mask_blocked()
+        self.input_use_custom_mask.setEnabled(available)
+        self.input_custom_mask.setEnabled(available and self.input_use_custom_mask.isChecked())
+
+    def _toggle_custom_mask(self, enabled):
+        self.input_custom_mask.setVisible(enabled)
+        if not enabled:
+            self.input_custom_mask.setValue(None, send_signal=True)
+        self._update_mask_controls()
 
     def state_changed(self, result):
         super().state_changed(result)
@@ -169,6 +182,7 @@ class MeshCreator(PipelineModule):
         dialog = ImageSourceDialog(self, self.result, "mask")
         if dialog.exec() == QtWidgets.QDialog.Accepted:
             self._populate_masks(self.result)
+            self.input_use_custom_mask.setChecked(True)
             self.input_custom_mask.setValue(dialog.source_key, send_signal=True)
             self.result.save()
 
@@ -215,6 +229,7 @@ class MeshCreator(PipelineModule):
                 result.mesh_parameters_tmp = dict(result.mesh_parameters or {})
             result.mesh_parameters_tmp.setdefault("custom_mask", None)
         super().setResult(result)
+        self.input_use_custom_mask.setChecked(self.input_custom_mask.value() is not None)
         if result and result.stacks and result.stacks[0] and result.mesh_parameters:
             if result.stack_reference is None:
                 self.input_reference.setValues(["next", "median", "cumul."])
@@ -257,7 +272,7 @@ class MeshCreator(PipelineModule):
             # and create the interpolated solver mesh
             result.solvers[i] = saenopy.interpolate_mesh(
                 result.mesh_piv[i], displacement_list[i], mesh_parameters,
-                custom_mask=get_custom_mask(result, i, mesh_parameters))
+                ignore_mask_2d=get_custom_mask(result, i, mesh_parameters))
             if self.cancel_p.cancel is True:
                 return "Terminated"
             self.parent.result_changed.emit(result)
@@ -291,7 +306,7 @@ class MeshCreator(PipelineModule):
                     # and create the interpolated solver mesh
                     result.solvers[i] = saenopy.interpolate_mesh(
                         result.mesh_piv[i], displacement_list[i], mesh_parameters,
-                        custom_mask=get_custom_mask(result, i, mesh_parameters))
+                        ignore_mask_2d=get_custom_mask(result, i, mesh_parameters))
                 # save the meshes
                 result.save()
         data = {

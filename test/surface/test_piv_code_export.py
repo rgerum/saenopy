@@ -57,8 +57,8 @@ def test_export_allocates_slots_and_invalidates_old_fits(tmp_path, monkeypatch, 
                         lambda meshes, ref: [m.displacements_measured for m in meshes])
     created = []
 
-    def mesh(piv, displacement, params, *, custom_mask=None):
-        assert custom_mask is None
+    def mesh(piv, displacement, params, *, ignore_mask_2d=None):
+        assert ignore_mask_2d is None
         solver = saenopy.Solver()
         solver.set_nodes(piv.nodes)
         created.append(solver)

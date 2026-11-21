@@ -38,32 +38,42 @@ decay of the deformation field is not well captured. Larger mesh sizes can lead 
 
 .. figure:: images/parameters/mesh_total_size.png
 
-Custom exclusion mask
-~~~~~~~~~~~~~~~~~~~~~
-Choose **Add custom mask…** under **ignore target deformations** to load a 2D
-image. Nonzero pixels exclude interpolated target vectors through the entire Z
-column; zero pixels keep them. The mask and matrix images share their centre.
-**Use same voxel size** is enabled initially; uncheck it for a different XY
-pixel size. Targets outside the mask image remain included.
+2D deformation exclusion masks
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+The optional ``ignore_mask_2d`` argument excludes target vectors after PIV
+interpolation. Nonzero pixels of the 2D YX mask exclude the entire Z column;
+zero pixels keep it. Images are aligned by their centres using physical voxel
+sizes. Targets outside the mask image remain included.
 
-A single mask can apply to every time point, or a naturally sorted ``{t}``
-series can supply one mask per matrix frame (or per deformation pair). Mask
-``i`` applies to deformation ``i``, corresponding to the first active image of
-the pair. Paths and voxel sizes are saved with the result. Reset and
-re-interpolate an existing mesh to apply a changed mask selection.
+Load a mask directly from an image file, without a GUI or a Result object::
 
-In Python, supply a YX array directly, or attach an image source::
-
-    # Array values != 0 are ignored, after displacement interpolation.
+    mask = saenopy.load_2d_deformation_masks("ignore.png", voxel_size=(dx, dy, dz))[0]
     solver = saenopy.interpolate_mesh(
         piv_mesh, displacements, mesh_parameters,
-        custom_mask=mask_yx, mask_voxel_size=(dx, dy, dz))
+        ignore_mask_2d=mask)
 
-    key = saenopy.add_image_source(result, "ignore_t{t}.png",
-                                   kind="mask", time_mode="series")
-    result.mesh_parameters["custom_mask"] = key
+For multiple deformation time points, use the same mask or a naturally sorted
+``{t}`` image series. Mask ``i`` applies to deformation ``i``, corresponding to
+the first active image of each pair::
+
+    masks = saenopy.load_2d_deformation_masks(
+        "ignore_t{t}.png", voxel_size=result.stacks[0].voxel_size)
+    if len(masks) not in (1, len(displacement_list)):
+        raise ValueError("Provide one mask for all frames or one per deformation.")
     for i, displacements in enumerate(displacement_list):
         result.solvers[i] = saenopy.interpolate_mesh(
             result.mesh_piv[i], displacements, result.mesh_parameters,
-            custom_mask=saenopy.get_custom_mask(result, i))
+            ignore_mask_2d=masks[0 if len(masks) == 1 else i])
     result.save()
+
+A NumPy YX array can also be passed directly with
+``ignore_mask_2d=mask_yx, mask_voxel_size=(dx, dy, dz)``. The older argument name
+``custom_mask`` remains an alias. Three-dimensional masks are rejected.
+
+In the GUI, **use 2D exclusion mask** is unchecked by default. Checking it
+reveals the source selector with **Add custom mask…**. Unchecking it disables
+mask exclusion. **Use same voxel size** initially copies the matrix voxel size;
+uncheck it to specify another XY pixel size. One image can apply to all time
+points, or a series can match the matrix frames or deformation pairs. Sources
+and pixel sizes are saved with the result, and saved active masks restore the
+checkbox. Reset and re-interpolate an existing mesh after changing the mask.

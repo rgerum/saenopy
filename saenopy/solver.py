@@ -1291,20 +1291,27 @@ def _sample_custom_mask(nodes, custom_mask, voxel_size):
 
 
 def interpolate_mesh(mesh: PivMesh, xpos2: np.ndarray, params: dict, *,
-                     custom_mask=None, mask_voxel_size=None) -> Solver:
+                     ignore_mask_2d=None, mask_voxel_size=None, custom_mask=None) -> Solver:
     """Interpolate PIV displacements and optionally exclude image-mask targets.
 
-    ``custom_mask`` is a 2D YX image array or a single-channel, one-plane
+    ``ignore_mask_2d`` is a 2D YX image array or a single-channel, one-plane
     :class:`Stack` (a YX1 array is also accepted).
+    Use :func:`saenopy.load_2d_deformation_masks` to load masks from image files.
     Nonzero pixels exclude target vectors after interpolation through all
     Z planes. ``mask_voxel_size`` gives XYZ pixel sizes
     in micrometres and is required for arrays; a Stack supplies its own sizes.
     The image and PIV field share their center. Nearest-pixel sampling preserves
     the binary mask; targets outside its image extent remain unchanged.
     PIV measurements and the force regularization mask are left unchanged.
+    ``custom_mask`` is retained as an alias; supply only one mask argument.
     """
     import saenopy
     from saenopy.multigrid_helper import get_scaled_mesh, get_nodes_with_one_face
+
+    if custom_mask is not None:
+        if ignore_mask_2d is not None:
+            raise ValueError("Supply only ignore_mask_2d; custom_mask is its compatibility alias.")
+        ignore_mask_2d = custom_mask
 
     x, y, z = (mesh.nodes.max(axis=0) - mesh.nodes.min(axis=0)) * 1e6
     if params["mesh_size"] == "piv":
@@ -1340,8 +1347,8 @@ def interpolate_mesh(mesh: PivMesh, xpos2: np.ndarray, params: dict, *,
 
     # Retain Saenopy's existing linear interpolation with nearest fallback.
     U_target = saenopy.get_deformations.interpolate_different_mesh(R, source, points)
-    if custom_mask is not None:
-        U_target[_sample_custom_mask(points, custom_mask, mask_voxel_size)] = np.nan
+    if ignore_mask_2d is not None:
+        U_target[_sample_custom_mask(points, ignore_mask_2d, mask_voxel_size)] = np.nan
 
     border_idx = get_nodes_with_one_face(cells)
     inside_mask = np.ones(points.shape[0], dtype=bool)
