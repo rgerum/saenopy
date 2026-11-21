@@ -40,7 +40,7 @@ def test_legacy_channel_migration_preserves_explicit_selection(explicit_channel)
         assert loaded.solve_parameters["seg_channel"] == explicit_channel
 
 
-@pytest.mark.parametrize("stop_after,max_iterations", [(0, 3), (1, 3), (3, 3), (14, 20)])
+@pytest.mark.parametrize("stop_after,max_iterations", [(0, 3), (1, 3), (3, 3), (14, 20), (15, 20)])
 def test_cancel_at_start_during_fit_or_at_plateau(monkeypatch, stop_after, max_iterations):
     from saenopy.gui.solver.modules.Regularizer import Regularizer
     result = example_result()
@@ -60,6 +60,8 @@ def test_cancel_at_start_during_fit_or_at_plateau(monkeypatch, stop_after, max_i
                         callback=callback, cancel_signal=signal)
     assert len(solver.regularisation_results) - 1 == stop_after
     assert solver.regularisation_parameters["cancelled"] is True
+    assert solver.regularisation_parameters["stop_reason"] == "cancelled"
+    assert not solver.regularisation_parameters["objective_plateau_reached"]
     assert Regularizer.check_status(None, result) == ("progress", 0, 1)
     assert np.all(solver.mesh.forces[~solver.mesh.regularisation_mask] == 0)
     assert np.all(solver.mesh.forces_border[solver.mesh.regularisation_mask] == 0)

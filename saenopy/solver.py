@@ -907,7 +907,7 @@ class Solver(Saveable):
         # Plain lists remain JSON-compatible for sweep provenance and are saved
         # with existing solver metadata; no new required file-format fields.
         self.regularisation_parameters.update(
-            cancelled=bool(cancel_signal is not None and getattr(cancel_signal, "cancel", False)),
+            cancelled=stop_reason == "cancelled",
             stop_reason=stop_reason,
             elapsed_seconds=float(time.monotonic() - started),
             convergence_window=convergence_window,
@@ -1024,7 +1024,7 @@ class Solver(Saveable):
 
         if mode.lower() == "deformation_target":
             # mode to calculate from PIV data directly
-            U = self.mesh.displacements_target
+            U = self.mesh.displacements_target.copy()
             # remove nanas from 3D PIV here to be able to do the calculations
             U[np.isnan(U)] = 0
 

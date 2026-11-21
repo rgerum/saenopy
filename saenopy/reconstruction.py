@@ -156,9 +156,10 @@ def fit_result(result, index=0, *, parameters=None, material_parameters=None,
             previous = result.solvers[index - 1].mesh
             if not np.array_equal(previous.nodes, solver.mesh.nodes):
                 raise ValueError("previous time step has a different mesh; disable prev_t_as_start")
-            solver.mesh.displacements[:] = previous.displacements
+            solver.set_initial_displacements(previous.displacements)
         elif len(result.solvers) == 1:
-            solver.mesh.displacements[:] = np.nan_to_num(solver.mesh.displacements_target)
+            solver.set_initial_displacements(np.where(
+                solver.mesh.displacements_target_mask[:, None], solver.mesh.displacements_target, 0.))
     surface = bool(params.get("surface", False))
     geometry = None
     if surface or params.get("exclude_cell_interior", False):

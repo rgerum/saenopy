@@ -38,18 +38,22 @@ def test_cancelled_inner_step_retains_initial_field_and_saved_status(monkeypatch
     import saenopy.solver as module
     result = example_result()
     initial = result.solvers[0].mesh.displacements.copy()
+    signal = SimpleNamespace(cancel=False)
     def interrupted(A, b, maxiter, tol, **kwargs):
+        kwargs['cancel_signal'].cancel = True
         return np.ones_like(b), dict(iterations=1, maxiter=maxiter, relative_residual=1.,
             relative_tolerance=np.sqrt(tol), converged=False, reason='cancelled')
     monkeypatch.setattr(module, 'cg', interrupted)
-    fit_result(result)
+    fit_result(result, cancel_signal=signal)
     s = result.solvers[0]
     np.testing.assert_array_equal(s.mesh.displacements, initial)
     assert len(s.regularisation_results) == 1
     assert s.regularisation_parameters['stop_reason'] == 'cancelled'
+    assert s.regularisation_parameters['cancelled'] is True
     assert not s.regularisation_parameters['objective_plateau_reached']
     p = tmp_path / 'cancelled.saenopy'
     result.save(p)
     loaded = Result.load(p)
     assert loaded.solvers[0].regularisation_parameters['stop_reason'] == 'cancelled'
+    assert bool(loaded.solvers[0].regularisation_parameters['cancelled'])
     np.testing.assert_array_equal(loaded.solvers[0].mesh.displacements, initial)
