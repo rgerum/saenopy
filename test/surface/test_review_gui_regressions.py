@@ -196,6 +196,55 @@ def test_failed_segmentation_retry_button_and_queue_preserve_fields(gui_window, 
     assert "Li threshold timed out" in regularizer.input_button_preview_text.text()
 
 
+@pytest.mark.parametrize("widget_name,value", [
+    ("input_step_size", .35), ("input_surface", True), ("input_k", 1234.),
+])
+def test_partial_fit_defaults_and_edits_survive_dataset_switch(gui_window, widget_name, value):
+    regularizer = gui_window.sub_module_regularize
+    other = example_result()
+    other.solve_parameters.update(step_size=.4, prev_t_as_start=True,
+                                  seg_threshold_method="otsu")
+    regularizer.setResult(other)
+    result = series_result(2)
+    saved = dict(result.solve_parameters)
+    for solver in result.solvers:
+        solver.regularisation_results = np.ones((2, 3))
+        solver.regularisation_parameters = {}
+    result.solvers[-1].regularisation_parameters["cancelled"] = True
+    regularizer.setResult(result)
+    assert result.solve_parameters_tmp["step_size"] == .2
+    assert result.solve_parameters_tmp["prev_t_as_start"] is False
+    assert result.solve_parameters_tmp["seg_threshold_method"] == "li"
+    assert regularizer.input_button.text() == "continue"
+    widget = getattr(regularizer, widget_name)
+    original = widget.value()
+    widget.setValue(value, send_signal=True)
+    assert regularizer.input_button.text() == "retry all frames"
+    regularizer.setResult(other)
+    regularizer.setResult(result)
+    assert regularizer.input_button.text() == "retry all frames"
+    widget.setValue(original, send_signal=True)
+    assert regularizer.input_button.text() == "continue"
+    assert result.solve_parameters == saved
+
+
+@pytest.mark.parametrize("changed", [False, True])
+def test_unselected_partial_batch_result_uses_same_retry_defaults(gui_window, monkeypatch, changed):
+    regularizer = gui_window.sub_module_regularize
+    regularizer.setResult(example_result())
+    result = series_result(2)
+    result.solvers[0].regularisation_results = np.ones((2, 3))
+    result.solve_parameters_tmp = dict(result.solve_parameters)
+    if changed:
+        result.solve_parameters_tmp["alpha"] *= 2
+    queued = []
+    monkeypatch.setattr(gui_window, "addTask", lambda *args: queued.append(args))
+    regularizer.start_process(result=result)
+    assert len(queued) == 1
+    assert result._retry_all_frames is changed
+    assert result.solve_parameters_tmp["prev_t_as_start"] is False
+
+
 def test_actual_channel_edit_after_dataset_switch_updates_fit_settings(gui_window):
     from saenopy import Result
     regularizer = gui_window.sub_module_regularize

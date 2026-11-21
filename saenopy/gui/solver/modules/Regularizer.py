@@ -34,7 +34,8 @@ class CancelSignal:
 
 
 from saenopy.reconstruction import segment_with_params
-from saenopy.surface_regularization import DEFAULT_SEG_CHANNEL, DEFAULT_SMOOTHING_SIGMA_UM
+from saenopy.surface_regularization import (DEFAULT_SEG_CHANNEL, DEFAULT_SMOOTHING_SIGMA_UM,
+                                          DEFAULT_THRESHOLD_METHOD, DEFAULT_THRESHOLD_FACTOR)
 from .live_fit import solver_snapshot
 from .image_source_dialog import ImageSourceChoice, ImageSourceDialog, source_choices
 
@@ -247,13 +248,20 @@ class Regularizer(PipelineModule):
             [name for _, name in choices] + ["Add local images…"])
         self.input_seg_channel.setValue(1 if len(channels) > 1 else 0)
 
+    def _remember_retry_defaults(self, result):
+        # Do not replace this baseline when returning to an edited result.
+        if not hasattr(result, "_retry_parameter_defaults"):
+            result._retry_parameter_defaults = dict(result.solve_parameters_tmp)
+
     def _retry_settings_changed(self, result):
         previous = getattr(result, "_fit_attempt_parameters", None) or {}
         for mapping in self.parameter_mappings:
             stored = previous.get(mapping.params_name, getattr(result, mapping.params_name, None)) or {}
+            defaults = (getattr(result, "_retry_parameter_defaults", {})
+                        if mapping.params_name == "solve_parameters" else {})
             pending = getattr(result, mapping.params_name + "_tmp", None) or {}
             for key, value in pending.items():
-                old = stored.get(key)
+                old = stored.get(key, defaults.get(key))
                 value = None if isinstance(value, str) and value == "None" else value
                 old = None if isinstance(old, str) and old == "None" else old
                 if value != old:
@@ -317,6 +325,7 @@ class Regularizer(PipelineModule):
             self._prepare_gui_parameters(target)
             for mapping in self.parameter_mappings:
                 mapping.ensure_tmp_params_initialized(target)
+            self._remember_retry_defaults(target)
             # GUI fits always normalize; raw Classic remains a Python option.
             target.solve_parameters_tmp["physical_normalization"] = True
             if self.get_result_state(target) not in (
@@ -566,6 +575,17 @@ class Regularizer(PipelineModule):
         if getattr(result, "solve_parameters_tmp", None) is None:
             result.solve_parameters_tmp = dict(result.solve_parameters or {})
         params = result.solve_parameters_tmp
+        if any(getattr(solver, "regularisation_results", None) is not None
+               for solver in result.solvers or []):
+            # API-created fits may omit parameters that used reconstruction
+            # defaults. Restore those rather than values from another dataset.
+            defaults = dict(alpha=1e10, step_size=.2, max_iterations=300,
+                            rel_conv_crit=.01, prev_t_as_start=False,
+                            seg_channel=DEFAULT_SEG_CHANNEL,
+                            seg_threshold_method=DEFAULT_THRESHOLD_METHOD,
+                            seg_threshold_factor=DEFAULT_THRESHOLD_FACTOR, seg_dilate_layers=1)
+            for key, value in defaults.items():
+                params.setdefault(key, value)
         params.setdefault("surface", (result.solve_parameters or {}).get("surface", False))
         params["cg_maxiter_factor"] = DEFAULT_CG_MAXITER_FACTOR
         params.setdefault("seg_smoothing_sigma_um", DEFAULT_SMOOTHING_SIGMA_UM)
@@ -583,6 +603,9 @@ class Regularizer(PipelineModule):
         self._populate_seg_channels(result)
         super().setResult(result)
         if result is not None:
+            # Filling missing settings is not a user edit; remember their
+            # initial values so subsequent edits still trigger a full retry.
+            self._remember_retry_defaults(result)
             # Only edit parameters for the NEXT fit, not the stored result.
             result.solve_parameters_tmp["physical_normalization"] = True
         self._update_preview_controls()

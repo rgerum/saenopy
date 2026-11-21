@@ -267,6 +267,12 @@ def test_lif():
     results = get_stacks("*/PR2729_frameOrderCombinedScanTypes{f:0}{c:0}.lif", "tmp/run-lif", [1, 1, 1], time_delta=1)
     print(results)
     print(results[0].stacks[0].shape)
-    assert results[0].stacks[0][:, :, 0, 0, 0].shape == (64, 64)
-    assert results[0].stacks[0][:, :, 0, :, 0].shape == (64, 64, 1)
-    assert results[0].stacks[0][:, :, 0, 0:1, 0].shape == (64, 64, 1)
+    stack = results[0].stacks[0]
+    dimensions = stack.leica_file.dims
+    assert dimensions.z == 3
+    assert stack[:, :, 0, 0, 0].shape == (64, 64)
+    volume = stack[:, :, 0, :, 0]
+    assert volume.shape == (dimensions.y, dimensions.x, dimensions.z)
+    np.testing.assert_array_equal(
+        volume, np.stack([stack[:, :, 0, z, 0] for z in range(dimensions.z)], axis=2))
+    assert stack[:, :, 0, 0:1, 0].shape == (64, 64, 1)
