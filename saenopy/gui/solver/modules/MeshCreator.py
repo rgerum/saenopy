@@ -95,9 +95,10 @@ class MeshCreator(PipelineModule):
 
                     self.input_mesh_size = MeshSizeWidget().addToLayout()
 
-                    self.input_use_custom_mask = QtWidgets.QCheckBox("use 2D exclusion mask").addToLayout()
-                    self.input_use_custom_mask.setToolTip(
-                        "Optionally ignore target deformations using a 2D image mask.")
+                    self.custom_mask_toggle = QtShortCuts.QInputBool(
+                        None, "use 2D exclusion mask", False, stretch=True,
+                        tooltip="Optionally ignore target deformations using a 2D image mask.")
+                    self.input_use_custom_mask = self.custom_mask_toggle.checkbox
                     self.input_custom_mask = ImageSourceChoice(
                         None, "mask image", None,
                         [None, ImageSourceChoice.ADD], ["none", "Add custom mask…"],
@@ -156,7 +157,7 @@ class MeshCreator(PipelineModule):
 
     def _update_mask_controls(self):
         available = not self._mask_blocked()
-        self.input_use_custom_mask.setEnabled(available)
+        self.custom_mask_toggle.setEnabled(available)
         self.input_custom_mask.setEnabled(available and self.input_use_custom_mask.isChecked())
 
     def _toggle_custom_mask(self, enabled):
