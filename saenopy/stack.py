@@ -149,7 +149,7 @@ class Stack(Saveable):
                 z_min = 0
                 if index[3].start is not None:
                     z_min = index[3].start
-                z_max = self.shape[3]
+                z_max = self.shape[2]
                 if index[3].stop is not None:
                     z_max = index[3].stop
             else:

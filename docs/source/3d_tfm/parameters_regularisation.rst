@@ -121,13 +121,15 @@ exports the current settings and calls the same reconstruction function.
 Additional surface images
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 The **cell channel** menu offers **Add local images…** for a separate 3D cell
-stack, including images acquired at a different zoom. **Use same voxel size**
+stack, including images acquired at a different zoom. **Use matrix voxel size**
 initially copies the matrix voxel size; uncheck it to enter the new XYZ sizes
 in micrometres. The images are aligned by their centres. Segmentation, surface
 area and preview use the added stack's physical dimensions.
 
 Choose one stack for all time points or a ``{t}`` series matching the matrix
-frames in natural filename order. The added channel remains selectable after
+frames in natural filename order. The dialog imports one channel/position;
+only Z and, for a series, time vary. X/Y/Z appear beside the voxel-size checkbox.
+The added channel remains selectable after
 saving and reopening the result, and is included in exported Python scripts::
 
     channel = saenopy.add_image_source(

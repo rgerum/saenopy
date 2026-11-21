@@ -70,6 +70,8 @@ def _load_stacks(filename, voxel_size):
         if axis not in table:
             table[axis] = "0"
     channels = natsort.natsorted(table.c.unique())
+    if selected_channel is None and len(channels) > 1:
+        raise ValueError("Select exactly one image channel, using a fixed channel path or {c:channel}.")
     if selected_channel is not None:
         if selected_channel not in channels:
             raise ValueError("The selected image channel is missing.")
@@ -77,6 +79,7 @@ def _load_stacks(filename, voxel_size):
         channels.insert(0, selected_channel)
     # Each added source is one selected channel, independently of the matrix.
     channels = channels[:1]
+    table = table[table.c == channels[0]]
     slices = natsort.natsorted(table.z.unique())
     stacks = []
     for time in natsort.natsorted(table.t.unique()):

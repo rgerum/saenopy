@@ -165,3 +165,19 @@ def test_missing_surface_slice_is_not_silently_recentered(tmp_path):
     with pytest.raises(ValueError, match="every selected slice"):
         saenopy.add_image_source(result, tmp_path / "cell_t{t}_z{z}.tif", time_mode="series")
     assert result.image_sources == []
+
+
+def test_ambiguous_channels_are_rejected_and_explicit_selection_is_isolated(tmp_path):
+    result = result_with_frames(tmp_path)
+    for channel, times in ((0, (0, 1)), (1, (0,))):
+        for time in times:
+            tifffile.imwrite(tmp_path / f"mask_t{time}_c{channel}.tif",
+                             np.full((21, 31), channel, np.uint8))
+    with pytest.raises(ValueError, match="exactly one image channel"):
+        saenopy.add_image_source(result, tmp_path / "mask_t{t}_c{c}.tif", kind="mask")
+    assert result.image_sources == []
+    # The unselected channel's extra time point must not affect this source.
+    key = saenopy.add_image_source(result, tmp_path / "mask_t{t}_c{c:1}.tif", kind="mask")
+    stack = saenopy.get_image_source(result, key, 0)
+    assert stack.channels == ["1"]
+    assert stack[:, :, 0, :, 0].all()

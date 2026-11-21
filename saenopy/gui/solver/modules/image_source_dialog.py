@@ -33,17 +33,58 @@ def source_choices(result, kind):
             if source.kind == kind]
 
 
-class MaskStackSelectorTif(StackSelectorTif):
-    """Use the existing wildcard selector, with one XY image per time point."""
+class SourceStackSelectorTif(StackSelectorTif):
+    """One channel/position, with only the required Z and time dimensions."""
+    def __init__(self, parent, kind):
+        self.is_mask = kind == "mask"
+        self.series = False
+        self.time_property = None
+        super().__init__(parent, use_time=True)
+        self.c_prop.hide()
+        self.t_prop.hide()
+        self.z_prop.setLabel("Z slices")
+        self.t_prop.setLabel("time index")
+        for line in self.findChildren(QtWidgets.QFrame):
+            if line.frameShape() == QtWidgets.QFrame.HLine:
+                line.hide()
+        if self.is_mask:
+            self.z_prop.hide()
+
     def propertiesChanged(self):
         if self.df is None:
             return
-        # The ordinary selector requires a Z sort column. Sorting by filename
-        # keeps its channel/time/wildcard handling without introducing a Z axis.
-        self.z_prop.setValues(["filename"], ["2D mask (all Z)"])
-        self.z_prop.setValue("filename")
-        self.z_prop.hide()
+        if "tiff pages" in self.df:
+            self.df["tiff pages"] = self.df["tiff pages"].astype(str)
+        fixed = {"c", "ch", "channel", "pos", "position", "well", "fov"}
+        if self.is_mask:
+            # Sorting one XY plane by filename reuses the existing parser.
+            self.z_prop.setValues(["filename"], ["2D mask (all Z)"])
+            self.z_prop.setValue("filename")
+        else:
+            z_values = [name for name in self.df.columns
+                        if name != "filename" and name.lower() not in fixed | {"t", "time"}]
+            selected_z = self.z_prop.value()
+            self.z_prop.setValues(z_values or ["filename"])
+            self.z_prop.setValue(selected_z if selected_z in z_values else (z_values or ["filename"])[-1])
+        z_property = self.z_prop.value()
+        candidates = [name for name in self.df.columns
+                      if name not in ("filename", z_property) and name.lower() not in fixed]
+        selected = self.t_prop.value()
+        if selected in candidates:
+            self.time_property = selected
+        if self.time_property not in candidates:
+            self.time_property = next((name for name in candidates
+                                       if name.lower() in ("t", "time", "frame")), "None")
+        self.t_prop.setValues(["None"] + candidates, ["select time index"] + candidates)
+        self.t_prop.setValue(self.time_property if self.series else "None")
+        self.t_prop.setVisible(self.series and bool(candidates))
+        self.c_prop.setValue("None")
+        for prop in self.property_selectors:
+            prop.check.setValue(False)
+            prop.check.hide()
+            prop.setVisible(prop.name not in (z_property, self.t_prop.value()))
         super().propertiesChanged()
+        self.label2.setText(f"{self.get_t_count()} time point(s), one channel")
 
 
 class ImageSourceDialog(QtWidgets.QDialog):
@@ -60,29 +101,38 @@ class ImageSourceDialog(QtWidgets.QDialog):
             if is_mask else "Load a 3D cell-image stack for surface segmentation.")
         explanation.setWordWrap(True)
         layout.addWidget(explanation)
+        counts = sorted(({len(result.stacks), len(result.mesh_piv)} if is_mask else {len(result.stacks)}) - {0})
+        self.input_time = QtShortCuts.QInputChoice(
+            layout, "use images", "single", ["single", "series"],
+            ["one image for all time points" if is_mask else "one 3D stack for all time points",
+             "one image per time point" if is_mask else "one 3D stack per time point"])
+        self.requirements = QtWidgets.QLabel(
+            f"This measurement: {len(result.stacks)} matrix time point(s). "
+            + ("A mask series needs " if is_mask else "A surface series needs ")
+            + " or ".join(map(str, counts)) + " time point(s). Select one channel and one position.")
+        self.requirements.setWordWrap(True)
+        layout.addWidget(self.requirements)
         self.stack_selector = StackSelector(layout, "mask images" if is_mask else "surface images",
                                             use_time=True)
-        if is_mask:
-            for selector in list(self.stack_selector.selectors):
-                if isinstance(selector, StackSelectorTif):
-                    replacement = MaskStackSelectorTif(self.stack_selector, use_time=True)
-                    self.stack_selector.layout().replaceWidget(selector, replacement)
-                    self.stack_selector.selectors[self.stack_selector.selectors.index(selector)] = replacement
-                    selector.setParent(None)
-                    selector.deleteLater()
+        for selector in list(self.stack_selector.selectors):
+            if isinstance(selector, StackSelectorTif):
+                replacement = SourceStackSelectorTif(self.stack_selector, kind)
+                self.stack_selector.layout().replaceWidget(selector, replacement)
+                self.stack_selector.selectors[self.stack_selector.selectors.index(selector)] = replacement
+                selector.setParent(None)
+                selector.deleteLater()
         self.pattern = QtWidgets.QLineEdit()
         self.pattern.setPlaceholderText("Image path / pattern with {z} and/or {t}")
         self.pattern.setToolTip("Select one measurement. Use {t} for time and {z} for 3D stacks.")
         layout.addWidget(self.pattern)
-        self.stack_selector.glob_string_changed.connect(lambda _, pattern: self.pattern.setText(pattern))
+        self.stack_selector.glob_string_changed.connect(self._set_pattern)
+        self.input_time.valueChanged.connect(self._update_time_mode)
         self.input_name = QtShortCuts.QInputString(layout, "name", "Ignore mask" if is_mask else "Surface images")
-        self.input_time = QtShortCuts.QInputChoice(
-            layout, "time points", "single", ["single", "series"],
-            ["one image for all time points" if is_mask else "one stack for all time points", "time series"])
-        self.input_time.setEnabled(len(result.stacks) > 1)
-        self.input_same_voxel_size = QtShortCuts.QInputBool(layout, "Use same voxel size", True)
         voxel_row = QtWidgets.QHBoxLayout()
         layout.addLayout(voxel_row)
+        self.input_same_voxel_size = QtShortCuts.QInputBool(
+            voxel_row, "Use matrix voxel size", True,
+            tooltip="Use the voxel size of the original matrix images.")
         self.voxel_inputs = [QtShortCuts.QInputNumber(
             voxel_row, axis, value, min=0, float=True, decimals=6, unit="µm")
             for axis, value in zip("XYZ", result.stacks[0].voxel_size)]
@@ -97,7 +147,29 @@ class ImageSourceDialog(QtWidgets.QDialog):
         buttons.accepted.connect(self.accept)
         buttons.rejected.connect(self.reject)
         layout.addWidget(buttons)
-        self.resize(620, 500)
+        self.resize(760, 360)
+
+    def _set_pattern(self, _, pattern):
+        # The generic TIFF picker emits [{t}] for pages used as time; the
+        # existing image loader uses [t]. Leica needs an explicit fixed time.
+        pattern = pattern.replace("[{t}]", "[t]")
+        active = self.stack_selector.active
+        if pattern.endswith(".lif") and active is not None:
+            single = self.input_time.value() == "single"
+            active.time.setVisible(single)
+            if single:
+                pattern = pattern.replace(".lif", f"{{t:{active.time.value()}}}.lif")
+        self.pattern.setText(pattern)
+
+    def _update_time_mode(self):
+        for selector in self.stack_selector.selectors:
+            if isinstance(selector, SourceStackSelectorTif):
+                selector.series = self.input_time.value() == "series"
+        active = self.stack_selector.active
+        if isinstance(active, SourceStackSelectorTif):
+            active.propertiesChanged()
+        elif active is not None:
+            active.showImage()
 
     def _update_voxel_inputs(self):
         for widget in self.voxel_inputs:

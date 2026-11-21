@@ -72,8 +72,15 @@ A NumPy YX array can also be passed directly with
 
 In the GUI, **use 2D exclusion mask** is unchecked by default. Checking it
 reveals the source selector with **Add custom mask…**. Unchecking it disables
-mask exclusion. **Use same voxel size** initially copies the matrix voxel size;
-uncheck it to specify another XY pixel size. One image can apply to all time
+mask exclusion. **Use matrix voxel size** initially copies the matrix voxel size;
+uncheck it to edit X/Y in the same row. One image can apply to all time
 points, or a series can match the matrix frames or deformation pairs. Sources
 and pixel sizes are saved with the result, and saved active masks restore the
 checkbox. Reset and re-interpolate an existing mesh after changing the mask.
+
+The image dialog adds one channel of one measurement. Channel and position
+values stay fixed; batch/all selections are unavailable. Choose **one image
+for all time points** to reuse a selected time point, or **one image per time
+point** to expose the time index. The dialog shows the required series length
+and checks it before import. Filenames and image resolution may differ from
+the matrix images; time points are paired in natural filename order.

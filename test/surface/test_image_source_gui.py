@@ -219,8 +219,8 @@ def test_mask_series_uses_time_property_and_optional_pixel_size(app, tmp_path):
     result = matrix_result(tmp_path)
     dialog = ImageSourceDialog(None, result, "mask")
     dialog.stack_selector.file_changed(str(tmp_path / "mask_t0.png"))
+    dialog.input_time.setValue("series", send_signal=True)
     dialog.stack_selector.active.t_prop.setValue("t", send_signal=True)
-    dialog.input_time.setValue("series")
     dialog.input_same_voxel_size.setValue(False, send_signal=True)
     assert dialog.voxel_inputs[0].isEnabled()
     dialog.voxel_inputs[0].setValue(1.5)
@@ -250,3 +250,102 @@ def test_surface_multipage_tiff_has_z_and_layout(app, tmp_path):
     assert result.image_sources[0].stacks[0].shape == (8, 12, 5, 1)
     assert result.image_sources[0].time_mode == "single"
     dialog.close()
+
+
+def test_source_picker_fixes_one_channel_position_and_reuses_selected_time(app, tmp_path):
+    from saenopy.gui.solver.modules.image_source_dialog import ImageSourceDialog
+    from saenopy import get_image_source
+    for pos in (1, 2):
+        for channel in (0, 1):
+            for time in (0, 1):
+                iio.imwrite(tmp_path / f"pos{pos}_c{channel}_t{time}.png",
+                            np.full((8, 12), pos * 10 + channel * 2 + time, np.uint8))
+    result = matrix_result(tmp_path)
+    dialog = ImageSourceDialog(None, result, "mask")
+    dialog.stack_selector.file_changed(str(tmp_path / "pos1_c1_t1.png"))
+    picker = dialog.stack_selector.active
+    assert picker.c_prop.isHidden() and picker.t_prop.isHidden()
+    assert all(prop.check.isHidden() and not prop.check.value() for prop in picker.property_selectors)
+    assert dialog.input_time.isEnabled()
+    assert "pos1_c1_t1.png" in dialog.pattern.text()
+    dialog.input_time.setValue("series", send_signal=True)
+    assert picker.t_prop.value() == "t"
+    assert "c" not in picker.t_prop.values and "pos" not in picker.t_prop.values
+    assert "pos1_c1_t{t}.png" in dialog.pattern.text()
+    dialog.input_time.setValue("single", send_signal=True)
+    assert "pos1_c1_t1.png" in dialog.pattern.text()
+    dialog.accept()
+    for frame in range(2):
+        np.testing.assert_array_equal(get_image_source(result, dialog.source_key, frame)[:, :, 0, 0, 0],
+                                      np.full((8, 12), 13))
+    assert len(result.image_sources[0].stacks) == 1
+    dialog.close()
+
+
+def test_single_frame_time_choice_stays_enabled_and_voxels_share_row(app, tmp_path):
+    from saenopy.gui.solver.modules.image_source_dialog import ImageSourceDialog
+    result = matrix_result(tmp_path, count=1)
+    for kind in ("mask", "surface"):
+        dialog = ImageSourceDialog(None, result, kind)
+        dialog.show()
+        app.processEvents()
+        assert dialog.input_time.isEnabled()
+        assert dialog.input_time.value() == "single"
+        assert "1 matrix time point" in dialog.requirements.text()
+        assert dialog.input_same_voxel_size.value()
+        assert not dialog.voxel_inputs[0].isEnabled()
+        for field in dialog.voxel_inputs[:2 if kind == "mask" else 3]:
+            assert abs(field.geometry().center().y()
+                       - dialog.input_same_voxel_size.geometry().center().y()) <= 2
+        assert dialog.voxel_inputs[2].isHidden() == (kind == "mask")
+        dialog.input_same_voxel_size.setValue(False, send_signal=True)
+        assert dialog.voxel_inputs[0].isEnabled()
+        assert dialog.grab().save(str(tmp_path / f"{kind}_compact_dialog.png"))
+        dialog.close()
+
+
+def test_surface_picker_keeps_channel_position_fixed_and_z_separate_from_time(app, tmp_path):
+    from saenopy.gui.solver.modules.image_source_dialog import ImageSourceDialog
+    from saenopy import get_image_source
+    for channel in (0, 1):
+        for time in (0, 1):
+            for z in (0, 1, 2):
+                iio.imwrite(tmp_path / f"pos1_c{channel}_t{time}_z{z}.png",
+                            np.full((8, 12), 10 * channel + 3 * time + z, np.uint8))
+    result = matrix_result(tmp_path)
+    dialog = ImageSourceDialog(None, result, "surface")
+    dialog.stack_selector.file_changed(str(tmp_path / "pos1_c1_t1_z0.png"))
+    picker = dialog.stack_selector.active
+    assert picker.z_prop.values == ["z"]
+    dialog.input_time.setValue("series", send_signal=True)
+    assert picker.t_prop.values == ["None", "t"]
+    assert "pos1_c1_t{t}_z{z}.png" in dialog.pattern.text()
+    dialog.accept()
+    stack = get_image_source(result, dialog.source_key, 1)
+    assert stack.shape == (8, 12, 3, 1)
+    np.testing.assert_array_equal(stack[0, 0, 0, :, 0], [13, 14, 15])
+    dialog.close()
+
+
+def test_mask_tiff_pages_can_be_fixed_or_time_series(app, tmp_path):
+    from saenopy.gui.solver.modules.image_source_dialog import ImageSourceDialog
+    from saenopy import get_image_source
+    path = tmp_path / "masks.tif"
+    images = np.stack([np.full((8, 12), value, np.uint8) for value in (7, 9)])
+    tifffile.imwrite(path, images, photometric="minisblack")
+    for series in (False, True):
+        result = matrix_result(tmp_path)
+        dialog = ImageSourceDialog(None, result, "mask")
+        dialog.stack_selector.file_changed(str(path))
+        picker = dialog.stack_selector.active
+        if series:
+            dialog.input_time.setValue("series", send_signal=True)
+            picker.t_prop.setValue("tiff pages", send_signal=True)
+            assert dialog.pattern.text().endswith("[t]")
+        else:
+            page = next(prop for prop in picker.property_selectors if prop.name == "tiff pages")
+            page.setValue("1", send_signal=True)
+        dialog.accept()
+        np.testing.assert_array_equal(get_image_source(result, dialog.source_key, 1)[:, :, 0, 0, 0], images[1])
+        assert len(result.image_sources[0].stacks) == (2 if series else 1)
+        dialog.close()
