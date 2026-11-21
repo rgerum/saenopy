@@ -216,10 +216,15 @@ class Regularizer(PipelineModule):
         })
 
         self.parent.tasks_changed.connect(self._update_preview_controls)
+        self.parent.tasks_changed.connect(self._update_retry_controls)
+        for mapping in self.parameter_mappings:
+            for widget in mapping.parameter_dict.values():
+                widget.valueChanged.connect(self._update_retry_controls)
         self._update_preview_controls()
         self.initialize_plot()
         self.iteration_finished.connect(self.iteration_callback)
         self.live_field_ready.connect(self.show_live_field)
+        self.parent.t_slider.t_slider.valueChanged.connect(self.update_stop_status)
         self.iteration_finished.emit(None, np.ones([10, 3]), 0, None)
 
     def _preview_blocked(self):
@@ -242,6 +247,41 @@ class Regularizer(PipelineModule):
             [name for _, name in choices] + ["Add local images…"])
         self.input_seg_channel.setValue(1 if len(channels) > 1 else 0)
 
+    def _retry_settings_changed(self, result):
+        previous = getattr(result, "_fit_attempt_parameters", None) or {}
+        for mapping in self.parameter_mappings:
+            stored = previous.get(mapping.params_name, getattr(result, mapping.params_name, None)) or {}
+            pending = getattr(result, mapping.params_name + "_tmp", None) or {}
+            for key, value in pending.items():
+                old = stored.get(key)
+                value = None if isinstance(value, str) and value == "None" else value
+                old = None if isinstance(old, str) and old == "None" else old
+                if value != old:
+                    return True
+        return False
+
+    def _has_partial_fit(self, result):
+        return (self.check_status(result)[0] == "progress"
+                and any(getattr(solver, "regularisation_results", None) is not None
+                        for solver in result.solvers))
+
+    def _update_retry_controls(self):
+        result = self.result
+        error = getattr(result, "_segmentation_error", None)
+        state = self.get_result_state(result)
+        if not ((state == StateEnum.failed and error)
+                or (state == StateEnum.idle and self._has_partial_fit(result))):
+            return
+        restart = self._retry_settings_changed(result)
+        self.input_button.setText("retry all frames" if restart else "continue")
+        self.input_button.setEnabled(self.check_available(result) and not self.parent.has_scheduled_tasks())
+        if error:
+            self.input_button_preview_text.show()
+            self.input_button_preview_text.setText(
+                f"segmentation failed: {error}\n" +
+                ("Changed settings: retry recalculates all time points."
+                 if restart else "Continue retries the pending time points."))
+
     def add_local_images(self):
         if self.result is None or not self.result.stacks or self._preview_blocked():
             return
@@ -251,13 +291,20 @@ class Regularizer(PipelineModule):
             self.input_seg_channel.setValue(dialog.source_key, send_signal=True)
             self.result.save()
 
-    def state_changed(self, result):
+    def _clear_finished_snapshots(self, result):
         if result is not None and self.get_result_state(result) not in (
                 StateEnum.scheduled, StateEnum.running, StateEnum.cancelling):
             result._live_fit_active = False
             result._live_fit_solvers = {}
+
+    def state_changed(self, result):
+        self._clear_finished_snapshots(result)
         super().state_changed(result)
         self._update_preview_controls()
+        self._update_retry_controls()
+        if (result is self.result and self.get_result_state(result) == StateEnum.running
+                and self.input_button_preview_text.text().startswith("segmentation failed:")):
+            self.input_button_preview_text.clear()
         for viewer in (self.parent.tab4, self.parent.tab5):
             viewer.resultChanged(result)
         if result is self.result and self.get_result_state(result) == StateEnum.cancelling:
@@ -274,6 +321,9 @@ class Regularizer(PipelineModule):
             target.solve_parameters_tmp["physical_normalization"] = True
             if self.get_result_state(target) not in (
                     StateEnum.scheduled, StateEnum.running, StateEnum.cancelling):
+                target._retry_all_frames = bool(
+                    (getattr(target, "_segmentation_error", None) or self._has_partial_fit(target))
+                    and self._retry_settings_changed(target))
                 target._live_fit_solvers = {
                     i: solver_snapshot(s) for i, s in enumerate(target.solvers or []) if s is not None}
                 target._live_fit_active = True
@@ -345,9 +395,8 @@ class Regularizer(PipelineModule):
             mask &= M.mesh.regularisation_mask & M.mesh.movable
             if not mask.any():
                 raise ValueError("no active surface nodes; check segmentation and mesh size")
-            sr.set_surface_regularization(M, mask)
             # Transient display data, not a solver constraint or saved file field.
-            M.mesh._segmentation_preview = (vertices, faces)
+            M.mesh._segmentation_preview = (vertices, faces, mask)
             status = "touches image edge; not capped" if touches_edge else "inside image bounds"
             self.input_button_preview_text.setText(
                 f"threshold {used:.1f} → {int(mask.sum())} surface nodes "
@@ -436,6 +485,20 @@ class Regularizer(PipelineModule):
         # GUI fits use the internal budget, including refits of older files.
         # Explicit alternative budgets remain available through the Python API.
         solve_parameters = dict(solve_parameters, cg_maxiter_factor=DEFAULT_CG_MAXITER_FACTOR)
+        result._fit_attempt_parameters = {
+            "material_parameters": dict(material_parameters),
+            "solve_parameters": dict(solve_parameters),
+        }
+        if getattr(result, "_retry_all_frames", False):
+            # Invalidate old fits only when the retry worker actually starts.
+            # Keep mesh/boundary data and fields; each frame is then refitted.
+            # Pending frames must remain pending even if this retry stops early.
+            for solver in result.solvers:
+                solver.regularisation_results = None
+                solver.regularisation_parameters = None
+                solver.relrec = None
+            result._retry_all_frames = False
+        result._segmentation_error = None
         # demo run
         if os.environ.get("DEMO") == "true":
             imax = 100
@@ -458,7 +521,17 @@ class Regularizer(PipelineModule):
             result.solvers[i].mesh._segmentation_preview = None
             self.parent.signal_process_status_update.emit(f"{i}/{len(result.solvers)} fitting forces", f"{Path(result.output).name}")
 
-            from saenopy.reconstruction import fit_result
+            from saenopy.reconstruction import fit_result, prepare_surface
+
+            # Validate this frame's segmentation before fit_result changes its
+            # solver, and reuse it in the fit instead of segmenting twice.
+            geometry = None
+            if solve_parameters.get("surface", False) or solve_parameters.get("exclude_cell_interior", False):
+                try:
+                    geometry = prepare_surface(result, i, solve_parameters)
+                except ValueError as error:
+                    result._segmentation_error = str(error)
+                    raise
 
             last_display = 0.0
             def callback(M, relrec, iteration, imax, frame=i):
@@ -471,6 +544,7 @@ class Regularizer(PipelineModule):
 
             solver = fit_result(result, i, parameters=solve_parameters,
                        material_parameters=material_parameters, callback=callback,
+                       prepared_surface=geometry,
                        cancel_signal=self.cancel_p, verbose=True, resume=cancelled)
             # Always publish the final field, even after early convergence or
             # cancellation within the one-second display throttle.
@@ -513,6 +587,7 @@ class Regularizer(PipelineModule):
             result.solve_parameters_tmp["physical_normalization"] = True
         self._update_preview_controls()
         self.update_plot()
+        self._update_retry_controls()
 
     def update_plot(self):
         self.update_stop_status()
@@ -527,6 +602,7 @@ class Regularizer(PipelineModule):
             self.plot_empty()
 
     def resultChanged(self, result):
+        self._clear_finished_snapshots(result)
         super().resultChanged(result)
         if result is self.result:
             self.update_stop_status()

@@ -44,12 +44,10 @@ class TabFittedDeformations(TabModule):
         self.update_display()
 
     def checkTabEnabled(self, result: Result) -> bool:
-        if live_fit_available(result, self.t_slider.value()):
-            return True
-        try:
-            return getattr(self.result.solvers[0], "regularisation_results", None) is not None
-        except (AttributeError, IndexError, TypeError):
-            return False
+        frame = self.t_slider.value()
+        if getattr(result, "_live_fit_active", False):
+            return live_fit_available(result, frame)
+        return getattr(displayed_solver(result, frame), "regularisation_results", None) is not None
 
     def property_changed(self, name, value):
         if name == "z_slider":
@@ -97,3 +95,5 @@ class TabFittedDeformations(TabModule):
                 self.plotter.camera_position = cam_pos
         else:
             self.plotter.interactor.setToolTip("")
+            self.plotter.clear()
+            self.plotter.render()

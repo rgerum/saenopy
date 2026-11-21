@@ -6,6 +6,8 @@ os.environ.setdefault("PYVISTA_OFF_SCREEN", "true")
 from types import SimpleNamespace
 import pytest
 
+pytestmark = pytest.mark.usefixtures("isolated_qt_settings")
+
 
 @pytest.mark.parametrize("state,active,status", [
     ("", False, None), ("finished", False, None),
@@ -15,7 +17,8 @@ import pytest
 ])
 def test_fit_status_text(state, active, status):
     from saenopy.gui.solver.modules.live_fit import fit_status_label
-    result = SimpleNamespace(solve_parameters_state=state, _live_fit_active=active)
+    result = SimpleNamespace(solve_parameters_state=state, _live_fit_active=active,
+                             _live_fit_solvers={0: object()})
     expected = "Field." if status is None else f"Field. <b>({status})</b>"
     assert fit_status_label(result, "Field.") == expected
     assert fit_status_label(None, "Field.") == "Field."
@@ -30,8 +33,6 @@ def test_status_follows_gui_fit_lifecycle(tmp_path, monkeypatch):
 
     monkeypatch.setattr(QtInteractor, "render", lambda self: None)
     app = QtWidgets.QApplication.instance() or QtWidgets.QApplication([])
-    QtCore.QSettings.setDefaultFormat(QtCore.QSettings.IniFormat)
-    QtCore.QSettings.setPath(QtCore.QSettings.IniFormat, QtCore.QSettings.UserScope, str(tmp_path))
 
     class TestWindow(BatchEvaluate):
         settings_key = "saenopy_live_status_test"

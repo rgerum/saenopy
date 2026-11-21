@@ -59,22 +59,15 @@ class TabForces(TabModule):
         self.update_display()
 
     def checkTabEnabled(self, result: Result) -> bool:
-        if live_fit_available(result, self.t_slider.value()):
-            return True
-        try:
-            if self.result is not None and self.result.solvers is not None:
-                relrec = getattr(self.result.solvers[self.t_slider.value()], "relrec", None)
-                if relrec is not None:
-                    return True
-                # also enable the tab when only a segmentation preview exists (a
-                # cell_boundary_mask but no forces yet) -> lets the user tune the
-                # segmentation parameters before running the reconstruction
-                M = self.result.solvers[self.t_slider.value()]
-                if M is not None and getattr(M.mesh, "cell_boundary_mask", None) is not None:
-                    return True
-            return getattr(self.result.solvers[0], "regularisation_results", None) is not None
-        except (AttributeError, IndexError, TypeError):
-            return False
+        frame = self.t_slider.value()
+        if getattr(result, "_live_fit_active", False):
+            return live_fit_available(result, frame)
+        solver = displayed_solver(result, frame)
+        mesh = getattr(solver, "mesh", None)
+        return (getattr(solver, "regularisation_results", None) is not None
+                or getattr(solver, "relrec", None) is not None
+                or getattr(mesh, "_segmentation_preview", None) is not None
+                or getattr(mesh, "cell_boundary_mask", None) is not None)
 
     def property_changed(self, name, value):
         if name == "z_slider":
@@ -169,3 +162,5 @@ class TabForces(TabModule):
                 self.plotter.camera_position = cam_pos
         else:
             self.plotter.interactor.setToolTip("")
+            self.plotter.clear()
+            self.plotter.render()

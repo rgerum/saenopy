@@ -10,15 +10,13 @@ import tifffile
 
 
 @pytest.fixture
-def app(tmp_path, monkeypatch):
+def app(tmp_path, monkeypatch, isolated_qt_settings):
     from qtpy import QtCore, QtGui, QtWidgets
     application = QtWidgets.QApplication.instance() or QtWidgets.QApplication([])
     font_path = Path("C:/Windows/Fonts/segoeui.ttf")
     if font_path.exists():
         QtGui.QFontDatabase.addApplicationFont(str(font_path))
         application.setFont(QtGui.QFont("Segoe UI", 10))
-    QtCore.QSettings.setDefaultFormat(QtCore.QSettings.IniFormat)
-    QtCore.QSettings.setPath(QtCore.QSettings.IniFormat, QtCore.QSettings.UserScope, str(tmp_path))
     monkeypatch.setattr(QtWidgets.QMessageBox, "critical", lambda *args: pytest.fail(str(args[-1])))
     yield application
     application.processEvents()

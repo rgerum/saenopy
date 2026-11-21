@@ -19,8 +19,9 @@ def solver_snapshot(solver):
 
 def displayed_solver(result, frame):
     if getattr(result, "_live_fit_active", False):
-        return result._live_fit_solvers.get(frame)
-    return result.solvers[frame]
+        return getattr(result, "_live_fit_solvers", {}).get(frame)
+    solvers = getattr(result, "solvers", None) or []
+    return solvers[frame] if 0 <= frame < len(solvers) else None
 
 
 def live_fit_available(result, frame):
@@ -45,5 +46,7 @@ def fit_status_label(result, description, frame=0):
             if params.get("cancelled", False):
                 status = "fit cancelled; partial result"
     if status:
+        if getattr(result, "_live_fit_active", False) and not live_fit_available(result, frame):
+            status += "; waiting for this frame"
         return f"{description} <b>({status})</b>"
     return description

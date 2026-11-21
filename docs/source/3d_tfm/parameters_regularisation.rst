@@ -64,6 +64,8 @@ selected automatically. Surface dilation adds mesh-node shells. A segmentation
 touching the image boundary is treated as an observed open interface, without
 inventing end caps. Calculating forces recomputes segmentation from the current
 settings even if no preview was requested.
+Previewing a different segmentation does not change the mask stored with an
+existing fit; preview geometry and masks are used only for display.
 
 In a time series each frame is segmented independently. Channel, smoothing,
 threshold method and factor are shared across the series; the automatic absolute
@@ -87,6 +89,13 @@ smoothing and subsequent morphology are outside this limit. No unconverged
 threshold or new mask is returned. The GUI displays the error and retains any
 previous preview, explicitly labelled as unchanged. Check the selected cell
 channel or try Otsu/Yen. The preview still runs synchronously in the GUI.
+If segmentation fails during fitting, **continue** retries the pending time
+points with unchanged settings. Changing fit or material settings switches the
+button to **retry all frames**, so the entire series uses the new settings.
+The same rule applies when continuing a partially completed series after
+cancellation or saving and reloading it.
+Existing fits are marked pending only when that retry starts; changing a control
+alone does not discard them.
 
 New GUI fits use mesh-normalised alpha, referenced to a 14 micrometre mesh.
 Classic uses volume-density Huber weights; Surface uses area-weighted L2 traction

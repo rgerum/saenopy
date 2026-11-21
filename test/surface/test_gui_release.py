@@ -7,6 +7,8 @@ from pathlib import Path
 import appdirs
 import pytest
 
+pytestmark = pytest.mark.usefixtures("isolated_qt_settings")
+
 
 def test_official_file_in_gui_and_full_code_export(tmp_path, monkeypatch):
     from qtpy import QtWidgets, QtCore
@@ -21,8 +23,6 @@ def test_official_file_in_gui_and_full_code_export(tmp_path, monkeypatch):
     if not source.exists():
         pytest.skip("local official example is not installed")
     app = QtWidgets.QApplication.instance() or QtWidgets.QApplication([])
-    QtCore.QSettings.setDefaultFormat(QtCore.QSettings.IniFormat)
-    QtCore.QSettings.setPath(QtCore.QSettings.IniFormat, QtCore.QSettings.UserScope, str(tmp_path))
 
     class TestWindow(BatchEvaluate):
         settings_key = "saenopy_surface_release_test"
@@ -110,7 +110,9 @@ def test_official_file_in_gui_and_full_code_export(tmp_path, monkeypatch):
         # Failed threshold calculation must retain and label the previous
         # preview, without applying partial geometry to the solver.
         previous_preview = result.solvers[0].mesh._segmentation_preview
-        previous_mask = result.solvers[0].mesh.cell_boundary_mask.copy()
+        previous_mask = result.solvers[0].mesh.cell_boundary_mask
+        if previous_mask is not None:
+            previous_mask = previous_mask.copy()
         def fail_segment(*args, **kwargs):
             raise sr.SegmentationError("Li threshold timed out; no new mask created.")
         monkeypatch.setattr(module, "segment_with_params", fail_segment)
@@ -246,8 +248,6 @@ def test_missing_surface_mode_does_not_inherit_previous_dataset(tmp_path, monkey
 
     monkeypatch.setattr(QtInteractor, "render", lambda self: None)
     app = QtWidgets.QApplication.instance() or QtWidgets.QApplication([])
-    QtCore.QSettings.setDefaultFormat(QtCore.QSettings.IniFormat)
-    QtCore.QSettings.setPath(QtCore.QSettings.IniFormat, QtCore.QSettings.UserScope, str(tmp_path))
 
     class TestWindow(BatchEvaluate):
         settings_key = "saenopy_surface_mode_default_test"
@@ -311,8 +311,6 @@ def test_cell_channel_default_preserves_saved_and_edited_choices(tmp_path, monke
 
     monkeypatch.setattr(QtInteractor, "render", lambda self: None)
     app = QtWidgets.QApplication.instance() or QtWidgets.QApplication([])
-    QtCore.QSettings.setDefaultFormat(QtCore.QSettings.IniFormat)
-    QtCore.QSettings.setPath(QtCore.QSettings.IniFormat, QtCore.QSettings.UserScope, str(tmp_path))
 
     class TestWindow(BatchEvaluate):
         settings_key = "saenopy_cell_channel_default_test"
@@ -368,8 +366,6 @@ def test_gui_uses_internal_cg_without_rewriting_stored_results(tmp_path, monkeyp
     from saenopy.gui.solver.modules.BatchEvaluate import BatchEvaluate
     monkeypatch.setattr(QtInteractor, "render", lambda self: None)
     app = QtWidgets.QApplication.instance() or QtWidgets.QApplication([])
-    QtCore.QSettings.setDefaultFormat(QtCore.QSettings.IniFormat)
-    QtCore.QSettings.setPath(QtCore.QSettings.IniFormat, QtCore.QSettings.UserScope, str(tmp_path))
     window = BatchEvaluate()
     control = window.sub_module_regularize
     try:

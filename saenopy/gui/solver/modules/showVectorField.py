@@ -61,12 +61,12 @@ def _draw_surface_nodes(plotter, obj, show_surface):
     if not show_surface or obj is None:
         return
     preview = getattr(obj, "_segmentation_preview", None)
+    mask = getattr(obj, "cell_boundary_mask", None)
     if preview is not None:
-        vertices, faces = preview  # micrometres, same centered frame as FE nodes
+        vertices, faces, mask = preview  # micrometres, same centered frame as FE nodes
         triangles = np.column_stack((np.full(len(faces), 3), faces)).ravel()
         plotter.add_mesh(pv.PolyData(vertices, triangles), color="cyan", opacity=.22,
                          show_scalar_bar=False, name="segmentation_surface", render=False)
-    mask = getattr(obj, "cell_boundary_mask", None)
     if mask is None:
         return
     mask = np.asarray(mask, dtype=bool)
