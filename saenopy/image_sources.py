@@ -25,9 +25,10 @@ class ImageSource(Saveable):
 
     def paths_absolute(self, parent):
         from .result_file import make_path_absolute
-        self.template = str(make_path_absolute(self.template, Path(parent.output).parent))
+        source_directory = Path(parent.output).parent if parent.output else Path.cwd()
+        self.template = str(make_path_absolute(self.template, source_directory))
         for stack in self.stacks:
-            stack.paths_absolute()
+            stack.paths_absolute(source_directory)
 
     def paths_relative(self, parent):
         from .result_file import make_path_relative

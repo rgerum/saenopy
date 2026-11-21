@@ -94,7 +94,11 @@ class Stack(Saveable):
         else:
             self.leica_filename = process(self.leica_filename)
 
-    def paths_absolute(self):
+    def paths_absolute(self, source_directory=None):
+        if source_directory is None:
+            output = getattr(self.parent, "output", None)
+            source_directory = Path(output).parent if output else Path.cwd()
+
         def normalize_path(template, output):
             if not Path(template).is_absolute():
                 return str(Path(output).absolute() / template)
@@ -103,7 +107,7 @@ class Stack(Saveable):
         def process(image):
             if isinstance(image, (list, np.ndarray)):
                 return np.asarray([process(i) for i in image])
-            return normalize_path(image, Path(self.parent.output).parent)
+            return normalize_path(image, source_directory)
 
         self.template = process(self.template)
         if self.image_filenames is not None:

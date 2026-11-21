@@ -388,13 +388,14 @@ class Result(Saveable):
             for r in rename:
                 if r["new"] is not None:
                     if isinstance(r["old"], Callable):
-                        obj_data[r["new"]] = copy.deepcopy(r["old"](obj_data))
+                        obj_data[r["new"]] = r["old"](obj_data)
                     elif r["old"] in obj_data:
-                        # Old Saenopy versions derived material and solve
-                        # parameters from one shared ``solve_parameter``
-                        # dictionary. Copy here so the later delete phase
-                        # cannot remove fields from both migrated objects.
-                        obj_data[r["new"]] = copy.deepcopy(obj_data[r["old"]])
+                        value = obj_data[r["old"]]
+                        # Only the shared parameter dictionary splits into two
+                        # independently edited branches; image/mesh arrays move.
+                        if r["old"] == "solve_parameter" and isinstance(value, dict):
+                            value = value.copy()
+                        obj_data[r["new"]] = value
                     elif "default" in r:
                         obj_data[r["new"]] = copy.deepcopy(r["default"])
                     else:
@@ -696,15 +697,16 @@ class Result(Saveable):
 
     def save(self, filename: str = None, file_format=".saenopy"):
         if filename is not None:
+            source_directory = Path(self.output).parent if self.output else Path.cwd()
             for stack in self.stacks:
-                stack.paths_absolute()
+                stack.paths_absolute(source_directory)
             if self.stack_reference is not None:
-                self.stack_reference.paths_absolute()
+                self.stack_reference.paths_absolute(source_directory)
             for source in self.image_sources:
                 source.paths_absolute(self)
-            self.template = make_path_absolute(self.template, Path(self.output).parent if self.output else Path.cwd())
+            self.template = make_path_absolute(self.template, source_directory)
 
-            self.output = filename
+            self.output = str(Path(filename).absolute())
             for stack in self.stacks:
                 stack.paths_relative(self)
             if self.stack_reference is not None:
