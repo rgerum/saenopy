@@ -72,7 +72,7 @@ A NumPy YX array can also be passed directly with
 
 In the GUI, **use 2D exclusion mask** is unchecked by default. Checking it
 reveals the source selector with **Add custom mask…**. Unchecking it disables
-mask exclusion. **Use matrix voxel size** initially copies the matrix voxel size;
+mask exclusion. **Use original voxel size** initially copies the matrix voxel size;
 uncheck it to edit X/Y in the same row. One image can apply to all time
 points, or a series can match the matrix frames or deformation pairs. Sources
 and pixel sizes are saved with the result, and saved active masks restore the

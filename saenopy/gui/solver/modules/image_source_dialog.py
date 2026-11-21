@@ -131,7 +131,7 @@ class ImageSourceDialog(QtWidgets.QDialog):
         voxel_row = QtWidgets.QHBoxLayout()
         layout.addLayout(voxel_row)
         self.input_same_voxel_size = QtShortCuts.QInputBool(
-            voxel_row, "Use matrix voxel size", True,
+            voxel_row, "Use original voxel size", True,
             tooltip="Use the voxel size of the original matrix images.")
         self.voxel_inputs = [QtShortCuts.QInputNumber(
             voxel_row, axis, value, min=0, float=True, decimals=6, unit="µm")

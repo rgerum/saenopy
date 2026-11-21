@@ -121,7 +121,7 @@ exports the current settings and calls the same reconstruction function.
 Additional surface images
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 The **cell channel** menu offers **Add local images…** for a separate 3D cell
-stack, including images acquired at a different zoom. **Use matrix voxel size**
+stack, including images acquired at a different zoom. **Use original voxel size**
 initially copies the matrix voxel size; uncheck it to enter the new XYZ sizes
 in micrometres. The images are aligned by their centres. Segmentation, surface
 area and preview use the added stack's physical dimensions.
