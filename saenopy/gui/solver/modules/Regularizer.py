@@ -36,6 +36,7 @@ class CancelSignal:
 from saenopy.reconstruction import segment_with_params
 from saenopy.surface_regularization import DEFAULT_SEG_CHANNEL, DEFAULT_SMOOTHING_SIGMA_UM
 from .live_fit import solver_snapshot
+from .image_source_dialog import ImageSourceChoice, ImageSourceDialog, source_choices
 
 
 def segmentation_preview_mesh(body, voxel_size):
@@ -101,12 +102,13 @@ class Regularizer(PipelineModule):
                                     "in the surrounding gel. Surface always uses geometry normalization "
                                     "and the single 'alpha' above.")
                         # Populated from the loaded stack's channels in setResult().
-                        self.input_seg_channel = QtShortCuts.QInputChoice(
+                        self.input_seg_channel = ImageSourceChoice(
                             None, "cell channel", DEFAULT_SEG_CHANNEL, values=[0], value_names=["0"],
                             tooltip="Channel showing the cell / cell stain. For new analyses, the first "
                                     "channel after the matrix channel is selected when available. "
                                     "The selected channel is segmented separately at each time step.")
                         self.input_seg_channel.combobox.setSizeAdjustPolicy(QtWidgets.QComboBox.AdjustToContents)
+                        self.input_seg_channel.add_requested.connect(self.add_local_images)
                         self.input_thr_method = QtShortCuts.QInputChoice(
                             None, "threshold method", "li", values=["li", "otsu", "yen"],
                             tooltip="Method for the automatic segmentation threshold. Li stops on "
@@ -229,6 +231,25 @@ class Regularizer(PipelineModule):
         available = self.check_available(self.result) and not self._preview_blocked()
         self.input_button_preview.setEnabled(available)
         self.input_smoothing_sigma_um.setEnabled(available)
+        self.input_seg_channel.setEnabled(
+            bool(self.result is not None and self.result.stacks) and not self._preview_blocked())
+
+    def _populate_seg_channels(self, result):
+        channels = (getattr(result.stacks[0], "channels", None) or ["0"]) if result and result.stacks else ["0"]
+        choices = list(zip(range(len(channels)), map(str, channels))) + source_choices(result, "surface")
+        self.input_seg_channel.setValues(
+            [key for key, _ in choices] + [ImageSourceChoice.ADD],
+            [name for _, name in choices] + ["Add local images…"])
+        self.input_seg_channel.setValue(1 if len(channels) > 1 else 0)
+
+    def add_local_images(self):
+        if self.result is None or not self.result.stacks or self._preview_blocked():
+            return
+        dialog = ImageSourceDialog(self, self.result, "surface")
+        if dialog.exec() == QtWidgets.QDialog.Accepted:
+            self._populate_seg_channels(self.result)
+            self.input_seg_channel.setValue(dialog.source_key, send_signal=True)
+            self.result.save()
 
     def state_changed(self, result):
         if result is not None and self.get_result_state(result) not in (
@@ -485,16 +506,7 @@ class Regularizer(PipelineModule):
         # Populate choices before ParameterMapping applies the saved channel.
         # Otherwise loading channel 1 into the initial [0] selector silently
         # leaves the preview on channel 0 while the fit still uses channel 1.
-        try:
-            channels = result.stacks[0].channels if (result and result.stacks) else None
-            if channels:
-                self.input_seg_channel.setValues(list(np.arange(len(channels))),
-                                                 [str(c) for c in channels])
-                # Prefer the first additional channel (usually the cell stain).
-                # ParameterMapping restores saved or edited choices below.
-                self.input_seg_channel.setValue(1 if len(channels) > 1 else 0)
-        except (AttributeError, IndexError, TypeError):
-            pass
+        self._populate_seg_channels(result)
         super().setResult(result)
         if result is not None:
             # Only edit parameters for the NEXT fit, not the stored result.

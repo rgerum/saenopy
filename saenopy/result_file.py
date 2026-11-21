@@ -11,6 +11,7 @@ import tifffile
 from PIL import Image
 from saenopy.stack import Stack, format_glob
 from saenopy.saveable import Saveable
+from saenopy.image_sources import ImageSource
 from saenopy.solver import Solver
 from saenopy.get_deformations import PivMesh
 from typing import TypedDict, Tuple
@@ -287,6 +288,7 @@ class MeshParametersDict(TypedDict, total=False):
     reference_stack: str
     element_size: float
     mesh_size: Union[Tuple[float, float, float], str]
+    custom_mask: str              # optional local:N image source; nonzero XY columns are ignored
     # --- robust deformation-outlier filter (added in save version 1.8) ---
     # Optional: official old files (< 1.8) do not contain these; they are filled
     # with defaults on load. New mesh calculations filter reference-corrected
@@ -312,7 +314,7 @@ class SolveParametersDict(TypedDict, total=False):
     prev_t_as_start: bool
     # Surface mode always uses geometry-normalized alpha.
     surface: bool
-    seg_channel: int              # channel used for the cell segmentation
+    seg_channel: Union[int, str]  # matrix channel index or local:N image source
     seg_threshold_method: str     # "li" | "otsu" | "yen"
     seg_threshold_factor: float   # factor multiplied onto the automatic threshold
     seg_dilate_layers: int        # mesh-node shells added to the detected surface
@@ -330,19 +332,20 @@ class SolveParametersDict(TypedDict, total=False):
 
 
 class Result(Saveable):
-    __save_parameters__ = ['stacks', 'stack_reference', 'template',
+    __save_parameters__ = ['stacks', 'stack_reference', 'template', 'image_sources',
                            'time_delta', 'piv_parameters', 'mesh_piv',
                            'mesh_parameters', 'material_parameters',
                            'solve_parameters', 'solvers',
                            '___save_name__', '___save_version__']
     ___save_name__ = "Result"
-    ___save_version__ = "1.8"
+    ___save_version__ = "1.9"
     output: str = None
     state: bool = False
 
     stack_parameters: dict = None
     stacks: List[Stack] = None
     stack_reference: Stack = None
+    image_sources: List[ImageSource] = None
     template: str = None
     time_delta: float = None
 
@@ -372,7 +375,7 @@ class Result(Saveable):
         def version():
             return tuple(int(part) for part in str(data_dict["___save_version__"]).split("."))
 
-        if version() > (1, 8):
+        if version() > (1, 9):
             raise ValueError("This .saenopy file needs a newer Saenopy version.")
 
         def apply_rename(obj_data, rename):
@@ -595,6 +598,11 @@ class Result(Saveable):
                     mp.setdefault(key, value)
             data_dict["___save_version__"] = "1.8"
 
+        # Additional segmentation channels and 2D target masks are opt-in.
+        if version() < (1, 9):
+            data_dict.setdefault("image_sources", [])
+            data_dict["___save_version__"] = "1.9"
+
         return super().from_dict(data_dict)
 
     def reset_piv(self, keep_state=False):
@@ -640,6 +648,7 @@ class Result(Saveable):
         self.state = False
         self.time_delta = time_delta
         self.template = template
+        self.image_sources = []
 
         super().__init__(**kwargs)
 
@@ -661,6 +670,8 @@ class Result(Saveable):
                 stack.paths_relative(self)
             if self.stack_reference is not None:
                 self.stack_reference.paths_relative(self)
+            for source in self.image_sources:
+                source.paths_relative(self)
             self.template = str(make_path_relative(Path(self.template).absolute(), Path(self.output).parent))
 
 
@@ -689,6 +700,8 @@ class Result(Saveable):
                 stack.paths_absolute()
             if self.stack_reference is not None:
                 self.stack_reference.paths_absolute()
+            for source in self.image_sources:
+                source.paths_absolute(self)
             self.template = make_path_absolute(self.template, Path(self.output).parent if self.output else Path.cwd())
 
             self.output = filename
@@ -696,6 +709,8 @@ class Result(Saveable):
                 stack.paths_relative(self)
             if self.stack_reference is not None:
                 self.stack_reference.paths_relative(self)
+            for source in self.image_sources:
+                source.paths_relative(self)
             self.template = make_path_relative(self.template, Path(self.output).parent)
         Path(self.output).parent.mkdir(exist_ok=True, parents=True)
         super().save(self.output, file_format=file_format)
@@ -718,6 +733,9 @@ class Result(Saveable):
             stack.parent = self
         if self.stack_reference is not None:
             self.stack_reference.parent = self
+        for source in self.image_sources:
+            for stack in source.stacks:
+                stack.parent = self
 
     def __repr__(self):
         folders = [str(Path(stack.template)) for stack in self.stacks]

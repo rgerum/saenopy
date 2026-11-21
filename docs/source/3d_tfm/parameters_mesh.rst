@@ -37,3 +37,33 @@ then the PIV mesh would cut off information. Larger mesh sizes can be good if th
 decay of the deformation field is not well captured. Larger mesh sizes can lead to more accurate force reconstructions.
 
 .. figure:: images/parameters/mesh_total_size.png
+
+Custom exclusion mask
+~~~~~~~~~~~~~~~~~~~~~
+Choose **Add custom mask…** under **ignore target deformations** to load a 2D
+image. Nonzero pixels exclude interpolated target vectors through the entire Z
+column; zero pixels keep them. The mask and matrix images share their centre.
+**Use same voxel size** is enabled initially; uncheck it for a different XY
+pixel size. Targets outside the mask image remain included.
+
+A single mask can apply to every time point, or a naturally sorted ``{t}``
+series can supply one mask per matrix frame (or per deformation pair). Mask
+``i`` applies to deformation ``i``, corresponding to the first active image of
+the pair. Paths and voxel sizes are saved with the result. Reset and
+re-interpolate an existing mesh to apply a changed mask selection.
+
+In Python, supply a YX array directly, or attach an image source::
+
+    # Array values != 0 are ignored, after displacement interpolation.
+    solver = saenopy.interpolate_mesh(
+        piv_mesh, displacements, mesh_parameters,
+        custom_mask=mask_yx, mask_voxel_size=(dx, dy, dz))
+
+    key = saenopy.add_image_source(result, "ignore_t{t}.png",
+                                   kind="mask", time_mode="series")
+    result.mesh_parameters["custom_mask"] = key
+    for i, displacements in enumerate(displacement_list):
+        result.solvers[i] = saenopy.interpolate_mesh(
+            result.mesh_piv[i], displacements, result.mesh_parameters,
+            custom_mask=saenopy.get_custom_mask(result, i))
+    result.save()

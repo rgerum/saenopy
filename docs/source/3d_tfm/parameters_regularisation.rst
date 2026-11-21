@@ -118,6 +118,28 @@ Use ``surface=False`` for Classic; ``physical_normalization=False`` additionally
 selects the unnormalised Classic control in Python. The GUI's **save Python code**
 exports the current settings and calls the same reconstruction function.
 
+Additional surface images
+~~~~~~~~~~~~~~~~~~~~~~~~~
+The **cell channel** menu offers **Add local images…** for a separate 3D cell
+stack, including images acquired at a different zoom. **Use same voxel size**
+initially copies the matrix voxel size; uncheck it to enter the new XYZ sizes
+in micrometres. The images are aligned by their centres. Segmentation, surface
+area and preview use the added stack's physical dimensions.
+
+Choose one stack for all time points or a ``{t}`` series matching the matrix
+frames in natural filename order. The added channel remains selectable after
+saving and reopening the result, and is included in exported Python scripts::
+
+    channel = saenopy.add_image_source(
+        result, "cell_t{t}_z{z}.tif", name="Cell at higher zoom",
+        voxel_size=(0.5, 0.5, 2.0), time_mode="series")
+    fit_result(result, index=0, parameters=dict(surface=True, seg_channel=channel))
+    result.save()
+
+Single multipage TIFF stacks use ``"cell.tif[z]"``. The default
+``time_mode="single"`` reuses one stack for every frame. These sources and the
+2D exclusion masks are stored in file format 1.9; older results remain readable.
+
 The inner conjugate-gradient iteration budget defaults to ``cg_maxiter_factor=2``:
 twice the original Saenopy cap. The GUI uses this internal setting without a
 separate budget control, including new fits of files saved with higher budgets.

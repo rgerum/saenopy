@@ -1,6 +1,7 @@
 from qtpy import QtWidgets
 from pathlib import Path
 import re
+import numpy as np
 
 from saenopy.gui.common import QtShortCuts
 from saenopy.result_file import Result
@@ -21,11 +22,20 @@ def start_path_change(parent, result: Result):
         path_changer = PathChanger(result.stack_reference.template, path_editor.input_folder2.value())
         path_changer.stack_change(result.stack_reference)
 
+    for source, widget in zip(result.image_sources, path_editor.input_sources):
+        path_changer = PathChanger(source.template, widget.value())
+        for stack in source.stacks:
+            path_changer.stack_change(stack)
+        source.template = path_changer.change_path(source.template)
+
     if path_editor.input_pack.value():
         for stack in result.stacks:
             stack.pack_files()
         if result.stack_reference:
             result.stack_reference.pack_files()
+        for source in result.image_sources:
+            for stack in source.stacks:
+                stack.pack_files()
 
     if path_editor.input_save.value():
         result.save()
@@ -50,6 +60,9 @@ class PathEditor(QtWidgets.QDialog):
                                                               allow_edit=True)
             else:
                 self.input_folder2 = None
+            self.input_sources = [QtShortCuts.QInputFolder(
+                None, source.name, Path(source.template), allow_edit=True)
+                for source in result.image_sources]
             with QtShortCuts.QHBoxLayout():
                 self.button_addList0 = QtShortCuts.QPushButton(None, "cancel", self.reject)
                 self.button_addList0 = QtShortCuts.QPushButton(None, "ok", self.accept)
@@ -61,7 +74,7 @@ class PathChanger:
         new_template = str(new_template)
 
         old_template = re.sub(r"\{c(:[^}]*)?\}", r"{c}", old_template)
-        old_template = re.sub(r"\[z\]$", "[{z}]", old_template)
+        old_template = re.sub(r"\[([zt])\]$", r"[{\1}]", old_template)
         old_template_re = re.sub(r"\\\{c(:[^}]*)?\\\}", r"(?P<c>.*)",
                                  re.escape(old_template).replace("\\{t\\}", r"(?P<t>.*)").replace("\\{z\\}",
                                                                                                   r"(?P<z>.*)"))
@@ -69,7 +82,7 @@ class PathChanger:
 
         self.new_template = new_template
         self.new_template_format = re.sub(r"\{c(:[^}]*)?\}", r"{c}", new_template)
-        self.new_template_format = re.sub(r"\[z\]$", "[{z}]", self.new_template_format)
+        self.new_template_format = re.sub(r"\[([zt])\]$", r"[{\1}]", self.new_template_format)
 
     def change_path(self, path):
         path_type = isinstance(path, Path)
@@ -85,7 +98,9 @@ class PathChanger:
         return new
 
     def stack_change(self, stack: "Stack"):
-        for index in range(len(stack.image_filenames)):
-            for index2 in range(len(stack.image_filenames[index])):
-                stack.image_filenames[index][index2] = self.change_path(stack.image_filenames[index][index2])
+        # Rebuild the string array so a longer destination is not truncated to
+        # the old NumPy fixed-width string dtype.
+        stack.image_filenames = np.asarray([
+            [self.change_path(filename) for filename in row]
+            for row in stack.image_filenames])
         stack.template = self.change_path(stack.template)

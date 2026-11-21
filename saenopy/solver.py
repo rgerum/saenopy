@@ -1256,7 +1256,53 @@ def get_cell_boundary(result, channel=1, thershold=20, smooth=2, element_size=14
 
 
 from saenopy.get_deformations import PivMesh
-def interpolate_mesh(mesh: PivMesh, xpos2: np.ndarray, params: dict) -> Solver:
+def _sample_custom_mask(nodes, custom_mask, voxel_size):
+    """Sample a centered YX exclusion image at solver nodes (YXZ metres)."""
+    from saenopy.stack import Stack
+
+    if isinstance(custom_mask, Stack):
+        if len(custom_mask.channels) != 1:
+            raise ValueError("A custom mask Stack must have exactly one channel.")
+        if voxel_size is None:
+            voxel_size = custom_mask.voxel_size
+        custom_mask = custom_mask[:, :, 0, :, 0]
+    mask = np.asarray(custom_mask)
+    if mask.ndim == 3 and mask.shape[2] == 1:
+        mask = mask[:, :, 0]
+    if mask.ndim != 2 or not all(mask.shape):
+        raise ValueError("Custom mask must be a nonempty 2D YX image (one Z plane).")
+    if mask.dtype.kind not in "buif" or not np.all(np.isfinite(mask)):
+        raise ValueError("Custom mask pixels must be finite numeric or boolean values.")
+    try:
+        voxel_size = np.asarray(voxel_size, dtype=float)
+    except (ValueError, TypeError) as exc:
+        raise ValueError("Mask voxel size must contain three positive finite XYZ values in micrometres.") from exc
+    if voxel_size.shape != (3,) or not np.all(np.isfinite(voxel_size)) or np.any(voxel_size <= 0):
+        raise ValueError("Mask voxel size must contain three positive finite XYZ values in micrometres.")
+
+    # Exclude the complete Z column at each nonzero mask pixel.
+    coordinates = np.asarray(nodes)[:, :2] / (voxel_size[[1, 0]] * 1e-6)
+    coordinates += (np.asarray(mask.shape) - 1) / 2
+    indices = np.floor(coordinates + 0.5).astype(np.intp)
+    inside = np.all((indices >= 0) & (indices < mask.shape), axis=1)
+    excluded = np.zeros(len(nodes), dtype=bool)
+    excluded[inside] = mask[tuple(indices[inside].T)] != 0
+    return excluded
+
+
+def interpolate_mesh(mesh: PivMesh, xpos2: np.ndarray, params: dict, *,
+                     custom_mask=None, mask_voxel_size=None) -> Solver:
+    """Interpolate PIV displacements and optionally exclude image-mask targets.
+
+    ``custom_mask`` is a 2D YX image array or a single-channel, one-plane
+    :class:`Stack` (a YX1 array is also accepted).
+    Nonzero pixels exclude target vectors after interpolation through all
+    Z planes. ``mask_voxel_size`` gives XYZ pixel sizes
+    in micrometres and is required for arrays; a Stack supplies its own sizes.
+    The image and PIV field share their center. Nearest-pixel sampling preserves
+    the binary mask; targets outside its image extent remain unchanged.
+    PIV measurements and the force regularization mask are left unchanged.
+    """
     import saenopy
     from saenopy.multigrid_helper import get_scaled_mesh, get_nodes_with_one_face
 
@@ -1294,6 +1340,8 @@ def interpolate_mesh(mesh: PivMesh, xpos2: np.ndarray, params: dict) -> Solver:
 
     # Retain Saenopy's existing linear interpolation with nearest fallback.
     U_target = saenopy.get_deformations.interpolate_different_mesh(R, source, points)
+    if custom_mask is not None:
+        U_target[_sample_custom_mask(points, custom_mask, mask_voxel_size)] = np.nan
 
     border_idx = get_nodes_with_one_face(cells)
     inside_mask = np.ones(points.shape[0], dtype=bool)

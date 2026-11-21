@@ -15,6 +15,12 @@ def segment_with_params(result, index, params):
     """
     stack = result.stacks[index]
     selection = params.get("seg_channel", sr.DEFAULT_SEG_CHANNEL)
+    stacks = result.stacks
+    if isinstance(selection, str) and selection.startswith("local:"):
+        from .image_sources import get_image_source
+        stack = get_image_source(result, selection, index)
+        stacks = [get_image_source(result, selection, frame) for frame in range(len(result.stacks))]
+        selection = 0
     try:
         channel = int(selection)
         if float(selection) != channel or channel < 0:
@@ -23,8 +29,8 @@ def segment_with_params(result, index, params):
         raise sr.SegmentationError("Cell channel must be a nonnegative integer index.") from exc
     # Check channel metadata for the whole series before any expensive image work.
     # A shared dropdown selection must refer to the same stain at every frame.
-    expected_channels = getattr(result.stacks[0], "channels", None)
-    for frame, current in enumerate(result.stacks):
+    expected_channels = getattr(stacks[0], "channels", None)
+    for frame, current in enumerate(stacks):
         channels = getattr(current, "channels", None)
         if channels is not None:
             if channel >= len(channels):

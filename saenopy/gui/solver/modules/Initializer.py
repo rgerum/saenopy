@@ -105,4 +105,20 @@ class Initializer(PipelineModule):
                 )
 
         code = get_code(code, data)
+        if self.result.image_sources:
+            from saenopy.image_sources import image_source_definitions
+
+            @export_as_string
+            def source_code(my_image_sources):  # pragma: no cover
+                from saenopy.image_sources import image_source_definitions
+                # Restore the additional image channels in their saved order.
+                for result in results:
+                    # Retain packed images when loading the same saved sources.
+                    if image_source_definitions(result) == my_image_sources:
+                        continue
+                    result.image_sources = []
+                    for source in my_image_sources:
+                        saenopy.add_image_source(result, **source)
+
+            code += "\n" + get_code(source_code, {"my_image_sources": image_source_definitions(self.result)})
         return import_code, code

@@ -77,7 +77,7 @@ def test_official_v12_names_and_future_version():
     data["solver"] = data.pop("solvers")
     data["solve_parameters"].pop("physical_normalization")
     loaded = Result.from_dict(data)
-    assert loaded.___save_version__ == "1.8"
+    assert loaded.___save_version__ == "1.9"
     assert not loaded.solve_parameters["physical_normalization"]
     data = result.to_dict()
     data["___save_version__"] = "2.2"
@@ -171,7 +171,7 @@ def test_old_format_migration(version):
     data["solve_parameters"].pop("physical_normalization")
     data["solvers"].insert(0, None)
     loaded = Result.from_dict(data)
-    assert loaded.___save_version__ == "1.8"
+    assert loaded.___save_version__ == "1.9"
     assert "surface_area_method" not in loaded.solve_parameters
     assert loaded.solve_parameters["physical_normalization"] is False
     assert loaded.solvers[0] is None
@@ -216,7 +216,7 @@ def test_actual_solves_and_roundtrip(tmp_path):
     filename = tmp_path / "roundtrip.saenopy"
     result.save(filename)
     loaded = Result.load(filename)
-    assert loaded.___save_version__ == "1.8"
+    assert loaded.___save_version__ == "1.9"
     assert loaded.solvers[0] is None
     np.testing.assert_array_equal(loaded.solvers[1].mesh.forces, solver.mesh.forces)
     assert loaded.solvers[1].regularisation_parameters["alpha_visible"] == 1e8

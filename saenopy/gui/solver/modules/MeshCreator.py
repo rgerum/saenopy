@@ -15,6 +15,8 @@ from saenopy.gui.common.gui_classes import CheckAbleGroup
 
 from saenopy.gui.common.PipelineModule import PipelineModule, StateEnum
 from saenopy.gui.common.code_export import get_code, export_as_string
+from saenopy.image_sources import get_custom_mask
+from .image_source_dialog import ImageSourceChoice, ImageSourceDialog, source_choices
 
 
 class MeshSizeWidget(QtWidgets.QWidget):
@@ -93,6 +95,13 @@ class MeshCreator(PipelineModule):
 
                     self.input_mesh_size = MeshSizeWidget().addToLayout()
 
+                    self.input_custom_mask = ImageSourceChoice(
+                        None, "ignore target deformations", None,
+                        [None, ImageSourceChoice.ADD], ["none", "Add custom mask…"],
+                        tooltip="Nonzero pixels of a 2D mask exclude target deformations through all Z. "
+                                "Reset and re-interpolate the mesh to apply a changed selection.")
+                    self.input_custom_mask.add_requested.connect(self.add_custom_mask)
+
                     with QtShortCuts.QHBoxLayout():
                         self.input_outlier_filter = QtShortCuts.QInputBool(
                             None, "remove deformation outliers", True,
@@ -130,7 +139,38 @@ class MeshCreator(PipelineModule):
             "mesh_size": self.input_mesh_size,
             "outlier_filter": self.input_outlier_filter,
             "outlier_thresh": self.input_outlier_thresh,
+            "custom_mask": self.input_custom_mask,
         })
+        self.parent.tasks_changed.connect(self._update_mask_controls)
+        self._update_mask_controls()
+
+    def _mask_blocked(self):
+        return (self.result is None or not self.result.stacks or self.parent.has_scheduled_tasks()
+                or self.get_result_state(self.result) in
+                (StateEnum.scheduled, StateEnum.running, StateEnum.cancelling))
+
+    def _update_mask_controls(self):
+        self.input_custom_mask.setEnabled(not self._mask_blocked())
+
+    def state_changed(self, result):
+        super().state_changed(result)
+        self._update_mask_controls()
+
+    def _populate_masks(self, result):
+        choices = source_choices(result, "mask")
+        self.input_custom_mask.setValues(
+            [None] + [key for key, _ in choices] + [ImageSourceChoice.ADD],
+            ["none"] + [name for _, name in choices] + ["Add custom mask…"])
+        self.input_custom_mask.setValue(None)
+
+    def add_custom_mask(self):
+        if self._mask_blocked():
+            return
+        dialog = ImageSourceDialog(self, self.result, "mask")
+        if dialog.exec() == QtWidgets.QDialog.Accepted:
+            self._populate_masks(self.result)
+            self.input_custom_mask.setValue(dialog.source_key, send_signal=True)
+            self.result.save()
 
     def cancel_process(self):
         self.set_result_state(self.result, StateEnum.cancelling)
@@ -169,6 +209,11 @@ class MeshCreator(PipelineModule):
         return "finished", max_count, max_count
 
     def setResult(self, result: Result):
+        self._populate_masks(result)
+        if result is not None:
+            if getattr(result, "mesh_parameters_tmp", None) is None:
+                result.mesh_parameters_tmp = dict(result.mesh_parameters or {})
+            result.mesh_parameters_tmp.setdefault("custom_mask", None)
         super().setResult(result)
         if result and result.stacks and result.stacks[0] and result.mesh_parameters:
             if result.stack_reference is None:
@@ -178,6 +223,7 @@ class MeshCreator(PipelineModule):
             else:
                 self.input_reference.setValues(["reference stack"])
                 self.input_reference.setEnabled(False)
+        self._update_mask_controls()
 
     def update_display(self):
         if self.current_tab_selected is False:
@@ -209,7 +255,9 @@ class MeshCreator(PipelineModule):
         for i in range(len(result.mesh_piv)):
             self.parent.signal_process_status_update.emit(f"{i}/{len(result.mesh_piv)} creating mesh", f"{Path(result.output).name}")
             # and create the interpolated solver mesh
-            result.solvers[i] = saenopy.interpolate_mesh(result.mesh_piv[i], displacement_list[i], mesh_parameters)
+            result.solvers[i] = saenopy.interpolate_mesh(
+                result.mesh_piv[i], displacement_list[i], mesh_parameters,
+                custom_mask=get_custom_mask(result, i, mesh_parameters))
             if self.cancel_p.cancel is True:
                 return "Terminated"
             self.parent.result_changed.emit(result)
@@ -226,6 +274,7 @@ class MeshCreator(PipelineModule):
         results = None
         @export_as_string
         def code(my_mesh_params):  # pragma: no cover
+            from saenopy.image_sources import get_custom_mask
             # define the parameters to generate the solver mesh and interpolate the piv mesh onto it
             mesh_parameters = my_mesh_params
 
@@ -240,7 +289,9 @@ class MeshCreator(PipelineModule):
                 # iterate over all stack pairs
                 for i in range(len(result.mesh_piv)):
                     # and create the interpolated solver mesh
-                    result.solvers[i] = saenopy.interpolate_mesh(result.mesh_piv[i], displacement_list[i], mesh_parameters)
+                    result.solvers[i] = saenopy.interpolate_mesh(
+                        result.mesh_piv[i], displacement_list[i], mesh_parameters,
+                        custom_mask=get_custom_mask(result, i, mesh_parameters))
                 # save the meshes
                 result.save()
         data = {

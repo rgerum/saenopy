@@ -43,7 +43,7 @@ def test_official_file_in_gui_and_full_code_export(tmp_path, monkeypatch):
         window.list.setCurrentRow(0)
         app.processEvents()
         result = window.data[0][2]
-        assert result.___save_version__ == "1.8"
+        assert result.___save_version__ == "1.9"
         assert result.solve_parameters["physical_normalization"] is False
         assert result.solve_parameters_tmp["physical_normalization"] is True
         assert result.solve_parameters_tmp["surface"] is False
