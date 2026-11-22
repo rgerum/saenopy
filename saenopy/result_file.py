@@ -81,14 +81,17 @@ def process_line(filename, output_path):
         shape = None
         for props in iterator:
             filename = template.format(**props)
-            if re.match(r"(.*\.tiff?)\[(.*)\]", filename):
-                filename, page = re.match(r"(.*\.tiff?)\[(.*)\]", filename).groups()
+            page = 0
+            match = re.match(r"(.*\.tiff?)\[(.*)\]", filename)
+            if match:
+                filename, page = match.groups()
+                page = int(props.get(page, page))
             # the file needs to exist
             #if not Path(filename).exists():
             #    raise FileNotFoundError(f"Could not find file {filename}")
             if Path(filename).suffix in [".tif", ".tiff"]:
                 with tifffile.TiffFile(filename) as f:
-                    file_shape = f.pages[0].shape
+                    file_shape = f.pages[page].shape
             else:
                 with Image.open(filename) as im:
                     file_shape = (im.height, im.width)
@@ -96,7 +99,8 @@ def process_line(filename, output_path):
                 shape = file_shape
             else:
                 if file_shape != shape:
-                    raise ValueError(f"Shape of file {filename} ({file_shape}) does not match previous shape ({shape})")
+                    selected_file = f"{filename}[{page}]" if match else filename
+                    raise ValueError(f"Shape of file {selected_file} ({file_shape}) does not match previous shape ({shape})")
 
         # create the output path
         output = Path(output_path) / os.path.relpath(r1, output_base)

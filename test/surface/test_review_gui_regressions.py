@@ -329,10 +329,77 @@ def test_complete_batch_noop_preserves_metadata_but_fits_replaced_meshes(gui_win
     assert result.solve_parameters_state == "finished"
     assert fitted == ([0, 1] if refresh_mesh else [])
     if not refresh_mesh:
-        assert saved == []
+        assert saved == [True]
         assert result.solve_parameters is original_solve
         assert result.material_parameters is original_material
         assert result._fit_attempt_parameters is original_attempt
+
+
+@pytest.mark.parametrize("fail_retry", [False, True])
+def test_final_frame_save_retry_persists_without_refitting(gui_window, monkeypatch, tmp_path, fail_retry):
+    from qtpy import QtWidgets
+    from saenopy import Result
+    import saenopy.reconstruction as reconstruction
+
+    regularizer = gui_window.sub_module_regularize
+    result = series_result(2)
+    result.output = str(tmp_path / "save-retry.saenopy")
+    regularizer.setResult(result)
+    queued, fitted, errors, finished = [], [], [], []
+    monkeypatch.setattr(gui_window, "addTask", lambda *args: queued.append(args))
+    monkeypatch.setattr(QtWidgets.QMessageBox, "critical", lambda *args: None)
+    regularizer.processing_error.connect(errors.append)
+    regularizer.processing_finished.connect(lambda: finished.append(True))
+    remaining_failures = 2 if fail_retry else 1
+
+    def save():
+        nonlocal remaining_failures
+        if len(fitted) == 2 and remaining_failures:
+            remaining_failures -= 1
+            raise OSError("temporary save failure")
+        Result.save(result)
+
+    def fit(result, index, **kwargs):
+        fitted.append(index)
+        solver = result.solvers[index]
+        solver.mesh.forces[:] = index + 1
+        solver.regularisation_results = np.ones((2, 3))
+        solver.regularisation_parameters = completed_parameters()
+        return solver
+
+    def run():
+        regularizer.start_process(result=result)
+        task = queued.pop(0)
+        task[0](result, task[2])
+
+    result.save = save
+    monkeypatch.setattr(reconstruction, "fit_result", fit)
+    run()
+    assert fitted == [0, 1]
+    assert result.solve_parameters_state == "failed"
+    assert errors == ["temporary save failure"]
+    assert finished == []
+    assert regularizer.check_status(result) == ("finished", 2, 2)
+    assert regularizer.check_status(Result.load(result.output)) == ("progress", 1, 2)
+    original_solve, original_material = result.solve_parameters, result.material_parameters
+    original_attempt = result._fit_attempt_parameters
+
+    run()
+    if fail_retry:
+        assert result.solve_parameters_state == "failed"
+        assert errors == ["temporary save failure"] * 2
+        assert finished == []
+        assert regularizer.check_status(Result.load(result.output)) == ("progress", 1, 2)
+        run()
+    assert result.solve_parameters_state == "finished"
+    assert finished == [True]
+    assert fitted == [0, 1]
+    assert result.solve_parameters is original_solve
+    assert result.material_parameters is original_material
+    assert result._fit_attempt_parameters is original_attempt
+    loaded = Result.load(result.output)
+    assert regularizer.check_status(loaded) == ("finished", 2, 2)
+    np.testing.assert_array_equal(loaded.solvers[-1].mesh.forces, np.full((4, 3), 2.))
 
 
 def test_process_without_pending_frames_does_not_record_unapplied_settings():

@@ -1,5 +1,6 @@
 import os
 import time
+import traceback
 from qtpy import QtCore, QtWidgets
 import qtawesome as qta
 import numpy as np
@@ -356,6 +357,15 @@ class Regularizer(PipelineModule):
         # A completed unchanged fit must not acquire newly copied parameters or
         # attempt provenance from the base worker without actually being fitted.
         if self.check_status(result)[0] == "finished" and not getattr(result, "_retry_all_frames", False):
+            # A previous save may have failed after the final frame was fitted.
+            try:
+                result.save()
+            except Exception as error:
+                traceback.print_exc()
+                self.set_result_state(result, StateEnum.failed)
+                self.processing_state_changed.emit(result)
+                self.processing_error.emit(str(error))
+                return
             self.set_result_state(result, StateEnum.finished)
             self.parent.result_changed.emit(result)
             self.processing_finished.emit()
