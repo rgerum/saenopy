@@ -115,6 +115,7 @@ Old files retain their recorded results and legacy settings on load.
 
 For an existing result with an interpolated mesh, the shared Python entry point is::
 
+    import saenopy
     from saenopy.reconstruction import fit_result
 
     fit_result(result, index=0, parameters=dict(

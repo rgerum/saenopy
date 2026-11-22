@@ -69,9 +69,20 @@ class PathEditor(QtWidgets.QDialog):
 
 
 class PathChanger:
+    leica_suffix = re.compile(r"\{f:\d+\}\{c:\d+\}(?:\{t:\d+\})?\.lif$")
+
     def __init__(self, old_template, new_template):
         old_template = str(old_template)
         new_template = str(new_template)
+        self.leica_paths = None
+        suffix = self.leica_suffix.search(old_template)
+        if suffix is not None:
+            if not new_template.endswith(".lif"):
+                raise ValueError("Select a Leica .lif file for this source.")
+            new_suffix = self.leica_suffix.search(new_template)
+            self.leica_paths = (old_template[:suffix.start()],
+                                new_template[:new_suffix.start()] if new_suffix else new_template[:-4])
+            return
 
         old_template = re.sub(r"\{c(:[^}]*)?\}", r"{c}", old_template)
         old_template = re.sub(r"\[([zt])\]$", r"[{\1}]", old_template)
@@ -87,10 +98,17 @@ class PathChanger:
     def change_path(self, path):
         path_type = isinstance(path, Path)
         path = str(path)
-        match = self.old_template_re.match(path)
-        if match is None:
-            raise ValueError(f"Path {path} does not fit template {self.old_template_re}")
-        new = self.new_template_format.format(**match.groupdict())
+        if self.leica_paths is not None:
+            suffix = self.leica_suffix.search(path)
+            if suffix is None or Path(path[:suffix.start()]) != Path(self.leica_paths[0]):
+                raise ValueError(f"Path {path} does not fit the selected Leica source.")
+            # Relocate the container, retaining each stack's folder/channel/time.
+            new = self.leica_paths[1] + suffix.group()
+        else:
+            match = self.old_template_re.match(path)
+            if match is None:
+                raise ValueError(f"Path {path} does not fit template {self.old_template_re}")
+            new = self.new_template_format.format(**match.groupdict())
         #print("change_path From", path)
         #print("change_path To  ", new)
         if path_type:
@@ -98,6 +116,11 @@ class PathChanger:
         return new
 
     def stack_change(self, stack: "Stack"):
+        if self.leica_paths is not None:
+            stack.template = self.change_path(stack.template)
+            stack.leica_filename = self.leica_paths[1]
+            stack._leica_file = None
+            return
         # Rebuild the string array so a longer destination is not truncated to
         # the old NumPy fixed-width string dtype.
         stack.image_filenames = np.asarray([

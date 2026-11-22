@@ -143,12 +143,16 @@ def test_mismatched_time_counts_and_multiplane_masks_rejected(tmp_path):
     assert result.image_sources == []
 
 
-def test_multipage_tiff_and_selected_channel(tmp_path):
+@pytest.mark.parametrize("extension", ["tif", "tiff"])
+def test_multipage_tiff_and_selected_channel(tmp_path, extension):
     result = result_with_frames(tmp_path)
     path, image = write_surface(tmp_path)
-    tifffile.imwrite(tmp_path / "volume.tif", image.transpose(2, 0, 1), photometric="minisblack")
-    key = saenopy.add_image_source(result, tmp_path / "volume.tif[z]")
+    tifffile.imwrite(tmp_path / f"volume.{extension}", image.transpose(2, 0, 1), photometric="minisblack")
+    key = saenopy.add_image_source(result, tmp_path / f"volume.{extension}[z]")
     np.testing.assert_array_equal(saenopy.get_image_source(result, key, 0)[:, :, 0, :, 0], image)
+    matrix = saenopy.get_stacks(tmp_path / f"volume.{extension}[z]", tmp_path / "matrix_result",
+                                (1, 1, 1), reference_stack=tmp_path / f"volume.{extension}[z]")[0]
+    np.testing.assert_array_equal(matrix.stacks[0][:, :, 0, :, 0], image)
     for channel in (0, 1):
         tifffile.imwrite(tmp_path / f"mask_c{channel}.tif", np.full((21, 31), channel, np.uint8))
     key = saenopy.add_image_source(result, tmp_path / "mask_c{c:1}.tif", kind="mask")

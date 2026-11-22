@@ -256,7 +256,7 @@ def test_crop_z(files_z_pages):
     #check_stack(Stack("tmp/run-1/Pos004_S001_z000_ch00.tif[z]", (1, 1, 1)), 13, 11, 10, 1, rgb0=3)
 
 
-def test_lif():
+def test_lif(tmp_path):
     from urllib.request import urlretrieve
     from pathlib import Path
     url = "https://downloads.openmicroscopy.org/images/Leica-LIF/michael/PR2729_frameOrderCombinedScanTypes.lif"
@@ -276,3 +276,24 @@ def test_lif():
     np.testing.assert_array_equal(
         volume, np.stack([stack[:, :, 0, z, 0] for z in range(dimensions.z)], axis=2))
     assert stack[:, :, 0, 0:1, 0].shape == (64, 64, 1)
+
+    # The same real container must also work as an added source in a portable result.
+    from saenopy import Result, add_image_source, get_image_source
+    result = results[0]
+    channel = stack.leica_file.channels - 1
+    selected = str(Path(file_download_path).resolve().with_suffix("")) + f"{{f:0}}{{c:{channel}}}{{t:0}}.lif"
+    key = add_image_source(result, selected, voxel_size=(.5, .75, 2))
+    source = get_image_source(result, key, 0)
+    expected_source = source[:, :, 0, :, 0].copy()
+    expected_channels = [stack[:, :, 0, :, c].copy() for c in range(len(stack.channels))]
+    shape = stack.shape
+    for item in result.stacks + [source]:
+        item.pack_files()
+    assert stack.shape == shape
+    result.save(tmp_path / "packed.saenopy")
+    Path(file_download_path).unlink()
+    loaded = Result.load(result.output)
+    for c, expected in enumerate(expected_channels):
+        np.testing.assert_array_equal(loaded.stacks[0][:, :, 0, :, c], expected)
+    np.testing.assert_array_equal(get_image_source(loaded, key, 0)[:, :, 0, :, 0], expected_source)
+    assert tuple(get_image_source(loaded, key, 0).voxel_size) == (.5, .75, 2)
