@@ -245,6 +245,109 @@ def test_unselected_partial_batch_result_uses_same_retry_defaults(gui_window, mo
     assert result.solve_parameters_tmp["prev_t_as_start"] is False
 
 
+@pytest.mark.parametrize("state", ["", "finished"])
+@pytest.mark.parametrize("widget_name,value", [("input_alpha", 2e8), ("input_k", 1234.)])
+def test_completed_series_edits_recalculate_every_frame(gui_window, monkeypatch, state, widget_name, value):
+    import saenopy.reconstruction as reconstruction
+
+    regularizer = gui_window.sub_module_regularize
+    result = series_result(2)
+    for solver in result.solvers:
+        solver.regularisation_results = np.ones((2, 3))
+        solver.regularisation_parameters = completed_parameters()
+    regularizer.set_result_state(result, state)
+    regularizer.setResult(result)
+    assert not regularizer.input_button.isEnabled()
+    widget = getattr(regularizer, widget_name)
+    old_value = widget.value()
+    widget.setValue(value, send_signal=True)
+    assert regularizer.input_button.text() == "recalculate all frames"
+    assert regularizer.input_button.isEnabled()
+    widget.setValue(old_value, send_signal=True)
+    assert not regularizer.input_button.isEnabled()
+    widget.setValue(value, send_signal=True)
+    queued, fitted = [], []
+    monkeypatch.setattr(gui_window, "addTask", lambda *args: queued.append(args))
+
+    def fit(result, index, parameters, material_parameters, **kwargs):
+        fitted.append((index, parameters["alpha"], material_parameters["k"]))
+        solver = result.solvers[index]
+        assert solver.regularisation_results is None
+        solver.regularisation_results = np.ones((2, 3))
+        solver.regularisation_parameters = completed_parameters()
+        return solver
+
+    monkeypatch.setattr(reconstruction, "fit_result", fit)
+    original_results = [solver.regularisation_results for solver in result.solvers]
+    regularizer.start_process()
+    assert result._retry_all_frames
+    for solver, original in zip(result.solvers, original_results):
+        assert solver.regularisation_results is original
+    queued[0][0](result, queued[0][2])
+    expected_alpha = value if widget_name == "input_alpha" else 1e8
+    expected_k = value if widget_name == "input_k" else 1000.
+    assert fitted == [(0, expected_alpha, expected_k), (1, expected_alpha, expected_k)]
+    assert result._fit_attempt_parameters["solve_parameters"]["alpha"] == expected_alpha
+    assert result._fit_attempt_parameters["material_parameters"]["k"] == expected_k
+    assert result.solve_parameters["alpha"] == expected_alpha
+    assert result.material_parameters["k"] == expected_k
+    assert not regularizer.input_button.isEnabled()
+
+
+@pytest.mark.parametrize("refresh_mesh", [False, True])
+def test_complete_batch_noop_preserves_metadata_but_fits_replaced_meshes(gui_window, monkeypatch, refresh_mesh):
+    import saenopy.reconstruction as reconstruction
+
+    regularizer = gui_window.sub_module_regularize
+    regularizer.setResult(example_result())
+    result = series_result(2)
+    for solver in result.solvers:
+        solver.regularisation_results = np.ones((2, 3))
+        solver.regularisation_parameters = completed_parameters()
+    original_solve, original_material = result.solve_parameters, result.material_parameters
+    result._fit_attempt_parameters = dict(solve_parameters=dict(original_solve),
+                                          material_parameters=dict(original_material))
+    original_attempt = result._fit_attempt_parameters
+    queued, fitted, saved = [], [], []
+    result.save = lambda: saved.append(True)
+    monkeypatch.setattr(gui_window, "addTask", lambda *args: queued.append(args))
+
+    def fit(result, index, **kwargs):
+        fitted.append(index)
+        solver = result.solvers[index]
+        solver.regularisation_results = np.ones((2, 3))
+        solver.regularisation_parameters = completed_parameters()
+        return solver
+
+    monkeypatch.setattr(reconstruction, "fit_result", fit)
+    regularizer.start_process(result=result)
+    assert not result._retry_all_frames
+    if refresh_mesh:
+        # An earlier queued MeshCreator step replaces the completed solvers.
+        result.solvers = series_result(2).solvers
+    queued[0][0](result, queued[0][2])
+    assert result.solve_parameters_state == "finished"
+    assert fitted == ([0, 1] if refresh_mesh else [])
+    if not refresh_mesh:
+        assert saved == []
+        assert result.solve_parameters is original_solve
+        assert result.material_parameters is original_material
+        assert result._fit_attempt_parameters is original_attempt
+
+
+def test_process_without_pending_frames_does_not_record_unapplied_settings():
+    from saenopy.gui.solver.modules.Regularizer import Regularizer
+
+    result = series_result(2)
+    for solver in result.solvers:
+        solver.regularisation_results = np.ones((2, 3))
+    previous = dict(solve_parameters=dict(result.solve_parameters))
+    result._fit_attempt_parameters = previous
+    Regularizer.process(process_owner(), result, result.material_parameters,
+                        dict(result.solve_parameters, alpha=2e8))
+    assert result._fit_attempt_parameters is previous
+
+
 def test_actual_channel_edit_after_dataset_switch_updates_fit_settings(gui_window):
     from saenopy import Result
     regularizer = gui_window.sub_module_regularize

@@ -156,6 +156,8 @@ class TabForces(TabModule):
                 # preview only: no forces yet -> still show the segmented surface nodes
                 # (field=None draws no arrows, show_surface draws the cyan dots)
                 showVectorField(self.plotter, M.mesh, None, "forces",
+                                display_image=display_image,
+                                colormap2=self.vtk_toolbar.colormap_chooser2.value(),
                                 show_grid=self.vtk_toolbar.show_grid.value(),
                                 stack_shape=stack_shape, show_surface=show_surface)
             if cam_pos is not None:

@@ -5,8 +5,38 @@ os.environ.setdefault("PYVISTA_OFF_SCREEN", "true")
 
 from types import SimpleNamespace
 import pytest
+from test_review_gui_regressions import gui_window
 
 pytestmark = pytest.mark.usefixtures("isolated_qt_settings")
+
+
+@pytest.mark.parametrize("forces", [None, 0.])
+def test_zero_force_preview_keeps_selected_image(gui_window, monkeypatch, forces):
+    import importlib
+    import numpy as np
+    from test_release import example_result
+
+    module = importlib.import_module("saenopy.gui.solver.modules.TabForces")
+    result = example_result()
+    solver = result.solvers[0]
+    solver.mesh.forces = None if forces is None else np.zeros_like(solver.mesh.nodes)
+    solver.mesh.cell_boundary_mask = np.array([True, False, False, False])
+    viewer = gui_window.tab5
+    viewer.result = result
+    viewer.current_tab_selected = True
+    monkeypatch.setattr(module, "getVectorFieldImage", lambda self: [
+        np.full((8, 6, 1), .5), (1., 1., 1.), 0])
+    viewer.vtk_toolbar.colormap_chooser2.setValue("viridis")
+
+    viewer.update_display()
+    assert "image_mesh" in viewer.plotter.actors
+    texture = viewer.plotter.actors["image_mesh"].GetTexture()
+    assert texture.GetInput().GetNumberOfScalarComponents() == 3
+    assert "arrows" not in viewer.plotter.actors
+    # The image toggle must still be able to remove the background.
+    monkeypatch.setattr(module, "getVectorFieldImage", lambda self: None)
+    viewer.update_display()
+    assert "image_mesh" not in viewer.plotter.actors
 
 
 @pytest.mark.parametrize("state,active,status", [

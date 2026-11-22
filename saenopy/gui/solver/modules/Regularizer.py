@@ -277,6 +277,13 @@ class Regularizer(PipelineModule):
         result = self.result
         error = getattr(result, "_segmentation_error", None)
         state = self.get_result_state(result)
+        complete = self.check_status(result)[0] == "finished"
+        if complete and state in (StateEnum.idle, StateEnum.finished):
+            restart = self._retry_settings_changed(result)
+            self.input_button.setText("recalculate all frames" if restart else "done")
+            self.input_button.setEnabled(restart and self.check_available(result)
+                                         and not self.parent.has_scheduled_tasks())
+            return
         if not ((state == StateEnum.failed and error)
                 or (state == StateEnum.idle and self._has_partial_fit(result))):
             return
@@ -331,7 +338,8 @@ class Regularizer(PipelineModule):
             if self.get_result_state(target) not in (
                     StateEnum.scheduled, StateEnum.running, StateEnum.cancelling):
                 target._retry_all_frames = bool(
-                    (getattr(target, "_segmentation_error", None) or self._has_partial_fit(target))
+                    (getattr(target, "_segmentation_error", None) or self._has_partial_fit(target)
+                     or self.check_status(target)[0] == "finished")
                     and self._retry_settings_changed(target))
                 target._live_fit_solvers = {
                     i: solver_snapshot(s) for i, s in enumerate(target.solvers or []) if s is not None}
@@ -342,6 +350,17 @@ class Regularizer(PipelineModule):
                 if target is self.result:
                     self.parent.tabs.setCurrentWidget(self.parent.tab5.tab.parent())
         return super().start_process(x, result)
+
+    def process_thread(self, result, params):
+        # Check at execution time: an earlier batch step may replace the meshes.
+        # A completed unchanged fit must not acquire newly copied parameters or
+        # attempt provenance from the base worker without actually being fitted.
+        if self.check_status(result)[0] == "finished" and not getattr(result, "_retry_all_frames", False):
+            self.set_result_state(result, StateEnum.finished)
+            self.parent.result_changed.emit(result)
+            self.processing_finished.emit()
+            return
+        return super().process_thread(result, params)
 
     def show_live_field(self, result, frame, snapshot):
         # This slot runs on the GUI thread. Finished/failed jobs discard any
@@ -494,10 +513,6 @@ class Regularizer(PipelineModule):
         # GUI fits use the internal budget, including refits of older files.
         # Explicit alternative budgets remain available through the Python API.
         solve_parameters = dict(solve_parameters, cg_maxiter_factor=DEFAULT_CG_MAXITER_FACTOR)
-        result._fit_attempt_parameters = {
-            "material_parameters": dict(material_parameters),
-            "solve_parameters": dict(solve_parameters),
-        }
         if getattr(result, "_retry_all_frames", False):
             # Invalidate old fits only when the retry worker actually starts.
             # Keep mesh/boundary data and fields; each frame is then refitted.
@@ -551,6 +566,10 @@ class Regularizer(PipelineModule):
                     self.live_field_ready.emit(result, frame, solver_snapshot(M))
                     last_display = now
 
+            result._fit_attempt_parameters = {
+                "material_parameters": dict(material_parameters),
+                "solve_parameters": dict(solve_parameters),
+            }
             solver = fit_result(result, i, parameters=solve_parameters,
                        material_parameters=material_parameters, callback=callback,
                        prepared_surface=geometry,
