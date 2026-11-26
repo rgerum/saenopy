@@ -185,3 +185,42 @@ def test_ambiguous_channels_are_rejected_and_explicit_selection_is_isolated(tmp_
     stack = saenopy.get_image_source(result, key, 0)
     assert stack.channels == ["1"]
     assert stack[:, :, 0, :, 0].all()
+
+
+@pytest.mark.parametrize("multipage", [False, True])
+@pytest.mark.parametrize("extension", ["tif", "tiff"])
+def test_auxiliary_planes_are_validated_before_attaching(tmp_path, multipage, extension):
+    result = result_with_frames(tmp_path)
+    images = [np.zeros((21, 31), np.uint8), np.ones((20, 31), np.uint8)]
+    if multipage:
+        path = tmp_path / f"mixed.{extension}"
+        with tifffile.TiffWriter(path) as writer:
+            for image in images:
+                writer.write(image, photometric="minisblack")
+        template = str(path) + "[z]"
+    else:
+        for z, image in enumerate(images):
+            tifffile.imwrite(tmp_path / f"mixed_z{z}.{extension}", image)
+        template = str(tmp_path / f"mixed_z{{z}}.{extension}")
+    existing = saenopy.add_image_source(result, tmp_path / "matrix.tif", kind="mask")
+    sources = list(result.image_sources)
+    with pytest.raises(ValueError, match="does not match previous shape"):
+        saenopy.add_image_source(result, template)
+    assert result.image_sources == sources
+    assert saenopy.get_custom_mask(result, 0, {"custom_mask": existing}) is sources[0].stacks[0]
+
+
+def test_auxiliary_shape_checks_only_selected_channel_and_pages_without_pixels(tmp_path, monkeypatch):
+    result = result_with_frames(tmp_path)
+    for channel in range(2):
+        for z in range(2):
+            with tifffile.TiffWriter(tmp_path / f"cell_c{channel}_z{z}.tiff") as writer:
+                writer.write(np.zeros((20 + z, 31), np.uint8), photometric="minisblack")
+                # Only channel 1/page 1 is selected and internally consistent.
+                writer.write(np.zeros((8 if channel else 10 + z, 12), np.uint8),
+                             photometric="minisblack")
+    monkeypatch.setattr(tifffile.TiffPage, "asarray", lambda *args, **kwargs: pytest.fail("pixel read"))
+    key = saenopy.add_image_source(result, str(tmp_path / "cell_c{c:1}_z{z}.tiff") + "[1]")
+    stack = saenopy.get_image_source(result, key, 0)
+    assert stack.shape == (8, 12, 2, 1)  # A different field of view from the matrix is valid.
+    assert stack.channels == ["1"]

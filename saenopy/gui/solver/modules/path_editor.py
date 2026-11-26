@@ -60,9 +60,16 @@ class PathEditor(QtWidgets.QDialog):
                                                               allow_edit=True)
             else:
                 self.input_folder2 = None
-            self.input_sources = [QtShortCuts.QInputFolder(
-                None, source.name, Path(source.template), allow_edit=True)
-                for source in result.image_sources]
+            self.input_sources = []
+            for source in result.image_sources:
+                if PathChanger.leica_suffix.search(str(source.template)):
+                    widget = QtShortCuts.QInputFilename(
+                        None, source.name, str(source.template), existing=True,
+                        file_type="Leica (*.lif)", allow_edit=True)
+                else:
+                    widget = QtShortCuts.QInputFolder(
+                        None, source.name, Path(source.template), allow_edit=True)
+                self.input_sources.append(widget)
             with QtShortCuts.QHBoxLayout():
                 self.button_addList0 = QtShortCuts.QPushButton(None, "cancel", self.reject)
                 self.button_addList0 = QtShortCuts.QPushButton(None, "ok", self.accept)

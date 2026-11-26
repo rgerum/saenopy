@@ -248,6 +248,19 @@ def load_image_files_to_nparray(image_filenames, crop=None, parent=None):
         return [load_image_files_to_nparray(i, crop, parent) for i in image_filenames]
 
 
+def read_image_shape(filename):
+    """Read one selected image plane's shape from its header, without pixels."""
+    filename = str(filename)
+    match = re.fullmatch(r"(.*\.tiff?)(?:\[(\d+)\])?", filename)
+    if match:
+        path, page = match.groups()
+        with tifffile.TiffFile(path) as tif:
+            return tif.pages[int(page or 0)].shape
+    from PIL import Image
+    with Image.open(filename) as image:
+        return image.height, image.width
+
+
 def read_tiff(image_filenames):
     if re.match(r".*\.tiff?(\[.*\])?$", str(image_filenames)):
         image_filenames = str(image_filenames)

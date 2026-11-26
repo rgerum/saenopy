@@ -131,7 +131,7 @@ class StackSelectorTif(QtWidgets.QWidget):
         self.stack_obj = []
 
     def checkAcceptFilename(self, filename):
-        return filename.endswith(".tif") or filename.endswith(".png") or filename.endswith(".jpg") or filename.endswith(".jpeg")
+        return filename.endswith((".tif", ".tiff", ".png", ".jpg", ".jpeg"))
 
     def setImage(self, filename):
         # get the list of similar filenames

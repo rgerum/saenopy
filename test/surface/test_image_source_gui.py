@@ -233,13 +233,19 @@ def test_mask_series_uses_time_property_and_optional_pixel_size(app, tmp_path):
     dialog.close()
 
 
-def test_surface_multipage_tiff_has_z_and_layout(app, tmp_path):
+@pytest.mark.parametrize("extension", ["tif", "tiff"])
+def test_surface_multipage_tiff_has_z_and_layout(app, tmp_path, monkeypatch, extension):
+    from qtpy import QtWidgets
     from saenopy.gui.solver.modules.image_source_dialog import ImageSourceDialog
     result = matrix_result(tmp_path)
-    path = tmp_path / "cell.tif"
+    path = tmp_path / f"cell.{extension}"
     tifffile.imwrite(path, np.arange(5 * 8 * 12, dtype=np.uint16).reshape(5, 8, 12), photometric="minisblack")
     dialog = ImageSourceDialog(None, result, "surface")
-    dialog.stack_selector.file_changed(str(path))
+    def choose_file(*args, **kwargs):
+        assert f"*.{extension}" in args[3].replace("(", " ").replace(")", " ").split()
+        return str(path), ""
+    monkeypatch.setattr(QtWidgets.QFileDialog, "getOpenFileName", choose_file)
+    dialog.stack_selector.input_filename._openDialog()
     assert dialog.pattern.text().endswith("[z]")
     dialog.show()
     app.processEvents()

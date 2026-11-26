@@ -7,9 +7,7 @@ import os
 import natsort
 import numpy as np
 from typing import List, Union
-import tifffile
-from PIL import Image
-from saenopy.stack import Stack, format_glob
+from saenopy.stack import Stack, format_glob, read_image_shape
 from saenopy.saveable import Saveable
 from saenopy.image_sources import ImageSource
 from saenopy.solver import Solver
@@ -89,17 +87,12 @@ def process_line(filename, output_path):
             # the file needs to exist
             #if not Path(filename).exists():
             #    raise FileNotFoundError(f"Could not find file {filename}")
-            if Path(filename).suffix in [".tif", ".tiff"]:
-                with tifffile.TiffFile(filename) as f:
-                    file_shape = f.pages[page].shape
-            else:
-                with Image.open(filename) as im:
-                    file_shape = (im.height, im.width)
+            selected_file = f"{filename}[{page}]" if match else filename
+            file_shape = read_image_shape(selected_file)
             if shape is None:
                 shape = file_shape
             else:
                 if file_shape != shape:
-                    selected_file = f"{filename}[{page}]" if match else filename
                     raise ValueError(f"Shape of file {selected_file} ({file_shape}) does not match previous shape ({shape})")
 
         # create the output path

@@ -12,7 +12,7 @@ import natsort
 import numpy as np
 
 from .saveable import Saveable
-from .stack import Stack, format_glob
+from .stack import Stack, format_glob, read_image_shape
 
 
 class ImageSource(Saveable):
@@ -83,6 +83,7 @@ def _load_stacks(filename, voxel_size):
     table = table[table.c == channels[0]]
     slices = natsort.natsorted(table.z.unique())
     stacks = []
+    shape = None
     for time in natsort.natsorted(table.t.unique()):
         frame = table[table.t == time]
         files = []
@@ -92,10 +93,18 @@ def _load_stacks(filename, voxel_size):
                 matches = frame[(frame.z == z) & (frame.c == channel)]
                 if len(matches) != 1:
                     raise ValueError("Each time point needs every selected slice and channel exactly once.")
-                row.append(matches.iloc[0].filename)
+                selected_file = matches.iloc[0].filename
+                file_shape = read_image_shape(selected_file)
+                if shape is None:
+                    shape = file_shape
+                elif file_shape != shape:
+                    raise ValueError(f"Shape of file {selected_file} ({file_shape}) "
+                                     f"does not match previous shape ({shape})")
+                row.append(selected_file)
             files.append(row)
         stacks.append(Stack(filename.replace("{t}", str(time)), tuple(voxel_size),
-                            image_filenames=np.asarray(files), channels=list(channels)))
+                            image_filenames=np.asarray(files), channels=list(channels),
+                            _shape=(*shape[:2], len(files), len(channels))))
     return stacks
 
 

@@ -1,4 +1,5 @@
 import json
+from copy import deepcopy
 import sys
 import os
 
@@ -49,6 +50,7 @@ class BatchEvaluateBase(QtWidgets.QWidget):
     file_extension = None
 
     result_params = []
+    result_local_params = {}
 
     def add_modules(self):
         self.modules = []
@@ -207,11 +209,25 @@ class BatchEvaluateBase(QtWidgets.QWidget):
         except ValueError:
             return False
         result = self.list.data[self.list.currentRow()][2]
-        params = self.result_params
-        for par in params:
-            if par in data:
-                setattr(result, par+"_tmp", data[par])
+        self._set_pasted_params(result, data)
         self.set_current_result.emit(result)
+
+    def _set_pasted_params(self, result, data):
+        for group in self.result_params:
+            if group not in data:
+                continue
+            params = deepcopy(data[group])
+            if isinstance(params, dict):
+                current = getattr(result, group + "_tmp", None)
+                if current is None:
+                    current = getattr(result, group, None) or {}
+                for key in self.result_local_params.get(group, ()):
+                    if isinstance(params.get(key), str) and params[key].startswith("local:"):
+                        # Clipboard parameters do not carry the referenced images.
+                        params.pop(key)
+                        if key in current:
+                            params[key] = current[key]
+            setattr(result, group + "_tmp", params)
 
     def paste_params2(self):
         cb = QtGui.QGuiApplication.clipboard()
@@ -222,10 +238,7 @@ class BatchEvaluateBase(QtWidgets.QWidget):
             return False
         for i in range(len(self.list.data)):
             result = self.list.data[i][2]
-            params = self.result_params
-            for par in params:
-                if par in data:
-                    setattr(result, par + "_tmp", data[par])
+            self._set_pasted_params(result, data)
         result = self.list.data[self.list.currentRow()][2]
         self.set_current_result.emit(result)
 
