@@ -727,9 +727,9 @@ class Solver(Saveable):
         if relrecname is not None:
             np.savetxt(relrecname, relrec)
 
-    def solve_regularized(self, step_size: float = 0.33, solver_precision: float = 1e-18, max_iterations: int = 300,
+    def solve_regularized(self, step_size: float = 0.33, solver_precision: float = 1e-18, max_iterations: int = 1000,
                           i_min: int = 12, rel_conv_crit: float = 0.01, alpha: float = 1e10, method: str = "huber",
-                          relrecname: str = None, verbose: bool = False, callback: callable = None, cancel_signal= None):
+                          conv_window: int = 100, relrecname: str = None, verbose: bool = False, callback: callable = None, cancel_signal= None):
         """
         Fit the provided displacements. Displacements can be provided with
         :py:meth:`~.Solver.setTargetDisplacements`.
@@ -741,12 +741,15 @@ class Solver(Saveable):
         solver_precision : float, optional
             The tolerance for the conjugate gradient step. Will be multiplied by the number of nodes. Default 1e-18.
         max_iterations : int, optional
-            The maximal number of iterations for the regularisation. Default 300
+            The maximal number of iterations for the regularisation. Default 1000
         i_min : int, optional
-            The minimal number of iterations for the relaxation. Minimum value is 6. Default is 12.
+            The minimal number of iterations for the relaxation. Default is 12.
         rel_conv_crit :  float, optional
-            If the relative standard deviation of the last 6 energy values is below this threshold, finish the iteration.
-            Default 0.01
+            If the target function L decreased by less than this fraction over the last conv_window iterations, finish
+            the iteration. Default 0.01
+        conv_window : int, optional
+            The number of iterations over which the decrease of L is compared to rel_conv_crit. The window needs to be
+            long, as L can stall for a few iterations when the robust weights change. Default 100
         alpha :  float, optional
             The regularisation parameter. How much to weight the suppression of forces against the fitting of the measured
             displacement. Default 3e9
@@ -768,6 +771,7 @@ class Solver(Saveable):
             "solver_precision": solver_precision,
             "max_iterations": max_iterations,
             "rel_conv_crit": rel_conv_crit,
+            "conv_window": conv_window,
             "alpha": alpha,
             "method": method,
         }
@@ -802,7 +806,9 @@ class Solver(Saveable):
         for i in range(int(max_iterations)):
             # compute the weight matrix
             if method != "normal":
-                self._update_local_regularization_weigth(method)
+                # the robust weights are computed from the forces of the previous solution. In the first iteration
+                # there is no solution yet (the forces are only rounding noise), so start with uniform weights.
+                self._update_local_regularization_weigth(method if i > 0 else "uniform")
 
             # compute A and b for the linear equation that solves the regularisation problem
             self._compute_regularization_a_and_b(alpha)
@@ -822,15 +828,12 @@ class Solver(Saveable):
             if callback is not None:
                 callback(self, relrec, i, max_iterations)
 
-            # if we have passed i_min iterations we calculate average and std of the last 6 iteration
-            if i > i_min:
-                # calculate the average energy over the last 6 iterations
-                last_Ls = np.array(relrec)[:-6:-1, 1]
-                Lmean = np.mean(last_Ls)
-                Lstd = np.std(last_Ls)       #  Use Coefficient of Variation; in saeno there was the additional factor  "/ np.sqrt(5)" behind 
-
-                # if the iterations converge, stop the iteration
-                if Lstd / Lmean < rel_conv_crit:
+            # stop when the target function L did not decrease by more than rel_conv_crit over the last conv_window
+            # iterations (relrec[0] is the state before the first iteration)
+            if i + 1 >= max(i_min, conv_window):
+                L_now = relrec[-1][0]
+                L_before = relrec[-1 - conv_window][0]
+                if (L_before - L_now) / L_now < rel_conv_crit:
                     break
 
             if cancel_signal is not None and getattr(cancel_signal, "cancel", False):
