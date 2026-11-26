@@ -55,6 +55,12 @@ Standard bulk regularisation does not require a cell stain. The optional surface
 mode uses a segmented cell stain to penalise surface traction and suppress bulk
 forces. Both modes retain the existing exclusion of outer boundary forces.
 
+Explicitly prescribed displacement nodes (``movable=False``) are also excluded
+from the normalized force penalty and its linear-system right-hand side.
+This does not set their physical reaction forces to zero or change the separate
+storage of excluded outer boundary forces in ``forces_border``. Missing target
+displacements and membership of the cell surface do not fix a node's motion.
+
 For new GUI analyses, the cell channel defaults to the first additional channel
 when available, otherwise the sole channel. Saved and manually selected channels
 are preserved. Verify the cell stain and check **preview segmentation**. The selected

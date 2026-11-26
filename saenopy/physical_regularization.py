@@ -393,7 +393,9 @@ def _install_weighted_objective(solver, data_weights: np.ndarray, update_functio
         raise ValueError("data_weights must contain one value per solver node")
 
     def compute_a_and_b(self, alpha: float):
-        coefficient = np.repeat(self.localweight * alpha, 3)
+        # Match record_status: prescribed-node reactions are physical forces,
+        # but are not part of the regularized force penalty.
+        coefficient = np.repeat(self.localweight * alpha * self.mesh.movable, 3)
         KA = self.K_glo.multiply(coefficient[None, :])
         target = self.mesh.displacements_target_mask & self.mesh.movable
         q = data_weights * target
