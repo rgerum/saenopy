@@ -79,3 +79,18 @@ def test_regularization_operator_matches_explicit_matrix():
     y = A @ x
     np.testing.assert_allclose(M.A @ x, y, rtol=0, atol=1e-12 * np.abs(y).max())
     np.testing.assert_allclose(K @ x, M.K_glo @ x, rtol=0, atol=1e-12 * np.abs(K @ x).max())
+
+
+def test_regularized_solve_with_alpha_ramp():
+    R, T = create_box_mesh(np.linspace(-0.5, 0.5, 7))
+    target = 0.01 * R * np.exp(-np.sum(R ** 2, axis=1, keepdims=True) / 0.1)
+    inside = ~np.any(np.abs(R) == 0.5, axis=1)
+    M = Solver()
+    M.set_nodes(R)
+    M.set_tetrahedra(T)
+    M.set_material_model(SemiAffineFiberMaterial(900, 0.0004, 0.0075, 0.033))
+    M.set_target_displacements(target, inside)
+    relrec = M.solve_regularized(alpha=1e-2, max_iterations=400, conv_window=20, alpha_ramp_iterations=20)
+    # stopped by the convergence criterion, which does not look back into the ramp of alpha
+    assert 40 <= len(relrec) - 1 < 400
+    assert relrec[-1][0] < relrec[0][0]
