@@ -76,7 +76,7 @@ def test_official_file_in_gui_and_full_code_export(tmp_path, monkeypatch):
         assert "get_stacks" in code
         assert "surface_alpha" not in code
         assert "'physical_normalization': True" in code
-        assert "'cg_maxiter_factor': 2" in code
+        assert 'cg_maxiter_factor' not in code
         assert "'solver_precision': 1e-18" in code
 
         # Preview uses the current inputs and opens the enabled Forces view.
@@ -374,14 +374,14 @@ def test_gui_uses_internal_cg_without_rewriting_stored_results(tmp_path, monkeyp
             result = Result()
             result.solve_parameters = saved.copy()
             control.setResult(result)
-            assert result.solve_parameters_tmp["cg_maxiter_factor"] == 2
+            assert 'cg_maxiter_factor' not in result.solve_parameters_tmp
             assert result.solve_parameters == saved
             control.setResult(Result())
             control.setResult(result)
-            assert result.solve_parameters_tmp["cg_maxiter_factor"] == 2
+            assert 'cg_maxiter_factor' not in result.solve_parameters_tmp
             assert result.solve_parameters == saved
             imports, code = control.get_code()
-            assert "'cg_maxiter_factor': 2" in code
+            assert 'cg_maxiter_factor' not in code
             compile(imports + code, '<internal-cg-export>', 'exec')
     finally:
         window.close()

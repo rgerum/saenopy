@@ -6,7 +6,6 @@ import pytest
 from saenopy.conjugate_gradient import cg
 from saenopy import Solver, Result
 from saenopy.materials import SemiAffineFiberMaterial
-from saenopy.solver import DEFAULT_CG_MAXITER_FACTOR
 from saenopy.reconstruction import fit_result
 from test_release import example_result
 
@@ -36,7 +35,7 @@ def test_breakdown_is_not_silently_applied():
         cg(np.zeros((3, 3)), np.ones(3))
 
 
-def test_solver_multiplier_and_warning_only_once(monkeypatch):
+def test_stale_budget_metadata_cannot_override_fixed_budget_and_warning_once(monkeypatch):
     import saenopy.solver as module
     solver = example_result().solvers[0]
     solver.mesh.number_nodes = len(solver.mesh.nodes)
@@ -54,7 +53,7 @@ def test_solver_multiplier_and_warning_only_once(monkeypatch):
         solver._solve_regularization_cg()
         solver._solve_regularization_cg()
     assert len(messages) == 1
-    assert caps == [200, 200]
+    assert caps == [100, 100]
     assert len(solver._cg_diagnostics) == 2
 
 
@@ -149,7 +148,7 @@ def test_minimum_iterations_and_cancellation(monkeypatch):
     assert not solver.regularisation_parameters['objective_plateau_reached']
 
 
-def test_new_default_and_saved_override_reach_inner_solver(monkeypatch):
+def test_fixed_budget_discards_legacy_setting_and_preserves_precision(monkeypatch):
     import saenopy.solver as module
     caps=[]; tolerances=[]
     def fake(A,b,maxiter,tol,**kwargs):
@@ -158,12 +157,16 @@ def test_new_default_and_saved_override_reach_inner_solver(monkeypatch):
             relative_tolerance=np.sqrt(tol),converged=True,reason='converged')
     monkeypatch.setattr(module,'cg',fake)
     fresh=example_result(); fit_result(fresh)
-    assert DEFAULT_CG_MAXITER_FACTOR == 2
-    assert fresh.solve_parameters['cg_maxiter_factor'] == 2
-    saved=example_result(); saved.solve_parameters['cg_maxiter_factor']=4; fit_result(saved)
-    assert saved.solve_parameters['cg_maxiter_factor'] == 4
-    assert caps == [100,100,200,200]
-    assert tolerances == [4e-18]*4
+    assert 'cg_maxiter_factor' not in fresh.solve_parameters
+    assert fresh.solvers[0].regularisation_parameters['cg_maxiter_factor'] == 2
+    saved=example_result(); saved.solve_parameters['cg_maxiter_factor']=4
+    overrides=dict(cg_maxiter_factor=8, solver_precision=1e-16)
+    fit_result(saved, parameters=overrides)
+    assert 'cg_maxiter_factor' not in saved.solve_parameters
+    assert saved.solvers[0].regularisation_parameters['cg_maxiter_factor'] == 2
+    assert overrides == dict(cg_maxiter_factor=8, solver_precision=1e-16)
+    assert caps == [100,100,100,100]
+    assert tolerances == [4e-18,4e-18,4e-16,4e-16]
 
 
 @pytest.mark.parametrize('saved_factor', [None, 4, 8, 16])
@@ -173,14 +176,14 @@ def test_gui_export_uses_internal_budget_and_keeps_historical_parameters(saved_f
     result = SimpleNamespace(solve_parameters_tmp=parameters.copy(), material_parameters_tmp=dict(k=1000))
     imports, code = Regularizer.get_code(SimpleNamespace(result=result))
     compile(imports+code, '<exported reconstruction>', 'exec')
-    assert "'cg_maxiter_factor': 2" in code
+    assert 'cg_maxiter_factor' not in code
     assert "'solver_precision': 1e-18" in code
     assert result.solve_parameters_tmp == parameters
 
 
 def test_settings_and_diagnostics_roundtrip(tmp_path):
     result = example_result()
-    fit_result(result, parameters=dict(cg_maxiter_factor=2, solver_precision=1e-16))
+    fit_result(result, parameters=dict(solver_precision=1e-16))
     info = result.solvers[0].regularisation_parameters
     assert info["cg_maxiter_factor"] == 2
     assert len(info["cg_iterations"]) == 2
@@ -189,7 +192,8 @@ def test_settings_and_diagnostics_roundtrip(tmp_path):
     filename = tmp_path / "cg_diagnostics.saenopy"
     result.save(filename)
     loaded = Result.load(filename)
-    assert loaded.solve_parameters["cg_maxiter_factor"] == 2
+    assert 'cg_maxiter_factor' not in loaded.solve_parameters
+    assert loaded.solvers[0].regularisation_parameters['cg_maxiter_factor'] == 2
     assert loaded.solvers[0].regularisation_parameters["cg_iterations"] == info["cg_iterations"]
     assert loaded.solvers[0].regularisation_parameters["cg_converged"] == info["cg_converged"]
     assert loaded.solvers[0].regularisation_parameters['convergence_window'] == 15
@@ -197,11 +201,21 @@ def test_settings_and_diagnostics_roundtrip(tmp_path):
     assert not loaded.solvers[0].regularisation_parameters['objective_plateau_reached']
 
 
-@pytest.mark.parametrize("value", [0, -1, 1.5, np.nan, np.inf])
-def test_invalid_budget(value):
+def test_legacy_budget_is_preserved_on_load_and_removed_on_refit(tmp_path):
     result = example_result()
-    with pytest.raises(ValueError, match="cg_maxiter_factor"):
-        fit_result(result, parameters=dict(cg_maxiter_factor=value))
+    fit_result(result)
+    result.solve_parameters['cg_maxiter_factor'] = 16
+    result.solvers[0].regularisation_parameters['cg_maxiter_factor'] = 16
+    forces = result.solvers[0].mesh.forces.copy()
+    filename = tmp_path / 'legacy_cg_budget.saenopy'
+    result.save(filename)
+    loaded = Result.load(filename)
+    assert loaded.solve_parameters['cg_maxiter_factor'] == 16
+    assert loaded.solvers[0].regularisation_parameters['cg_maxiter_factor'] == 16
+    np.testing.assert_array_equal(loaded.solvers[0].mesh.forces, forces)
+    fit_result(loaded)
+    assert 'cg_maxiter_factor' not in loaded.solve_parameters
+    assert loaded.solvers[0].regularisation_parameters['cg_maxiter_factor'] == 2
 
 
 def test_small_nonzero_force_has_no_implicit_absolute_tolerance(monkeypatch):

@@ -294,6 +294,63 @@ def test_completed_series_edits_recalculate_every_frame(gui_window, monkeypatch,
     assert not regularizer.input_button.isEnabled()
 
 
+@pytest.mark.parametrize("saved_factor", [2, 4])
+@pytest.mark.parametrize("complete", [False, True])
+def test_legacy_cg_budget_requires_consistent_series_retry(
+        gui_window, monkeypatch, tmp_path, saved_factor, complete):
+    from saenopy import Result
+    import saenopy.reconstruction as reconstruction
+
+    result = series_result(2)
+    result.solve_parameters['cg_maxiter_factor'] = saved_factor
+    for solver in result.solvers[:2 if complete else 1]:
+        solver.regularisation_results = np.ones((2, 3))
+        solver.regularisation_parameters = dict(completed_parameters(), cg_maxiter_factor=saved_factor)
+    result.output = str(tmp_path / 'legacy_budget_series.saenopy')
+    Result.save(result)
+    loaded = Result.load(result.output)
+    loaded.save = lambda: None
+    stored = copy.deepcopy(loaded.solve_parameters)
+    forces = [solver.mesh.forces.copy() for solver in loaded.solvers]
+    records = [solver.regularisation_results for solver in loaded.solvers]
+    regularizer = gui_window.sub_module_regularize
+    regularizer.setResult(loaded)
+
+    changed = saved_factor != 2
+    assert regularizer._retry_settings_changed(loaded) is changed
+    assert loaded.solve_parameters == stored
+    assert 'cg_maxiter_factor' not in loaded.solve_parameters_tmp
+    expected = ('recalculate all frames' if changed else 'done') if complete else (
+        'retry all frames' if changed else 'continue')
+    assert regularizer.input_button.text() == expected
+    for solver, original, values in zip(loaded.solvers, records, forces):
+        assert solver.regularisation_results is original
+        np.testing.assert_array_equal(solver.mesh.forces, values)
+    if complete and not changed:
+        assert not regularizer.input_button.isEnabled()
+        return
+
+    queued, fitted = [], []
+    monkeypatch.setattr(gui_window, 'addTask', lambda *args: queued.append(args))
+
+    def fit(result, index, parameters, **kwargs):
+        assert 'cg_maxiter_factor' not in parameters
+        fitted.append(index)
+        solver = result.solvers[index]
+        solver.regularisation_results = np.ones((2, 3))
+        solver.regularisation_parameters = dict(completed_parameters(), cg_maxiter_factor=2)
+        return solver
+
+    monkeypatch.setattr(reconstruction, 'fit_result', fit)
+    regularizer.start_process()
+    assert loaded._retry_all_frames is changed
+    for solver, original in zip(loaded.solvers, records):
+        assert solver.regularisation_results is original
+    queued[0][0](loaded, queued[0][2])
+    assert fitted == ([0, 1] if changed else [1])
+    assert 'cg_maxiter_factor' not in loaded.solve_parameters
+
+
 @pytest.mark.parametrize("refresh_mesh", [False, True])
 def test_complete_batch_noop_preserves_metadata_but_fits_replaced_meshes(gui_window, monkeypatch, refresh_mesh):
     import saenopy.reconstruction as reconstruction

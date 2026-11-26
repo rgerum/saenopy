@@ -159,7 +159,7 @@ def test_continue_keeps_completed_frames_and_publishes_final_snapshots(monkeypat
                           iteration_finished=no_op, live_field_ready=SimpleNamespace(emit=display))
 
     def fit(result, index, callback, resume, **kwargs):
-        assert kwargs["parameters"]["cg_maxiter_factor"] == 2
+        assert 'cg_maxiter_factor' not in kwargs['parameters']
         calls.append((index, resume))
         if index == 2:
             # While frame 2 is running, the viewer must already show frame 1's

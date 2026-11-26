@@ -1,6 +1,7 @@
 """Last accepted fields and old-result compatibility after control removal."""
 from types import SimpleNamespace
 import numpy as np
+import pytest
 from saenopy import Solver, Result
 from saenopy.reconstruction import fit_result
 from test_release import example_result
@@ -57,3 +58,41 @@ def test_cancelled_inner_step_retains_initial_field_and_saved_status(monkeypatch
     assert loaded.solvers[0].regularisation_parameters['stop_reason'] == 'cancelled'
     assert bool(loaded.solvers[0].regularisation_parameters['cancelled'])
     np.testing.assert_array_equal(loaded.solvers[0].mesh.displacements, initial)
+
+
+def test_failed_cancelled_refit_remains_pending_and_can_be_retried(monkeypatch):
+    import saenopy.solver as module
+    from saenopy.gui.solver.modules.Regularizer import Regularizer
+
+    result = example_result()
+    fit_result(result)
+    solver = result.solvers[0]
+    solver.regularisation_parameters['cancelled'] = True
+    initial = solver.mesh.displacements.copy()
+    original_cg = module.cg
+
+    def failed_cg(*args, **kwargs):
+        raise FloatingPointError('injected CG failure')
+
+    monkeypatch.setattr(module, 'cg', failed_cg)
+    with pytest.raises(FloatingPointError, match='injected CG failure'):
+        fit_result(result, resume=True)
+    assert solver.regularisation_results is None
+    assert Regularizer.check_status(None, result) == ('progress', 0, 1)
+    np.testing.assert_array_equal(solver.mesh.displacements, initial)
+
+    monkeypatch.setattr(module, 'cg', original_cg)
+    fit_result(result, resume=True)
+    assert Regularizer.check_status(None, result) == ('finished', 1, 1)
+
+
+@pytest.mark.parametrize('kwargs,error', [
+    (dict(cg_maxiter_factor=0), TypeError), (dict(solver_precision=0), ValueError)])
+def test_invalid_refit_arguments_keep_the_existing_result(kwargs, error):
+    solver = example_result().solvers[0]
+    records = solver.regularisation_results = np.ones((2, 3))
+    parameters = solver.regularisation_parameters = dict(cancelled=True)
+    with pytest.raises(error):
+        solver.solve_regularized(**kwargs)
+    assert solver.regularisation_results is records
+    assert solver.regularisation_parameters is parameters

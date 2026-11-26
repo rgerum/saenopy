@@ -10,7 +10,7 @@ from pathlib import Path
 import saenopy
 import saenopy.multigrid_helper
 from saenopy import Result
-from saenopy.solver import DEFAULT_CG_MAXITER_FACTOR
+from saenopy.solver import _REGULARIZATION_CG_FACTOR
 import saenopy.get_deformations
 import saenopy.materials
 from saenopy.gui.common import QtShortCuts
@@ -258,6 +258,11 @@ class Regularizer(PipelineModule):
         previous = getattr(result, "_fit_attempt_parameters", None) or {}
         for mapping in self.parameter_mappings:
             stored = previous.get(mapping.params_name, getattr(result, mapping.params_name, None)) or {}
+            if (mapping.params_name == "solve_parameters"
+                    and stored.get("cg_maxiter_factor", _REGULARIZATION_CG_FACTOR) != _REGULARIZATION_CG_FACTOR):
+                # Refit the whole series rather than mixing an old budget with
+                # the fixed budget used for newly calculated frames.
+                return True
             defaults = (getattr(result, "_retry_parameter_defaults", {})
                         if mapping.params_name == "solve_parameters" else {})
             pending = getattr(result, mapping.params_name + "_tmp", None) or {}
@@ -520,9 +525,8 @@ class Regularizer(PipelineModule):
 
     def process(self, result: Result, material_parameters: dict, solve_parameters: dict):
         self.cancel_p = CancelSignal()
-        # GUI fits use the internal budget, including refits of older files.
-        # Explicit alternative budgets remain available through the Python API.
-        solve_parameters = dict(solve_parameters, cg_maxiter_factor=DEFAULT_CG_MAXITER_FACTOR)
+        solve_parameters = dict(solve_parameters)
+        solve_parameters.pop("cg_maxiter_factor", None)  # Obsolete fit setting.
         if getattr(result, "_retry_all_frames", False):
             # Invalidate old fits only when the retry worker actually starts.
             # Keep mesh/boundary data and fields; each frame is then refitted.
@@ -616,7 +620,7 @@ class Regularizer(PipelineModule):
             for key, value in defaults.items():
                 params.setdefault(key, value)
         params.setdefault("surface", (result.solve_parameters or {}).get("surface", False))
-        params["cg_maxiter_factor"] = DEFAULT_CG_MAXITER_FACTOR
+        params.pop("cg_maxiter_factor", None)
         params.setdefault("seg_smoothing_sigma_um", DEFAULT_SMOOTHING_SIGMA_UM)
         channels = (getattr(result.stacks[0], "channels", None) or []) if result.stacks else []
         params.setdefault("seg_channel", 1 if len(channels) > 1 else 0)
@@ -698,10 +702,9 @@ class Regularizer(PipelineModule):
         # params with convert text Nones to real Nones
         export_solve_parameters = {
             key: value for key, value in self.result.solve_parameters_tmp.items()
-            if key not in {"surface_area_method"}
+            if key not in {"surface_area_method", "cg_maxiter_factor"}
         }
         export_solve_parameters["physical_normalization"] = True
-        export_solve_parameters["cg_maxiter_factor"] = DEFAULT_CG_MAXITER_FACTOR
         export_solve_parameters.setdefault("solver_precision", 1e-18)
         export_solve_parameters.pop("stop_on_stagnation", None)
         export_solve_parameters.pop("max_time_seconds", None)

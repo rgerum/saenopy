@@ -318,7 +318,7 @@ def test_new_surface_roundtrip_can_be_refitted(tmp_path):
 
 
 @pytest.mark.parametrize("step_size", [0.20, 0.33])
-def test_original_classic_matches_supplied_upstream(step_size):
+def test_original_classic_matches_supplied_upstream(step_size, monkeypatch):
     import importlib.util
     from pathlib import Path
     import os
@@ -346,11 +346,13 @@ def test_original_classic_matches_supplied_upstream(step_size):
     # This checks legacy Classic behavior with normalization OFF. Normalized
     # Classic and Surface results are deliberately not required to match master.
     # Defaults differ, so compare five updates with identical numerical settings.
+    import saenopy.solver as fork_solver
+    monkeypatch.setattr(fork_solver, '_REGULARIZATION_CG_FACTOR', 1)
     common = dict(alpha=1e8, step_size=step_size, solver_precision=1e-18,
                   max_iterations=5, rel_conv_crit=0.0)
     original.solve_regularized(**common, method="huber", i_min=12)
     fit_result(fork_result, parameters=dict(common, surface=False, physical_normalization=False,
-                                           cg_maxiter_factor=1, prev_t_as_start=False))
+                                           prev_t_as_start=False))
     assert fork_result.solvers[0].regularisation_parameters["method"] == "huber"
     for name in ("displacements", "forces", "forces_border", "regularisation_mask"):
         np.testing.assert_allclose(getattr(fork_result.solvers[0].mesh, name), getattr(original.mesh, name), rtol=1e-12, atol=1e-25)

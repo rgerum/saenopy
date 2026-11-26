@@ -322,7 +322,6 @@ class SolveParametersDict(TypedDict, total=False):
     scaling_exponent: float
     surface_min_iterations: int
     exclude_cell_interior: bool
-    cg_maxiter_factor: int
     solver_precision: float
     
     

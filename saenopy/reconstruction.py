@@ -126,15 +126,13 @@ def fit_result(result, index=0, *, parameters=None, material_parameters=None,
     """
     params = dict(result.solve_parameters or {})
     params.update(parameters or {})
-    for obsolete in ("surface_area_method",):
+    for obsolete in ("surface_area_method", "cg_maxiter_factor"):
         params.pop(obsolete, None)
     if params.get("surface", False):
         params["physical_normalization"] = True
     params.setdefault("alpha_reference_element_size_um", pr.DEFAULT_REFERENCE_ELEMENT_SIZE_UM)
     params.setdefault("scaling_exponent", pr.DEFAULT_SCALING_EXPONENT)
     params.setdefault("surface_min_iterations", sr.DEFAULT_MIN_ITERATIONS)
-    from .solver import DEFAULT_CG_MAXITER_FACTOR
-    params.setdefault("cg_maxiter_factor", DEFAULT_CG_MAXITER_FACTOR)
     params.setdefault("solver_precision", 1e-18)
     # Remove unreleased experimental controls when refitting saved V9/V10 results.
     params.pop("stop_on_stagnation", None)
@@ -168,7 +166,6 @@ def fit_result(result, index=0, *, parameters=None, material_parameters=None,
     if surface:
         sr.set_surface_regularization(solver, geometry["mask"])
     kwargs = dict(step_size=float(params.get("step_size", 0.2)),
-                  cg_maxiter_factor=params["cg_maxiter_factor"],
                   solver_precision=float(params["solver_precision"]),
                   max_iterations=int(params.get("max_iterations", 300)),
                   rel_conv_crit=float(params.get("rel_conv_crit", 0.01)),

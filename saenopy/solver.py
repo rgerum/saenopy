@@ -17,11 +17,9 @@ from saenopy.mesh import Mesh, check_tetrahedra_scalar_field, check_node_scalar_
 from saenopy.saveable import Saveable
 from typing import List
 
-# INNER CG BUDGET: 1 restores the old cap; the default 2 permits twice
-# 25*round(N_nodes**(1/3)) iterations. Convergence stops CG earlier. This does
-# not change the outer iteration count, step size, alpha or physical objective.
-# Prefer solve_regularized(cg_maxiter_factor=...) for per-run overrides.
-DEFAULT_CG_MAXITER_FACTOR = 2
+# Fixed inner CG budget: twice the original mesh-dependent iteration cap.
+# The existing residual tolerance can stop CG earlier.
+_REGULARIZATION_CG_FACTOR = 2
 
 class Field:
     def __init__(self, validators, default):
@@ -759,11 +757,13 @@ class Solver(Saveable):
 
     def solve_regularized(self, step_size: float = 0.2, solver_precision: float = 1e-18, max_iterations: int = 300,
                           i_min: int = 12, rel_conv_crit: float = 0.01, alpha: float = 1e10, method: str = "huber",
-                          relrecname: str = None, verbose: bool = False, callback: callable = None, cancel_signal= None,
-                          cg_maxiter_factor: int = DEFAULT_CG_MAXITER_FACTOR):
+                          relrecname: str = None, verbose: bool = False, callback: callable = None, cancel_signal= None):
         """
         Fit the provided displacements. Displacements can be provided with
         :py:meth:`~.Solver.setTargetDisplacements`.
+
+        The inner CG iteration cap is fixed at twice the original mesh-dependent
+        limit. CG stops earlier if its residual tolerance is reached.
 
         Parameters
         ----------
@@ -772,10 +772,6 @@ class Solver(Saveable):
         solver_precision : float, optional
             Squared relative CG tolerance, multiplied by the number of nodes.
             The relative residual target is sqrt(N * solver_precision). Default 1e-18.
-        cg_maxiter_factor : int, optional
-            Inner CG iteration cap multiplier (default 2, twice the original
-            Saenopy cap). The residual tolerance is unchanged. Approximate inner
-            steps warn and retain diagnostics; max_iterations remains a hard limit.
         max_iterations : int, optional
             The maximal number of iterations for the regularisation. Default 300
         i_min : int, optional
@@ -802,11 +798,10 @@ class Solver(Saveable):
         callback : callable, optional
             A function to call after each iteration (e.g. for a live plot of the convergence)
         """
-        if (not np.isfinite(cg_maxiter_factor) or int(cg_maxiter_factor) != cg_maxiter_factor
-                or cg_maxiter_factor < 1):
-            raise ValueError("cg_maxiter_factor must be a positive integer")
         if not np.isfinite(solver_precision) or solver_precision <= 0:
             raise ValueError("solver_precision must be finite and positive")
+        # A failed refit must not retain the previous run's completion record.
+        self.regularisation_results = None
         started = time.monotonic()
         self.regularisation_parameters = {
             "step_size": step_size,
@@ -815,7 +810,8 @@ class Solver(Saveable):
             "rel_conv_crit": rel_conv_crit,
             "alpha": alpha,
             "method": method,
-            "cg_maxiter_factor": int(cg_maxiter_factor),
+            # Recorded provenance, not a configurable solve parameter.
+            "cg_maxiter_factor": _REGULARIZATION_CG_FACTOR,
         }
         self._regularization_cancel_signal = cancel_signal
         self._cg_diagnostics = []
@@ -928,12 +924,9 @@ class Solver(Saveable):
         Solve the displacements from the current stiffness tensor using conjugate gradient.
         """
 
-        # Solve A*du=b, A=I+K*D*K. The old mesh-dependent cap is retained as
-        # the reference; increase cg_maxiter_factor, not step_size, to allow
-        # more accurate inner solves without changing the physical objective.
+        # Solve A*du=b, A=I+K*D*K, with twice the original inner iteration cap.
         base_limit = 25 * int(pow(self.mesh.number_nodes, 0.33333) + 0.5)
-        factor = self.regularisation_parameters.get("cg_maxiter_factor", DEFAULT_CG_MAXITER_FACTOR)
-        uu, info = cg(self.A, self.b.flatten(), maxiter=base_limit * factor,
+        uu, info = cg(self.A, self.b.flatten(), maxiter=base_limit * _REGULARIZATION_CG_FACTOR,
                       tol=self.mesh.number_nodes * solver_precision, return_info=True,
                       cancel_signal=getattr(self, "_regularization_cancel_signal", None))
         self.last_cg_info = info
@@ -946,7 +939,7 @@ class Solver(Saveable):
                 f"Inner CG reached its cap ({info['maxiter']} iterations): relative residual "
                 f"{info['relative_residual']:.3g}, target {info['relative_tolerance']:.3g}. "
                 "Continuing with an approximate step; an objective-plateau stop does not "
-                "certify inner convergence. Inspect saved CG diagnostics or increase cg_maxiter_factor.",
+                "certify inner convergence. Inspect saved CG diagnostics.",
                 RuntimeWarning, stacklevel=2)
             self._cg_warned = True
         uu = uu.reshape((self.mesh.number_nodes, 3))

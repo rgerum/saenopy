@@ -127,7 +127,7 @@ For an existing result with an interpolated mesh, the shared Python entry point 
     fit_result(result, index=0, parameters=dict(
         surface=True, physical_normalization=True, alpha=1e10,
         seg_channel=1, seg_threshold_method="li", seg_threshold_factor=0.6,
-        seg_dilate_layers=1, max_iterations=200, cg_maxiter_factor=2))
+        seg_dilate_layers=1, max_iterations=200))
     result.save("surface.saenopy")
 
 Use ``surface=False`` for Classic; ``physical_normalization=False`` additionally
@@ -158,15 +158,22 @@ Single multipage TIFF stacks use ``"cell.tif[z]"``. The default
 ``time_mode="single"`` reuses one stack for every frame. These sources and the
 2D exclusion masks are stored in file format 1.9; older results remain readable.
 
-The inner conjugate-gradient iteration budget defaults to ``cg_maxiter_factor=2``:
-twice the original Saenopy cap. The GUI uses this internal setting without a
-separate budget control, including new fits of files saved with higher budgets.
-CG still stops earlier when its unchanged residual tolerance is met.
-The nonlinear outer step defaults to 0.2 and remains editable. The Python API
-retains explicit budget settings for numerical comparisons; GUI code export
-records the internal budget explicitly. Loading a file does not change its
-saved force field or stored fit parameters. Unconverged inner solves retain
-their warnings and saved diagnostics.
+The inner conjugate-gradient iteration budget is fixed internally at twice the
+original Saenopy cap: ``2 * 25 * int(N**0.33333 + 0.5)`` for ``N`` mesh nodes.
+There is no separate budget parameter in the GUI or Python API. The shared
+reconstruction entry point ignores obsolete ``cg_maxiter_factor`` settings from
+older files; exported scripts omit them. Loading a file preserves its recorded
+force field and settings. When continuing a GUI series recorded with a different
+budget, all frames are recalculated to keep the settings consistent.
+
+CG still stops earlier when its residual tolerance is met. The existing Python
+parameter ``solver_precision`` retains its original default of ``1e-18`` and
+node-count scaling: the relative residual target is
+``sqrt(N * solver_precision)``. This accuracy target is distinct from the inner
+iteration cap and the outer ``rel_conv_crit`` plateau criterion.
+The nonlinear outer step defaults to 0.2 and remains editable. The fixed CG factor
+is recorded in solver metadata, alongside convergence diagnostics and warnings
+for approximate inner solves.
 
 Geometry-normalised Classic and Surface evaluate the regularisation matrix
 products with a matrix-free operator. Instead of forming the sparse product
