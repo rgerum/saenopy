@@ -66,6 +66,29 @@ def test_parameter_paste_preserves_pending_local_choice_and_other_pipelines():
     assert target.mesh_parameters_tmp == data["mesh_parameters"]
 
 
+@pytest.mark.parametrize("group,key", [("mesh_parameters", "custom_mask"),
+                                       ("solve_parameters", "seg_channel")])
+@pytest.mark.parametrize("pending_choice", ["missing", None, "local:2"])
+def test_parameter_paste_keeps_local_choice_with_partial_pending_group(group, key,
+                                                                     pending_choice):
+    from saenopy.gui.common.BatchEvaluateBase import BatchEvaluateBase
+    stored = {key: "local:3"}
+    pending = {"other_setting": 28}
+    if pending_choice != "missing":
+        pending[key] = pending_choice
+    target = SimpleNamespace(**{group: stored, group + "_tmp": pending})
+    window = SimpleNamespace(result_params=[group], result_local_params={group: (key,)})
+    payload = {group: {key: "local:0", "other_setting": 22}}
+
+    BatchEvaluateBase._set_pasted_params(window, target, payload)
+
+    expected = "local:3" if pending_choice == "missing" else pending_choice
+    assert getattr(target, group + "_tmp") == {key: expected, "other_setting": 22}
+    assert stored == {key: "local:3"}
+    assert pending["other_setting"] == 28
+    assert payload[group][key] == "local:0"
+
+
 def test_path_editor_browses_leica_file_and_keeps_manual_templates(app, tmp_path, monkeypatch):
     from qtpy import QtWidgets
     from saenopy.gui.common import QtShortCuts

@@ -218,9 +218,8 @@ class BatchEvaluateBase(QtWidgets.QWidget):
                 continue
             params = deepcopy(data[group])
             if isinstance(params, dict):
-                current = getattr(result, group + "_tmp", None)
-                if current is None:
-                    current = getattr(result, group, None) or {}
+                current = dict(getattr(result, group, None) or {})
+                current.update(getattr(result, group + "_tmp", None) or {})
                 for key in self.result_local_params.get(group, ()):
                     if isinstance(params.get(key), str) and params[key].startswith("local:"):
                         # Clipboard parameters do not carry the referenced images.

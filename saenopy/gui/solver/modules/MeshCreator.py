@@ -95,19 +95,6 @@ class MeshCreator(PipelineModule):
 
                     self.input_mesh_size = MeshSizeWidget().addToLayout()
 
-                    self.custom_mask_toggle = QtShortCuts.QInputBool(
-                        None, "use 2D exclusion mask", False, stretch=True,
-                        tooltip="Optionally ignore target deformations using a 2D image mask.")
-                    self.input_use_custom_mask = self.custom_mask_toggle.checkbox
-                    self.input_custom_mask = ImageSourceChoice(
-                        None, "mask image", None,
-                        [None, ImageSourceChoice.ADD], ["none", "Add custom mask…"],
-                        tooltip="Nonzero pixels of a 2D mask exclude target deformations through all Z. "
-                                "Reset and re-interpolate the mesh to apply a changed selection.")
-                    self.input_custom_mask.add_requested.connect(self.add_custom_mask)
-                    self.input_use_custom_mask.toggled.connect(self._toggle_custom_mask)
-                    self.input_custom_mask.hide()
-
                     with QtShortCuts.QHBoxLayout():
                         self.input_outlier_filter = QtShortCuts.QInputBool(
                             None, "remove deformation outliers", True,
@@ -128,6 +115,19 @@ class MeshCreator(PipelineModule):
                                     "Smaller thresholds reject more vectors; this is not a z-score.")
                         self.input_outlier_filter.valueChanged.connect(
                             lambda: self.input_outlier_thresh.setDisabled(not self.input_outlier_filter.value()))
+
+                    self.custom_mask_toggle = QtShortCuts.QInputBool(
+                        None, "use 2D exclusion mask", False, stretch=True,
+                        tooltip="Optionally ignore target deformations using a 2D image mask.")
+                    self.input_use_custom_mask = self.custom_mask_toggle.checkbox
+                    self.input_custom_mask = ImageSourceChoice(
+                        None, "mask image", None,
+                        [None, ImageSourceChoice.ADD], ["none", "Add custom mask…"],
+                        tooltip="Nonzero pixels of a 2D mask exclude target deformations through all Z. "
+                                "Reset and re-interpolate the mesh to apply a changed selection.")
+                    self.input_custom_mask.add_requested.connect(self.add_custom_mask)
+                    self.input_use_custom_mask.toggled.connect(self._toggle_custom_mask)
+                    self.input_custom_mask.hide()
 
                     with QtShortCuts.QHBoxLayout():
                         self.input_button = QtWidgets.QPushButton("interpolate mesh").addToLayout()
