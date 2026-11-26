@@ -833,12 +833,12 @@ class Solver(Saveable):
             if i + 1 >= max(i_min, conv_window):
                 L_now = relrec[-1][0]
                 L_before = relrec[-1 - conv_window][0]
-                if L_now > L_before:
-                    # L increased over the whole window: the iteration diverges (e.g. step_size too large)
-                    print(f"WARNING: the regularisation diverged, L increased from {L_before:.4e} to {L_now:.4e} over "
-                          f"the last {conv_window} iterations. Try a smaller step_size.", file=sys.stderr)
-                    break
                 if (L_before - L_now) / L_now < rel_conv_crit:
+                    # L stalled. If it clearly increased over the whole window, the iteration diverges (e.g.
+                    # step_size too large); small fluctuations of L on the final plateau are not divergence.
+                    if (L_now - L_before) / L_before > rel_conv_crit:
+                        print(f"WARNING: the regularisation diverged, L increased from {L_before:.4e} to {L_now:.4e} "
+                              f"over the last {conv_window} iterations. Try a smaller step_size.", file=sys.stderr)
                     break
 
             if cancel_signal is not None and getattr(cancel_signal, "cancel", False):
