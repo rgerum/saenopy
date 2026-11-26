@@ -4,7 +4,6 @@ import time
 import numpy as np
 import scipy.sparse as ssp
 
-from numba import njit
 #from pyfields import field
 from typing import Union, TypedDict, Tuple
 #from nptyping import NDArray, Shape, Float, Int, Bool
@@ -12,10 +11,34 @@ from typing import Union, TypedDict, Tuple
 from saenopy.build_beams import build_beams
 from saenopy.materials import Material, SemiAffineFiberMaterial
 from saenopy.conjugate_gradient import cg
+from saenopy.solver_kernels import compute_s_bar, compute_f_and_K, bsr3_matvec, regularization_matvec
 from saenopy.mesh import Mesh, check_tetrahedra_scalar_field, check_node_scalar_field, \
     check_node_vector_field
 from saenopy.saveable import Saveable
 from typing import List
+
+class _StiffnessOperator:
+    """ Multithreaded matrix-vector product with the 3x3 block sparse stiffness matrix K """
+    def __init__(self, K: ssp.bsr_matrix):
+        self.K = K
+        self.shape = K.shape
+
+    def __matmul__(self, x: np.ndarray) -> np.ndarray:
+        return bsr3_matvec(self.K.data, self.K.indices, self.K.indptr, np.ascontiguousarray(x, dtype=np.float64))
+
+
+class _RegularizationOperator:
+    """ The matrix A = diag(I) + K * diag(W) * K of the regularisation, applied without assembling K * W * K """
+    def __init__(self, K: ssp.bsr_matrix, weight: np.ndarray, I_diag: np.ndarray):
+        self.K = K
+        self.weight = weight
+        self.I_diag = I_diag
+        self.shape = K.shape
+
+    def __matmul__(self, x: np.ndarray) -> np.ndarray:
+        return regularization_matvec(self.K.data, self.K.indices, self.K.indptr, self.weight, self.I_diag,
+                                     np.ascontiguousarray(x, dtype=np.float64))
+
 
 class Field:
     def __init__(self, validators, default):
@@ -289,50 +312,33 @@ class Solver(Saveable):
         self.N_b = beams.shape[0]
 
     def _compute_connections(self):
-        # current scipy versions do not have the sputils anymore
-        try:
-            from scipy.sparse._sputils import get_index_dtype
-        except ImportError:
-            from scipy.sparse.sputils import get_index_dtype
+        """
+        Compute the structure of the global stiffness matrix and where the entries of the local tetrahedron forces and
+        stiffness blocks go. The sparsity pattern does not change between iterations, so this is only done once.
 
-        # calculate the indices for "update_f_glo"
-        y, x = np.meshgrid(np.arange(3), self.mesh.tetrahedra.ravel())
-        self.mesh.force_distribute_coordinates = (x.ravel(), y.ravel())
+        The stiffness matrix is stored as a block sparse matrix (BSR) of 3x3 blocks, one block for each pair of
+        connected nodes. Rows of fixed nodes are left empty.
+        """
+        T = self.mesh.tetrahedra.astype(np.int64)
+        n_nodes = self.mesh.number_nodes
 
-        self.mesh.force_distribute_coordinates = tuple(self.mesh.force_distribute_coordinates[i].astype(dtype=get_index_dtype(maxval=max(self.mesh.force_distribute_coordinates[i].shape))) for i in range(2))
+        # the slot of every entry of the N_T x 4 x 3 local forces in the N_c x 3 global force array
+        self._f_slot = (T[:, :, None] * 3 + np.arange(3)).ravel()
 
-        # calculate the indices for "update_K_glo"
-        @njit()
-        def numba_get_pair_coordinates(T, var):
-            stiffness_distribute_coordinates2 = []
-            filter_in = np.zeros((T.shape[0], 4, 4, 3, 3)) == 1
-            # iterate over all tetrahedra
-            for t in range(T.shape[0]):
-                #if t % 1000:
-                #    print(t, T.shape[0])
-                tet = T[t]
-                # over all corners
-                for t1 in range(4):
-                    c1 = tet[t1]
+        # every (m, r) corner pair of a tetrahedron contributes a 3x3 block at block row T[m], block column T[r]
+        block_rows = np.broadcast_to(T[:, :, None], (T.shape[0], 4, 4))
+        block_keys = block_rows * n_nodes + T[:, None, :]
+        filter_in = self.mesh.movable[block_rows]
+        unique_keys, block_slot = np.unique(block_keys[filter_in], return_inverse=True)
+        self._K_nblocks = unique_keys.shape[0]
+        self._K_indptr = np.searchsorted(unique_keys // n_nodes, np.arange(n_nodes + 1)).astype(np.int64)
+        self._K_indices = (unique_keys % n_nodes).astype(np.int64)
 
-                    if not var[c1]:
-                        continue
-
-                    filter_in[t, t1, :, :, :] = True
-
-                    for t2 in range(4):
-                        # get two vertices of the tetrahedron
-                        c2 = tet[t2]
-
-                        for i in range(3):
-                            for j in range(3):
-                                # add the connection to the set
-                                stiffness_distribute_coordinates2.append((c1*3+i, c2*3+j))
-            stiffness_distribute_coordinates2 = np.array(stiffness_distribute_coordinates2)
-            return filter_in.ravel(), (stiffness_distribute_coordinates2[:, 0], stiffness_distribute_coordinates2[:, 1])
-
-        self.mesh.filter_in, self.stiffness_distribute_coordinates2 = numba_get_pair_coordinates(self.mesh.tetrahedra, self.mesh.movable)
-        self.stiffness_distribute_coordinates2 = np.array(self.stiffness_distribute_coordinates2, dtype=get_index_dtype(maxval=max(self.stiffness_distribute_coordinates2[0].shape)))
+        # blocks in rows of fixed nodes go to an extra block at the end that is discarded
+        slot = np.full(block_keys.shape, self._K_nblocks, dtype=np.int64)
+        slot[filter_in] = block_slot.ravel()
+        # the slot of every entry of the N_T x 4 x 4 x 3 x 3 local stiffness blocks in the BSR data array
+        self._K_slot = (slot[:, :, :, None, None] * 9 + np.arange(9).reshape(3, 3)).ravel()
 
         # remember that for the current configuration the connections have been calculated
         self.mesh.connections_valid = True
@@ -373,44 +379,53 @@ class Solver(Saveable):
         # only count the energy if not the whole tetrahedron is fixed
         self._countEnergy = np.any(self.mesh.movable[self.mesh.tetrahedra], axis=1)
 
-        # and the shape tensor with the beam
-        # s*_tmb = Phi_tmj * s_jb  (t in [0, N_T], i,j in {x,y,z}, m in {1,2,3,4}), b in [0, N_b])
-        self._s_star = self.mesh.Phi @ self.s.T
-
-        self._V_over_Nb = np.expand_dims(self.mesh.volume, axis=1) / self.N_b
+        self._V_over_Nb = self.mesh.volume / self.N_b
 
     def _update_glo_f_and_k(self):
         """
         Calculates the stiffness matrix K_ij, the force F_i and the energy E of each node.
         """
         t_start = time.time()
-        batchsize = 1000
+        batchsize = 8192
+
+        n_t = self.mesh.number_tetrahedra
+        displacements = np.ascontiguousarray(self.mesh.displacements, dtype=np.float64)
+        tetrahedra = np.ascontiguousarray(self.mesh.tetrahedra)
+        Phi = np.ascontiguousarray(self.mesh.Phi, dtype=np.float64)
+        beams = np.ascontiguousarray(self.s, dtype=np.float64)
 
         self.mesh.strain_energy = 0
-        f_glo = np.zeros((self.mesh.number_tetrahedra, 4, 3))
-        K_glo = np.zeros((self.mesh.number_tetrahedra, 4, 4, 3, 3))
+        f_glo = np.zeros((n_t, 4, 3))
+        K_glo = np.zeros((n_t, 4, 4, 3, 3))
+        s_bar = np.zeros((min(batchsize, n_t), 3, self.N_b))
+        s_norm = np.zeros((min(batchsize, n_t), self.N_b))
 
-        for i in range(int(np.ceil(self.mesh.tetrahedra.shape[0] / batchsize))):
+        n_batches = int(np.ceil(n_t / batchsize))
+        for i in range(n_batches):
             if self.verbose:
-                print("updating forces and stiffness matrix %d%%" % (i / int(np.ceil(self.mesh.tetrahedra.shape[0] / batchsize)) * 100), end="\r")
-            t = slice(i*batchsize, (i+1)*batchsize)
+                print("updating forces and stiffness matrix %d%%" % (i / n_batches * 100), end="\r")
+            t0 = i * batchsize
+            t1 = min((i + 1) * batchsize, n_t)
+            n = t1 - t0
 
-            s_bar = self._get_s_bar(t)
+            compute_s_bar(displacements, tetrahedra, Phi, beams, t0, t1, s_bar, s_norm)
 
-            epsilon_b, dEdsbar, dEdsbarbar = self._get_applied_epsilon(s_bar, self.material_model_look_up, self._V_over_Nb[t])
+            epsilon_b, epsbar_b, epsbarbar_b = self.material_model_look_up(s_norm[:n] - 1)
 
-            self._update_energy(epsilon_b, t)
-            self._update_f_glo(self._s_star[t], s_bar, dEdsbar, out=f_glo[t])
-            self._update_K_glo(self._s_star[t], s_bar, dEdsbar, dEdsbarbar, out=K_glo[t])
+            self._update_energy(epsilon_b, slice(t0, t1))
+            compute_f_and_K(Phi, beams, t0, t1, s_bar, s_norm, epsbar_b, epsbarbar_b, self._V_over_Nb, f_glo, K_glo)
 
-        # store the global forces in self.mesh.f_glo
+        # store the global forces in self.mesh.forces
         # transform from N_T x 4 x 3 -> N_v x 3
-        ssp.coo_matrix((f_glo.ravel(), self.mesh.force_distribute_coordinates), shape=self.mesh.forces.shape).toarray(out=self.mesh.forces)
+        self.mesh.forces[:] = np.bincount(self._f_slot, weights=f_glo.ravel(),
+                                          minlength=self.mesh.number_nodes * 3).reshape(self.mesh.forces.shape)
 
         # store the stiffness matrix K in self.K_glo
         # transform from N_T x 4 x 4 x 3 x 3 -> N_v * 3 x N_v * 3
-        self.K_glo = ssp.coo_matrix((K_glo.ravel()[self.mesh.filter_in], self.stiffness_distribute_coordinates2),
-                                    shape=(self.mesh.number_nodes * 3, self.mesh.number_nodes * 3)).tocsr()
+        data = np.bincount(self._K_slot, weights=K_glo.ravel(), minlength=(self._K_nblocks + 1) * 9)
+        data = data[:self._K_nblocks * 9].reshape(self._K_nblocks, 3, 3)
+        self.K_glo = ssp.bsr_matrix((data, self._K_indices, self._K_indptr),
+                                    shape=(self.mesh.number_nodes * 3, self.mesh.number_nodes * 3))
         if self.verbose:
             print("updating forces and stiffness matrix finished %.2fs" % (time.time() - t_start))
 
@@ -453,27 +468,6 @@ class Solver(Saveable):
 
         return s_bar
 
-    @staticmethod
-    #@njit()#nopython=True, cache=True)
-    def _get_applied_epsilon(s_bar: np.ndarray, lookUpEpsilon: callable, _V_over_Nb: np.ndarray):
-        # the "deformation" amount # p 54 equ 2 part in the parentheses
-        # s_tb = |s'_tib|  (t in [0, N_T], i in {x,y,z}, b in [0, N_b])
-        s = np.linalg.norm(s_bar, axis=1)
-
-        epsilon_b, epsbar_b, epsbarbar_b = lookUpEpsilon(s - 1)
-
-        #                eps'_tb    1
-        # dEdsbar_tb = - ------- * --- * V_t
-        #                 s_tb     N_b
-        dEdsbar = - (epsbar_b / s) * _V_over_Nb
-
-        #                  s_tb * eps''_tb - eps'_tb     1
-        # dEdsbarbar_tb = --------------------------- * --- * V_t
-        #                         s_tb**3               N_b
-        dEdsbarbar = ((s * epsbarbar_b - epsbar_b) / (s ** 3)) * _V_over_Nb
-
-        return epsilon_b, dEdsbar, dEdsbarbar
-
     def _update_energy(self, epsilon_b: np.ndarray, t: np.ndarray):
         # sum the energy of this tetrahedron
         # E_t = eps_tb * V_t
@@ -482,24 +476,6 @@ class Solver(Saveable):
         # only count the energy of the tetrahedron to the global energy if the tetrahedron has at least one
         # variable node
         self.mesh.strain_energy += np.sum(self.mesh.energy[t][self._countEnergy[t]])
-
-    def _update_f_glo(self, s_star: np.ndarray, s_bar: np.ndarray, dEdsbar: np.ndarray, out: np.ndarray):
-        # f_tmi = s*_tmb * s'_tib * dEds'_tb  (t in [0, N_T], i in {x,y,z}, m in {1,2,3,4}, b in [0, N_b])
-        np.einsum("tmb,tib,tb->tmi", s_star, s_bar, dEdsbar, out=out)
-
-    def _update_K_glo(self, s_star: np.ndarray, s_bar: np.ndarray, dEdsbar: np.ndarray, dEdsbarbar: np.ndarray, out: np.ndarray):
-        #                              / |  |     \      / |  |     \                   / |    |     \
-        #     ___             /  s'  w"| |s'| - 1 | - w' | |s'| - 1 |                w' | | s' | - 1 |             \
-        # 1   \   *     *     |   b    \ | b|     /      \ | b|     /                   \ |  b |     /             |
-        # -    > s   * s    * | ------------------------------------ * s' * s'  + ---------------------- * delta   |
-        # N   /   bm    br    |                  |s'|³                  ib   lb             |s'  |              li |
-        #  b  ---             \                  | b|                                       |  b |                 /
-        #
-        # (t in [0, N_T], i,l in {x,y,z}, m,r in {1,2,3,4}, b in [0, N_b])
-        s_bar_s_bar = 0.5 * (np.einsum("tb,tib,tlb->tilb", dEdsbarbar, s_bar, s_bar)
-                             - np.einsum("il,tb->tilb", np.eye(3), dEdsbar))
-
-        np.einsum("tmb,trb,tilb->tmril", s_star, s_star, s_bar_s_bar, out=out, optimize=['einsum_path', (0, 1), (0, 1)])
 
     def _check_relax_ready(self):
         """
@@ -625,7 +601,7 @@ class Solver(Saveable):
 
         # solve the conjugate gradient which solves the equation A x = b for x
         # where A is the stiffness matrix K_glo and b is the vector of the target forces
-        uu = cg(self.K_glo, ff.ravel(), maxiter=3 * self.mesh.number_nodes, tol=0.00001, verbose=self.verbose).reshape(ff.shape)
+        uu = cg(_StiffnessOperator(self.K_glo), ff.ravel(), maxiter=3 * self.mesh.number_nodes, tol=0.00001, verbose=self.verbose).reshape(ff.shape)
 
         # add the new displacements to the stored displacements
         self.mesh.displacements[self.mesh.movable] += uu[self.mesh.movable] * step_size
@@ -716,11 +692,11 @@ class Solver(Saveable):
             print("total weight: ", counter, "/", counterall)
 
     def _compute_regularization_a_and_b(self, alpha: float):
-        KA = self.K_glo.multiply(np.repeat(self.localweight * alpha, 3)[None, :])
-        self.KAK = KA @ self.K_glo
-        self.A = self.I + self.KAK
+        # A = I + K * W * K with W = diag(alpha * localweight), applied matrix-free (K * W * K is much denser than K)
+        weight = np.repeat(self.localweight * alpha, 3)
+        self.A = _RegularizationOperator(self.K_glo, weight, self._I_diag)
 
-        self.b = (KA @ self.mesh.forces.ravel()).reshape(self.mesh.forces.shape)
+        self.b = (_StiffnessOperator(self.K_glo) @ (weight * self.mesh.forces.ravel())).reshape(self.mesh.forces.shape)
 
         index = self.mesh.movable & self.mesh.displacements_target_mask
         self.b[index] += self.mesh.displacements_target[index] - self.mesh.displacements[index]
@@ -799,8 +775,7 @@ class Solver(Saveable):
         # set the verbosity level
         self.verbose = verbose
 
-        self.I = ssp.lil_matrix((self.mesh.displacements_target_mask.shape[0] * 3, self.mesh.displacements_target_mask.shape[0] * 3))
-        self.I.setdiag(np.repeat(self.mesh.displacements_target_mask, 3))
+        self._I_diag = np.repeat(self.mesh.displacements_target_mask, 3).astype(np.float64)
 
         # check if everything is prepared
         self._check_relax_ready()

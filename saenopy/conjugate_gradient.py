@@ -4,7 +4,8 @@ import numpy as np
 def cg(A: np.ndarray, b: np.ndarray, maxiter: int = 1000, tol: float = 0.00001, verbose: bool = False):
     """ solve the equation Ax=b with the conjugate gradient method """
     def norm(x):
-        return np.inner(x.flatten(), x.flatten())
+        x = x.ravel()
+        return np.dot(x, x)
 
     # calculate the total force "amplitude"
     normb = norm(b)
@@ -28,7 +29,7 @@ def cg(A: np.ndarray, b: np.ndarray, maxiter: int = 1000, tol: float = 0.00001, 
     for i in range(1, maxiter + 1):
         Ap = A @ p
 
-        alpha = resid / np.sum(p * Ap)
+        alpha = resid / np.dot(p.ravel(), Ap.ravel())
 
         x = x + alpha * p
         r = r - alpha * Ap

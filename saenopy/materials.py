@@ -221,7 +221,7 @@ class SemiAffineFiberMaterial(Material, Saveable):
 
         # no buckling but strain stiffening
         if not buckling and strain_stiffening:
-            @njit(numba.core.types.containers.UniTuple(numba.float64[:, :], 3)(numba.float64[:, :]))
+            @njit(numba.core.types.containers.UniTuple(numba.float64[:, :], 3)(numba.float64[:, :]), parallel=True)
             def get_all(s):
                 shape = s.shape
                 s = s.flatten()
@@ -234,7 +234,8 @@ class SemiAffineFiberMaterial(Material, Saveable):
                 sk = lambda_s * k
                 d2k = d_s * dk
 
-                for i, x in enumerate(s):
+                for i in numba.prange(s.shape[0]):
+                    x = s[i]
                     if x < lambda_s:
                         stiff[i] = k
                         force[i] = k * x
@@ -251,7 +252,7 @@ class SemiAffineFiberMaterial(Material, Saveable):
 
         # buckling but no strain stiffening
         if buckling and not strain_stiffening:
-            @njit(numba.core.types.containers.UniTuple(numba.float64[:, :], 3)(numba.float64[:, :]))
+            @njit(numba.core.types.containers.UniTuple(numba.float64[:, :], 3)(numba.float64[:, :]), parallel=True)
             def get_all(s):
                 shape = s.shape
                 s = s.flatten()
@@ -260,7 +261,8 @@ class SemiAffineFiberMaterial(Material, Saveable):
                 force = np.zeros_like(s)
                 energy = np.zeros_like(s)
 
-                for i, x in enumerate(s):
+                for i in numba.prange(s.shape[0]):
+                    x = s[i]
                     if x < 0:
                         stiff[i] = k * np.exp(x / d_0)
                         force[i] = k * d_0 * np.exp(x / d_0) - d_0 * k
@@ -276,7 +278,7 @@ class SemiAffineFiberMaterial(Material, Saveable):
 
         # no buckling and no strain stiffening
         if not buckling and not strain_stiffening:
-            @njit(numba.core.types.containers.UniTuple(numba.float64[:, :], 3)(numba.float64[:, :]))
+            @njit(numba.core.types.containers.UniTuple(numba.float64[:, :], 3)(numba.float64[:, :]), parallel=True)
             def get_all(s):
                 shape = s.shape
                 s = s.flatten()
@@ -285,7 +287,8 @@ class SemiAffineFiberMaterial(Material, Saveable):
                 force = np.zeros_like(s)
                 energy = np.zeros_like(s)
 
-                for i, x in enumerate(s):
+                for i in numba.prange(s.shape[0]):
+                    x = s[i]
                     stiff[i] = k
                     force[i] = k * x
                     energy[i] = 0.5 * k * x ** 2
@@ -294,7 +297,7 @@ class SemiAffineFiberMaterial(Material, Saveable):
 
             return get_all
 
-        @njit(numba.core.types.containers.UniTuple(numba.float64[:, :], 3)(numba.float64[:, :]))
+        @njit(numba.core.types.containers.UniTuple(numba.float64[:, :], 3)(numba.float64[:, :]), parallel=True)
         def get_all(s):
             shape = s.shape
             s = s.flatten()
@@ -307,7 +310,8 @@ class SemiAffineFiberMaterial(Material, Saveable):
             sk = lambda_s * k
             d2k = d_s * dk
 
-            for i, x in enumerate(s):
+            for i in numba.prange(s.shape[0]):
+                x = s[i]
                 if x < 0:
                     stiff[i] = k * np.exp(x / d_0)
                     force[i] = k * d_0 * np.exp(x / d_0) - d_0 * k
