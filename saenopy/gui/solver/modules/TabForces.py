@@ -59,7 +59,10 @@ class TabForces(TabModule):
         self.update_display()
 
     def checkTabEnabled(self, result: Result) -> bool:
-        frame = self.t_slider.value()
+        return any(self.frame_available(result, frame)
+                   for frame in range(len(getattr(result, "solvers", None) or [])))
+
+    def frame_available(self, result, frame):
         if getattr(result, "_live_fit_active", False):
             return live_fit_available(result, frame)
         solver = displayed_solver(result, frame)
@@ -102,7 +105,7 @@ class TabForces(TabModule):
             self.current_result_plotted = False
             return
 
-        if self.checkTabEnabled(self.result):
+        if self.frame_available(self.result, self.t_slider.value()):
             cam_pos = None
             if self.plotter.camera_position is not None and CamPos.cam_pos_initialized is True:
                 cam_pos = self.plotter.camera_position

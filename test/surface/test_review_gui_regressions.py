@@ -502,7 +502,8 @@ def test_missing_live_frame_waits_without_reading_worker_solver(gui_window, monk
         monkeypatch.setattr(viewer.plotter, "clear", lambda: cleared.append(True))
         viewer.t_slider.setValue(1)
         assert displayed_solver(result, 1) is None
-        assert not viewer.checkTabEnabled(result)
+        assert viewer.checkTabEnabled(result)
+        assert not viewer.frame_available(result, 1)
         assert "waiting for this frame" in viewer.label_tab.text()
         assert cleared
     snapshot = solver_snapshot(result.solvers[1])

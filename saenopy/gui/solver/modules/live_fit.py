@@ -1,19 +1,26 @@
 """Transient, independent field snapshots for the reconstruction viewers."""
-from copy import copy
-
 import numpy as np
+from saenopy import Solver
 
 
 def solver_snapshot(solver):
-    snapshot = copy(solver)
-    snapshot.mesh = copy(solver.mesh)
-    # Topology is constant during fitting. Copy the displayed mutable fields,
-    # not tetrahedral tensors, sparse matrices or material caches.
+    # The save/load construction excludes computation caches and bound overrides
+    # that would otherwise keep the worker solver alive after clear_cache().
+    data = solver.to_dict()
+    # Display snapshots may have incomplete metadata while a fit is starting.
+    data["regularisation_parameters"] = None
+    snapshot = Solver.from_dict(data)
+    if solver.regularisation_parameters is not None:
+        snapshot.regularisation_parameters = dict(solver.regularisation_parameters)
+    # Independently own the mutable fields used by the viewers.
     for name in ("forces", "forces_border", "displacements", "displacements_target",
                  "displacements_target_mask", "regularisation_mask", "cell_boundary_mask", "movable"):
         value = getattr(solver.mesh, name, None)
         if isinstance(value, np.ndarray):
             setattr(snapshot.mesh, name, value.copy())
+    preview = getattr(solver.mesh, "_segmentation_preview", None)
+    if preview is not None:
+        snapshot.mesh._segmentation_preview = tuple(value.copy() for value in preview)
     return snapshot
 
 

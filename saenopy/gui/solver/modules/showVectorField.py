@@ -220,6 +220,7 @@ def showVectorField(plotter: QtInteractor, obj: Solver, field: np.ndarray, name:
                 plotter.update_scalar_bar_range([0, scalebar_max])
         else:
             plotter.remove_actor("arrows")
+            plotter.remove_actor("nans")
 
         # plot center points if desired
         if center is not None:
