@@ -25,13 +25,7 @@ To use saenopy without a complicated installation you can use our standalone bin
 
 **Latest stable release:** [Windows (EXE)](https://github.com/rgerum/saenopy/releases/latest/download/saenopy.exe) · [Linux](https://github.com/rgerum/saenopy/releases/latest/download/saenopy) · [macOS (ZIP)](https://github.com/rgerum/saenopy/releases/latest/download/Saenopy.app.zip)
 
-These links follow GitHub's latest stable release automatically once its binaries are available. They do not select a development branch or a prerelease.
-
 [All releases](https://github.com/rgerum/saenopy/releases)
-
-**Surface development builds:** [Builds of the Surface branch](https://github.com/rgerum/saenopy/actions/workflows/installer.yml?query=branch%3Aadd_surfaceregularization_and_meshnormalization).
-Choose the newest successful run with an available `saenopy_windows` artifact and extract its ZIP to run `saenopy.exe`.
-These are experimental builds. Artifact downloads require GitHub sign-in and expire; this build list is separate from the stable download links above.
 
 ### Using Python
 
@@ -48,8 +42,6 @@ Or by executing the script “gui_master.py” in your python interpreter.
 
 ## Getting started
 To get started you can have a look at our collection of [example datasets](https://saenopy.readthedocs.io/en/latest/3d_tfm/auto_examples/index.html).
-
-Standard bulk regularisation does not require a cell stain. Optional surface regularisation uses a segmented cell stain to distinguish cell-surface and bulk forces; see the [regularisation parameters](https://saenopy.readthedocs.io/en/latest/3d_tfm/parameters_regularisation.html).
 
 ## Preprint
 If you want to cite saenopy you can reference our article:
