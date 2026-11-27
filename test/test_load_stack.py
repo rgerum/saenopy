@@ -256,7 +256,46 @@ def test_crop_z(files_z_pages):
     #check_stack(Stack("tmp/run-1/Pos004_S001_z000_ch00.tif[z]", (1, 1, 1)), 13, 11, 10, 1, rgb0=3)
 
 
-def test_lif():
+@pytest.mark.parametrize("extension", ["tif", "tiff"])
+@pytest.mark.parametrize("equal_shapes", [False, True])
+@pytest.mark.parametrize("in_reference", [False, True])
+def test_multipage_tiff_validates_each_page(tmp_path, extension, equal_shapes, in_reference):
+    path = tmp_path / f"volume.{extension}"
+    first = np.zeros((21, 31), np.uint8)
+    second = np.ones((21 if equal_shapes else 20, 31), np.uint8)
+    with tifffile.TiffWriter(path) as writer:
+        writer.write(first, photometric="minisblack")
+        writer.write(second, photometric="minisblack")
+    template = str(path) + "[z]"
+    matrix = template
+    if in_reference:
+        tifffile.imwrite(tmp_path / "matrix.tif", np.stack([first, first]), photometric="minisblack")
+        matrix = str(tmp_path / "matrix.tif") + "[z]"
+    output = tmp_path / "results"
+    if not equal_shapes:
+        with pytest.raises(ValueError, match=r"volume\.tiff?\[1\].*does not match previous shape"):
+            get_stacks(matrix, output, (1, 1, 1), reference_stack=template)
+        assert not list(output.rglob("*.saenopy"))
+    else:
+        result = get_stacks(matrix, output, (1, 1, 1), reference_stack=template)[0]
+        stack = result.stack_reference if in_reference else result.stacks[0]
+        np.testing.assert_array_equal(stack[:, :, 0, :, 0],
+                                      np.stack([first, second], axis=2))
+
+
+def test_fixed_tiff_page_ignores_unselected_page_shapes(tmp_path):
+    for z in range(2):
+        with tifffile.TiffWriter(tmp_path / f"slice_z{z}.tiff") as writer:
+            writer.write(np.zeros((21 + z, 31), np.uint8), photometric="minisblack")
+            writer.write(np.full((20, 31), z, np.uint8), photometric="minisblack")
+    template = str(tmp_path / "slice_z{z}.tiff") + "[1]"
+    result = get_stacks(template, tmp_path / "results", (1, 1, 1), reference_stack=template)[0]
+    volume = result.stacks[0][:, :, 0, :, 0]
+    assert volume.shape == (20, 31, 2)
+    np.testing.assert_array_equal(volume[0, 0], [0, 1])
+
+
+def test_lif(tmp_path):
     from urllib.request import urlretrieve
     from pathlib import Path
     url = "https://downloads.openmicroscopy.org/images/Leica-LIF/michael/PR2729_frameOrderCombinedScanTypes.lif"
@@ -267,6 +306,33 @@ def test_lif():
     results = get_stacks("*/PR2729_frameOrderCombinedScanTypes{f:0}{c:0}.lif", "tmp/run-lif", [1, 1, 1], time_delta=1)
     print(results)
     print(results[0].stacks[0].shape)
-    assert results[0].stacks[0][:, :, 0, 0, 0].shape == (64, 64)
-    assert results[0].stacks[0][:, :, 0, :, 0].shape == (64, 64, 1)
-    assert results[0].stacks[0][:, :, 0, 0:1, 0].shape == (64, 64, 1)
+    stack = results[0].stacks[0]
+    dimensions = stack.leica_file.dims
+    assert dimensions.z == 3
+    assert stack[:, :, 0, 0, 0].shape == (64, 64)
+    volume = stack[:, :, 0, :, 0]
+    assert volume.shape == (dimensions.y, dimensions.x, dimensions.z)
+    np.testing.assert_array_equal(
+        volume, np.stack([stack[:, :, 0, z, 0] for z in range(dimensions.z)], axis=2))
+    assert stack[:, :, 0, 0:1, 0].shape == (64, 64, 1)
+
+    # The same real container must also work as an added source in a portable result.
+    from saenopy import Result, add_image_source, get_image_source
+    result = results[0]
+    channel = stack.leica_file.channels - 1
+    selected = str(Path(file_download_path).resolve().with_suffix("")) + f"{{f:0}}{{c:{channel}}}{{t:0}}.lif"
+    key = add_image_source(result, selected, voxel_size=(.5, .75, 2))
+    source = get_image_source(result, key, 0)
+    expected_source = source[:, :, 0, :, 0].copy()
+    expected_channels = [stack[:, :, 0, :, c].copy() for c in range(len(stack.channels))]
+    shape = stack.shape
+    for item in result.stacks + [source]:
+        item.pack_files()
+    assert stack.shape == shape
+    result.save(tmp_path / "packed.saenopy")
+    Path(file_download_path).unlink()
+    loaded = Result.load(result.output)
+    for c, expected in enumerate(expected_channels):
+        np.testing.assert_array_equal(loaded.stacks[0][:, :, 0, :, c], expected)
+    np.testing.assert_array_equal(get_image_source(loaded, key, 0)[:, :, 0, :, 0], expected_source)
+    assert tuple(get_image_source(loaded, key, 0).voxel_size) == (.5, .75, 2)

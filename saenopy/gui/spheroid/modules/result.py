@@ -27,7 +27,7 @@ class PivParametersDict(TypedDict):
     continuous_segmentation: bool
 
 
-class ForceParametersDict(TypedDict):
+class ForceParametersDict(TypedDict, total=False):
     lookup_table: Union[str, None]
     r_min: Union[float, None]
     r_max: Union[float, None]
@@ -46,7 +46,7 @@ class DisplacementsDict(TypedDict):
     v: np.ndarray
 
 
-class ResDict(TypedDict):
+class ResDict(TypedDict, total=False):
     pressure_mean: np.ndarray
     angle_min: np.ndarray
 

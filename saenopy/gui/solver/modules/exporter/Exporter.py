@@ -361,7 +361,18 @@ class ExportViewer(PipelineModule):
                         self.input_colorbar_fontsize.valueChanged.connect(self.update_display)
                         self.input_colorbar_fontsize.addToLayout()
 
-                with QtShortCuts.QGroupBox(None, "2D arrrows") as (self.box_2darrows, _):
+                with QtShortCuts.QGroupBox(None, "2D arrows") as (self.box_2darrows, _):
+                    with QtShortCuts.QHBoxLayout():
+                        self.input_2darrow_compact = QtShortCuts.QInputBool(None, "compact arrows", True,
+                            tooltip="Thicker arrows with capped display length; colors retain the full magnitude.")
+                        self.input_2darrow_compact.valueChanged.connect(self.update_2d_arrow_controls)
+                        self.input_2darrow_compact.valueChanged.connect(self.update_display)
+                        self.input_2darrow_max_length = QtShortCuts.QInputNumber(None, "max length (px)", 60, min=1, max=10000,
+                            tooltip="Maximum arrow length in original image pixels, before export scaling.")
+                        self.input_2darrow_max_length.valueChanged.connect(self.update_display)
+                        self.input_2darrow_width_percent = QtShortCuts.QInputNumber(None, "width (% image)", 0.2, min=0.01, max=10, step=0.01,
+                            tooltip="Shaft width as a percentage of the original image width.")
+                        self.input_2darrow_width_percent.valueChanged.connect(self.update_display)
                     with QtShortCuts.QHBoxLayout():
                         self.input_2darrow_width = QtShortCuts.QInputNumber(None, "width", 2, min=0, max=100)
                         self.input_2darrow_width.valueChanged.connect(self.update_display)
@@ -527,6 +538,9 @@ class ExportViewer(PipelineModule):
             },
 
             "2D_arrows": {
+                "compact": self.input_2darrow_compact,
+                "max_length": self.input_2darrow_max_length,
+                "width_percent": self.input_2darrow_width_percent,
                 "width": self.input_2darrow_width,
                 "headlength": self.input_2darrow_headlength,
                 "headheight": self.input_2darrow_headwidth,
@@ -557,6 +571,14 @@ class ExportViewer(PipelineModule):
         self.hide_fiber()
         self.hide_arrow()
         self.hide_stack_image()
+        self.update_2d_arrow_controls()
+
+    def update_2d_arrow_controls(self):
+        compact = self.input_2darrow_compact.value()
+        for widget in (self.input_2darrow_max_length, self.input_2darrow_width_percent):
+            widget.setEnabled(compact)
+        for widget in (self.input_2darrow_width, self.input_2darrow_headlength, self.input_2darrow_headwidth):
+            widget.setEnabled(not compact)
 
     def reset(self):
         self.plotter.camera_position = "yz"
@@ -735,6 +757,7 @@ plt.imsave("output.png", im)
         return True
 
     def setResult(self, result: Result, no_update_display=False):
+        self._image_2d_cache = None
         self.result = result
         if result:
             data = result.get_data_structure()
@@ -852,6 +875,10 @@ plt.imsave("output.png", im)
         self.no_update = True
         try:
             set_params(params, self.parameter_map)
+            if "2D_arrows" in params:
+                # Missing preset in older files means the original linear style.
+                self.input_2darrow_compact.setValue(params["2D_arrows"].get("compact", False))
+            self.update_2d_arrow_controls()
 
             if "theme" in params:
                 self.plotter.theme = self.vtk_toolbar.theme.value()

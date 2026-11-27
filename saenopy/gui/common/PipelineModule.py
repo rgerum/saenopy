@@ -22,6 +22,9 @@ class ParameterMapping:
     def setParameter(self, name: str, value):
         if self.result is not None:
             getattr(self.result, self.params_name + "_tmp")[name] = value
+        widget = self.parameter_dict[name]
+        if hasattr(widget, "last_emited_value"):
+            widget.last_emited_value = widget.value()
 
     def ensure_tmp_params_initialized(self, result):
         if self.params_name is None:
@@ -60,6 +63,10 @@ class ParameterMapping:
             for name, widget in self.parameter_dict.items():
                 # set the widgets to the value if the value exits
                 widget.setValue(params_tmp[name])
+                # A silent dataset restore must reset QInput's deduplication
+                # cache, otherwise a real edit can look like a repeated value.
+                if hasattr(widget, "last_emited_value"):
+                    widget.last_emited_value = widget.value()
 
 
 from enum import Enum

@@ -1,3 +1,4 @@
+import copy
 import glob
 import re
 from pathlib import Path
@@ -6,10 +7,9 @@ import os
 import natsort
 import numpy as np
 from typing import List, Union
-import tifffile
-from PIL import Image
-from saenopy.stack import Stack, format_glob
+from saenopy.stack import Stack, format_glob, read_image_shape
 from saenopy.saveable import Saveable
+from saenopy.image_sources import ImageSource
 from saenopy.solver import Solver
 from saenopy.get_deformations import PivMesh
 from typing import TypedDict, Tuple
@@ -27,10 +27,10 @@ def get_iterator(values, name="", iter=None):
         for v in values:
             yield {name: v}
     else:
+        inner = list(iter)
         for v in values:
-            for t in iter:
-                t[name] = v
-                yield t
+            for t in inner:
+                yield {**t, name: v}
 
 
 def process_line(filename, output_path):
@@ -79,22 +79,21 @@ def process_line(filename, output_path):
         shape = None
         for props in iterator:
             filename = template.format(**props)
-            if re.match(r"(.*.tif)\[(.*)\]", filename):
-                filename, page = re.match(r"(.*.tif)\[(.*)\]", filename).groups()
+            page = 0
+            match = re.match(r"(.*\.tiff?)\[(.*)\]", filename)
+            if match:
+                filename, page = match.groups()
+                page = int(props.get(page, page))
             # the file needs to exist
             #if not Path(filename).exists():
             #    raise FileNotFoundError(f"Could not find file {filename}")
-            if Path(filename).suffix in [".tif", ".tiff"]:
-                with tifffile.TiffFile(filename) as f:
-                    file_shape = f.pages[0].shape
-            else:
-                with Image.open(filename) as im:
-                    file_shape = (im.height, im.width)
+            selected_file = f"{filename}[{page}]" if match else filename
+            file_shape = read_image_shape(selected_file)
             if shape is None:
                 shape = file_shape
             else:
                 if file_shape != shape:
-                    raise ValueError(f"Shape of file {filename} ({file_shape}) does not match previous shape ({shape})")
+                    raise ValueError(f"Shape of file {selected_file} ({file_shape}) does not match previous shape ({shape})")
 
         # create the output path
         output = Path(output_path) / os.path.relpath(r1, output_base)
@@ -145,7 +144,7 @@ def get_stacks(filename, output_path, voxel_size, time_delta=None, reference_sta
                 if (crop is not None) and ("t" in crop):
                     times = times[slice(*crop["t"])]
                 for t in times:
-                    stacks.append(Stack(normalize_path(r1["filename"].replace("{t}", t), output),
+                    stacks.append(Stack(normalize_path(r1["filename"].replace("[t]", "[{t}]").replace("{t}", str(t)), output),
                                         voxel_size, crop=crop))
             else:
                 stacks = [Stack(normalize_path(r1["filename"], output), voxel_size, crop=crop)]
@@ -187,7 +186,7 @@ def get_stacks(filename, output_path, voxel_size, time_delta=None, reference_sta
                     if r1["filename"].endswith(".lif"):
                         stacks.append(Stack(normalize_path(r1["filename"].replace(".lif", f"{{t:{t}}}.lif"), output), voxel_size, crop=crop))
                     else:
-                        stacks.append(Stack(normalize_path(r1["filename"].replace("{t}", t), output), voxel_size, crop=crop))
+                        stacks.append(Stack(normalize_path(r1["filename"].replace("[t]", "[{t}]").replace("{t}", str(t)), output), voxel_size, crop=crop))
             else:
                 stacks = [Stack(normalize_path(r1["filename"], output), voxel_size, crop=crop)]
 
@@ -282,41 +281,67 @@ class PivParametersDict(TypedDict):
     signal_to_noise: float
     drift_correction: bool
 
-class MeshParametersDict(TypedDict):
+class MeshParametersDict(TypedDict, total=False):
     reference_stack: str
     element_size: float
     mesh_size: Union[Tuple[float, float, float], str]
-    
+    custom_mask: str              # optional local:N image source; nonzero XY columns are ignored
+    # --- robust deformation-outlier filter (added in save version 1.8) ---
+    # Optional: official old files (< 1.8) do not contain these; they are filled
+    # with defaults on load. New mesh calculations filter reference-corrected
+    # PIV vectors once, before interpolation (see saenopy.deformation_filter).
+    outlier_filter: bool          # enable the robust normalized-median outlier removal
+    outlier_thresh: float         # normalized-median threshold (higher = more permissive)
+    outlier_k: int                # legacy vector API only; component filter uses a fixed 5x5x5 window
+    outlier_min_mult: float       # relative floor = min_mult * local median |u_component|
+    outlier_min_abs_um: float     # optional absolute residual floor; default 0.3 um
+    outlier_eps_um: float         # optional additive scatter regulariser; default 0.3 um
+
 class MaterialParametersDict(TypedDict):
     k: float
     d_0: float
     lambda_s: float
     d_s: float
 
-class SolveParametersDict(TypedDict):
+class SolveParametersDict(TypedDict, total=False):
     alpha: float
     step_size: float
     max_iterations: int
     rel_conv_crit: float
     prev_t_as_start: bool
+    # Surface mode always uses geometry-normalized alpha.
+    surface: bool
+    seg_channel: Union[int, str]  # matrix channel index or local:N image source
+    seg_threshold_method: str     # "li" | "otsu" | "yen"
+    seg_threshold_factor: float   # factor multiplied onto the automatic threshold
+    seg_dilate_layers: int        # mesh-node shells added to the detected surface
+    seg_smoothing_sigma_um: float # 0/missing: legacy 2-pixel blur; >0: physical sigma plus enclosed XY filling
+    # Geometry-only alpha normalization (added in save version 1.8).
+    physical_normalization: bool
+    alpha_reference_element_size_um: float
+    scaling_exponent: float
+    surface_min_iterations: int
+    exclude_cell_interior: bool
+    solver_precision: float
     
     
 
 
 class Result(Saveable):
-    __save_parameters__ = ['stacks', 'stack_reference', 'template',
+    __save_parameters__ = ['stacks', 'stack_reference', 'template', 'image_sources',
                            'time_delta', 'piv_parameters', 'mesh_piv',
                            'mesh_parameters', 'material_parameters',
                            'solve_parameters', 'solvers',
                            '___save_name__', '___save_version__']
     ___save_name__ = "Result"
-    ___save_version__ = "1.7"
+    ___save_version__ = "1.9"
     output: str = None
     state: bool = False
 
     stack_parameters: dict = None
     stacks: List[Stack] = None
     stack_reference: Stack = None
+    image_sources: List[ImageSource] = None
     template: str = None
     time_delta: float = None
 
@@ -343,7 +368,15 @@ class Result(Saveable):
                 if not is_none_placeholder(solver):
                     yield solver
 
+        def version():
+            return tuple(int(part) for part in str(data_dict["___save_version__"]).split("."))
+
+        if version() > (1, 9):
+            raise ValueError("This .saenopy file needs a newer Saenopy version.")
+
         def apply_rename(obj_data, rename):
+            if obj_data is None or (isinstance(obj_data, str) and obj_data == "__NONE__"):
+                return obj_data
             if isinstance(obj_data, list):
                 return [apply_rename(o, rename) for o in obj_data]
 
@@ -353,9 +386,14 @@ class Result(Saveable):
                     if isinstance(r["old"], Callable):
                         obj_data[r["new"]] = r["old"](obj_data)
                     elif r["old"] in obj_data:
-                        obj_data[r["new"]] = obj_data[r["old"]]
+                        value = obj_data[r["old"]]
+                        # Only the shared parameter dictionary splits into two
+                        # independently edited branches; image/mesh arrays move.
+                        if r["old"] == "solve_parameter" and isinstance(value, dict):
+                            value = value.copy()
+                        obj_data[r["new"]] = value
                     elif "default" in r:
-                        obj_data[r["new"]] = r["default"]
+                        obj_data[r["new"]] = copy.deepcopy(r["default"])
                     else:
                         raise ValueError(f"File does not contain parameter {r['old']} and {r['new']} does not have a "
                                          f"default value.")
@@ -363,6 +401,8 @@ class Result(Saveable):
                     apply_rename(obj_data[r["new"]], r.get("renames_child", None))
 
         def apply_delete(obj_data, rename):
+            if obj_data is None or (isinstance(obj_data, str) and obj_data == "__NONE__"):
+                return obj_data
             if isinstance(obj_data, list):
                 return [apply_delete(o, rename) for o in obj_data]
 
@@ -372,12 +412,12 @@ class Result(Saveable):
                 if r.get("renames_child", None) is not None:
                     apply_delete(obj_data[r["new"]], r.get("renames_child", None))
 
-        if data_dict["___save_version__"] < "1.1":
+        if version() < (1, 1):
             if len(data_dict["stack"]) == 2:
                 data_dict["stack_reference"] = data_dict["stack"][0]
                 data_dict["stack"] = [data_dict["stack"][1]]
 
-        if data_dict["___save_version__"] < "1.2":  # pragma: no cover
+        if version() < (1, 2):  # pragma: no cover
             print(f"convert old version {data_dict['___save_version__']} to 1.2")
             renames = [
                 dict(old="stack", new="stack", renames_child=[
@@ -470,7 +510,7 @@ class Result(Saveable):
             apply_delete(data_dict, renames)
 
             data_dict["___save_version__"] = "1.2"
-        if data_dict["___save_version__"] < "1.3":  # pragma: no cover
+        if version() < (1, 3):  # pragma: no cover
             print(f"convert old version {data_dict['___save_version__']} to 1.3")
             renames = [
                 dict(old="stack", new="stacks"),
@@ -480,7 +520,7 @@ class Result(Saveable):
             apply_delete(data_dict, renames)
 
             data_dict["___save_version__"] = "1.3"
-        if data_dict["___save_version__"] < "1.4":  # pragma: no cover
+        if version() < (1, 4):  # pragma: no cover
             print(f"convert old version {data_dict['___save_version__']} to 1.4")
             renames = [
                 dict(old="solvers", new="solvers", renames_child=[
@@ -494,32 +534,72 @@ class Result(Saveable):
 
             data_dict["___save_version__"] = "1.4"
        
-        if data_dict["___save_version__"] < "1.5":  # pragma: no cover
+        if version() < (1, 5):  # pragma: no cover
              print(f"convert old version {data_dict['___save_version__']} to 1.5")
              if data_dict["solve_parameters"] is not None:
                  data_dict["solve_parameters"]["prev_t_as_start"] = False
              data_dict["___save_version__"] = "1.5"
 
-        if data_dict["___save_version__"] < "1.6":  # pragma: no cover
+        if version() < (1, 6):  # pragma: no cover
              print(f"convert old version {data_dict['___save_version__']} to 1.6")
              for solver in iter_solvers():
                  solver["regularisation_results"] = np.array(solver["regularisation_results"])
              for stack in data_dict["stacks"]:
                  stack["image_filenames"] = np.array(stack["image_filenames"])
-             if data_dict.get("stack_reference", None):
+             if isinstance(data_dict.get("stack_reference"), dict):
                  data_dict["stack_reference"]["image_filenames"] = np.array(data_dict["stack_reference"]["image_filenames"])
              data_dict["___save_version__"] = "1.6"
 
-        if data_dict["___save_version__"] < "1.7":  # pragma: no cover
+        if version() < (1, 7):  # pragma: no cover
              print(f"convert old version {data_dict['___save_version__']} to 1.7")
              for solver in iter_solvers():
+                 if is_none_placeholder(solver["mesh"]["forces"]) or is_none_placeholder(solver["mesh"]["regularisation_mask"]):
+                     solver["mesh"]["forces_border"] = None
+                     continue
                  solver["mesh"]["forces_border"] = solver["mesh"]["forces"].copy()
                  solver["mesh"]["forces_border"][solver["mesh"]["regularisation_mask"]] = 0
                  solver["mesh"]["forces"][~solver["mesh"]["regularisation_mask"]] = 0
                  print(solver["mesh"].keys())
 
              data_dict["___save_version__"] = "1.7"
-             
+
+        # 1.8: current fork metadata. Official 1.7 Classic files receive
+        # conservative defaults so their original objective is preserved.
+        if version() < (1, 8):  # pragma: no cover
+            from saenopy import deformation_filter as df
+            from saenopy import surface_regularization as sr
+            from saenopy import physical_regularization as pr
+            sp = data_dict.get("solve_parameters")
+            if isinstance(sp, dict):
+                # Keep an absent seg_channel absent: the GUI chooses the first
+                # non-matrix channel. An explicit saved 0 is a user choice.
+                defaults = dict(
+                    surface=False,
+                    physical_normalization=False,
+                    alpha_reference_element_size_um=pr.DEFAULT_REFERENCE_ELEMENT_SIZE_UM,
+                    scaling_exponent=pr.DEFAULT_SCALING_EXPONENT,
+                    seg_threshold_method=sr.DEFAULT_THRESHOLD_METHOD,
+                    seg_threshold_factor=sr.DEFAULT_THRESHOLD_FACTOR,
+                    seg_dilate_layers=1,
+                    surface_min_iterations=sr.DEFAULT_MIN_ITERATIONS,
+                    exclude_cell_interior=False)
+                for key, value in defaults.items():
+                    sp.setdefault(key, value)
+            mp = data_dict.get("mesh_parameters")
+            if isinstance(mp, dict):
+                for key, value in dict(
+                        outlier_filter=False,
+                        outlier_thresh=df.DEFAULT_OUTLIER_THRESH,
+                        outlier_k=df.DEFAULT_OUTLIER_K,
+                        outlier_min_mult=df.DEFAULT_OUTLIER_MIN_MULT).items():
+                    mp.setdefault(key, value)
+            data_dict["___save_version__"] = "1.8"
+
+        # Additional segmentation channels and 2D target masks are opt-in.
+        if version() < (1, 9):
+            data_dict.setdefault("image_sources", [])
+            data_dict["___save_version__"] = "1.9"
+
         return super().from_dict(data_dict)
 
     def reset_piv(self, keep_state=False):
@@ -542,7 +622,8 @@ class Result(Saveable):
                 M = Solver()
                 M.set_nodes(solver.mesh.nodes)
                 M.set_tetrahedra(solver.mesh.tetrahedra)
-                M.set_target_displacements(solver.mesh.displacements_target, solver.mesh.displacements_target_mask)
+                M.set_target_displacements(solver.mesh.displacements_target, solver.mesh.regularisation_mask.copy())
+                M.mesh.displacements_target_mask = solver.mesh.displacements_target_mask.copy()
 
                 self.solvers[i] = M
 
@@ -564,11 +645,21 @@ class Result(Saveable):
         self.state = False
         self.time_delta = time_delta
         self.template = template
-
-        self.reset_piv()
-        self.solvers = [None] * (len(self.mesh_piv))
+        self.image_sources = []
 
         super().__init__(**kwargs)
+
+        # Loaded stacks and the optional reference must be known before counting
+        # pairs. Initializing earlier left a new single reference pair with no
+        # result slots. Also repair missing slots in archives saved that way,
+        # without resetting any PIV meshes or solvers already present.
+        count = max(0, len(self.stacks) - (self.stack_reference is None))
+        for name in ("mesh_piv", "solvers"):
+            values = getattr(self, name)
+            if values is None:
+                setattr(self, name, [None] * count)
+            elif len(values) < count:
+                setattr(self, name, list(values) + [None] * (count - len(values)))
 
         # add a reference to this instance to the stacks, so they know the path
         if output is not None:
@@ -576,6 +667,8 @@ class Result(Saveable):
                 stack.paths_relative(self)
             if self.stack_reference is not None:
                 self.stack_reference.paths_relative(self)
+            for source in self.image_sources:
+                source.paths_relative(self)
             self.template = str(make_path_relative(Path(self.template).absolute(), Path(self.output).parent))
 
 
@@ -600,17 +693,22 @@ class Result(Saveable):
 
     def save(self, filename: str = None, file_format=".saenopy"):
         if filename is not None:
+            source_directory = Path(self.output).parent if self.output else Path.cwd()
             for stack in self.stacks:
-                stack.paths_absolute()
+                stack.paths_absolute(source_directory)
             if self.stack_reference is not None:
-                self.stack_reference.paths_absolute()
-            self.template = make_path_absolute(self.template, Path(self.output).parent)
+                self.stack_reference.paths_absolute(source_directory)
+            for source in self.image_sources:
+                source.paths_absolute(self)
+            self.template = make_path_absolute(self.template, source_directory)
 
-            self.output = filename
+            self.output = str(Path(filename).absolute())
             for stack in self.stacks:
                 stack.paths_relative(self)
             if self.stack_reference is not None:
                 self.stack_reference.paths_relative(self)
+            for source in self.image_sources:
+                source.paths_relative(self)
             self.template = make_path_relative(self.template, Path(self.output).parent)
         Path(self.output).parent.mkdir(exist_ok=True, parents=True)
         super().save(self.output, file_format=file_format)
@@ -633,6 +731,9 @@ class Result(Saveable):
             stack.parent = self
         if self.stack_reference is not None:
             self.stack_reference.parent = self
+        for source in self.image_sources:
+            for stack in source.stacks:
+                stack.parent = self
 
     def __repr__(self):
         folders = [str(Path(stack.template)) for stack in self.stacks]

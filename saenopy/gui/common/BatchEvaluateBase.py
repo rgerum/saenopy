@@ -1,4 +1,5 @@
 import json
+from copy import deepcopy
 import sys
 import os
 
@@ -40,6 +41,7 @@ class SharedProperties:
 class BatchEvaluateBase(QtWidgets.QWidget):
     settings_key = "saenopy"
     result_changed = QtCore.Signal(object)
+    tasks_changed = QtCore.Signal()
     tab_changed = QtCore.Signal(object)
     set_current_result = QtCore.Signal(object)
 
@@ -48,6 +50,7 @@ class BatchEvaluateBase(QtWidgets.QWidget):
     file_extension = None
 
     result_params = []
+    result_local_params = {}
 
     def add_modules(self):
         self.modules = []
@@ -206,11 +209,24 @@ class BatchEvaluateBase(QtWidgets.QWidget):
         except ValueError:
             return False
         result = self.list.data[self.list.currentRow()][2]
-        params = self.result_params
-        for par in params:
-            if par in data:
-                setattr(result, par+"_tmp", data[par])
+        self._set_pasted_params(result, data)
         self.set_current_result.emit(result)
+
+    def _set_pasted_params(self, result, data):
+        for group in self.result_params:
+            if group not in data:
+                continue
+            params = deepcopy(data[group])
+            if isinstance(params, dict):
+                current = dict(getattr(result, group, None) or {})
+                current.update(getattr(result, group + "_tmp", None) or {})
+                for key in self.result_local_params.get(group, ()):
+                    if isinstance(params.get(key), str) and params[key].startswith("local:"):
+                        # Clipboard parameters do not carry the referenced images.
+                        params.pop(key)
+                        if key in current:
+                            params[key] = current[key]
+            setattr(result, group + "_tmp", params)
 
     def paste_params2(self):
         cb = QtGui.QGuiApplication.clipboard()
@@ -221,10 +237,7 @@ class BatchEvaluateBase(QtWidgets.QWidget):
             return False
         for i in range(len(self.list.data)):
             result = self.list.data[i][2]
-            params = self.result_params
-            for par in params:
-                if par in data:
-                    setattr(result, par + "_tmp", data[par])
+            self._set_pasted_params(result, data)
         result = self.list.data[self.list.currentRow()][2]
         self.set_current_result.emit(result)
 
@@ -280,6 +293,7 @@ class BatchEvaluateBase(QtWidgets.QWidget):
 
     def addTask(self, task, result, params, name):
         self.tasks.append([task, result, params, name])
+        self.tasks_changed.emit()
         if self.thread is None:
             self.run_next()
 
@@ -301,6 +315,7 @@ class BatchEvaluateBase(QtWidgets.QWidget):
     def run_finished(self):
         self.current_task_id += 1
         self.thread = None
+        self.tasks_changed.emit()
         if self.current_task_id < len(self.tasks):
             self.run_next()
 

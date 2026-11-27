@@ -47,6 +47,46 @@ def getVectorFieldImage(self, use_fixed_contrast_if_available=False, use_2D=Fals
         display_image = None
     return display_image
 
+def _draw_surface_nodes(plotter, obj, show_surface):
+    """Draw the surface-regularization nodes (``obj.cell_boundary_mask``) as solid
+    cyan SPHERES, or remove them. Called from INSIDE showVectorField so it shares the
+    same (deferred) render as the NaN dots -- that is why an earlier post-hoc overlay
+    stayed invisible. Real spheres (not screen-space points) are used because the
+    surface nodes sit right inside the dense arrow field, where small dots vanish."""
+    try:
+        plotter.remove_actor("surface_nodes")
+        plotter.remove_actor("segmentation_surface")
+    except Exception:
+        pass
+    if not show_surface or obj is None:
+        return
+    preview = getattr(obj, "_segmentation_preview", None)
+    mask = getattr(obj, "cell_boundary_mask", None)
+    if preview is not None:
+        vertices, faces, mask = preview  # micrometres, same centered frame as FE nodes
+        triangles = np.column_stack((np.full(len(faces), 3), faces)).ravel()
+        plotter.add_mesh(pv.PolyData(vertices, triangles), color="cyan", opacity=.22,
+                         show_scalar_bar=False, name="segmentation_surface", render=False)
+    if mask is None:
+        return
+    mask = np.asarray(mask, dtype=bool)
+    if not mask.any():
+        return
+    pts = np.asarray(obj.nodes)[mask] * 1e6      # µm, matching showVectorField
+    # sphere radius ~ a third of the node spacing so the spheres are clearly visible
+    # in the field but do not overlap into a blob
+    try:
+        from scipy.spatial import cKDTree
+        nn = cKDTree(pts).query(pts, k=min(2, len(pts)))[0]
+        spacing = np.median(nn[:, 1]) if nn.ndim == 2 and nn.shape[1] > 1 else 10.0
+    except Exception:
+        spacing = 10.0
+    radius = max(float(spacing) * 0.3, 1.0)
+    spheres = pv.PolyData(pts).glyph(geom=pv.Sphere(radius=radius), scale=False, orient=False)
+    plotter.add_mesh(spheres, color="cyan", show_scalar_bar=False,
+                     name="surface_nodes", render=False)
+
+
 def showVectorField2(self, M, points_name):
     display_image = getVectorFieldImage(self)
 
@@ -65,12 +105,15 @@ def showVectorField2(self, M, points_name):
                     factor=0.1*self.vtk_toolbar.arrow_scale.value(),
                     colormap=self.vtk_toolbar.colormap_chooser.value(),
                     colormap2=self.vtk_toolbar.colormap_chooser2.value(),
-                    stack_shape=stack_shape)
+                    stack_shape=stack_shape,
+                    show_surface=getattr(self.vtk_toolbar, "use_surface", None) is not None
+                                 and self.vtk_toolbar.use_surface.value())
 
 
 def showVectorField(plotter: QtInteractor, obj: Solver, field: np.ndarray, name: str, center=None, center_color="m", show_nan=True, stack_shape=None,
                     show_all_points=False, factor=.1, scalebar_max=None, display_image=None, show_grid=True,
-                    colormap="turbo", colormap2=None, stack_min_max=None, arrow_opacity=1, skip=1, log_scale=False):
+                    colormap="turbo", colormap2=None, stack_min_max=None, arrow_opacity=1, skip=1, log_scale=False,
+                    show_surface=False):
     # ensure that the image is either with color channels or no channels
     if (display_image is not None) and (display_image[0].shape[2] == 1):
         display_image[0] = display_image[0][:, :, 0]
@@ -96,7 +139,7 @@ def showVectorField(plotter: QtInteractor, obj: Solver, field: np.ndarray, name:
                 field = field.reshape(x_unique, y_unique, z_unique, 3)[::skip, ::skip, ::skip].reshape(-1, 3)
 
             # get positions of nan values
-            nan_values = np.isnan(field[:, 0])
+            nan_values = np.any(np.isnan(field), axis=1)
 
             # create a point cloud
             point_cloud = pv.PolyData(obj_R)
@@ -123,22 +166,21 @@ def showVectorField(plotter: QtInteractor, obj: Solver, field: np.ndarray, name:
                 if R.shape[0]:
                     point_cloud2 = pv.PolyData(R)
                     point_cloud2.point_data["nan"] = obj_R[nan_values, 0] * np.nan
+            # NOTE: upstream used to hijack this NaN point cloud to display the
+            # cell_boundary_mask -- which drew the surface nodes in the NaN colour
+            # (grey) and hid the real NaNs. The surface nodes now get their own
+            # actor in their own colour, see show_surface_nodes() below.
             R = obj_R[nan_values]
-            if name == "forces" and getattr(obj, "cell_boundary_mask", None) is not None:
-                R = obj_R[obj.cell_boundary_mask]
-                if R.shape[0]:
-                    point_cloud2 = pv.PolyData(R)
-                    point_cloud2.point_data["nan"] = R[:, 0] * np.nan
 
-            # scalebar scaling factor
-            norm_stack_size = np.abs(np.max(obj_R) - np.min(obj_R))
-            if scalebar_max is None:
-                factor = factor * norm_stack_size / np.nanmax(point_cloud[name + "_mag2"])#np.nanpercentile(point_cloud[name + "_mag2"], 99.9)
-            else:
-                factor = factor * norm_stack_size / scalebar_max
-
-            # generate the arrows
-            arrows = point_cloud.glyph(orient=name, scale=name + "_mag2", factor=factor)
+            # Keep NaN markers even when the valid vectors are all zero, but
+            # skip their zero-length arrows and undefined automatic scaling.
+            magnitudes = point_cloud[name + "_mag2"]
+            arrows = None
+            if np.any(np.isfinite(magnitudes) & (magnitudes > 0)):
+                norm_stack_size = np.abs(np.max(obj_R) - np.min(obj_R))
+                maximum = np.nanmax(magnitudes) if scalebar_max is None else scalebar_max
+                factor = factor * norm_stack_size / maximum
+                arrows = point_cloud.glyph(orient=name, scale=name + "_mag2", factor=factor)
 
             title = name
             if name == "displacements_measured" or name == "displacements_target" or name == "displacements":
@@ -165,17 +207,16 @@ def showVectorField(plotter: QtInteractor, obj: Solver, field: np.ndarray, name:
                     plotter.add_mesh(point_cloud2, colormap=colormap, scalars="nan",
                                                          show_scalar_bar=False, render=False, name="nans")
 
-            # add the arrows
-            plotter.add_mesh(arrows, scalar_bar_args=sargs, colormap=colormap, name="arrows", opacity=arrow_opacity, render=False)
-
-            # update the scalebar
-            plotter.auto_value = np.nanpercentile(point_cloud[name + "_mag2"], 99.9)
-            if scalebar_max is None:
-                plotter.update_scalar_bar_range([0, np.nanpercentile(point_cloud[name + "_mag2"], 99.9)])
+            if arrows is not None:
+                plotter.add_mesh(arrows, scalar_bar_args=sargs, colormap=colormap, name="arrows", opacity=arrow_opacity, render=False)
+                plotter.auto_value = np.nanpercentile(magnitudes, 99.9)
+                plotter.update_scalar_bar_range([0, plotter.auto_value if scalebar_max is None else scalebar_max])
             else:
-                plotter.update_scalar_bar_range([0, scalebar_max])
+                plotter.remove_actor("arrows")
+                plotter.auto_value = 0.0
         else:
             plotter.remove_actor("arrows")
+            plotter.remove_actor("nans")
 
         # plot center points if desired
         if center is not None:
@@ -210,6 +251,9 @@ def showVectorField(plotter: QtInteractor, obj: Solver, field: np.ndarray, name:
             mesh = plotter.add_mesh(curvsurf, texture=tex, name="image_mesh")
         else:
             plotter.remove_actor("image_mesh")
+
+        # surface-regularization nodes (drawn here so they share the deferred render)
+        _draw_surface_nodes(plotter, obj, show_surface)
 
         plotter.remove_bounds_axes()
 

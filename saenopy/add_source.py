@@ -20,8 +20,9 @@ def add_source_code_to_decorator(folder_path):
         modified = False  # Track if modifications are made
         line_shift = 0  # Track cumulative line number shifts
 
-        # Traverse all nodes in the AST
-        for node in ast.walk(tree):
+        # Insert in source order: ast.walk visits shallower functions first,
+        # which would invalidate line_shift for earlier nested functions.
+        for node in sorted(ast.walk(tree), key=lambda node: getattr(node, "lineno", 0)):
             if isinstance(node, ast.FunctionDef):  # Process function definitions
                 # Check if the function has @export_as_string
                 if node.decorator_list and any(

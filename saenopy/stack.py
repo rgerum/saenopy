@@ -33,7 +33,7 @@ class Stack(Saveable):
     _shape = None
 
     image_filenames: np.ndarray = None  # List[List[str]]
-    leica_file = None
+    _leica_file = None
     channels: List[str] = None
 
     packed_files: list = None
@@ -46,21 +46,34 @@ class Stack(Saveable):
             # check if the template is a leica file
             match = re.match(r"(.*)\{f\:(\d*)\}\{c\:(\d*)\}(?:\{t\:(\d*)\})?.lif", template)
             if match:
-                from saenopy.gui.common.lif_reader import LifFile
                 self.leica_filename, self.leica_folder, self.leica_channel, self.leica_time = match.groups()
                 if self.leica_time is None:  # pragma: no cover
                     self.leica_time = 0
                 else:
                     self.leica_time = int(self.leica_time)
                 self.leica_channel = int(self.leica_channel)
-                self.leica_file = LifFile(self.leica_filename + ".lif").get_image(self.leica_folder)
-                self.channels = [str(self.leica_channel)]
-                for i in range(0, self.leica_file.channels):
-                    if i != self.leica_channel:
-                        self.channels.append(str(i))
+                # Saved stacks already carry their channel selection. Defer
+                # opening until Result.on_load has supplied their base path.
+                if self.channels is None:
+                    self.channels = [str(self.leica_channel)]
+                    for i in range(0, self.leica_file.channels):
+                        if i != self.leica_channel:
+                            self.channels.append(str(i))
             # or a tiff file
             else:
                 self.image_filenames, self.channels = template_to_array(template, crop)
+
+    @property
+    def leica_file(self):
+        if not hasattr(self, "leica_filename"):
+            return None
+        if self._leica_file is None:
+            from saenopy.gui.common.lif_reader import LifFile
+            filename = Path(self.leica_filename + ".lif")
+            if not filename.is_absolute() and getattr(self.parent, "output", None):
+                filename = Path(self.parent.output).parent / filename
+            self._leica_file = LifFile(str(filename.absolute())).get_image(self.leica_folder)
+        return self._leica_file
 
     def paths_relative(self, parent):
         self.parent = parent
@@ -94,7 +107,11 @@ class Stack(Saveable):
         else:
             self.leica_filename = process(self.leica_filename)
 
-    def paths_absolute(self):
+    def paths_absolute(self, source_directory=None):
+        if source_directory is None:
+            output = getattr(self.parent, "output", None)
+            source_directory = Path(output).parent if output else Path.cwd()
+
         def normalize_path(template, output):
             if not Path(template).is_absolute():
                 return str(Path(output).absolute() / template)
@@ -103,7 +120,7 @@ class Stack(Saveable):
         def process(image):
             if isinstance(image, (list, np.ndarray)):
                 return np.asarray([process(i) for i in image])
-            return normalize_path(image, Path(self.parent.output).parent)
+            return normalize_path(image, source_directory)
 
         self.template = process(self.template)
         if self.image_filenames is not None:
@@ -112,8 +129,16 @@ class Stack(Saveable):
             self.leica_filename = process(self.leica_filename)
 
     def pack_files(self):
-        images = np.asarray(self.image_filenames)[:, :]
-        images = np.asarray(load_image_files_to_nparray(images, self.crop, self.parent)).T
+        if self.image_filenames is None:
+            if self.packed_files is not None:
+                return
+            reader = self.leica_file
+            images = np.asarray([[np.asarray(reader.get_frame(z, t=self.leica_time, c=int(channel)))
+                                  for channel in self.channels] for z in range(reader.dims.z)])
+            images = images[:, :, :, :, None].T
+        else:
+            images = np.asarray(self.image_filenames)[:, :]
+            images = np.asarray(load_image_files_to_nparray(images, self.crop, self.parent)).T
 
         self.packed_files = images
 
@@ -125,8 +150,11 @@ class Stack(Saveable):
 
     @property
     def shape(self) -> tuple:
+        if self.packed_files is not None:
+            shape = self.packed_files.shape
+            return (shape[2], shape[1], shape[4], shape[3])
         if self.leica_file is not None:
-            return (self.leica_file.dims.y, self.leica_file.dims.x, self.leica_file.dims.z, 1)
+            return (self.leica_file.dims.y, self.leica_file.dims.x, self.leica_file.dims.z, len(self.channels))
         if self._shape is None:
             filename = self.image_filenames[0][0]
             if not Path(filename).is_absolute() and self.parent is not None:
@@ -144,12 +172,12 @@ class Stack(Saveable):
 
     def __getitem__(self, index) -> np.ndarray:
         """ axes are y, x, rgb, z, c """
-        if self.leica_file is not None:
+        if self.packed_files is None and self.leica_file is not None:
             if isinstance(index[3], slice):
                 z_min = 0
                 if index[3].start is not None:
                     z_min = index[3].start
-                z_max = self.shape[3]
+                z_max = self.shape[2]
                 if index[3].stop is not None:
                     z_max = index[3].stop
             else:
@@ -220,6 +248,19 @@ def load_image_files_to_nparray(image_filenames, crop=None, parent=None):
         return [load_image_files_to_nparray(i, crop, parent) for i in image_filenames]
 
 
+def read_image_shape(filename):
+    """Read one selected image plane's shape from its header, without pixels."""
+    filename = str(filename)
+    match = re.fullmatch(r"(.*\.tiff?)(?:\[(\d+)\])?", filename)
+    if match:
+        path, page = match.groups()
+        with tifffile.TiffFile(path) as tif:
+            return tif.pages[int(page or 0)].shape
+    from PIL import Image
+    with Image.open(filename) as image:
+        return image.height, image.width
+
+
 def read_tiff(image_filenames):
     if re.match(r".*\.tiff?(\[.*\])?$", str(image_filenames)):
         image_filenames = str(image_filenames)
@@ -239,7 +280,7 @@ def read_tiff(image_filenames):
 def format_glob(pattern):
     pattern = str(Path(pattern))
 
-    match = re.match(r"(.*\.tif)\[(.*)\]", pattern)
+    match = re.match(r"(.*\.tiff?)\[(.*)\]", pattern)
     page = 0
     if match:
         pattern, page = match.groups()
@@ -284,6 +325,8 @@ def format_glob(pattern):
                 group["template"] = template_name + "[" + str(page) + "]"
                 for i in range(len(tif.pages)):
                     group["filename"] = file+f"[{i}]"
-                    group[page] = i
+                    axis = page.strip("{}")
+                    # Channel selections use the same string labels as filename channels.
+                    group[axis] = str(i) if axis == "c" else i
                     file_list.append(group.copy())
     return pd.DataFrame(file_list), output_base

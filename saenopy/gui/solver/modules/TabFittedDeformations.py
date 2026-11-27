@@ -9,16 +9,19 @@ from .VTK_Toolbar import VTK_Toolbar
 from .showVectorField import showVectorField2
 from .DeformationDetector import CamPos
 from saenopy.gui.common.TabModule import TabModule
+from .live_fit import displayed_solver, live_fit_available, fit_status_label
 
 
 class TabFittedDeformations(TabModule):
+    field_description = "The fitted mesh deformations."
 
     def __init__(self, parent: "BatchEvaluate"):
         super().__init__(parent)
 
         with self.parent.tabs.createTab("Fitted Deformations") as self.tab:
             with QtShortCuts.QVBoxLayout() as layout:
-                self.label_tab = QtWidgets.QLabel("The fitted mesh deformations.").addToLayout()
+                self.label_tab = QtWidgets.QLabel(self.field_description).addToLayout()
+                self.label_tab.setWordWrap(True)
 
                 with QtShortCuts.QHBoxLayout() as layout:
                     self.plotter = QtInteractor(None, auto_update=False)  # , theme=pv.themes.DocumentTheme())
@@ -41,17 +44,29 @@ class TabFittedDeformations(TabModule):
         self.update_display()
 
     def checkTabEnabled(self, result: Result) -> bool:
-        try:
-            return getattr(self.result.solvers[0], "regularisation_results", None) is not None
-        except (AttributeError, IndexError, TypeError):
-            return False
+        return any(self.frame_available(result, frame)
+                   for frame in range(len(getattr(result, "solvers", None) or [])))
+
+    def frame_available(self, result, frame):
+        if getattr(result, "_live_fit_active", False):
+            return live_fit_available(result, frame)
+        return getattr(displayed_solver(result, frame), "regularisation_results", None) is not None
 
     def property_changed(self, name, value):
         if name == "z_slider":
             self.z_slider.setValue(value)
 
+    def update_fit_status(self):
+        self.label_tab.setText(fit_status_label(self.result, self.field_description, self.t_slider.value()))
+
+    def resultChanged(self, result: Result):
+        if result is self.result:
+            self.update_fit_status()
+        super().resultChanged(result)
+
     def setResult(self, result: Result):
         super().setResult(result)
+        self.update_fit_status()
         if result and result.stacks and result.stacks[0]:
             self.z_slider.setRange(0, result.stacks[0].shape[2] - 1)
             self.z_slider.setValue(self.result.stacks[0].shape[2] // 2)
@@ -64,16 +79,18 @@ class TabFittedDeformations(TabModule):
                 self.vtk_toolbar.channel_select.setVisible(False)
 
     def update_display(self):
+        self.update_fit_status()
         if self.current_tab_selected is False:
             self.current_result_plotted = False
             return
 
-        if self.checkTabEnabled(self.result):
+        available = self.frame_available(self.result, self.t_slider.value())
+        M = displayed_solver(self.result, self.t_slider.value()) if available else None
+        if M is not None:
             cam_pos = None
             if self.plotter.camera_position is not None and CamPos.cam_pos_initialized is True:
                 cam_pos = self.plotter.camera_position
             CamPos.cam_pos_initialized = True
-            M = self.result.solvers[self.t_slider.value()]
             mesh = M.mesh
             self.plotter.interactor.setToolTip(str(self.result.solve_parameters) + f"\nNodes {mesh.nodes.shape[0]}\nTets {mesh.tetrahedra.shape[0]}")
             showVectorField2(self, mesh, "displacements")
@@ -82,3 +99,5 @@ class TabFittedDeformations(TabModule):
                 self.plotter.camera_position = cam_pos
         else:
             self.plotter.interactor.setToolTip("")
+            self.plotter.clear()
+            self.plotter.render()

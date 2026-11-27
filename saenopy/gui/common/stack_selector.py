@@ -32,7 +32,7 @@ class StackSelector(QtWidgets.QWidget):
 
         self.input_filename = QtShortCuts.QInputFilename(main_layout, name, self._open_dir, existing=True,
                                                          settings=self.settings, settings_key=self.name,
-                                                         file_type="images (*.tif *.jpg *.png *.lif)")
+                                                         file_type="images (*.tif *.tiff *.jpg *.png *.lif)")
 
         self.input_filename.valueChanged.connect(self.file_changed)
 

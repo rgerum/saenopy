@@ -19,7 +19,7 @@ class AddFilesDialog(AddFilesDialog):
             with QtShortCuts.QHBoxLayout():
                 with QtShortCuts.QVBoxLayout():
                     with QtShortCuts.QHBoxLayout():
-                        self.reference_choice = QtShortCuts.QInputChoice(None, "Reference", 0, [0, 1],
+                        self.reference_choice = QtShortCuts.QInputChoice(None, "Matrix reference", 0, [0, 1],
                                                                          ["difference between time points",
                                                                           "single stack"])
                         QtShortCuts.currentLayout().addStretch()
@@ -36,7 +36,7 @@ class AddFilesDialog(AddFilesDialog):
                                     self.place_holder_widget.setVisible(not self.reference_choice.value())
 
                                 self.reference_choice.valueChanged.connect(ref_changed)
-                                self.stack_reference = StackSelector(QtShortCuts.currentLayout(), "reference")
+                                self.stack_reference = StackSelector(QtShortCuts.currentLayout(), "reference matrix images")
                                 self.stack_reference.glob_string_changed.connect \
                                     (lambda x, y: self.stack_reference_input.setText(y))
                                 self.stack_reference.setVisible(self.reference_choice.value())
@@ -44,7 +44,7 @@ class AddFilesDialog(AddFilesDialog):
                                 self.stack_reference_input = QtWidgets.QLineEdit().addToLayout()
                             with QtShortCuts.QVBoxLayout():
                                 QtShortCuts.currentLayout().setContentsMargins(0, 0, 0, 0)
-                                self.stack_data = StackSelector(QtShortCuts.currentLayout(), "active stack(s)",
+                                self.stack_data = StackSelector(QtShortCuts.currentLayout(), "active matrix images",
                                                                 self.stack_reference, use_time=True)
                                 self.stack_data.setMinimumWidth(300)
                                 self.stack_reference.setMinimumWidth(300)

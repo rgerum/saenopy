@@ -1,5 +1,6 @@
 import os
 import time
+import traceback
 from qtpy import QtCore, QtWidgets
 import qtawesome as qta
 import numpy as np
@@ -9,6 +10,7 @@ from pathlib import Path
 import saenopy
 import saenopy.multigrid_helper
 from saenopy import Result
+from saenopy.solver import _REGULARIZATION_CG_FACTOR
 import saenopy.get_deformations
 import saenopy.materials
 from saenopy.gui.common import QtShortCuts
@@ -32,9 +34,30 @@ class CancelSignal:
     cancel = False
 
 
+from saenopy.reconstruction import segment_with_params
+from saenopy.surface_regularization import (DEFAULT_SEG_CHANNEL, DEFAULT_SMOOTHING_SIGMA_UM,
+                                          DEFAULT_THRESHOLD_METHOD, DEFAULT_THRESHOLD_FACTOR)
+from .live_fit import solver_snapshot, snapshot_is_current
+from .image_source_dialog import ImageSourceChoice, ImageSourceDialog, source_choices
+
+
+def segmentation_preview_mesh(body, voxel_size):
+    """Measured voxel interface for display only, without artificial edge caps."""
+    from skimage.measure import marching_cubes
+    body = np.asarray(body, dtype=bool)
+    if body.ndim != 3 or not body.any() or body.all():
+        raise ValueError("no cell/gel interface: segmentation is empty or fills the entire image; adjust threshold")
+    spacing = np.asarray(voxel_size, dtype=float)[[1, 0, 2]]
+    vertices, faces, _, _ = marching_cubes(body.astype(np.float32), .5, spacing=tuple(spacing))
+    vertices -= (np.asarray(body.shape) - 1) / 2 * spacing
+    touches_edge = any(np.any(np.take(body, [0, -1], axis=axis)) for axis in range(3))
+    return vertices, faces, touches_edge
+
+
 class Regularizer(PipelineModule):
     pipeline_name = "fit forces"
     iteration_finished = QtCore.Signal(object, object, int, int)
+    live_field_ready = QtCore.Signal(object, int, object)
 
     pipeline_allow_cancel = True
     pipeline_button_name = "calculate forces"
@@ -56,13 +79,102 @@ class Regularizer(PipelineModule):
 
                     with QtShortCuts.QGroupBox(None, "Regularisation Parameters") as self.material_parameters:
                         self.input_previous_t_as_start = QtShortCuts.QInputBool(None, "use previous time steps deformation field", True,
-                                                                tooltip="wether to use the previous time steps deformation field as a starting value for the next regularisation")
+                                                                 tooltip="wether to use the previous time steps deformation field as a starting value for the next regularisation")
                         with QtShortCuts.QHBoxLayout(None) as layout:
-                            self.input_alpha = QtShortCuts.QInputString(None, "alpha", "1e10", type="exp", tooltip="the strength of the regularisation (higher values mean weaker forces)")
-                            self.input_step_size = QtShortCuts.QInputString(None, "step size", "0.33", type=float, tooltip="the step with of the iteration algorithm")
+                            self.input_alpha = QtShortCuts.QInputString(
+                                None, "alpha", "1e10", type="exp",
+                                tooltip="Regularization penalty relative to the displacement fit. "
+                                        "Mesh normalization is enabled. This is the single alpha used "
+                                        "for both Classic and Surface and is referenced to a 14 um mesh.")
+                            self.input_step_size = QtShortCuts.QInputString(None, "step size", "0.2", type=float, tooltip="Fraction of each displacement update to apply. Default 0.2.")
                         with QtShortCuts.QHBoxLayout(None) as layout:
-                            self.input_imax = QtShortCuts.QInputNumber(None, "max iterations", 100, float=False, tooltip="the maximum number of iterations after which to abort the iteration algorithm")
-                            self.input_conv_crit = QtShortCuts.QInputString(None, "rel. conv. crit.", 0.01, type=float, tooltip="the convergence criterion of the iteration algorithm")
+                            self.input_imax = QtShortCuts.QInputNumber(None, "max iterations", 300, float=False, tooltip="the maximum number of iterations after which to abort the iteration algorithm")
+                            self.input_conv_crit = QtShortCuts.QInputString(None, "rel. conv. crit.", 0.01, type=float, tooltip="Stop when the displacement error and weighted force penalty each have a relative "
+                                        "standard deviation below this value over the last 15 updates. "
+                                        "Default 0.01; 0 disables this stop. A flat objective does not "
+                                        "guarantee a stable complete force field.")
+
+                    with QtShortCuts.QGroupBox(None, "Surface Regularisation") as (self.surface_parameters, surface_layout):
+                        surface_layout.setSizeConstraint(QtWidgets.QLayout.SetMinimumSize)
+                        surface_layout.setContentsMargins(9, 6, 9, 8)
+                        surface_layout.setSpacing(4)
+                        self.input_surface = QtShortCuts.QInputBool(
+                            None, "surface regularization", False,
+                            tooltip="Regularize traction on the segmented cell surface and suppress forces "
+                                    "in the surrounding gel. Surface always uses geometry normalization "
+                                    "and the single 'alpha' above.")
+                        # Populated from the loaded stack's channels in setResult().
+                        self.input_seg_channel = ImageSourceChoice(
+                            None, "cell channel", DEFAULT_SEG_CHANNEL, values=[0], value_names=["0"],
+                            tooltip="Channel showing the cell / cell stain. For new analyses, the first "
+                                    "channel after the matrix channel is selected when available. "
+                                    "The selected channel is segmented separately at each time step.")
+                        self.input_seg_channel.combobox.setSizeAdjustPolicy(QtWidgets.QComboBox.AdjustToContents)
+                        self.input_seg_channel.add_requested.connect(self.add_local_images)
+                        self.input_thr_method = QtShortCuts.QInputChoice(
+                            None, "threshold method", "li", values=["li", "otsu", "yen"],
+                            tooltip="Method for the automatic segmentation threshold. Li stops on "
+                                    "non-convergence (64 iterations or 30 s, checked between iterations); "
+                                    "no new mask is created on failure.")
+                        self.input_thr_factor = QtShortCuts.QInputString(
+                            None, "threshold factor", "0.6", type=float,
+                            tooltip="Multiplied onto the automatic threshold of the smoothed image. "
+                                    "The automatic threshold is recalculated separately at each time step; "
+                                    "the factor stays the same. "
+                                    "Lower = include dimmer parts of the cell, higher = only the bright core. "
+                                    "Use 'preview segmentation' to see the effect.")
+                        self.input_thr_factor.line_edit.setMinimumWidth(90)
+                        self.input_smoothing_sigma_um = QtShortCuts.QInputNumber(
+                            None, "surface smoothing", DEFAULT_SMOOTHING_SIGMA_UM, min=0, float=True,
+                            decimals=2, unit="µm", step=0.5,
+                            tooltip="0 = standard segmentation with the historical 2-pixel blur. "
+                                    "Above 0: Gaussian width in µm, accounting for unequal voxel sizes; "
+                                    "closed inner contours are filled automatically in each XY slice. "
+                                    "Open regions connected to XY image edges stay open; no missing Z "
+                                    "surface or end caps are added. Larger values can connect nuclear "
+                                    "signals but shift boundaries and change the automatic threshold: "
+                                    "check the preview after changing smoothing. Surface dilation "
+                                    "below only expands FEM-node selection, not the image envelope.")
+                        self.input_smoothing_sigma_um.spin_box.setMinimumWidth(90)
+                        self.input_smoothing_sigma_um.spin_box.setSpecialValueText("standard (2 px)")
+                        self.input_dilate_layers = QtShortCuts.QInputNumber(
+                            None, "surface dilation", 1, min=0, float=False,
+                            tooltip="Number of FEM mesh-node shells added around the already segmented "
+                                    "surface. This does not blur the image or fill holes in the cell body.")
+                        self.input_dilate_layers.spin_box.setMinimumWidth(90)
+                        self.input_button_preview = QtShortCuts.QPushButton(
+                            None, "preview segmentation", self.preview_segmentation,
+                            tooltip="Segment the cell with the current channel, blur, threshold and hole filling for the current "
+                                    "time step and show the surface nodes in the Forces view - without "
+                                    "running the force reconstruction. Use it to tune the parameters.")
+
+                        # QtShortCuts initially inserts controls into the current layout.
+                        # Pair them in a form which wraps at narrow widths / larger fonts,
+                        # instead of squeezing labels or reducing input heights.
+                        surface_form = QtWidgets.QFormLayout()
+                        surface_form.setContentsMargins(0, 0, 0, 0)
+                        surface_form.setHorizontalSpacing(12)
+                        surface_form.setVerticalSpacing(4)
+                        surface_form.setRowWrapPolicy(QtWidgets.QFormLayout.WrapLongRows)
+                        surface_form.setFieldGrowthPolicy(QtWidgets.QFormLayout.AllNonFixedFieldsGrow)
+                        for left, right in (
+                                (self.input_surface, self.input_button_preview),
+                                (self.input_seg_channel, self.input_dilate_layers),
+                                (self.input_thr_method, self.input_thr_factor)):
+                            for control in (left, right):
+                                if hasattr(control, "label"):
+                                    control.label.setSizePolicy(
+                                        QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Preferred)
+                                    control.layout().setSizeConstraint(QtWidgets.QLayout.SetMinimumSize)
+                            surface_layout.removeWidget(left)
+                            surface_layout.removeWidget(right)
+                            surface_form.addRow(left, right)
+                        surface_layout.removeWidget(self.input_smoothing_sigma_um)
+                        surface_form.insertRow(2, self.input_smoothing_sigma_um)
+                        surface_layout.addLayout(surface_form)
+                        self.input_button_preview_text = QtWidgets.QLabel().addToLayout()
+                        self.input_button_preview_text.setWordWrap(True)
+                        self.input_button_preview_text.hide()
 
                     with QtShortCuts.QHBoxLayout():
                         self.input_button = QtShortCuts.QPushButton(None, "calculate forces", self.start_process,
@@ -77,6 +189,9 @@ class Regularizer(PipelineModule):
 
                     self.canvas = MatplotlibWidget(self)
                     self.parent.results_pane.addWidget(QtWidgets.QLabel("convergence of force fit"))
+                    self.fit_status_text = QtWidgets.QLabel()
+                    self.fit_status_text.setWordWrap(True)
+                    self.parent.results_pane.addWidget(self.fit_status_text)
                     self.parent.results_pane.addWidget(self.canvas, 1)
                     #NavigationToolbar(self.canvas, self).addToLayout()
 
@@ -92,11 +207,186 @@ class Regularizer(PipelineModule):
             "max_iterations": self.input_imax,
             "rel_conv_crit": self.input_conv_crit,
             "prev_t_as_start": self.input_previous_t_as_start,
+            # Missing Surface mode is explicitly initialized as Classic in
+            # _prepare_gui_parameters(), independently of the previous dataset.
+            "surface": self.input_surface,
+            "seg_channel": self.input_seg_channel,
+            "seg_threshold_method": self.input_thr_method,
+            "seg_threshold_factor": self.input_thr_factor,
+            "seg_dilate_layers": self.input_dilate_layers,
+            "seg_smoothing_sigma_um": self.input_smoothing_sigma_um,
         })
 
+        self.parent.tasks_changed.connect(self._update_preview_controls)
+        self.parent.tasks_changed.connect(self._update_retry_controls)
+        for mapping in self.parameter_mappings:
+            for widget in mapping.parameter_dict.values():
+                widget.valueChanged.connect(self._update_retry_controls)
+        self._update_preview_controls()
         self.initialize_plot()
         self.iteration_finished.connect(self.iteration_callback)
+        self.live_field_ready.connect(self.show_live_field)
+        self.parent.t_slider.t_slider.valueChanged.connect(self.update_stop_status)
         self.iteration_finished.emit(None, np.ones([10, 3]), 0, None)
+
+    def _preview_blocked(self):
+        return (self.parent.has_scheduled_tasks()
+                or self.get_result_state(self.result) in
+                (StateEnum.scheduled, StateEnum.running, StateEnum.cancelling))
+
+    def _update_preview_controls(self):
+        available = self.check_available(self.result) and not self._preview_blocked()
+        self.input_button_preview.setEnabled(available)
+        self.input_smoothing_sigma_um.setEnabled(available)
+        self.input_seg_channel.setEnabled(
+            bool(self.result is not None and self.result.stacks) and not self._preview_blocked())
+
+    def _populate_seg_channels(self, result):
+        channels = (getattr(result.stacks[0], "channels", None) or ["0"]) if result and result.stacks else ["0"]
+        choices = list(zip(range(len(channels)), map(str, channels))) + source_choices(result, "surface")
+        self.input_seg_channel.setValues(
+            [key for key, _ in choices] + [ImageSourceChoice.ADD],
+            [name for _, name in choices] + ["Add local images…"])
+        self.input_seg_channel.setValue(1 if len(channels) > 1 else 0)
+
+    def _remember_retry_defaults(self, result):
+        # Do not replace this baseline when returning to an edited result.
+        if not hasattr(result, "_retry_parameter_defaults"):
+            result._retry_parameter_defaults = dict(result.solve_parameters_tmp)
+
+    def _retry_settings_changed(self, result):
+        previous = getattr(result, "_fit_attempt_parameters", None) or {}
+        for mapping in self.parameter_mappings:
+            stored = previous.get(mapping.params_name, getattr(result, mapping.params_name, None)) or {}
+            if (mapping.params_name == "solve_parameters"
+                    and stored.get("cg_maxiter_factor", _REGULARIZATION_CG_FACTOR) != _REGULARIZATION_CG_FACTOR):
+                # Refit the whole series rather than mixing an old budget with
+                # the fixed budget used for newly calculated frames.
+                return True
+            defaults = (getattr(result, "_retry_parameter_defaults", {})
+                        if mapping.params_name == "solve_parameters" else {})
+            pending = getattr(result, mapping.params_name + "_tmp", None) or {}
+            for key, value in pending.items():
+                old = stored.get(key, defaults.get(key))
+                value = None if isinstance(value, str) and value == "None" else value
+                old = None if isinstance(old, str) and old == "None" else old
+                if value != old:
+                    return True
+        return False
+
+    def _has_partial_fit(self, result):
+        return (self.check_status(result)[0] == "progress"
+                and any(getattr(solver, "regularisation_results", None) is not None
+                        for solver in result.solvers))
+
+    def _update_retry_controls(self):
+        result = self.result
+        error = getattr(result, "_segmentation_error", None)
+        state = self.get_result_state(result)
+        complete = self.check_status(result)[0] == "finished"
+        if complete and state in (StateEnum.idle, StateEnum.finished):
+            restart = self._retry_settings_changed(result)
+            self.input_button.setText("recalculate all frames" if restart else "done")
+            self.input_button.setEnabled(restart and self.check_available(result)
+                                         and not self.parent.has_scheduled_tasks())
+            return
+        if not ((state == StateEnum.failed and (error or complete))
+                or (state == StateEnum.idle and self._has_partial_fit(result))):
+            return
+        restart = self._retry_settings_changed(result)
+        self.input_button.setText("retry all frames" if restart else "continue")
+        self.input_button.setEnabled(self.check_available(result) and not self.parent.has_scheduled_tasks())
+        if error:
+            self.input_button_preview_text.show()
+            self.input_button_preview_text.setText(
+                f"segmentation failed: {error}\n" +
+                ("Changed settings: retry recalculates all time points."
+                 if restart else "Continue retries the pending time points."))
+
+    def add_local_images(self):
+        if self.result is None or not self.result.stacks or self._preview_blocked():
+            return
+        dialog = ImageSourceDialog(self, self.result, "surface")
+        if dialog.exec() == QtWidgets.QDialog.Accepted:
+            self._populate_seg_channels(self.result)
+            self.input_seg_channel.setValue(dialog.source_key, send_signal=True)
+            self.result.save()
+
+    def _clear_finished_snapshots(self, result):
+        if result is not None and self.get_result_state(result) not in (
+                StateEnum.scheduled, StateEnum.running, StateEnum.cancelling):
+            result._live_fit_active = False
+            result._live_fit_solvers = {}
+
+    def state_changed(self, result):
+        self._clear_finished_snapshots(result)
+        super().state_changed(result)
+        self._update_preview_controls()
+        self._update_retry_controls()
+        if (result is self.result and self.get_result_state(result) == StateEnum.running
+                and self.input_button_preview_text.text().startswith("segmentation failed:")):
+            self.input_button_preview_text.clear()
+        for viewer in (self.parent.tab4, self.parent.tab5):
+            viewer.resultChanged(result)
+        if result is self.result and self.get_result_state(result) == StateEnum.cancelling:
+            for mapping in self.parameter_mappings:
+                mapping.setDisabled(True)
+
+    def start_process(self, x=None, result=None):
+        target = result if result is not None else self.result
+        if target is not None:
+            self._prepare_gui_parameters(target)
+            for mapping in self.parameter_mappings:
+                mapping.ensure_tmp_params_initialized(target)
+            self._remember_retry_defaults(target)
+            # GUI fits always normalize; raw Classic remains a Python option.
+            target.solve_parameters_tmp["physical_normalization"] = True
+            if self.get_result_state(target) not in (
+                    StateEnum.scheduled, StateEnum.running, StateEnum.cancelling):
+                target._retry_all_frames = bool(
+                    (getattr(target, "_segmentation_error", None) or self._has_partial_fit(target)
+                     or self.check_status(target)[0] == "finished")
+                    and self._retry_settings_changed(target))
+                target._live_fit_solvers = {
+                    i: solver_snapshot(s, pending=target._retry_all_frames)
+                    for i, s in enumerate(target.solvers or []) if s is not None}
+                target._live_fit_active = True
+                # Enable both viewers before the worker starts; select Forces.
+                for viewer in (self.parent.tab4, self.parent.tab5):
+                    viewer.resultChanged(target)
+                if target is self.result:
+                    self.parent.tabs.setCurrentWidget(self.parent.tab5.tab.parent())
+        return super().start_process(x, result)
+
+    def process_thread(self, result, params):
+        # Check at execution time: an earlier batch step may replace the meshes.
+        # A completed unchanged fit must not acquire newly copied parameters or
+        # attempt provenance from the base worker without actually being fitted.
+        if self.check_status(result)[0] == "finished" and not getattr(result, "_retry_all_frames", False):
+            # A previous save may have failed after the final frame was fitted.
+            try:
+                result.save()
+            except Exception as error:
+                traceback.print_exc()
+                self.set_result_state(result, StateEnum.failed)
+                self.processing_state_changed.emit(result)
+                self.processing_error.emit(str(error))
+                return
+            self.set_result_state(result, StateEnum.finished)
+            self.parent.result_changed.emit(result)
+            self.processing_finished.emit()
+            return
+        return super().process_thread(result, params)
+
+    def show_live_field(self, result, frame, snapshot):
+        # This slot runs on the GUI thread. Finished/failed jobs discard any
+        # late queued snapshot and return to the final saved solver fields.
+        if (not getattr(result, "_live_fit_active", False)
+                or not snapshot_is_current(result, frame, snapshot)):
+            return
+        result._live_fit_solvers[frame] = snapshot
+        for viewer in (self.parent.tab4, self.parent.tab5):
+            viewer.resultChanged(result)
 
     def cancel_process(self):
         self.set_result_state(self.result, StateEnum.cancelling)
@@ -111,6 +401,59 @@ class Regularizer(PipelineModule):
             self.result.reset_regularisation_results()
             self.set_result_state(self.result, StateEnum.idle)
             self.parent.result_changed.emit(self.result)
+
+    def preview_segmentation(self):
+        """Segment the cell with the CURRENT channel/threshold for the time step that
+        is currently shown and display the resulting surface nodes in the Forces view
+        -- WITHOUT running the force reconstruction. Lets the user tune the
+        segmentation parameters and see the effect immediately."""
+        if self.result is None or getattr(self.result, "solvers", None) is None:
+            return
+        self.input_button_preview_text.show()
+        if self._preview_blocked():
+            self.input_button_preview_text.setText("preview unavailable while tasks are pending")
+            return
+        from saenopy import surface_regularization as sr
+        try:
+            i = self.parent.t_slider.value()
+            M = self.result.solvers[i]
+            if M is None or M.mesh is None or M.mesh.nodes is None:
+                self.input_button_preview_text.setText("no solver mesh yet")
+                return
+            params = {
+                "seg_channel": self.input_seg_channel.value(),
+                "seg_threshold_method": self.input_thr_method.value(),
+                "seg_threshold_factor": self.input_thr_factor.value(),
+                "seg_dilate_layers": self.input_dilate_layers.value(),
+                "seg_smoothing_sigma_um": self.input_smoothing_sigma_um.value(),
+            }
+            self.input_button_preview_text.setText("segmenting ...")
+            # Repaint only: processing arbitrary events here could start a fit
+            # while this preview is still modifying its solver's surface mask.
+            self.input_button_preview_text.repaint()
+            stack, image, body, shell, used = segment_with_params(self.result, i, params)
+            vertices, faces, touches_edge = segmentation_preview_mesh(body, stack.voxel_size)
+            element_size = float(self.result.mesh_parameters["element_size"])
+            mask = sr.surface_node_mask(
+                M.mesh.nodes, shell, element_size,
+                dilate_layers=int(params["seg_dilate_layers"]))
+            mask &= M.mesh.regularisation_mask & M.mesh.movable
+            if not mask.any():
+                raise ValueError("no active surface nodes; check segmentation and mesh size")
+            # Transient display data, not a solver constraint or saved file field.
+            M.mesh._segmentation_preview = (vertices, faces, mask)
+            status = "touches image edge; not capped" if touches_edge else "inside image bounds"
+            self.input_button_preview_text.setText(
+                f"threshold {used:.1f} → {int(mask.sum())} surface nodes "
+                f"({mask.mean() * 100:.1f}%)\n{status}")
+            viewer = self.parent.tab5
+            viewer.vtk_toolbar.use_surface.setValue(True)
+            self.parent.result_changed.emit(self.result)
+            self.parent.tabs.setCurrentWidget(viewer.tab.parent())
+            viewer.update_display()
+        except Exception as err:  # keep the GUI alive on a bad channel/threshold
+            self.input_button_preview_text.setText(
+                f"segmentation failed: {err}\nPrevious preview, if any, is unchanged.")
 
     def check_available(self, result: Result):
         if result is None or result.solvers is None:
@@ -127,7 +470,8 @@ class Regularizer(PipelineModule):
         count = 0
         for solver in result.solvers:
             relrec = getattr(solver, "regularisation_results", None)
-            if relrec is None:
+            params = getattr(solver, "regularisation_parameters", None) or {}
+            if relrec is None or params.get("cancelled", False):
                 break
             count += 1
         if count < max_count:
@@ -183,6 +527,18 @@ class Regularizer(PipelineModule):
 
     def process(self, result: Result, material_parameters: dict, solve_parameters: dict):
         self.cancel_p = CancelSignal()
+        solve_parameters = dict(solve_parameters)
+        solve_parameters.pop("cg_maxiter_factor", None)  # Obsolete fit setting.
+        if getattr(result, "_retry_all_frames", False):
+            # Invalidate old fits only when the retry worker actually starts.
+            # Keep mesh/boundary data and fields; each frame is then refitted.
+            # Pending frames must remain pending even if this retry stops early.
+            for solver in result.solvers:
+                solver.regularisation_results = None
+                solver.regularisation_parameters = None
+                solver.relrec = None
+            result._retry_all_frames = False
+        result._segmentation_error = None
         # demo run
         if os.environ.get("DEMO") == "true":
             imax = 100
@@ -195,39 +551,50 @@ class Regularizer(PipelineModule):
 
         i = 0
         for i in range(len(result.solvers)):
-            # if the current is evaluated
-            if getattr(result.solvers[i], "regularisation_results", None) is not None:
-                # and the next one is evaluated
-                if i < len(result.solvers) - 1 and getattr(result.solvers[i+1], "regularisation_results", None) is not None:
-                    # then skip
-                    continue
+            if self.cancel_p.cancel:
+                return "Terminated"
+            solver = result.solvers[i]
+            cancelled = (solver.regularisation_parameters or {}).get("cancelled", False)
+            if solver.regularisation_results is not None and not cancelled:
+                continue
+            # Fit recomputes segmentation; do not show a stale preview surface.
+            result.solvers[i].mesh._segmentation_preview = None
             self.parent.signal_process_status_update.emit(f"{i}/{len(result.solvers)} fitting forces", f"{Path(result.output).name}")
 
-            print(f"Current Timstep: {i}")
-            M = result.solvers[i]
+            from saenopy.reconstruction import fit_result, prepare_surface
 
-            if i > 0 and solve_parameters["prev_t_as_start"]:
-                M.mesh.displacements[:] = result.solvers[i-1].mesh.displacements.copy()
-            if len(result.solvers) == 1 and solve_parameters["prev_t_as_start"]:
-                M.mesh.displacements[:] = M.mesh.displacements_target.copy()
-                M.mesh.displacements[np.isnan(M.mesh.displacements[:])] = 0
+            # Validate this frame's segmentation before fit_result changes its
+            # solver, and reuse it in the fit instead of segmenting twice.
+            geometry = None
+            if solve_parameters.get("surface", False) or solve_parameters.get("exclude_cell_interior", False):
+                try:
+                    geometry = prepare_surface(result, i, solve_parameters)
+                except ValueError as error:
+                    result._segmentation_error = str(error)
+                    raise
 
-            def callback(M, relrec, i, imax):
-                self.iteration_finished.emit(result, relrec, i, imax)
+            last_display = 0.0
+            def callback(M, relrec, iteration, imax, frame=i):
+                nonlocal last_display
+                self.iteration_finished.emit(result, np.asarray(relrec).copy(), iteration, imax)
+                now = time.monotonic()
+                if now - last_display >= 1.0:
+                    self.live_field_ready.emit(result, frame, solver_snapshot(M))
+                    last_display = now
 
-            M.set_material_model(saenopy.materials.SemiAffineFiberMaterial(
-                               material_parameters["k"],
-                               material_parameters["d_0"] if material_parameters["d_0"] != "None" else None,
-                               material_parameters["lambda_s"] if material_parameters["lambda_s"] != "None" else None,
-                               material_parameters["d_s"] if material_parameters["d_s"] != "None" else None,
-                               ))
-
-            M.solve_regularized(step_size=solve_parameters["step_size"], max_iterations=solve_parameters["max_iterations"],
-                                alpha=solve_parameters["alpha"], rel_conv_crit=solve_parameters["rel_conv_crit"],
-                                callback=callback, verbose=True, cancel_signal=self.cancel_p)
-
+            result._fit_attempt_parameters = {
+                "material_parameters": dict(material_parameters),
+                "solve_parameters": dict(solve_parameters),
+            }
+            solver = fit_result(result, i, parameters=solve_parameters,
+                       material_parameters=material_parameters, callback=callback,
+                       prepared_surface=geometry,
+                       cancel_signal=self.cancel_p, verbose=True, resume=cancelled)
             # clear the cache of the solver
             result.clear_cache(i)
+            # Bind the final snapshot to the replacement made by clear_cache,
+            # including convergence/cancellation within the display throttle.
+            self.live_field_ready.emit(result, i, solver_snapshot(result.solvers[i]))
             result.save()
             self.parent.result_changed.emit(result)
 
@@ -237,12 +604,51 @@ class Regularizer(PipelineModule):
         self.parent.signal_process_status_update.emit(f"{i+1}/{len(result.solvers)} fitting forces",
                                                       f"{Path(result.output).name}")
 
+    @staticmethod
+    def _prepare_gui_parameters(result):
+        if getattr(result, "solve_parameters_tmp", None) is None:
+            result.solve_parameters_tmp = dict(result.solve_parameters or {})
+        params = result.solve_parameters_tmp
+        if any(getattr(solver, "regularisation_results", None) is not None
+               for solver in result.solvers or []):
+            # API-created fits may omit parameters that used reconstruction
+            # defaults. Restore those rather than values from another dataset.
+            defaults = dict(alpha=1e10, step_size=.2, max_iterations=300,
+                            rel_conv_crit=.01, prev_t_as_start=False,
+                            seg_channel=DEFAULT_SEG_CHANNEL,
+                            seg_threshold_method=DEFAULT_THRESHOLD_METHOD,
+                            seg_threshold_factor=DEFAULT_THRESHOLD_FACTOR, seg_dilate_layers=1)
+            for key, value in defaults.items():
+                params.setdefault(key, value)
+        params.setdefault("surface", (result.solve_parameters or {}).get("surface", False))
+        params.pop("cg_maxiter_factor", None)
+        params.setdefault("seg_smoothing_sigma_um", DEFAULT_SMOOTHING_SIGMA_UM)
+        channels = (getattr(result.stacks[0], "channels", None) or []) if result.stacks else []
+        params.setdefault("seg_channel", 1 if len(channels) > 1 else 0)
+
     def setResult(self, result: Result):
+        # Missing opt-in keys must not inherit enabled controls from a previously
+        # selected dataset. Keep stored parameters untouched until the next fit.
+        if result is not None:
+            self._prepare_gui_parameters(result)
+        # Populate choices before ParameterMapping applies the saved channel.
+        # Otherwise loading channel 1 into the initial [0] selector silently
+        # leaves the preview on channel 0 while the fit still uses channel 1.
+        self._populate_seg_channels(result)
         super().setResult(result)
+        if result is not None:
+            # Filling missing settings is not a user edit; remember their
+            # initial values so subsequent edits still trigger a full retry.
+            self._remember_retry_defaults(result)
+            # Only edit parameters for the NEXT fit, not the stored result.
+            result.solve_parameters_tmp["physical_normalization"] = True
+        self._update_preview_controls()
         self.update_plot()
+        self._update_retry_controls()
 
     def update_plot(self):
-        if self.result.solvers is None or len(self.result.solvers) == 0:
+        self.update_stop_status()
+        if self.result is None or self.result.solvers is None or len(self.result.solvers) == 0:
             return
         relrec = getattr(self.result.solvers[self.parent.t_slider.value()], "relrec", None)
         if relrec is None:
@@ -252,45 +658,60 @@ class Regularizer(PipelineModule):
         else:
             self.plot_empty()
 
+    def resultChanged(self, result):
+        self._clear_finished_snapshots(result)
+        super().resultChanged(result)
+        if result is self.result:
+            self.update_stop_status()
+
+    def update_stop_status(self):
+        self.fit_status_text.clear()
+        if self.result is None or not self.result.solvers:
+            return
+        index = min(self.parent.t_slider.value(), len(self.result.solvers) - 1)
+        solver = self.result.solvers[index]
+        params = getattr(solver, "regularisation_parameters", None) or {}
+        reason = params.get("stop_reason")
+        messages = {
+            "stagnation": "Stopped: stagnation. Force convergence is not confirmed; inspect the field and data fit.",
+            "time_limit": "Stopped: time budget reached. Force convergence is not confirmed.",
+            "max_iterations": "Stopped: iteration budget reached. Force convergence is not confirmed.",
+            "objective_plateau": "Objective plateau reached. This does not certify full force-field convergence.",
+            "zero_target": "Exactly zero target at the undeformed reference: no inverse updates needed.",
+            "cancelled": "Cancelled: showing the last accepted field.",
+        }
+        self.fit_status_text.setText(messages.get(reason, ""))
+        self.fit_status_text.setStyleSheet(
+            "color: #a46100;" if reason in ("stagnation", "time_limit", "max_iterations") else "")
+
     def get_code(self) -> Tuple[str, str]:
         import_code = "import saenopy\n"
         results: Result = None
 
         @export_as_string
         def code(my_reg_params1, my_reg_params2):  # pragma: no cover
-            # define the parameters to generate the solver mesh and interpolate the piv mesh onto it
+            from saenopy.reconstruction import fit_result
             material_parameters = my_reg_params1
             solve_parameters = my_reg_params2
-
-            # iterate over all the results objects
             for result in results:
-                result.material_parameters = material_parameters
-                result.solve_parameters = solve_parameters
-                for index, M in enumerate(result.solvers):
-                    # optionally copy the displacement field from the previous time step as a starting value
-                    if index > 0 and solve_parameters["prev_t_as_start"]:
-                        M.mesh.displacements[:] = result.solvers[index - 1].mesh.displacements.copy()
-
-                    # set the material model
-                    M.set_material_model(saenopy.materials.SemiAffineFiberMaterial(
-                        material_parameters["k"],
-                        material_parameters["d_0"],
-                        material_parameters["lambda_s"],
-                        material_parameters["d_s"],
-                    ))
-                    # find the regularized force solution
-                    M.solve_regularized(alpha=solve_parameters["alpha"], step_size=solve_parameters["step_size"],
-                                        max_iterations=solve_parameters["max_iterations"], rel_conv_crit=solve_parameters["rel_conv_crit"],
-                                        verbose=True)
-                    # save the forces
-                    result.save()
-                    # clear the cache of the solver
+                for index in range(len(result.solvers)):
+                    fit_result(result, index, parameters=solve_parameters,
+                               material_parameters=material_parameters, verbose=True)
                     result.clear_cache(index)
+                    result.save()
 
         # params with convert text Nones to real Nones
+        export_solve_parameters = {
+            key: value for key, value in self.result.solve_parameters_tmp.items()
+            if key not in {"surface_area_method", "cg_maxiter_factor"}
+        }
+        export_solve_parameters["physical_normalization"] = True
+        export_solve_parameters.setdefault("solver_precision", 1e-18)
+        export_solve_parameters.pop("stop_on_stagnation", None)
+        export_solve_parameters.pop("max_time_seconds", None)
         data = {
             "my_reg_params1": {k: None if v == "None" else v for k, v in self.result.material_parameters_tmp.items()},
-            "my_reg_params2": {k: None if v == "None" else v for k, v in self.result.solve_parameters_tmp.items()},
+            "my_reg_params2": {k: None if v == "None" else v for k, v in export_solve_parameters.items()},
         }
 
         code = get_code(code, data)

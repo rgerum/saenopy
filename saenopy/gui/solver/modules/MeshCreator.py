@@ -15,6 +15,8 @@ from saenopy.gui.common.gui_classes import CheckAbleGroup
 
 from saenopy.gui.common.PipelineModule import PipelineModule, StateEnum
 from saenopy.gui.common.code_export import get_code, export_as_string
+from saenopy.image_sources import get_custom_mask
+from .image_source_dialog import ImageSourceChoice, ImageSourceDialog, source_choices
 
 
 class MeshSizeWidget(QtWidgets.QWidget):
@@ -94,6 +96,40 @@ class MeshCreator(PipelineModule):
                     self.input_mesh_size = MeshSizeWidget().addToLayout()
 
                     with QtShortCuts.QHBoxLayout():
+                        self.input_outlier_filter = QtShortCuts.QInputBool(
+                            None, "remove deformation outliers", True,
+                            tooltip="Check x, y and z separately on the PIV grid before interpolation. "
+                                    "If any component is an outlier, exclude the whole vector. "
+                                    "Interpolation retains the usual nearest fallback where linear "
+                                    "interpolation is missing; an invalid nearest vector stays NaN.")
+                        self.input_outlier_thresh = QtShortCuts.QInputNumber(
+                            None, "outlier thresh.", 4.0, step=0.5, float=True,
+                            tooltip="For each PIV component, compare its signed value with the median "
+                                    "in a centered 5x5x5 node window (up to 124 neighbours, excluding itself). "
+                                    "At edges use only existing nodes; omit invalid vectors. "
+                                    "Use all available valid neighbours, without expanding the window. "
+                                    "With no valid neighbours leave the vector unchanged. "
+                                    "Reject the whole vector if any component deviation exceeds both "
+                                    "threshold * (local median absolute deviation + noise regularisation) "
+                                    "and the local amplitude floor. Absolute terms default to 0.3 µm. "
+                                    "Smaller thresholds reject more vectors; this is not a z-score.")
+                        self.input_outlier_filter.valueChanged.connect(
+                            lambda: self.input_outlier_thresh.setDisabled(not self.input_outlier_filter.value()))
+
+                    self.custom_mask_toggle = QtShortCuts.QInputBool(
+                        None, "use 2D exclusion mask", False, stretch=True,
+                        tooltip="Optionally ignore target deformations using a 2D image mask.")
+                    self.input_use_custom_mask = self.custom_mask_toggle.checkbox
+                    self.input_custom_mask = ImageSourceChoice(
+                        None, "mask image", None,
+                        [None, ImageSourceChoice.ADD], ["none", "Add custom mask…"],
+                        tooltip="Nonzero pixels of a 2D mask exclude target deformations through all Z. "
+                                "Reset and re-interpolate the mesh to apply a changed selection.")
+                    self.input_custom_mask.add_requested.connect(self.add_custom_mask)
+                    self.input_use_custom_mask.toggled.connect(self._toggle_custom_mask)
+                    self.input_custom_mask.hide()
+
+                    with QtShortCuts.QHBoxLayout():
                         self.input_button = QtWidgets.QPushButton("interpolate mesh").addToLayout()
                         self.input_button.clicked.connect(self.start_process)
                         self.input_button_text = QtWidgets.QLabel().addToLayout()
@@ -107,7 +143,49 @@ class MeshCreator(PipelineModule):
             "reference_stack": self.input_reference,
             "element_size": self.input_element_size,
             "mesh_size": self.input_mesh_size,
+            "outlier_filter": self.input_outlier_filter,
+            "outlier_thresh": self.input_outlier_thresh,
+            "custom_mask": self.input_custom_mask,
         })
+        self.parent.tasks_changed.connect(self._update_mask_controls)
+        self._update_mask_controls()
+
+    def _mask_blocked(self):
+        return (self.result is None or not self.result.stacks or self.parent.has_scheduled_tasks()
+                or self.get_result_state(self.result) in
+                (StateEnum.scheduled, StateEnum.running, StateEnum.cancelling))
+
+    def _update_mask_controls(self):
+        available = not self._mask_blocked()
+        self.custom_mask_toggle.setEnabled(available)
+        self.input_custom_mask.setEnabled(available and self.input_use_custom_mask.isChecked())
+
+    def _toggle_custom_mask(self, enabled):
+        self.input_custom_mask.setVisible(enabled)
+        if not enabled:
+            self.input_custom_mask.setValue(None, send_signal=True)
+        self._update_mask_controls()
+
+    def state_changed(self, result):
+        super().state_changed(result)
+        self._update_mask_controls()
+
+    def _populate_masks(self, result):
+        choices = source_choices(result, "mask")
+        self.input_custom_mask.setValues(
+            [None] + [key for key, _ in choices] + [ImageSourceChoice.ADD],
+            ["none"] + [name for _, name in choices] + ["Add custom mask…"])
+        self.input_custom_mask.setValue(None)
+
+    def add_custom_mask(self):
+        if self._mask_blocked():
+            return
+        dialog = ImageSourceDialog(self, self.result, "mask")
+        if dialog.exec() == QtWidgets.QDialog.Accepted:
+            self._populate_masks(self.result)
+            self.input_use_custom_mask.setChecked(True)
+            self.input_custom_mask.setValue(dialog.source_key, send_signal=True)
+            self.result.save()
 
     def cancel_process(self):
         self.set_result_state(self.result, StateEnum.cancelling)
@@ -145,8 +223,27 @@ class MeshCreator(PipelineModule):
             return "progress", count, max_count
         return "finished", max_count, max_count
 
+    @staticmethod
+    def _prepare_gui_parameters(result):
+        saved = result.mesh_parameters or {}
+        if getattr(result, "mesh_parameters_tmp", None) is None:
+            result.mesh_parameters_tmp = dict(saved)
+        # Missing GUI options must not inherit another measurement's widgets.
+        for key, default in (("outlier_filter", True), ("outlier_thresh", 4.0), ("custom_mask", None)):
+            result.mesh_parameters_tmp.setdefault(key, saved.get(key, default))
+
+    def start_process(self, x=None, result=None):
+        target = result if result is not None else self.result
+        if target is not None:
+            self._prepare_gui_parameters(target)
+        return super().start_process(x, result)
+
     def setResult(self, result: Result):
+        self._populate_masks(result)
+        if result is not None:
+            self._prepare_gui_parameters(result)
         super().setResult(result)
+        self.input_use_custom_mask.setChecked(self.input_custom_mask.value() is not None)
         if result and result.stacks and result.stacks[0] and result.mesh_parameters:
             if result.stack_reference is None:
                 self.input_reference.setValues(["next", "median", "cumul."])
@@ -155,6 +252,7 @@ class MeshCreator(PipelineModule):
             else:
                 self.input_reference.setValues(["reference stack"])
                 self.input_reference.setEnabled(False)
+        self._update_mask_controls()
 
     def update_display(self):
         if self.current_tab_selected is False:
@@ -186,7 +284,9 @@ class MeshCreator(PipelineModule):
         for i in range(len(result.mesh_piv)):
             self.parent.signal_process_status_update.emit(f"{i}/{len(result.mesh_piv)} creating mesh", f"{Path(result.output).name}")
             # and create the interpolated solver mesh
-            result.solvers[i] = saenopy.interpolate_mesh(result.mesh_piv[i], displacement_list[i], mesh_parameters)
+            result.solvers[i] = saenopy.interpolate_mesh(
+                result.mesh_piv[i], displacement_list[i], mesh_parameters,
+                ignore_mask_2d=get_custom_mask(result, i, mesh_parameters))
             if self.cancel_p.cancel is True:
                 return "Terminated"
             self.parent.result_changed.emit(result)
@@ -199,10 +299,12 @@ class MeshCreator(PipelineModule):
         #print("save done")
 
     def get_code(self) -> Tuple[str, str]:
+        MeshCreator._prepare_gui_parameters(self.result)
         import_code = ""
         results = None
         @export_as_string
         def code(my_mesh_params):  # pragma: no cover
+            from saenopy.image_sources import get_custom_mask
             # define the parameters to generate the solver mesh and interpolate the piv mesh onto it
             mesh_parameters = my_mesh_params
 
@@ -212,10 +314,14 @@ class MeshCreator(PipelineModule):
                 displacement_list = saenopy.subtract_reference_state(result.mesh_piv, mesh_parameters["reference_stack"])
                 # set the parameters
                 result.mesh_parameters = mesh_parameters
+                # Allocate solver slots and discard fits on the previous mesh.
+                result.reset_solver()
                 # iterate over all stack pairs
                 for i in range(len(result.mesh_piv)):
                     # and create the interpolated solver mesh
-                    result.solvers[i] = saenopy.interpolate_mesh(result.mesh_piv[i], displacement_list[i], mesh_parameters)
+                    result.solvers[i] = saenopy.interpolate_mesh(
+                        result.mesh_piv[i], displacement_list[i], mesh_parameters,
+                        ignore_mask_2d=get_custom_mask(result, i, mesh_parameters))
                 # save the meshes
                 result.save()
         data = {

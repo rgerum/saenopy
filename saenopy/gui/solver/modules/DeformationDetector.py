@@ -173,6 +173,8 @@ class DeformationDetector(PipelineModule):
 
             # iterate over all the results objects
             for result in results:
+                # Recomputing PIV invalidates the previous meshes and fits.
+                result.reset_piv()
                 # set the parameters
                 result.piv_parameters = piv_parameters
                 # get count
