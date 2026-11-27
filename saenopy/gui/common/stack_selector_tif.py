@@ -159,12 +159,12 @@ class StackSelectorTif(QtWidgets.QWidget):
             if file.suffix in [".tif", ".tiff"]:
                 with tifffile.TiffReader(file) as tif:
                     if len(tif.pages) > 1:
-                        selected_prop["tiff pages"] = 0
+                        selected_prop["tiff pages"] = "0"
             prop["filename"] = file
             if file.suffix in [".tif", ".tiff"]:
                 with tifffile.TiffReader(file) as tif:
                     for page in range(0, len(tif.pages)):
-                        prop["tiff pages"] = page
+                        prop["tiff pages"] = str(page)
                         prop["filename"] = str(file)+f"[{page}]"
                         properties.append(prop.copy())
             else:
@@ -267,7 +267,7 @@ class StackSelectorTif(QtWidgets.QWidget):
         self.target_glob = self.format_template.format(**selected_props_dict)
         if z_prop_name == "tiff pages":
             self.target_glob += "[z]"
-        elif z_prop_name == "tiff pages":
+        elif self.use_time and t_prop_name == "tiff pages":
             self.target_glob += "[t]"
         elif ("tiff pages" in selected_props_dict) and (selected_props_dict["tiff pages"] != 0):
             self.target_glob += f'[{selected_props_dict["tiff pages"]}]'

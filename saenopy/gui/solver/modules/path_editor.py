@@ -47,6 +47,12 @@ class PathEditor(QtWidgets.QDialog):
     def __init__(self, parent, result):
         super().__init__(parent)
         self.setWindowTitle("Change Path")
+
+        def folder_input(name, template):
+            widget = QtShortCuts.QInputFolder(None, name, Path(template), allow_edit=True)
+            widget.filename_checker = lambda folder: str(Path(folder) / Path(widget.value()).name)
+            return widget
+
         with QtShortCuts.QVBoxLayout(self) as layout:
             QtWidgets.QLabel("Change path where the images are stored.").addToLayout()
             self.label = QtShortCuts.SuperQLabel(
@@ -54,10 +60,9 @@ class PathEditor(QtWidgets.QDialog):
             self.label.setWordWrap(True)
             self.input_pack = QtShortCuts.QInputBool(None, "pack files", False)
             self.input_save = QtShortCuts.QInputBool(None, "save", False)
-            self.input_folder = QtShortCuts.QInputFolder(None, "", Path(result.template), allow_edit=True)
+            self.input_folder = folder_input("", result.template)
             if result.stack_reference:
-                self.input_folder2 = QtShortCuts.QInputFolder(None, "", Path(result.stack_reference.template),
-                                                              allow_edit=True)
+                self.input_folder2 = folder_input("", result.stack_reference.template)
             else:
                 self.input_folder2 = None
             self.input_sources = []
@@ -67,8 +72,7 @@ class PathEditor(QtWidgets.QDialog):
                         None, source.name, str(source.template), existing=True,
                         file_type="Leica (*.lif)", allow_edit=True)
                 else:
-                    widget = QtShortCuts.QInputFolder(
-                        None, source.name, Path(source.template), allow_edit=True)
+                    widget = folder_input(source.name, source.template)
                 self.input_sources.append(widget)
             with QtShortCuts.QHBoxLayout():
                 self.button_addList0 = QtShortCuts.QPushButton(None, "cancel", self.reject)

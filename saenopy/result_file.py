@@ -27,10 +27,10 @@ def get_iterator(values, name="", iter=None):
         for v in values:
             yield {name: v}
     else:
+        inner = list(iter)
         for v in values:
-            for t in iter:
-                t[name] = v
-                yield t
+            for t in inner:
+                yield {**t, name: v}
 
 
 def process_line(filename, output_path):
@@ -144,7 +144,7 @@ def get_stacks(filename, output_path, voxel_size, time_delta=None, reference_sta
                 if (crop is not None) and ("t" in crop):
                     times = times[slice(*crop["t"])]
                 for t in times:
-                    stacks.append(Stack(normalize_path(r1["filename"].replace("{t}", t), output),
+                    stacks.append(Stack(normalize_path(r1["filename"].replace("[t]", "[{t}]").replace("{t}", str(t)), output),
                                         voxel_size, crop=crop))
             else:
                 stacks = [Stack(normalize_path(r1["filename"], output), voxel_size, crop=crop)]
@@ -186,7 +186,7 @@ def get_stacks(filename, output_path, voxel_size, time_delta=None, reference_sta
                     if r1["filename"].endswith(".lif"):
                         stacks.append(Stack(normalize_path(r1["filename"].replace(".lif", f"{{t:{t}}}.lif"), output), voxel_size, crop=crop))
                     else:
-                        stacks.append(Stack(normalize_path(r1["filename"].replace("{t}", t), output), voxel_size, crop=crop))
+                        stacks.append(Stack(normalize_path(r1["filename"].replace("[t]", "[{t}]").replace("{t}", str(t)), output), voxel_size, crop=crop))
             else:
                 stacks = [Stack(normalize_path(r1["filename"], output), voxel_size, crop=crop)]
 
