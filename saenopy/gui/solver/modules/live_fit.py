@@ -3,14 +3,16 @@ import numpy as np
 from saenopy import Solver
 
 
-def solver_snapshot(solver):
+def solver_snapshot(solver, *, pending=False):
     # The save/load construction excludes computation caches and bound overrides
     # that would otherwise keep the worker solver alive after clear_cache().
     data = solver.to_dict()
     # Display snapshots may have incomplete metadata while a fit is starting.
     data["regularisation_parameters"] = None
+    if pending:
+        data["regularisation_results"] = None
     snapshot = Solver.from_dict(data)
-    if solver.regularisation_parameters is not None:
+    if not pending and solver.regularisation_parameters is not None:
         snapshot.regularisation_parameters = dict(solver.regularisation_parameters)
     # Independently own the mutable fields used by the viewers.
     for name in ("forces", "forces_border", "displacements", "displacements_target",

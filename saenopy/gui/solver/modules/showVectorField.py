@@ -94,8 +94,6 @@ def showVectorField2(self, M, points_name):
         field = getattr(M, points_name)
     except AttributeError:
         field = M.get_node_var(points_name)
-    if field is not None and not np.any(np.isfinite(field) & (field != 0)):
-        field = None  # Initial live frame: avoid zero-length glyph scaling.
 
     if len(self.result.stacks):
         stack_shape = np.array(self.result.stacks[0].shape[:3]) * np.array(self.result.stacks[0].voxel_size)
@@ -141,7 +139,7 @@ def showVectorField(plotter: QtInteractor, obj: Solver, field: np.ndarray, name:
                 field = field.reshape(x_unique, y_unique, z_unique, 3)[::skip, ::skip, ::skip].reshape(-1, 3)
 
             # get positions of nan values
-            nan_values = np.isnan(field[:, 0])
+            nan_values = np.any(np.isnan(field), axis=1)
 
             # create a point cloud
             point_cloud = pv.PolyData(obj_R)
@@ -174,15 +172,15 @@ def showVectorField(plotter: QtInteractor, obj: Solver, field: np.ndarray, name:
             # actor in their own colour, see show_surface_nodes() below.
             R = obj_R[nan_values]
 
-            # scalebar scaling factor
-            norm_stack_size = np.abs(np.max(obj_R) - np.min(obj_R))
-            if scalebar_max is None:
-                factor = factor * norm_stack_size / np.nanmax(point_cloud[name + "_mag2"])#np.nanpercentile(point_cloud[name + "_mag2"], 99.9)
-            else:
-                factor = factor * norm_stack_size / scalebar_max
-
-            # generate the arrows
-            arrows = point_cloud.glyph(orient=name, scale=name + "_mag2", factor=factor)
+            # Keep NaN markers even when the valid vectors are all zero, but
+            # skip their zero-length arrows and undefined automatic scaling.
+            magnitudes = point_cloud[name + "_mag2"]
+            arrows = None
+            if np.any(np.isfinite(magnitudes) & (magnitudes > 0)):
+                norm_stack_size = np.abs(np.max(obj_R) - np.min(obj_R))
+                maximum = np.nanmax(magnitudes) if scalebar_max is None else scalebar_max
+                factor = factor * norm_stack_size / maximum
+                arrows = point_cloud.glyph(orient=name, scale=name + "_mag2", factor=factor)
 
             title = name
             if name == "displacements_measured" or name == "displacements_target" or name == "displacements":
@@ -209,15 +207,13 @@ def showVectorField(plotter: QtInteractor, obj: Solver, field: np.ndarray, name:
                     plotter.add_mesh(point_cloud2, colormap=colormap, scalars="nan",
                                                          show_scalar_bar=False, render=False, name="nans")
 
-            # add the arrows
-            plotter.add_mesh(arrows, scalar_bar_args=sargs, colormap=colormap, name="arrows", opacity=arrow_opacity, render=False)
-
-            # update the scalebar
-            plotter.auto_value = np.nanpercentile(point_cloud[name + "_mag2"], 99.9)
-            if scalebar_max is None:
-                plotter.update_scalar_bar_range([0, np.nanpercentile(point_cloud[name + "_mag2"], 99.9)])
+            if arrows is not None:
+                plotter.add_mesh(arrows, scalar_bar_args=sargs, colormap=colormap, name="arrows", opacity=arrow_opacity, render=False)
+                plotter.auto_value = np.nanpercentile(magnitudes, 99.9)
+                plotter.update_scalar_bar_range([0, plotter.auto_value if scalebar_max is None else scalebar_max])
             else:
-                plotter.update_scalar_bar_range([0, scalebar_max])
+                plotter.remove_actor("arrows")
+                plotter.auto_value = 0.0
         else:
             plotter.remove_actor("arrows")
             plotter.remove_actor("nans")

@@ -425,7 +425,8 @@ def test_final_frame_save_retry_persists_without_refitting(gui_window, monkeypat
         return solver
 
     def run():
-        regularizer.start_process(result=result)
+        assert regularizer.input_button.isEnabled()
+        regularizer.input_button.click()
         task = queued.pop(0)
         task[0](result, task[2])
 
@@ -434,6 +435,8 @@ def test_final_frame_save_retry_persists_without_refitting(gui_window, monkeypat
     run()
     assert fitted == [0, 1]
     assert result.solve_parameters_state == "failed"
+    assert regularizer.input_button.text() == "continue"
+    assert regularizer.input_button.isEnabled()
     assert errors == ["temporary save failure"]
     assert finished == []
     assert regularizer.check_status(result) == ("finished", 2, 2)
@@ -444,11 +447,14 @@ def test_final_frame_save_retry_persists_without_refitting(gui_window, monkeypat
     run()
     if fail_retry:
         assert result.solve_parameters_state == "failed"
+        assert regularizer.input_button.text() == "continue"
+        assert regularizer.input_button.isEnabled()
         assert errors == ["temporary save failure"] * 2
         assert finished == []
         assert regularizer.check_status(Result.load(result.output)) == ("progress", 1, 2)
         run()
     assert result.solve_parameters_state == "finished"
+    assert not regularizer.input_button.isEnabled()
     assert finished == [True]
     assert fitted == [0, 1]
     assert result.solve_parameters is original_solve
@@ -470,6 +476,56 @@ def test_process_without_pending_frames_does_not_record_unapplied_settings():
     Regularizer.process(process_owner(), result, result.material_parameters,
                         dict(result.solve_parameters, alpha=2e8))
     assert result._fit_attempt_parameters is previous
+
+
+def test_missing_outlier_defaults_are_independent_of_selected_measurement(gui_window):
+    mesh = gui_window.sub_module_mesh
+    previous, result = example_result(), example_result()
+    previous.mesh_parameters.update(outlier_filter=False, outlier_thresh=9.)
+    mesh.setResult(previous)
+    assert mesh.input_outlier_filter.value() is False
+    assert mesh.input_outlier_thresh.value() == 9.
+    saved = dict(result.mesh_parameters)
+    mesh.setResult(result)
+    assert mesh.input_outlier_filter.value() is True
+    assert mesh.input_outlier_thresh.value() == 4.
+    imports, code = mesh.get_code()
+    namespace = {"results": []}
+    exec(imports + code, namespace)
+    assert namespace["mesh_parameters"]["outlier_filter"] is True
+    assert namespace["mesh_parameters"]["outlier_thresh"] == 4.
+    mesh.input_outlier_filter.setValue(False, send_signal=True)
+    mesh.input_outlier_thresh.setValue(6., send_signal=True)
+    mesh.setResult(previous)
+    mesh.setResult(result)
+    assert mesh.input_outlier_filter.value() is False
+    assert mesh.input_outlier_thresh.value() == 6.
+    assert result.mesh_parameters == saved
+
+
+@pytest.mark.parametrize("parameters", ["missing", "saved", "pending"])
+def test_unselected_batch_outlier_defaults_preserve_saved_and_pending_values(
+        gui_window, monkeypatch, parameters):
+    mesh = gui_window.sub_module_mesh
+    previous, result = example_result(), example_result()
+    previous.mesh_parameters.update(outlier_filter=False, outlier_thresh=9.)
+    mesh.setResult(previous)
+    expected = (True, 4.)
+    if parameters in ("saved", "pending"):
+        result.mesh_parameters.update(outlier_filter=False, outlier_thresh=5.)
+        expected = (False, 5.)
+    if parameters == "pending":
+        # A partial pending dictionary must inherit explicit saved keys too.
+        result.mesh_parameters_tmp = {"outlier_thresh": 6.}
+        expected = (False, 6.)
+    saved = dict(result.mesh_parameters)
+    queued = []
+    monkeypatch.setattr(gui_window, "addTask", lambda *args: queued.append(args))
+    mesh.start_process(result=result)
+    actual = queued[0][2]["mesh_parameters"]
+    assert (actual["outlier_filter"], actual["outlier_thresh"]) == expected
+    assert result.mesh_parameters == saved
+    assert mesh.result is previous
 
 
 def test_actual_channel_edit_after_dataset_switch_updates_fit_settings(gui_window):

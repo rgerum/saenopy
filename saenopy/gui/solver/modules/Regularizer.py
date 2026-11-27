@@ -290,7 +290,7 @@ class Regularizer(PipelineModule):
             self.input_button.setEnabled(restart and self.check_available(result)
                                          and not self.parent.has_scheduled_tasks())
             return
-        if not ((state == StateEnum.failed and error)
+        if not ((state == StateEnum.failed and (error or complete))
                 or (state == StateEnum.idle and self._has_partial_fit(result))):
             return
         restart = self._retry_settings_changed(result)
@@ -348,7 +348,8 @@ class Regularizer(PipelineModule):
                      or self.check_status(target)[0] == "finished")
                     and self._retry_settings_changed(target))
                 target._live_fit_solvers = {
-                    i: solver_snapshot(s) for i, s in enumerate(target.solvers or []) if s is not None}
+                    i: solver_snapshot(s, pending=target._retry_all_frames)
+                    for i, s in enumerate(target.solvers or []) if s is not None}
                 target._live_fit_active = True
                 # Enable both viewers before the worker starts; select Forces.
                 for viewer in (self.parent.tab4, self.parent.tab5):

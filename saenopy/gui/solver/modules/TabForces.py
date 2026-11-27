@@ -112,11 +112,16 @@ class TabForces(TabModule):
             CamPos.cam_pos_initialized = True
             M = displayed_solver(self.result, self.t_slider.value())
             mesh = M.mesh
+            # Pending refits retain fields for warm starts, not for display as
+            # current forces. Live snapshots can precede the first fit record.
+            has_fit = (M.regularisation_results is not None
+                       or (getattr(self.result, "_live_fit_active", False)
+                           and M.regularisation_parameters is not None))
             self.plotter.interactor.setToolTip(
                 str(self.result.solve_parameters) + f"\nNodes {mesh.nodes.shape[0]}\nTets {mesh.tetrahedra.shape[0]}")
             center = None
             center_color = "m"
-            choice = self.vtk_toolbar.use_center.value()
+            choice = self.vtk_toolbar.use_center.value() if has_fit else 0
             try:
                 if choice == 1 and np.any(mesh.forces):
                     center = M.get_center(mode="Force")
@@ -136,7 +141,7 @@ class TabForces(TabModule):
             # only the segmented surface is shown (drawing a zero vector field would
             # divide by zero when the glyphs are auto-scaled).
             has_forces = False
-            if M.mesh.forces is not None:
+            if has_fit and M.mesh.forces is not None:
                 fmag = np.linalg.norm(M.mesh.forces, axis=1)
                 has_forces = bool(np.any(np.isfinite(fmag)) and np.nanmax(fmag) > 0)
 

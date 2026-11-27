@@ -223,11 +223,25 @@ class MeshCreator(PipelineModule):
             return "progress", count, max_count
         return "finished", max_count, max_count
 
+    @staticmethod
+    def _prepare_gui_parameters(result):
+        saved = result.mesh_parameters or {}
+        if getattr(result, "mesh_parameters_tmp", None) is None:
+            result.mesh_parameters_tmp = dict(saved)
+        # Missing GUI options must not inherit another measurement's widgets.
+        for key, default in (("outlier_filter", True), ("outlier_thresh", 4.0)):
+            result.mesh_parameters_tmp.setdefault(key, saved.get(key, default))
+
+    def start_process(self, x=None, result=None):
+        target = result if result is not None else self.result
+        if target is not None:
+            self._prepare_gui_parameters(target)
+        return super().start_process(x, result)
+
     def setResult(self, result: Result):
         self._populate_masks(result)
         if result is not None:
-            if getattr(result, "mesh_parameters_tmp", None) is None:
-                result.mesh_parameters_tmp = dict(result.mesh_parameters or {})
+            self._prepare_gui_parameters(result)
             result.mesh_parameters_tmp.setdefault("custom_mask", None)
         super().setResult(result)
         self.input_use_custom_mask.setChecked(self.input_custom_mask.value() is not None)
@@ -286,6 +300,7 @@ class MeshCreator(PipelineModule):
         #print("save done")
 
     def get_code(self) -> Tuple[str, str]:
+        MeshCreator._prepare_gui_parameters(self.result)
         import_code = ""
         results = None
         @export_as_string
