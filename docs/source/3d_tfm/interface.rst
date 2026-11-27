@@ -33,7 +33,8 @@ different recording positions which should all be evaluated (batch evaluation) t
 placeholders will be denoted with * in the filename text field below.
 You have to specify which property represents the z direction ("{z}" placeholder).
 Optionally a property can be defined that represents different channels to load ("{c}" placeholder). The selected
-channel is used to measure matrix deformations. Additional channels can be used for visualisation or cell segmentation.
+channel is used to measure matrix deformations. Additional channels can be used for visualisation or
+:doc:`cell segmentation <parameters_regularisation>`.
 Optionally a property indication the time point can be specified ("{t}" placeholder) if the stack is part of a time
 series.
 
@@ -45,10 +46,3 @@ Loading an Example Measurement
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 This tab provided example files that can be downloaded to showcase and test various applications of saenopy. Files will
 be downloaded to a user directory and directly opened in saenopy.
-
-Surface Regularisation
-----------------------
-
-Enable **surface regularization** under **fit forces (regularize)** to use a segmented cell stain.
-Choose the **cell channel** (or **Add local images…**) and check **preview segmentation** before calculating forces.
-See :doc:`parameters_regularisation` for segmentation, voxel size and reconstruction settings.
