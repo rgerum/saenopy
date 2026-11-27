@@ -84,12 +84,13 @@ class TabFittedDeformations(TabModule):
             self.current_result_plotted = False
             return
 
-        if self.frame_available(self.result, self.t_slider.value()):
+        available = self.frame_available(self.result, self.t_slider.value())
+        M = displayed_solver(self.result, self.t_slider.value()) if available else None
+        if M is not None:
             cam_pos = None
             if self.plotter.camera_position is not None and CamPos.cam_pos_initialized is True:
                 cam_pos = self.plotter.camera_position
             CamPos.cam_pos_initialized = True
-            M = displayed_solver(self.result, self.t_slider.value())
             mesh = M.mesh
             self.plotter.interactor.setToolTip(str(self.result.solve_parameters) + f"\nNodes {mesh.nodes.shape[0]}\nTets {mesh.tetrahedra.shape[0]}")
             showVectorField2(self, mesh, "displacements")

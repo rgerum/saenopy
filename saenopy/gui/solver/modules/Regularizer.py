@@ -37,7 +37,7 @@ class CancelSignal:
 from saenopy.reconstruction import segment_with_params
 from saenopy.surface_regularization import (DEFAULT_SEG_CHANNEL, DEFAULT_SMOOTHING_SIGMA_UM,
                                           DEFAULT_THRESHOLD_METHOD, DEFAULT_THRESHOLD_FACTOR)
-from .live_fit import solver_snapshot
+from .live_fit import solver_snapshot, snapshot_is_current
 from .image_source_dialog import ImageSourceChoice, ImageSourceDialog, source_choices
 
 
@@ -381,7 +381,8 @@ class Regularizer(PipelineModule):
     def show_live_field(self, result, frame, snapshot):
         # This slot runs on the GUI thread. Finished/failed jobs discard any
         # late queued snapshot and return to the final saved solver fields.
-        if not getattr(result, "_live_fit_active", False):
+        if (not getattr(result, "_live_fit_active", False)
+                or not snapshot_is_current(result, frame, snapshot)):
             return
         result._live_fit_solvers[frame] = snapshot
         for viewer in (self.parent.tab4, self.parent.tab5):
@@ -589,12 +590,11 @@ class Regularizer(PipelineModule):
                        material_parameters=material_parameters, callback=callback,
                        prepared_surface=geometry,
                        cancel_signal=self.cancel_p, verbose=True, resume=cancelled)
-            # Always publish the final field, even after early convergence or
-            # cancellation within the one-second display throttle.
-            self.live_field_ready.emit(result, i, solver_snapshot(solver))
-
             # clear the cache of the solver
             result.clear_cache(i)
+            # Bind the final snapshot to the replacement made by clear_cache,
+            # including convergence/cancellation within the display throttle.
+            self.live_field_ready.emit(result, i, solver_snapshot(result.solvers[i]))
             result.save()
             self.parent.result_changed.emit(result)
 

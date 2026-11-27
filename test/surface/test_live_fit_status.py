@@ -139,9 +139,11 @@ def test_zero_force_preview_keeps_selected_image(gui_window, monkeypatch, forces
     ("finished", True, "in progress..."), ("failed", True, "in progress..."),
 ])
 def test_fit_status_text(state, active, status):
-    from saenopy.gui.solver.modules.live_fit import fit_status_label
+    from test_release import example_result
+    from saenopy.gui.solver.modules.live_fit import fit_status_label, solver_snapshot
+    solver = example_result().solvers[0]
     result = SimpleNamespace(solve_parameters_state=state, _live_fit_active=active,
-                             _live_fit_solvers={0: object()})
+                             solvers=[solver], _live_fit_solvers={0: solver_snapshot(solver)})
     expected = "Field." if status is None else f"Field. <b>({status})</b>"
     assert fit_status_label(result, "Field.") == expected
     assert fit_status_label(None, "Field.") == "Field."

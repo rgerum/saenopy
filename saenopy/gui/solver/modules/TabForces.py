@@ -105,12 +105,13 @@ class TabForces(TabModule):
             self.current_result_plotted = False
             return
 
-        if self.frame_available(self.result, self.t_slider.value()):
+        available = self.frame_available(self.result, self.t_slider.value())
+        M = displayed_solver(self.result, self.t_slider.value()) if available else None
+        if M is not None:
             cam_pos = None
             if self.plotter.camera_position is not None and CamPos.cam_pos_initialized is True:
                 cam_pos = self.plotter.camera_position
             CamPos.cam_pos_initialized = True
-            M = displayed_solver(self.result, self.t_slider.value())
             mesh = M.mesh
             # Pending refits retain fields for warm starts, not for display as
             # current forces. Live snapshots can precede the first fit record.

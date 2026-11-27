@@ -1,4 +1,6 @@
 """Transient, independent field snapshots for the reconstruction viewers."""
+import weakref
+
 import numpy as np
 from saenopy import Solver
 
@@ -12,6 +14,7 @@ def solver_snapshot(solver, *, pending=False):
     if pending:
         data["regularisation_results"] = None
     snapshot = Solver.from_dict(data)
+    snapshot._live_fit_source = weakref.ref(solver)
     if not pending and solver.regularisation_parameters is not None:
         snapshot.regularisation_parameters = dict(solver.regularisation_parameters)
     # Independently own the mutable fields used by the viewers.
@@ -26,16 +29,25 @@ def solver_snapshot(solver, *, pending=False):
     return snapshot
 
 
+def snapshot_is_current(result, frame, snapshot):
+    """Reject queued data as soon as an earlier pipeline step replaces its solver."""
+    solvers = getattr(result, "solvers", None) or []
+    source = getattr(snapshot, "_live_fit_source", None)
+    return (source is not None and 0 <= frame < len(solvers)
+            and solvers[frame] is not None and source() is solvers[frame])
+
+
 def displayed_solver(result, frame):
     if getattr(result, "_live_fit_active", False):
-        return getattr(result, "_live_fit_solvers", {}).get(frame)
+        snapshot = getattr(result, "_live_fit_solvers", {}).get(frame)
+        return snapshot if snapshot_is_current(result, frame, snapshot) else None
     solvers = getattr(result, "solvers", None) or []
     return solvers[frame] if 0 <= frame < len(solvers) else None
 
 
 def live_fit_available(result, frame):
     return bool(getattr(result, "_live_fit_active", False)
-                and getattr(result, "_live_fit_solvers", {}).get(frame) is not None)
+                and displayed_solver(result, frame) is not None)
 
 
 def fit_status_label(result, description, frame=0):
