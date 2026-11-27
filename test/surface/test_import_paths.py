@@ -82,3 +82,31 @@ def test_shared_tiff_selector_emits_time_pages(app, tmp_path):
     result = get_stacks(patterns[-1], tmp_path / "results", (1, 1, 1), time_delta=1)[0]
     np.testing.assert_array_equal(result.stacks[1][0, 0, 0, :, 0], [10, 11])
     holder.close()
+
+
+def test_shared_tiff_selector_imports_channel_pages(app, tmp_path):
+    from qtpy import QtWidgets
+    from saenopy import get_stacks
+    from saenopy.gui.common.stack_selector import StackSelector
+
+    for t in range(2):
+        for z in range(2):
+            tifffile.imwrite(tmp_path / f"volume_t{t}_z{z}.tiff",
+                             np.stack([np.full((5, 7), 100 * t + 10 * c + z, np.uint8) for c in range(2)]),
+                             photometric="minisblack")
+    holder = QtWidgets.QWidget()
+    selector = StackSelector(QtWidgets.QVBoxLayout(holder), "matrix", use_time=True)
+    patterns = []
+    selector.glob_string_changed.connect(lambda _, value: patterns.append(value))
+    selector.file_changed(str(tmp_path / "volume_t0_z0.tiff"))
+    selector.active.t_prop.setValue("t", send_signal=True)
+    selector.active.c_prop.setValue("tiff pages", send_signal=True)
+    page_choice = next(prop for prop in selector.active.property_selectors if prop.name == "tiff pages")
+    for page in (0, 1):
+        page_choice.setValue(str(page), send_signal=True)
+        assert patterns[-1].endswith("volume_t{t}_z{z}.tiff[{c:" + str(page) + "}]")
+        result = get_stacks(patterns[-1], tmp_path / f"results{page}", (1, 1, 1), time_delta=1)[0]
+        assert result.stacks[1].channels == [str(page), str(1 - page)]
+        np.testing.assert_array_equal(result.stacks[1][0, 0, 0, :, 0], [100 + 10 * page, 101 + 10 * page])
+        np.testing.assert_array_equal(selector.get_image(1, 1), 101 + 10 * page)
+    holder.close()

@@ -325,6 +325,8 @@ def format_glob(pattern):
                 group["template"] = template_name + "[" + str(page) + "]"
                 for i in range(len(tif.pages)):
                     group["filename"] = file+f"[{i}]"
-                    group[page] = i
+                    axis = page.strip("{}")
+                    # Channel selections use the same string labels as filename channels.
+                    group[axis] = str(i) if axis == "c" else i
                     file_list.append(group.copy())
     return pd.DataFrame(file_list), output_base

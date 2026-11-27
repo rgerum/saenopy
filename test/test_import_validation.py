@@ -62,3 +62,47 @@ def test_tiff_time_pages_import_and_crop(tmp_path, with_reference):
         np.testing.assert_array_equal(stack[0, 0, 0, :, 0], [10 * t, 10 * t + 1])
     if with_reference:
         np.testing.assert_array_equal(result.stack_reference[0, 0, 0, :, 0], [250, 251])
+
+
+@pytest.mark.parametrize("extension", ["tif", "tiff"])
+@pytest.mark.parametrize("with_reference", [False, True])
+def test_tiff_channel_pages_roundtrip(tmp_path, extension, with_reference):
+    import saenopy
+    for t, z in itertools.product(range(2), repeat=2):
+        images = np.stack([np.full((5, 7), 100 * t + 10 * c + z, np.uint8) for c in range(3)])
+        tifffile.imwrite(tmp_path / f"volume_t{t}_z{z}.{extension}", images, photometric="minisblack")
+    filename = f"volume_t{{t}}_z{{z}}.{extension}"
+    template = str(tmp_path / filename) + "[{c:1}]"
+    reference = template.replace("{t}", "0").replace("{c:1}", "{c:2}") if with_reference else None
+    result = get_stacks(template, tmp_path / "results", (1, 1, 1), time_delta=1,
+                        reference_stack=reference)[0]
+    surface = saenopy.add_image_source(result, template.replace("{c:1}", "{c:2}"), time_mode="series")
+    mask = saenopy.add_image_source(result, template.replace("{z}", "0"), kind="mask", time_mode="series")
+    result.save()
+    result = saenopy.Result.load(result.output)
+    for t, stack in enumerate(result.stacks):
+        assert stack.channels == ["1", "0", "2"]
+        assert stack.shape == (5, 7, 2, 3)
+        for c, page in enumerate((1, 0, 2)):
+            np.testing.assert_array_equal(stack[0, 0, 0, :, c], [100 * t + 10 * page, 100 * t + 10 * page + 1])
+        source = saenopy.get_image_source(result, surface, t)
+        assert source.channels == ["2"]
+        np.testing.assert_array_equal(source[0, 0, 0, :, 0], [100 * t + 20, 100 * t + 21])
+        source = saenopy.get_image_source(result, mask, t)
+        assert source.channels == ["1"] and source.shape == (5, 7, 1, 1)
+        np.testing.assert_array_equal(source[:, :, 0, 0, 0], 100 * t + 10)
+    if with_reference:
+        assert result.stack_reference.channels == ["2", "0", "1"]
+        np.testing.assert_array_equal(result.stack_reference[0, 0, 0, :, 0], [20, 21])
+
+
+def test_tiff_channel_pages_validate_later_channels(tmp_path):
+    for t, z in itertools.product(range(2), repeat=2):
+        with tifffile.TiffWriter(tmp_path / f"volume_t{t}_z{z}.tiff") as writer:
+            for c in range(3):
+                shape = (4, 7) if (t, z, c) == (1, 1, 2) else (5, 7)
+                writer.write(np.zeros(shape, np.uint8), photometric="minisblack")
+    with pytest.raises(ValueError, match=r"volume_t1_z1\.tiff\[2\].*does not match previous shape"):
+        get_stacks(str(tmp_path / "volume_t{t}_z{z}.tiff") + "[{c:0}]",
+                   tmp_path / "results", (1, 1, 1), time_delta=1)
+    assert not list((tmp_path / "results").rglob("*.saenopy"))
