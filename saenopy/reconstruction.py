@@ -141,6 +141,11 @@ def fit_result(result, index=0, *, parameters=None, material_parameters=None,
     material.update(material_parameters or {})
     material = {key: None if value == "None" else value for key, value in material.items()}
     solver = result.solvers[index]
+    # A segmentation failure must leave an existing completed fit untouched.
+    surface = bool(params.get("surface", False))
+    geometry = None
+    if surface or params.get("exclude_cell_interior", False):
+        geometry = prepared_surface if prepared_surface is not None else prepare_surface(result, index, params)
     pr.reset_solver(solver)
     solver.mesh.cell_boundary_mask = None
     # A vector target needs all three finite components. Partial NaNs would
@@ -158,10 +163,7 @@ def fit_result(result, index=0, *, parameters=None, material_parameters=None,
         elif len(result.solvers) == 1:
             solver.set_initial_displacements(np.where(
                 solver.mesh.displacements_target_mask[:, None], solver.mesh.displacements_target, 0.))
-    surface = bool(params.get("surface", False))
-    geometry = None
-    if surface or params.get("exclude_cell_interior", False):
-        geometry = prepared_surface if prepared_surface is not None else prepare_surface(result, index, params)
+    if geometry is not None:
         sr.drop_targets(solver, geometry["inside"])
     if surface:
         sr.set_surface_regularization(solver, geometry["mask"])
