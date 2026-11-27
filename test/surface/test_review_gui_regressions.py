@@ -528,6 +528,52 @@ def test_unselected_batch_outlier_defaults_preserve_saved_and_pending_values(
     assert mesh.result is previous
 
 
+@pytest.mark.parametrize("selection", ["missing", "missing_with_source", "saved", "pending", "disabled"])
+def test_unselected_custom_mask_uses_own_selection_in_batch_and_export(gui_window, monkeypatch, selection):
+    from saenopy.gui.solver.modules.MeshCreator import MeshCreator
+    from saenopy.image_sources import get_custom_mask
+
+    mesh = gui_window.sub_module_mesh
+    previous, result = example_result(), example_result()
+    previous.image_sources = [SimpleNamespace(name="previous mask", kind="mask")]
+    previous.mesh_parameters["custom_mask"] = "local:0"
+    mesh.setResult(previous)
+    assert mesh.input_custom_mask.value() == "local:0"
+
+    result.stacks = [SimpleNamespace()]
+    if selection != "missing":
+        result.image_sources = [SimpleNamespace(name=f"own mask {i}", kind="mask", stacks=[object()])
+                                for i in range(2)]
+    expected = None
+    if selection in ("saved", "pending", "disabled"):
+        result.mesh_parameters["custom_mask"] = "local:0"
+        expected = "local:0"
+    if selection in ("pending", "disabled"):
+        expected = "local:1" if selection == "pending" else None
+        result.mesh_parameters_tmp = {"custom_mask": expected}
+    saved = dict(result.mesh_parameters)
+
+    # Export independently, before either path has initialized the other one.
+    export_result = copy.deepcopy(result)
+    queued = []
+    monkeypatch.setattr(gui_window, "addTask", lambda *args: queued.append(args))
+    mesh.start_process(result=result)
+    parameters = queued[0][2]["mesh_parameters"]
+    assert parameters["custom_mask"] == expected
+    mask = get_custom_mask(result, 0, parameters)
+    assert mask is (None if expected is None else result.image_sources[int(expected.split(":")[1])].stacks[0])
+    assert result.mesh_parameters == saved
+    assert mesh.result is previous
+    assert mesh.input_custom_mask.value() == "local:0"
+
+    imports, code = MeshCreator.get_code(SimpleNamespace(result=export_result))
+    namespace = {"results": []}
+    exec(imports + code, namespace)
+    assert namespace["mesh_parameters"].get("custom_mask") == expected
+    exported_mask = get_custom_mask(export_result, 0, namespace["mesh_parameters"])
+    assert exported_mask is (None if expected is None else export_result.image_sources[int(expected.split(":")[1])].stacks[0])
+
+
 def test_actual_channel_edit_after_dataset_switch_updates_fit_settings(gui_window):
     from saenopy import Result
     regularizer = gui_window.sub_module_regularize
